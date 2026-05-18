@@ -8,6 +8,9 @@ describe("public homepage card layout", () => {
 
     expect(page).toContain("futureSurfaceLinks")
     expect(page).toContain("Live feed")
+    expect(page).toContain("flex size-8 shrink-0")
+    expect(page).toContain("bg-[#e9f2ec] text-emerald-950")
+    expect(page).toContain("text-[0.58rem] font-medium uppercase leading-none tracking-[0.12em]")
     expect(page).toContain("API")
     expect(page).toContain("Skill")
     expect(page).toContain("MCP")
@@ -33,11 +36,21 @@ describe("public homepage card layout", () => {
 
   it("keeps the first screen focused on search and the article stream", () => {
     const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const copy = fs.readFileSync("apps/web/lib/i18n.ts", "utf8")
 
     expect(page).toContain('type="search"')
     expect(page).toContain("PublicTagFilter")
     expect(page).toContain("feed.meta.totalCount")
     expect(page).toContain("tagCounts.length")
+    expect(page).toContain("text.publicEyebrowLive")
+    expect(copy).toContain('publicEyebrowLive: "风险信号"')
+    expect(copy).toContain('publicEyebrowLive: "Risk signals"')
+    expect(page).toContain("dark:bg-emerald-300/10 dark:text-emerald-100")
+    expect(page).not.toContain("bg-zinc-950 text-stone-50")
+    expect(page).not.toContain("dark:bg-stone-100 dark:text-zinc-950")
+    expect(page).toContain("inline-flex h-7 items-center gap-2")
+    expect(page).toContain("text-xs font-medium tracking-normal")
+    expect(page).not.toContain("publicEyebrowBilingual")
     expect(page).not.toContain("heroStatusCards")
     expect(page).not.toContain("Signal console")
     expect(page).not.toContain("Vibe Coding Guardrail")

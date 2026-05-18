@@ -28,8 +28,7 @@ export const uiText = {
     publicBrand: "VibeGuard",
     publicBrandBadge: "风险流",
     publicBrandDescription: "把供应链攻击、恶意包与高危漏洞线索收进一个更清晰的阅读流里。",
-    publicEyebrowLive: "实时内容流",
-    publicEyebrowBilingual: "中英双语",
+    publicEyebrowLive: "风险信号",
     publicHeroTitle: "一个更适合中文用户浏览的开源风险情报首页。",
     publicHeroBody:
       "从安全内容源中抓取、整理并转成双语摘要，方便你先快速扫一眼，再决定哪篇值得点进去。",
@@ -86,8 +85,7 @@ export const uiText = {
     publicBrandBadge: "ORW",
     publicBrandDescription:
       "A calmer reading stream for supply-chain attacks, malicious packages, and critical vulnerability signals.",
-    publicEyebrowLive: "Live feed",
-    publicEyebrowBilingual: "Bilingual",
+    publicEyebrowLive: "Risk signals",
     publicHeroTitle: "An open-source risk intelligence homepage built for fast scanning.",
     publicHeroBody:
       "Ingest security sources, structure them, and turn them into bilingual summaries so you can decide what deserves a deeper read.",

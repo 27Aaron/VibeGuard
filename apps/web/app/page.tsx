@@ -131,17 +131,17 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
             <div className="grid min-w-0 gap-3 rounded-[1.55rem] bg-white/58 px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:rounded-full md:py-2 dark:bg-[#0c1218]/70">
               <Link
                 href={buildListHref({ page: 1 })}
-                className="flex min-w-0 items-center gap-3 rounded-full pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
+                className="flex min-w-0 items-center gap-2.5 rounded-full pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-950 text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] dark:bg-stone-100 dark:text-zinc-950">
-                  <ShieldCheck className="size-4" />
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-emerald-900/12 bg-[#e9f2ec] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] dark:border-emerald-200/14 dark:bg-emerald-300/10 dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <ShieldCheck className="size-3.5" />
                 </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold tracking-normal">
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="block text-sm font-semibold leading-none tracking-normal">
                     VibeGuard
                   </span>
-                  <span className="flex items-center gap-1.5 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-stone-400">
-                    <Radio className="size-3 text-emerald-700 dark:text-emerald-300" />
+                  <span className="flex items-center gap-1 text-[0.58rem] font-medium uppercase leading-none tracking-[0.12em] text-zinc-500 dark:text-stone-400">
+                    <Radio className="size-2.5 text-emerald-700 dark:text-emerald-300" />
                     Live feed
                   </span>
                 </span>
@@ -209,13 +209,10 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
         <section className="rounded-[2rem] border border-black/5 bg-white/48 p-1.5 shadow-[0_22px_62px_-42px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-[0_24px_70px_-48px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)]">
           <div className="rounded-[1.55rem] bg-[#fcfcfa]/92 p-4 shadow-[inset_0_0_0_1px_rgba(10,10,10,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] sm:p-5 dark:bg-[#10161d]/88 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-stone-400">
-                <span className="inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/72 px-3 py-1.5 dark:border-white/10 dark:bg-white/[0.055]">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-normal text-zinc-600 dark:text-stone-300">
+                <span className="inline-flex h-7 items-center gap-2 rounded-full border border-black/6 bg-white/72 px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.74),0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-white/[0.055] dark:shadow-none">
                   <span className="size-1.5 rounded-full bg-emerald-700 shadow-[0_0_0_5px_rgba(4,120,87,0.12)] dark:bg-emerald-300 dark:shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
                   {text.publicEyebrowLive}
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-black/6 bg-white/72 px-3 py-1.5 dark:border-white/10 dark:bg-white/[0.055]">
-                  {text.publicEyebrowBilingual}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-stone-400">
@@ -249,7 +246,7 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
                   title={text.search}
                   className={cn(
                     buttonVariants({ size: "icon", variant: "outline" }),
-                    "size-11 rounded-full border-black/6 bg-zinc-950 text-stone-50 hover:bg-zinc-800 hover:text-white dark:border-white/10 dark:bg-stone-100 dark:text-zinc-950 dark:hover:bg-white dark:hover:text-zinc-950",
+                    "size-11 rounded-full border-emerald-900/12 bg-[#e9f2ec] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#dcebe2] hover:text-emerald-950 dark:border-emerald-200/14 dark:bg-emerald-300/10 dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.24)] dark:hover:bg-emerald-300/14 dark:hover:text-emerald-50",
                   )}
                 >
                   <Search className="size-4" />
