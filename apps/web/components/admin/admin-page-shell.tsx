@@ -44,8 +44,8 @@ export function AdminPageShell({
                 href={`/admin?lang=${lang}`}
                 className="flex min-w-0 items-center gap-3 rounded-full pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-950 text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] dark:bg-stone-100 dark:text-zinc-950">
-                  <ShieldCheck className="size-4" />
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-emerald-900/12 bg-[#e9f2ec] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] dark:border-emerald-200/14 dark:bg-emerald-300/10 dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <ShieldCheck className="size-3.5" />
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold tracking-normal">
