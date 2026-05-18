@@ -1,0 +1,1 @@
+ALTER TYPE "public"."job_pipeline_stage" ADD VALUE 'generate_tags' BEFORE 'completed';
