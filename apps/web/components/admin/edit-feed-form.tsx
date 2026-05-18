@@ -13,11 +13,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { getAdminSelectClassName, getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import {
   IDLE_FORM_ACTION_RESULT,
   type FormActionResult,
 } from "@/lib/action-result"
 import type { AppLang } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 
 type EditFeedFormProps = {
   lang: AppLang
@@ -77,7 +79,7 @@ export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps)
               id="feedType"
               name="feedType"
               defaultValue={initialValues.feedType}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className={getAdminSelectClassName()}
             >
               <option value="rss">RSS</option>
               <option value="atom">Atom</option>
@@ -120,21 +122,21 @@ export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps)
               required
             />
           </div>
-          <label className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm">
+          <label className={cn("flex items-center gap-3 text-sm", getAdminSubtlePanelClassName())}>
             <input
               type="checkbox"
               name="enabled"
               defaultChecked={initialValues.enabled}
-              className="h-4 w-4 accent-foreground"
+              className="h-4 w-4 shrink-0 rounded border-black/20 accent-emerald-800 dark:border-white/20 dark:accent-emerald-300"
             />
             {lang === "zh" ? "启用该来源" : "Enable this source"}
           </label>
           {state.status !== "idle" ? (
             <div
-              className={`md:col-span-2 rounded-md border px-3 py-2 text-sm ${
+              className={`md:col-span-2 rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none ${
                 state.status === "error"
-                  ? "border-destructive/40 bg-destructive/5 text-destructive"
-                  : "border-border bg-muted/40 text-foreground"
+                  ? "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10"
+                  : "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
               }`}
               aria-live="polite"
             >

@@ -14,7 +14,7 @@ export function AdminNav({ current, lang }: { current?: string; lang: AppLang })
   ]
 
   return (
-    <nav className="flex flex-wrap items-center gap-2">
+    <nav className="grid w-full min-w-0 grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:items-center md:justify-self-center">
       {adminLinks.map((link) => {
         const active = current === link.href
 

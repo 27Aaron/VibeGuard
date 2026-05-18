@@ -43,10 +43,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     >
       {showBanner ? (
         <div
-          className={`rounded-lg border px-4 py-3 text-sm ${
+          className={`rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none ${
             params.status === "error"
-              ? "border-destructive/40 bg-destructive/5 text-destructive"
-              : "border-border bg-muted/40 text-foreground"
+              ? "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10"
+              : "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
           }`}
         >
           {params.message}

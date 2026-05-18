@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 
 import type { JobStageFilter, JobStatusFilter } from "@/components/admin/types"
 import { ADMIN_JOB_STAGE_FILTERS } from "@/lib/admin-job-pagination"
+import { getAdminSelectClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
 
 function stageLabel(stage: JobStageFilter, lang: AppLang) {
@@ -47,7 +48,7 @@ export function JobStageFilterSelect({
   return (
     <select
       aria-label={lang === "zh" ? "当前阶段" : "Current stage"}
-      className="h-8 min-w-28 rounded-md border border-slate-200 bg-background px-2 text-xs font-medium text-foreground outline-none transition-colors hover:bg-muted/40 focus:border-foreground/30 dark:border-white/10"
+      className={getAdminSelectClassName()}
       value={stage}
       onChange={(event) => {
         const nextStage = event.target.value as JobStageFilter

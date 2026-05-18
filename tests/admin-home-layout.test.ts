@@ -67,7 +67,8 @@ describe("admin home layout", () => {
     expect(page).toContain("group min-h-[92px]")
     expect(page).toContain("px-4 py-3")
     expect(page).toContain("items-center justify-between")
-    expect(page).toContain("text-sm leading-5 text-slate-500")
+    expect(page).toContain("text-sm leading-5 text-zinc-500")
+    expect(page).toContain("hover:border-emerald-900/15")
     expect(page).not.toContain("group min-h-[104px]")
     expect(page).not.toContain("text-sm leading-6 text-slate-500")
   })
@@ -76,7 +77,7 @@ describe("admin home layout", () => {
     const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
 
     expect(page).toContain("min-h-[104px]")
-    expect(page).toContain("justify-center py-3")
+    expect(page).toContain("justify-center py-4")
     expect(page).toContain(
       'CardContent className="grid min-h-[80px] content-center gap-2.5 px-5"'
     )

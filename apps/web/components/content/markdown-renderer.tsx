@@ -23,39 +23,43 @@ type MarkdownRendererProps = {
 
 const variantClasses = {
   public: {
-    root: "text-slate-700 dark:text-stone-200",
-    heading: "text-slate-950 dark:text-stone-50",
-    body: "text-slate-600 dark:text-stone-300",
-    border: "border-slate-200/80 dark:border-white/10",
-    codeInline: "border border-slate-200 bg-slate-50 text-slate-800 dark:border-white/10 dark:bg-white/10 dark:text-amber-100",
-    codeBlock: "border border-slate-200/80 bg-slate-50/90 text-slate-900 dark:border-white/10 dark:bg-[#0b0f14] dark:text-stone-100",
-    quote: "border-l-2 border-slate-300 bg-slate-100/70 text-slate-600 dark:border-amber-200/40 dark:bg-white/[0.03] dark:text-stone-300",
-    tableHead: "bg-slate-100/90 text-slate-900 dark:bg-white/[0.06] dark:text-stone-100",
-    tableCell: "border-slate-200/80 dark:border-white/10",
-    link: "text-slate-900 underline decoration-slate-300 underline-offset-4 hover:text-slate-700 hover:decoration-slate-500 dark:text-amber-200 dark:decoration-white/15 dark:hover:text-amber-100 dark:hover:decoration-amber-200/40",
-    hr: "border-slate-200/80 dark:border-white/10",
-    image: "border border-slate-200/80 bg-slate-100/70 dark:border-white/10 dark:bg-black/20",
-    caption: "text-slate-500 dark:text-stone-400",
+    root: "text-zinc-800 dark:text-stone-200",
+    heading: "text-zinc-950 dark:text-stone-50",
+    body: "text-zinc-600 dark:text-stone-300",
+    border: "border-black/5 dark:border-white/10",
+    codeInline: "border border-black/8 bg-[#eef2f7] text-zinc-900 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-100",
+    codeBlock:
+      "border border-black/5 bg-white/72 text-zinc-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-[#0b1117] dark:text-stone-100 dark:shadow-none",
+    quote:
+      "border-l-2 border-emerald-900/20 bg-[#f7fbf8] text-zinc-600 dark:border-emerald-200/20 dark:bg-[#121b17] dark:text-stone-300",
+    tableHead: "bg-white/56 text-zinc-950 dark:bg-white/[0.045] dark:text-stone-100",
+    tableCell: "border-black/5 dark:border-white/10",
+    link: "text-emerald-800 underline decoration-emerald-900/20 underline-offset-4 hover:text-emerald-950 hover:decoration-emerald-900/40 dark:text-emerald-300 dark:decoration-emerald-200/20 dark:hover:text-emerald-100 dark:hover:decoration-emerald-200/40",
+    hr: "border-black/5 dark:border-white/10",
+    image: "border border-black/5 bg-white/58 dark:border-white/10 dark:bg-white/[0.04]",
+    caption: "text-zinc-500 dark:text-stone-400",
     imageHint:
-      "bg-white/90 text-slate-900 ring-1 ring-slate-200 shadow-[0_12px_30px_rgba(15,23,42,0.12)] dark:bg-black/60 dark:text-stone-100 dark:ring-white/15 dark:shadow-none",
-    lightboxBackdrop: "bg-slate-950/80 backdrop-blur-sm dark:bg-black/88",
+      "bg-white/90 text-zinc-900 ring-1 ring-black/5 shadow-[0_12px_30px_rgba(15,23,42,0.12)] dark:bg-black/60 dark:text-stone-100 dark:ring-white/15 dark:shadow-none",
+    lightboxBackdrop: "bg-zinc-950/80 backdrop-blur-sm dark:bg-black/88",
   },
   admin: {
-    root: "text-foreground",
-    heading: "text-foreground",
-    body: "text-muted-foreground",
-    border: "border-border",
-    codeInline: "border border-border bg-muted px-1.5 py-0.5 text-[0.92em] text-foreground",
-    codeBlock: "border border-border bg-muted/60 text-foreground",
-    quote: "border-l-2 border-border bg-muted/30 text-muted-foreground",
-    tableHead: "bg-muted/50 text-foreground",
-    tableCell: "border-border",
-    link: "text-foreground underline decoration-border underline-offset-4 hover:text-foreground/80",
-    hr: "border-border",
-    image: "border border-border bg-muted/20",
-    caption: "text-muted-foreground",
+    root: "text-zinc-800 dark:text-stone-200",
+    heading: "text-zinc-950 dark:text-stone-50",
+    body: "text-zinc-600 dark:text-stone-300",
+    border: "border-black/5 dark:border-white/10",
+    codeInline: "border border-black/8 bg-[#eef2f7] px-1.5 py-0.5 text-[0.92em] text-zinc-900 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-100",
+    codeBlock:
+      "border border-black/5 bg-white/68 text-zinc-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-[#0b1117] dark:text-stone-100 dark:shadow-none",
+    quote:
+      "border-l-2 border-emerald-900/20 bg-[#f7fbf8] text-zinc-600 dark:border-emerald-200/20 dark:bg-[#121b17] dark:text-stone-300",
+    tableHead: "bg-white/56 text-zinc-950 dark:bg-white/[0.045] dark:text-stone-100",
+    tableCell: "border-black/5 dark:border-white/10",
+    link: "text-emerald-800 underline decoration-emerald-900/20 underline-offset-4 hover:text-emerald-950 hover:decoration-emerald-900/40 dark:text-emerald-300 dark:decoration-emerald-200/20 dark:hover:text-emerald-100 dark:hover:decoration-emerald-200/40",
+    hr: "border-black/5 dark:border-white/10",
+    image: "border border-black/5 bg-white/58 dark:border-white/10 dark:bg-white/[0.04]",
+    caption: "text-zinc-500 dark:text-stone-400",
     imageHint:
-      "bg-background/90 text-foreground ring-1 ring-border",
+      "bg-white/90 text-zinc-900 ring-1 ring-black/5 shadow-[0_12px_30px_rgba(15,23,42,0.12)] dark:bg-black/60 dark:text-stone-100 dark:ring-white/15 dark:shadow-none",
     lightboxBackdrop: "bg-background/88 backdrop-blur-sm",
   },
 } as const
@@ -312,7 +316,7 @@ export function MarkdownRenderer({
                         "inline-flex size-7 items-center justify-center rounded-full border text-[11px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60",
                         copied
                           ? "border-emerald-300/60 bg-emerald-500/10 text-emerald-600 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200"
-                          : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-stone-400 dark:hover:border-white/20 dark:hover:text-stone-100",
+                          : "border-black/8 bg-white text-zinc-500 hover:border-emerald-900/18 hover:text-emerald-800 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-400 dark:hover:border-emerald-200/20 dark:hover:text-emerald-300",
                       )}
                     >
                       {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}

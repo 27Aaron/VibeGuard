@@ -10,8 +10,9 @@ describe("interactive chip styles", () => {
 
     expect(helper).toContain("rounded-full")
     expect(helper).toContain("h-8")
-    expect(helper).toContain("border-slate-200/90")
-    expect(helper).toContain("dark:border-white/12")
+    expect(helper).toContain("border-black/8")
+    expect(helper).toContain("dark:border-white/8")
+    expect(helper).toContain("border-emerald-900/18 bg-[#dfe9e2]")
     expect(helper).toContain("text-[0.78rem]")
     expect(publicTagFilter).toContain("getInteractiveChipClassName(item.active)")
     expect(adminNav).toContain("getInteractiveChipClassName(active)")

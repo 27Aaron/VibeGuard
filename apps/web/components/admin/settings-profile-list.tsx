@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { activateLlmSettingsAction, testLlmSettingsAction } from "@/lib/actions/settings"
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
@@ -62,22 +63,22 @@ export function SettingsProfileList({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.035]">
+        <div className={getAdminSubtlePanelClassName()}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-slate-900 dark:text-stone-100">
+              <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
                 {copy.savedCountLabel}
               </p>
               <p className="text-sm text-muted-foreground">{copy.activeModelLabel}</p>
             </div>
-            <span className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-stone-300">
+            <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-2 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
               <Bot className="size-4" />
             </span>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]">
+        <div className={cn("flex items-center justify-between gap-3", getAdminSubtlePanelClassName())}>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-900 dark:text-stone-100">
+            <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
               {lang === "zh" ? "配置列表" : "Profiles"}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -98,8 +99,8 @@ export function SettingsProfileList({
           </Link>
         </div>
         {profiles.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200/90 bg-slate-50/70 px-4 py-5 dark:border-white/10 dark:bg-white/[0.035]">
-            <p className="text-sm font-medium text-slate-900 dark:text-stone-100">
+          <div className="rounded-[1.2rem] border border-dashed border-black/10 bg-white/58 px-4 py-5 dark:border-white/10 dark:bg-white/[0.04]">
+            <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
               {copy.emptyTitle}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">{copy.emptyBody}</p>
@@ -112,8 +113,10 @@ export function SettingsProfileList({
               <div
                 key={profile.id}
                 className={cn(
-                  "flex flex-col gap-3 rounded-lg border border-border px-4 py-3",
-                  isSelected && "border-foreground/20 bg-muted/40",
+                  "flex flex-col gap-3",
+                  getAdminSubtlePanelClassName(),
+                  isSelected &&
+                    "border-emerald-900/18 bg-[#f7fbf8] dark:border-emerald-200/14 dark:bg-[#121b17]",
                 )}
               >
                 <div className="flex items-start justify-between gap-3">

@@ -8,6 +8,7 @@ describe("public homepage minimal header", () => {
 
     expect(page).not.toContain("text.publicHeroTitle")
     expect(page).not.toContain("text.publicHeroBody")
+    expect(page).not.toContain("text.publicEyebrowReadable")
     expect(page).not.toContain("text.publicReadableArticles")
     expect(page).not.toContain("text.publicEnabledSources")
     expect(page).toContain("max-w-[1440px]")

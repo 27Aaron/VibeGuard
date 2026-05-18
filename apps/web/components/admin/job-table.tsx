@@ -6,6 +6,7 @@ import { retryJobAction } from "@/lib/actions/jobs"
 import type { JobRow, JobStageFilter, JobStatusFilter } from "@/components/admin/types"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
+import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import {
@@ -104,9 +105,9 @@ export function JobTable({
   pageSize: number
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/40 dark:border-white/10 dark:bg-white/[0.025]">
+    <div className={getAdminTableSurfaceClassName()}>
       <Table className="table-fixed">
-        <TableHeader className="bg-slate-50/70 dark:bg-white/[0.025]">
+        <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
             <TableHead className="w-14 px-4">
               <JobSelectAllCheckbox
@@ -159,14 +160,14 @@ export function JobTable({
           {jobs.map((job) => (
             <TableRow key={job.id}>
               <TableCell className="px-4 py-3 align-middle">
-                <label className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-muted/60 focus-within:bg-muted/60 focus-within:ring-2 focus-within:ring-foreground/20">
+                <label className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-black/8 bg-[#eef2f7] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] transition-colors hover:bg-[#e7ecf4] focus-within:ring-2 focus-within:ring-emerald-700/20 dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:focus-within:ring-emerald-200/20">
                   <input
                     aria-label={
                       lang === "zh"
                         ? `选择 ${job.articleTitle}`
                         : `Select ${job.articleTitle}`
                     }
-                    className="size-4 cursor-pointer rounded border-slate-300 text-foreground dark:border-white/20"
+                    className="size-4 cursor-pointer rounded border-black/20 accent-emerald-800 dark:border-white/20 dark:accent-emerald-300"
                     form="selected-jobs-form"
                     name="ids"
                     type="checkbox"

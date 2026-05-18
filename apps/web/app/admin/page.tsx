@@ -13,8 +13,10 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { runWorkerOnceAction } from "@/lib/actions/worker"
 import { getDashboardOverview, getJobPreviewRows } from "@/lib/admin-data"
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import { resolveLang } from "@/lib/i18n"
 import { decodeWorkerRunDetails } from "@/lib/worker-run"
+import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -32,14 +34,14 @@ function statusTone(status: string) {
 
 function runTone(run: string | undefined) {
   if (run === "failed") {
-    return "border-destructive/40 bg-destructive/5 text-destructive"
+    return "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10"
   }
 
   if (run === "warning") {
-    return "border-border bg-muted/40 text-foreground"
+    return "border-amber-900/18 bg-amber-50/70 text-amber-950 dark:border-amber-200/14 dark:bg-amber-200/8 dark:text-amber-100"
   }
 
-  return "border-border bg-muted/40 text-foreground"
+  return "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
 }
 
 type AdminEntry = {
@@ -199,7 +201,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
       lang={lang}
     >
       {runSummary ? (
-        <div className={`rounded-lg border px-4 py-3 text-sm ${runTone(params.run)}`}>
+        <div className={`rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none ${runTone(params.run)}`}>
           <p>{runSummary}</p>
           {params.message ? (
             <p className="mt-1 text-xs text-muted-foreground">{params.message}</p>
@@ -209,7 +211,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
               {runDetails.map((detail) => (
                 <div
                   key={`${detail.articleId}-${detail.status}`}
-                  className="rounded-md border border-border/60 bg-background/60 px-3 py-2"
+                  className="rounded-[0.9rem] border border-black/5 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="truncate text-sm font-medium">{detail.title}</p>
@@ -229,17 +231,17 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-stone-50">
+          <h2 className="text-lg font-semibold text-zinc-950 dark:text-stone-50">
             {copy.statusTitle}
           </h2>
           <p className="text-sm text-muted-foreground">{copy.statusBody}</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {overviewCards.map((card) => (
-            <Card key={card.title} className="min-h-[104px] justify-center py-3">
+            <Card key={card.title} className="min-h-[104px] justify-center py-4">
               <CardContent className="grid min-h-[80px] content-center gap-2.5 px-5">
                 <CardDescription className="leading-none">{card.title}</CardDescription>
-                <CardTitle className="text-lg leading-none">{card.value}</CardTitle>
+                <CardTitle className="text-lg leading-none text-zinc-950 dark:text-stone-50">{card.value}</CardTitle>
                 <p className="text-sm text-muted-foreground">{card.detail}</p>
               </CardContent>
             </Card>
@@ -264,23 +266,23 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
                   <Link
                     key={entry.href}
                     href={entry.href}
-                    className="group min-h-[92px] rounded-lg border border-slate-200/80 bg-white/70 px-4 py-3 transition-colors hover:border-slate-300 hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-white/20 dark:hover:bg-white/[0.06]"
+                    className="group min-h-[92px] rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]"
                   >
                     <div className="flex h-full items-center justify-between gap-3">
                       <div className="flex min-w-0 flex-col gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full border border-slate-200 bg-slate-50 p-1.5 text-slate-600 dark:border-white/10 dark:bg-white/[0.06] dark:text-stone-300">
+                          <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1.5 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
                             <Icon className="size-3.5" />
                           </span>
-                          <span className="text-sm font-semibold text-slate-950 dark:text-stone-100">
+                          <span className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
                             {entry.title}
                           </span>
                         </div>
-                        <p className="text-sm leading-5 text-slate-500 dark:text-stone-400">
+                        <p className="text-sm leading-5 text-zinc-500 dark:text-stone-400">
                           {entry.description}
                         </p>
                       </div>
-                      <ArrowRight className="size-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-600 dark:text-stone-500 dark:group-hover:text-stone-300" />
+                      <ArrowRight className="size-4 shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-800 dark:text-stone-500 dark:group-hover:text-emerald-300" />
                     </div>
                   </Link>
                 )
@@ -296,8 +298,8 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             {jobPreviewRows.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200/90 bg-slate-50/70 px-4 py-5 dark:border-white/10 dark:bg-white/[0.035]">
-                <p className="text-sm font-medium text-slate-900 dark:text-stone-100">
+              <div className="rounded-[1.15rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 dark:border-white/10 dark:bg-white/[0.04]">
+                <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
                   {copy.jobsEmptyStateTitle}
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">{copy.noJobs}</p>
@@ -307,7 +309,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
                 {jobPreviewRows.map((job) => (
                   <div
                     key={job.id}
-                    className="flex flex-col gap-2 rounded-lg border border-slate-200/80 bg-slate-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.035]"
+                    className={cn("flex flex-col gap-2", getAdminSubtlePanelClassName())}
                   >
                     <div className="flex min-w-0 items-center justify-between gap-3">
                       <p className="min-w-0 flex-1 truncate text-sm font-medium">
@@ -325,7 +327,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
                     </div>
                     <div className="grid items-end gap-3 text-xs text-muted-foreground sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-400 dark:text-stone-500">
+                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
                           {copy.jobTypeLabel}
                         </span>
                         <span>
@@ -337,7 +339,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
                         </span>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-400 dark:text-stone-500">
+                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
                           {copy.jobStatusLabel}
                         </span>
                         <span className={`whitespace-nowrap ${statusTone(job.status)}`}>
@@ -349,7 +351,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
                         </span>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-400 dark:text-stone-500">
+                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
                           {copy.jobTimeLabel}
                         </span>
                         <span>{job.runAt}</span>
@@ -359,7 +361,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
                 ))}
                 <Link
                   href={buildAdminHref(lang, "jobs")}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                  className="text-sm font-medium text-zinc-500 hover:text-emerald-800 dark:text-stone-400 dark:hover:text-emerald-300"
                 >
                   {copy.viewJobs}
                 </Link>

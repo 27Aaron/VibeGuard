@@ -26,6 +26,7 @@ import {
   fetchFeedNowAction,
   toggleFeedAction,
 } from "@/lib/actions/feeds"
+import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
@@ -46,13 +47,13 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
 
   if (feeds.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/70 px-6 py-10 dark:border-white/10 dark:bg-white/[0.035]">
+      <div className="rounded-[1.45rem] border border-dashed border-black/10 bg-white/58 px-6 py-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
         <div className="flex flex-col items-start gap-4">
-          <span className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-stone-300">
+          <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-2 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
             <Orbit className="size-4" />
           </span>
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-slate-900 dark:text-stone-100">
+            <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
               {copy.emptyStateTitle}
             </p>
             <p className="max-w-xl text-sm text-muted-foreground">{copy.emptyStateBody}</p>
@@ -70,9 +71,9 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/40 dark:border-white/10 dark:bg-white/[0.025]">
+    <div className={getAdminTableSurfaceClassName()}>
       <Table>
-        <TableHeader className="bg-slate-50/70 dark:bg-white/[0.025]">
+        <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
             <TableHead className="px-4">{lang === "zh" ? "来源" : "Source"}</TableHead>
             <TableHead className="px-4">{lang === "zh" ? "类型" : "Type"}</TableHead>
@@ -120,7 +121,7 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
               </TableCell>
               <TableCell className="px-4 py-3">{feed.lastSyncedAt}</TableCell>
               <TableCell className="px-4 py-3">
-                <div className="inline-flex flex-wrap items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/80 px-2 py-2 dark:border-white/10 dark:bg-white/[0.035]">
+                <div className="inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-black/5 bg-white/68 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
                   <Link
                     href={`/admin/feeds/${feed.id}?lang=${lang}`}
                     className={cn(

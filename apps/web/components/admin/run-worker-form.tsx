@@ -23,7 +23,7 @@ function SubmitButton({ lang }: { lang: AppLang }) {
         disabled={pending}
         variant="outline"
         size="lg"
-        className="w-full justify-between border-slate-200 bg-white text-slate-900 shadow-[0_10px_24px_rgba(15,23,42,0.05)] hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.045] dark:text-stone-100 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] sm:w-auto"
+        className="w-full justify-between rounded-full border-emerald-900/14 bg-[#f7fbf8] text-emerald-950 shadow-[0_1px_2px_rgba(15,23,42,0.10),0_5px_12px_rgba(20,83,45,0.10)] hover:border-emerald-900/22 hover:bg-white dark:border-emerald-200/14 dark:bg-[#18241e] dark:text-emerald-100 dark:shadow-none dark:hover:border-emerald-200/24 dark:hover:bg-[#1b2a22] sm:w-auto"
       >
         <span>{pending ? text.adminRunWorkerPending : text.adminRunWorker}</span>
         <RefreshCw className={pending ? "size-4 animate-spin" : "size-4"} />

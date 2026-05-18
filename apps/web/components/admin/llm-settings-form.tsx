@@ -24,9 +24,11 @@ import {
   IDLE_FORM_ACTION_RESULT,
   type FormActionResult,
 } from "@/lib/action-result"
+import { getAdminSelectClassName, getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
 import { resolveLang } from "@/lib/i18n"
 import { mergeModelOptions } from "@/lib/provider-models"
+import { cn } from "@/lib/utils"
 
 function FeedbackMessage({ state }: { state: FormActionResult }) {
   if (state.status === "idle") {
@@ -35,10 +37,10 @@ function FeedbackMessage({ state }: { state: FormActionResult }) {
 
   return (
     <div
-      className={`rounded-md border px-3 py-2 text-sm ${
+      className={`rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none ${
         state.status === "error"
-          ? "border-destructive/40 bg-destructive/5 text-destructive"
-          : "border-border bg-muted/40 text-foreground"
+          ? "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10"
+          : "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
       }`}
       aria-live="polite"
     >
@@ -315,7 +317,7 @@ export function LlmSettingsForm({
                     name="model"
                     value={model}
                     onChange={(event) => setModel(event.target.value)}
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    className={getAdminSelectClassName()}
                   >
                     {mergedModelOptions.map((option) => (
                       <option key={option} value={option}>
@@ -352,7 +354,7 @@ export function LlmSettingsForm({
                 ) : null}
               </div>
               <Separator />
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/30 px-3 py-3">
+              <div className={cn("flex items-center justify-between gap-4", getAdminSubtlePanelClassName())}>
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium">
                     {resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
@@ -369,7 +371,7 @@ export function LlmSettingsForm({
                   checked={isActive}
                   onChange={(event) => setIsActive(event.target.checked)}
                   aria-label={resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
-                  className="h-4 w-4 accent-foreground"
+                  className="h-4 w-4 rounded border-black/20 accent-emerald-800 dark:border-white/20 dark:accent-emerald-300"
                 />
               </div>
               <FeedbackMessage state={state} />

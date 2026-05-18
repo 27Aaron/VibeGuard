@@ -130,7 +130,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     >
       <span
         className={cn(
-          "absolute left-[2px] top-[2px] flex h-[26px] w-[26px] translate-x-0 items-center justify-center rounded-full border border-black/8 bg-white text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.14),0_4px_10px_rgba(15,23,42,0.12)] transition-[transform,background-color,color,border-color,box-shadow] duration-[980ms] ease-[cubic-bezier(0.08,0.82,0.17,1)] dark:translate-x-[24px] dark:border-white/10 dark:bg-[#090d12] dark:text-stone-100 dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_rgba(0,0,0,0.28)]",
+          "absolute left-[2px] top-[2px] flex h-[26px] w-[26px] translate-x-0 items-center justify-center rounded-full border border-black/8 bg-white text-zinc-700 shadow-[0_1px_2px_rgba(15,23,42,0.14),0_4px_10px_rgba(15,23,42,0.12)] transition-[transform,background-color,color,border-color,box-shadow] duration-[980ms] ease-[cubic-bezier(0.08,0.82,0.17,1)] dark:translate-x-[24px] dark:border-white/10 dark:bg-[#0c1218] dark:text-stone-100 dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_rgba(0,0,0,0.28)]",
         )}
       >
         <span className="relative flex h-[14px] w-[14px] items-center justify-center overflow-visible">

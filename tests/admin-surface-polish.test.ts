@@ -23,7 +23,7 @@ describe("admin surface polish", () => {
   it("groups feed actions into a compact operation cluster with icon affordances", () => {
     const file = fs.readFileSync("apps/web/components/admin/feed-table.tsx", "utf8")
 
-    expect(file).toContain("rounded-xl border border-slate-200/80")
+    expect(file).toContain("rounded-[1rem] border border-black/5 bg-white/68")
     expect(file).toContain("RefreshCw")
     expect(file).toContain("PauseCircle")
     expect(file).toContain("Trash2")

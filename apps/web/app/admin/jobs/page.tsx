@@ -19,6 +19,7 @@ import {
   parseAdminJobListParams,
 } from "@/lib/admin-job-pagination"
 import { getJobRows, getJobStatusCounts } from "@/lib/admin-data"
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import { resolveLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
@@ -128,8 +129,8 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           className={cn(
             "rounded-lg border px-4 py-3 text-sm",
             params.result === "success"
-              ? "border-border bg-muted/40 text-foreground"
-              : "border-destructive/40 bg-destructive/5 text-destructive",
+              ? "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
+              : "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10",
           )}
         >
           {params.message}
@@ -152,8 +153,9 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
               key={item.status}
               href={href}
               className={cn(
-                "rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/40",
-                active && "border-foreground/20 bg-muted/40",
+                "rounded-[1.2rem] border border-black/5 bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[background-color,border-color,transform] hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]",
+                active &&
+                  "border-emerald-900/18 bg-[#f7fbf8] dark:border-emerald-200/14 dark:bg-[#121b17]",
               )}
             >
               <div className="flex items-center justify-between gap-3">
@@ -225,9 +227,9 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           </div>
         </CardHeader>
         <CardContent className="px-6 pb-5">
-          <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200/80 bg-slate-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between">
+          <div className={cn("mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", getAdminSubtlePanelClassName())}>
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-slate-950 dark:text-stone-100">
+              <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
                 {rangeText}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -240,7 +242,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
               <span className="text-xs text-muted-foreground">
                 {lang === "zh" ? "每页展示" : "Rows per page"}
               </span>
-              <div className="flex items-center gap-1 rounded-lg border border-slate-200/80 bg-background p-1 dark:border-white/10 dark:bg-white/[0.025]">
+              <div className="flex items-center gap-1 rounded-full border border-black/8 bg-[#eef2f7] p-[3px] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)]">
                 {ADMIN_JOB_PAGE_SIZE_OPTIONS.map((option) => (
                   <Link
                     key={option}

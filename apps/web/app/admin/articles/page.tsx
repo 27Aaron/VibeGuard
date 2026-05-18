@@ -16,6 +16,7 @@ import {
   parseAdminArticleListParams,
 } from "@/lib/admin-article-pagination"
 import { getArticleRows } from "@/lib/admin-data"
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import { resolveLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
@@ -81,9 +82,9 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-5">
-          <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200/80 bg-slate-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between">
+          <div className={cn("mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", getAdminSubtlePanelClassName())}>
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-slate-950 dark:text-stone-100">
+              <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
                 {rangeText}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -96,7 +97,7 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
               <span className="text-xs text-muted-foreground">
                 {lang === "zh" ? "每页展示" : "Rows per page"}
               </span>
-              <div className="flex items-center gap-1 rounded-lg border border-slate-200/80 bg-background p-1 dark:border-white/10 dark:bg-white/[0.025]">
+              <div className="flex items-center gap-1 rounded-full border border-black/8 bg-[#eef2f7] p-[3px] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)]">
                 {ADMIN_ARTICLE_PAGE_SIZE_OPTIONS.map((option) => (
                   <Link
                     key={option}

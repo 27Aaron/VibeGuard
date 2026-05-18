@@ -2,6 +2,7 @@ import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 import type { ArticleRow } from "@/components/admin/types"
+import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
 import {
   Table,
@@ -27,9 +28,9 @@ function statusLabel(status: ArticleRow["status"], lang: AppLang) {
 
 export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang: AppLang }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/40 dark:border-white/10 dark:bg-white/[0.025]">
+    <div className={getAdminTableSurfaceClassName()}>
       <Table>
-        <TableHeader className="bg-slate-50/70 dark:bg-white/[0.025]">
+        <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
             <TableHead className="px-4">{lang === "zh" ? "标题" : "Title"}</TableHead>
             <TableHead className="px-4">{lang === "zh" ? "来源" : "Source"}</TableHead>
