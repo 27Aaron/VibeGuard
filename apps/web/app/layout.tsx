@@ -8,7 +8,10 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata = {
   title: "VibeGuard",
-  description: "面向中文用户的供应链攻击、依赖风险与开源安全内容流。"
+  description: "面向中文用户的供应链攻击、依赖风险与开源安全内容流。",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
