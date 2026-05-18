@@ -1,0 +1,84 @@
+import { AdminPageShell } from "@/components/admin/admin-page-shell"
+import { LlmSettingsForm } from "@/components/admin/llm-settings-form"
+import { SettingsProfileList } from "@/components/admin/settings-profile-list"
+import { getLlmSettingsDetail, getLlmSettingsRows } from "@/lib/admin-data"
+import { saveLlmSettingsAction } from "@/lib/actions/settings"
+import { resolveLang } from "@/lib/i18n"
+
+export const dynamic = "force-dynamic"
+
+type SettingsPageProps = {
+  searchParams?: Promise<{
+    lang?: string
+    profile?: string
+    status?: string
+    message?: string
+  }>
+}
+
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const params = (await searchParams) ?? {}
+  const lang = resolveLang(params.lang)
+  const [profiles, settings] = await Promise.all([
+    getLlmSettingsRows(),
+    getLlmSettingsDetail(params.profile),
+  ])
+  const selectedProfileId =
+    params.profile && params.profile !== "new" ? params.profile : settings.id
+  const showBanner = params.status === "success" || params.status === "error"
+
+  return (
+    <AdminPageShell
+      title={lang === "zh" ? "设置" : "Settings"}
+      description={
+        lang === "zh"
+          ? "配置模型服务、默认模型和内容处理链路的提示词。"
+          : "Configure model services, default models, and processing prompts."
+      }
+      currentNav="/admin/settings"
+      currentPath={
+        selectedProfileId ? `/admin/settings?profile=${selectedProfileId}` : "/admin/settings"
+      }
+      lang={lang}
+    >
+      {showBanner ? (
+        <div
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            params.status === "error"
+              ? "border-destructive/40 bg-destructive/5 text-destructive"
+              : "border-border bg-muted/40 text-foreground"
+          }`}
+        >
+          {params.message}
+        </div>
+      ) : null}
+      <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.86fr)_minmax(0,1.64fr)]">
+        <SettingsProfileList
+          profiles={profiles}
+          selectedProfileId={selectedProfileId}
+          lang={lang}
+        />
+        <LlmSettingsForm
+          provider={{
+            id: settings.id,
+            providerName: settings.providerName,
+            settingsName: settings.settingsName,
+            baseUrl: settings.baseUrl,
+            hasStoredApiKey: settings.hasStoredApiKey,
+            model: settings.model,
+            isActive: settings.isActive,
+          }}
+          pipeline={{
+            translationTitlePrompt: settings.translationTitlePrompt,
+            translationContentPrompt: settings.translationContentPrompt,
+            summaryPromptEn: settings.summaryPromptEn,
+            summaryPromptZh: settings.summaryPromptZh,
+            tagPrompt: settings.tagPrompt,
+          }}
+          lang={lang}
+          action={saveLlmSettingsAction}
+        />
+      </section>
+    </AdminPageShell>
+  )
+}

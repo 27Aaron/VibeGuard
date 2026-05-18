@@ -1,0 +1,100 @@
+export type FeedRow = {
+  id: string
+  name: string
+  siteUrl: string
+  feedUrl: string
+  feedType: string
+  pollIntervalMinutes: number
+  enabled: boolean
+  cadence: string
+  status: "enabled" | "paused"
+  lastSyncedAt: string
+}
+
+export type ArticleRow = {
+  id: string
+  title: string
+  titleEn: string
+  titleZh: string | null
+  source: string
+  status: "ready" | "processing" | "pending" | "failed"
+  publishedAt: string
+  updatedAt: string
+}
+
+export type DashboardOverviewCard = {
+  title: string
+  value: string
+  detail: string
+}
+
+export type JobPreviewRow = {
+  id: string
+  articleTitle: string
+  jobType: "extract" | "translate" | "summarize"
+  status: "queued" | "running" | "succeeded" | "failed"
+  runAt: string
+}
+
+export type JobRow = {
+  id: string
+  articleId: string
+  articleTitle: string
+  sourceName: string
+  jobType: "extract" | "translate" | "summarize"
+  status: "queued" | "running" | "succeeded" | "failed"
+  pipelineStage:
+    | "waiting"
+    | "fetch_source"
+    | "extract_content"
+    | "translate_title"
+    | "translate_content"
+    | "summarize_en"
+    | "summarize_zh"
+    | "generate_tags"
+    | "completed"
+  attempt: number
+  maxAttempts: number
+  runAt: string
+  startedAt: string
+  finishedAt: string
+  updatedAt: string
+  lastError: string | null
+}
+
+export type JobStatusFilter = "all" | "running" | "succeeded" | "failed"
+export type JobStageFilter = "all" | JobRow["pipelineStage"]
+
+export type JobStatusCount = {
+  status: JobStatusFilter
+  label: string
+  count: number
+}
+
+export type ProviderSettings = {
+  id: string
+  providerName: string
+  settingsName: string
+  baseUrl: string
+  hasStoredApiKey: boolean
+  model: string
+  isActive: boolean
+}
+
+export type LlmSettingsRow = {
+  id: string
+  name: string
+  baseUrl: string
+  model: string
+  isActive: boolean
+  hasStoredApiKey: boolean
+  updatedAt: string
+}
+
+export type PipelineSettings = {
+  translationTitlePrompt: string
+  translationContentPrompt: string
+  summaryPromptEn: string
+  summaryPromptZh: string
+  tagPrompt: string
+}
