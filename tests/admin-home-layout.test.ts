@@ -1,0 +1,94 @@
+import fs from "node:fs"
+
+import { describe, expect, it } from "vitest"
+
+describe("admin home layout", () => {
+  it("uses the shared admin page shell instead of a one-off header", () => {
+    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+
+    expect(page).toContain("AdminPageShell")
+    expect(page).toContain("title: \"总览\"")
+    expect(page).toContain("title: \"Overview\"")
+    expect(page).not.toContain("title: \"内容底座后台\"")
+    expect(page).not.toContain("title: \"Content Foundation Admin\"")
+    expect(page).not.toContain("badge:")
+  })
+
+  it("uses descriptive management entry cards instead of raw route strings", () => {
+    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+
+    expect(page).toContain("维护 RSS/Atom 来源，调整同步节奏。")
+    expect(page).toContain("检查入库内容，重生成标题、正文和摘要。")
+    expect(page).toContain("追踪处理步骤，定位失败并重试。")
+    expect(page).toContain("配置模型服务，维护翻译和摘要提示词。")
+    expect(page).not.toContain("/admin/feeds")
+    expect(page).not.toContain("/admin/articles")
+    expect(page).not.toContain("/admin/jobs")
+    expect(page).not.toContain("/admin/settings")
+  })
+
+  it("formats the worker trigger and job preview as productized cards", () => {
+    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+    const adminData = fs.readFileSync("apps/web/lib/admin-data.ts", "utf8")
+    const i18n = fs.readFileSync("apps/web/lib/i18n.ts", "utf8")
+
+    expect(page).toContain("statusTitle")
+    expect(page).toContain("operationsTitle")
+    expect(page).toContain("queueTitle")
+    expect(page).toContain("最近 5 条 Worker 任务")
+    expect(page).toContain("The latest 5 worker jobs")
+    expect(page).not.toContain("最近 6 条 Worker 任务")
+    expect(page).not.toContain("The latest 6 worker jobs")
+    expect(page).toContain("jobsEmptyStateTitle")
+    expect(page).toContain("jobTypeLabel")
+    expect(page).toContain("jobStatusLabel")
+    expect(adminData).toContain(".limit(5)")
+    expect(adminData).not.toContain(".limit(6)")
+    expect(i18n).toContain('adminRunWorker: "抓取并处理一次"')
+    expect(i18n).toContain('adminRunWorker: "Fetch and process once"')
+    expect(i18n).not.toContain('adminRunWorker: "手动执行一轮"')
+    expect(i18n).not.toContain('adminRunWorker: "Run worker once"')
+  })
+
+  it("keeps processing queue rows compact with one-line title and status", () => {
+    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+
+    expect(page).toContain("px-4 py-3")
+    expect(page).toContain("min-w-0 flex-1 truncate")
+    expect(page).toContain("shrink-0 whitespace-nowrap")
+    expect(page).toContain("items-end gap-3")
+    expect(page).not.toContain("px-4 py-4 dark:border-white/10 dark:bg-white/[0.035]")
+  })
+
+  it("keeps the common action entry buttons compact and vertically balanced", () => {
+    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+
+    expect(page).toContain("grid gap-2.5 sm:grid-cols-2")
+    expect(page).toContain("group min-h-[92px]")
+    expect(page).toContain("px-4 py-3")
+    expect(page).toContain("items-center justify-between")
+    expect(page).toContain("text-sm leading-5 text-slate-500")
+    expect(page).not.toContain("group min-h-[104px]")
+    expect(page).not.toContain("text-sm leading-6 text-slate-500")
+  })
+
+  it("keeps overview metric cards compact with more comfortable horizontal padding", () => {
+    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+
+    expect(page).toContain("min-h-[104px]")
+    expect(page).toContain("justify-center py-3")
+    expect(page).toContain(
+      'CardContent className="grid min-h-[80px] content-center gap-2.5 px-5"'
+    )
+    expect(page).toContain('CardDescription className="leading-none"')
+    expect(page).not.toContain('className="min-h-[128px]"')
+    expect(page).not.toContain('size="sm" className="min-h-[104px]"')
+    expect(page).not.toContain('CardHeader className="px-5"')
+  })
+
+  it("keeps the settings page columns top-aligned so the profile rail does not stretch into empty space", () => {
+    const page = fs.readFileSync("apps/web/app/admin/settings/page.tsx", "utf8")
+
+    expect(page).toContain("grid items-start gap-6")
+  })
+})
