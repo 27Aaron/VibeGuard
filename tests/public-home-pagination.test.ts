@@ -8,8 +8,8 @@ describe("public homepage pagination", () => {
     const emptyStateBoundary = page.indexOf("{feed.items.length === 0")
     const paginationUsage = page.indexOf("<PaginationControls")
 
-    expect(page).toContain("px-6 pt-8 pb-5")
-    expect(page).toContain('<footer className="flex justify-center border-t border-slate-200/75 pt-4')
+    expect(page).toContain("px-4 pb-8 pt-4")
+    expect(page).toContain('<footer className="flex justify-center border-t border-black/5 pt-4')
     expect(paginationUsage).toBeGreaterThan(emptyStateBoundary)
     expect(page).toContain("<PaginationControls")
     expect(page).toContain("currentPage={currentPage}")
