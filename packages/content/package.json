@@ -1,0 +1,21 @@
+{
+  "name": "@content-foundation/content",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./extract/article-html": "./src/extract/article-html.ts",
+    "./extract/defuddle": "./src/extract/defuddle.ts",
+    "./feed/fetch-feed": "./src/feed/fetch-feed.ts",
+    "./feed/normalize": "./src/feed/normalize.ts",
+    "./feed/store": "./src/feed/store.ts"
+  },
+  "dependencies": {
+    "@content-foundation/db": "workspace:*",
+    "@content-foundation/shared": "workspace:*",
+    "defuddle": "^0.18.1",
+    "drizzle-orm": "^0.45.2",
+    "linkedom": "^0.18.12",
+    "rss-parser": "^3.13.0"
+  }
+}

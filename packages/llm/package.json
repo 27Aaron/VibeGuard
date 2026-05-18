@@ -1,0 +1,17 @@
+{
+  "name": "@content-foundation/llm",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./credentials": "./src/credentials.ts",
+    "./prompts": "./src/prompts.ts",
+    "./tags": "./src/tags.ts",
+    "./translate": "./src/translate.ts",
+    "./summarize": "./src/summarize.ts"
+  },
+  "dependencies": {
+    "openai": "^6.38.0"
+  }
+}

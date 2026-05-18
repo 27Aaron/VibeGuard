@@ -1,0 +1,19 @@
+{
+  "name": "ingestion-worker",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@content-foundation/content": "workspace:*",
+    "@content-foundation/db": "workspace:*",
+    "@content-foundation/llm": "workspace:*",
+    "@content-foundation/shared": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "tsx": "^4.20.6"
+  }
+}
