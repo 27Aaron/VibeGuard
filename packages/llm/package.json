@@ -1,5 +1,5 @@
 {
-  "name": "@content-foundation/llm",
+  "name": "@vibeguard/llm",
   "private": true,
   "type": "module",
   "exports": {

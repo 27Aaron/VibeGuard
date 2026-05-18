@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { JobPipelineStage, JobStatus, JobType } from "@content-foundation/shared";
+import { JobPipelineStage, JobStatus, JobType } from "@vibeguard/shared";
 
 import {
   buildExtractJobInsert,

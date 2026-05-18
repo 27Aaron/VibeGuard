@@ -5,7 +5,7 @@ import { buildRssFeedXml } from "../apps/web/lib/rss"
 describe("rss feed builder", () => {
   it("renders a valid RSS channel with escaped content", () => {
     const xml = buildRssFeedXml({
-      title: "Content Foundation Feed",
+      title: "VibeGuard Feed",
       description: "Security <feed> & updates",
       siteUrl: "http://127.0.0.1:3000",
       feedUrl: "http://127.0.0.1:3000/rss.xml?lang=zh",

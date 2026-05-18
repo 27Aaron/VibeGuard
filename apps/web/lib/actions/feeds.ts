@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { eq } from "drizzle-orm"
 
-import { articles, getDb, feeds } from "@content-foundation/db"
+import { articles, getDb, feeds } from "@vibeguard/db"
 import { processQueuedJobs, pollFeedNow } from "worker"
 import {
   type FormActionResult,

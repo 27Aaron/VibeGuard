@@ -3,7 +3,7 @@ import {
   type ArticleEcosystem as ArticleEcosystemValue,
   ArticleRiskCategory,
   type ArticleRiskCategory as ArticleRiskCategoryValue,
-} from "@content-foundation/shared"
+} from "@vibeguard/shared"
 
 type ClassifySecurityContentInput = {
   sourceName?: string | null

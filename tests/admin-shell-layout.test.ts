@@ -14,6 +14,6 @@ describe("admin shell layout", () => {
     expect(shell).toContain("border-b border-slate-200/75 pb-6 dark:border-white/10")
     expect(shell).not.toContain("adminShellLabel")
     expect(shell).not.toContain("内容底座后台")
-    expect(shell).not.toContain("Content Foundation Admin")
+    expect(shell).not.toContain("VibeGuard Admin")
   })
 })

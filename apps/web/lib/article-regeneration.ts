@@ -4,8 +4,8 @@ import {
   generateTags as generateTagsWithModel,
   summarizeText as summarizeWithModel,
   translateText as translateWithModel,
-} from "@content-foundation/llm"
-import { ArticleStatus } from "@content-foundation/shared"
+} from "@vibeguard/llm"
+import { ArticleStatus } from "@vibeguard/shared"
 
 export const ARTICLE_REGENERATION_TARGETS = [
   "full",

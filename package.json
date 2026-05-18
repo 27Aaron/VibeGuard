@@ -1,23 +1,23 @@
 {
-  "name": "content-foundation",
+  "name": "vibeguard",
   "private": true,
   "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "dev:web": "pnpm --filter web dev",
-    "dev:worker": "pnpm --filter worker dev",
+    "dev:web": "node scripts/with-env.mjs --local-defaults pnpm --filter web dev",
+    "dev:worker": "node scripts/with-env.mjs --local-defaults pnpm --filter worker dev",
     "dev:stack": "node scripts/dev-stack.mjs",
-    "build:web": "pnpm --filter web build",
-    "lint:web": "pnpm --filter web lint",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "build:web": "node scripts/with-env.mjs --local-defaults pnpm --filter web build",
+    "lint:web": "node scripts/with-env.mjs pnpm --filter web lint",
+    "db:generate": "node scripts/with-env.mjs --local-defaults drizzle-kit generate",
+    "db:migrate": "node scripts/with-env.mjs --local-defaults drizzle-kit migrate",
     "lint": "pnpm lint:web",
-    "test": "vitest run",
-    "typecheck": "pnpm --dir apps/web exec tsc --noEmit --project tsconfig.json && pnpm exec tsc --noEmit --project tsconfig.workspace.json"
+    "test": "node scripts/with-env.mjs vitest run",
+    "typecheck": "node scripts/with-env.mjs pnpm --dir apps/web exec tsc --noEmit --project tsconfig.json && node scripts/with-env.mjs pnpm exec tsc --noEmit --project tsconfig.workspace.json"
   },
   "dependencies": {
-    "@content-foundation/db": "workspace:*",
-    "@content-foundation/llm": "workspace:*",
-    "@content-foundation/shared": "workspace:*"
+    "@vibeguard/db": "workspace:*",
+    "@vibeguard/llm": "workspace:*",
+    "@vibeguard/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",

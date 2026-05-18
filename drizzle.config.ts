@@ -1,10 +1,8 @@
 import { defineConfig } from "drizzle-kit";
 
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required to load Code/drizzle.config.ts.");
-}
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  "postgresql://postgres:postgres@127.0.0.1:5432/vibeguard";
 
 export default defineConfig({
   schema: "./packages/db/src/schema.ts",

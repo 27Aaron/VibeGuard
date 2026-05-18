@@ -4,13 +4,13 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { and, eq, ne } from "drizzle-orm"
-import { createOpenAIClient } from "@content-foundation/llm/client"
+import { createOpenAIClient } from "@vibeguard/llm/client"
 import {
   decryptSecret,
   encryptSecret,
-} from "@content-foundation/llm/credentials"
+} from "@vibeguard/llm/credentials"
 
-import { getDb, llmSettings } from "@content-foundation/db"
+import { getDb, llmSettings } from "@vibeguard/db"
 import {
   type FormActionResult,
   errorResult,

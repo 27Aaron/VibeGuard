@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 
-import { getDb, llmSettings } from "@content-foundation/db"
-import { createOpenAIClient } from "@content-foundation/llm/client"
-import { decryptSecret } from "@content-foundation/llm/credentials"
+import { getDb, llmSettings } from "@vibeguard/db"
+import { createOpenAIClient } from "@vibeguard/llm/client"
+import { decryptSecret } from "@vibeguard/llm/credentials"
 import { resolveLang } from "@/lib/i18n"
 import { normalizeProviderErrorMessage } from "@/lib/provider-models"
 

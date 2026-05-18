@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { ArticleStatus, JobType } from "@content-foundation/shared"
+import { ArticleStatus, JobType } from "@vibeguard/shared"
 
 import {
   buildSummaryPrompt,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { decryptSecret, encryptSecret } from "@content-foundation/llm/credentials"
+import { decryptSecret, encryptSecret } from "@vibeguard/llm/credentials"
 
 import {
   buildModelAvailabilityMessage,
@@ -62,19 +62,19 @@ describe("admin settings helpers", () => {
 
   describe("secret helpers", () => {
     it("round-trips encrypted secrets", () => {
-      process.env.CONTENT_FOUNDATION_SECRET = "test-secret"
+      process.env.VIBEGUARD_SECRET = "test-secret"
       const ciphertext = encryptSecret("sk-test-123")
 
       expect(decryptSecret(ciphertext)).toBe("sk-test-123")
     })
 
     it("falls back to an empty string for corrupted payloads", () => {
-      process.env.CONTENT_FOUNDATION_SECRET = "test-secret"
+      process.env.VIBEGUARD_SECRET = "test-secret"
       expect(decryptSecret("not-a-valid-payload")).toBe("")
     })
 
     it("falls back to an empty string when the auth tag is tampered with", () => {
-      process.env.CONTENT_FOUNDATION_SECRET = "test-secret"
+      process.env.VIBEGUARD_SECRET = "test-secret"
       const ciphertext = encryptSecret("sk-test-123")
       const [iv, _tag, encrypted] = ciphertext.split(".")
 
@@ -83,11 +83,20 @@ describe("admin settings helpers", () => {
       ).toBe("")
     })
 
+    it("keeps the legacy secret name as a fallback", () => {
+      delete process.env.VIBEGUARD_SECRET
+      process.env.CONTENT_FOUNDATION_SECRET = "test-secret"
+      const ciphertext = encryptSecret("sk-test-123")
+
+      expect(decryptSecret(ciphertext)).toBe("sk-test-123")
+    })
+
     it("fails fast when the encryption secret is missing", () => {
+      delete process.env.VIBEGUARD_SECRET
       delete process.env.CONTENT_FOUNDATION_SECRET
 
       expect(() => encryptSecret("sk-test-123")).toThrow(
-        "CONTENT_FOUNDATION_SECRET is required",
+        "VIBEGUARD_SECRET is required",
       )
     })
   })

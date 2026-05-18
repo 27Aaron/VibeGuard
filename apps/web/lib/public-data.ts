@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm"
 
-import { articles, getDb, getPool } from "@content-foundation/db"
+import { articles, getDb, getPool } from "@vibeguard/db"
 
 import { listArticles } from "./api-articles"
 

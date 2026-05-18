@@ -7,7 +7,7 @@ import {
   JobStatus,
   JOB_TYPE_VALUES,
   JobType,
-} from "@content-foundation/shared";
+} from "@vibeguard/shared";
 import {
   articleStatusEnum,
   articleStatusValues,
@@ -15,7 +15,7 @@ import {
   jobStatusValues,
   jobTypeEnum,
   jobTypeValues,
-} from "@content-foundation/db";
+} from "@vibeguard/db";
 
 const originalDatabaseUrl = process.env.DATABASE_URL;
 
@@ -66,11 +66,13 @@ describe("shared status enums", () => {
     expect(jobTypeEnum.enumValues).toStrictEqual(jobTypeValues);
   });
 
-  it("should fail fast when drizzle config loads without DATABASE_URL", async () => {
+  it("should use the local VibeGuard database by default for migrations", async () => {
     delete process.env.DATABASE_URL;
 
-    await expect(import("../drizzle.config")).rejects.toThrow(
-      "DATABASE_URL is required",
-    );
+    const config = await import("../drizzle.config");
+
+    expect(config.default.dbCredentials).toEqual({
+      url: "postgresql://postgres:postgres@127.0.0.1:5432/vibeguard",
+    });
   });
 });

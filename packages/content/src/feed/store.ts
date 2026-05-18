@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { articles, schema } from "@content-foundation/db";
-import { ArticleStatus } from "@content-foundation/shared";
+import { articles, schema } from "@vibeguard/db";
+import { ArticleStatus } from "@vibeguard/shared";
 
 import { classifySecurityContent } from "../classify";
 import { normalizeFeedItem, type FeedItemInput } from "./normalize";

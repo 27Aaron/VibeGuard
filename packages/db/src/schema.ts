@@ -20,7 +20,7 @@ import {
   JOB_PIPELINE_STAGE_VALUES,
   JOB_STATUS_VALUES,
   JOB_TYPE_VALUES,
-} from "@content-foundation/shared";
+} from "@vibeguard/shared";
 
 export const articleStatusValues = ARTICLE_STATUS_VALUES;
 export const articleEcosystemValues = ARTICLE_ECOSYSTEM_VALUES;

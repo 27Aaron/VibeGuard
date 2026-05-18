@@ -6,8 +6,8 @@ import {
   feeds,
   llmSettings,
   processingJobs,
-} from "@content-foundation/db"
-import { DEFAULT_TAG_PROMPT, resolveTagPrompt } from "@content-foundation/llm"
+} from "@vibeguard/db"
+import { DEFAULT_TAG_PROMPT, resolveTagPrompt } from "@vibeguard/llm"
 import { normalizeUserFacingError } from "./errors"
 import {
   DEFAULT_ADMIN_ARTICLE_PAGE_SIZE,

@@ -1,5 +1,5 @@
 {
-  "name": "@content-foundation/content",
+  "name": "@vibeguard/content",
   "private": true,
   "type": "module",
   "exports": {
@@ -11,8 +11,8 @@
     "./feed/store": "./src/feed/store.ts"
   },
   "dependencies": {
-    "@content-foundation/db": "workspace:*",
-    "@content-foundation/shared": "workspace:*",
+    "@vibeguard/db": "workspace:*",
+    "@vibeguard/shared": "workspace:*",
     "defuddle": "^0.18.1",
     "drizzle-orm": "^0.45.2",
     "linkedom": "^0.18.12",

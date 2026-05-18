@@ -7,7 +7,7 @@ import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata = {
-  title: "开源风险观察",
+  title: "VibeGuard",
   description: "面向中文用户的供应链攻击、依赖风险与开源安全内容流。"
 };
 

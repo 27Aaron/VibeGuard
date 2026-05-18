@@ -25,7 +25,7 @@ export const uiText = {
     zhLabel: "中文",
     enLabel: "英文",
     languageToggleAdmin: "后台",
-    publicBrand: "开源风险观察",
+    publicBrand: "VibeGuard",
     publicBrandBadge: "风险流",
     publicBrandDescription: "把供应链攻击、恶意包与高危漏洞线索收进一个更清晰的阅读流里。",
     publicEyebrowLive: "实时内容流",
@@ -61,8 +61,8 @@ export const uiText = {
     codeLabel: "代码",
     copyCode: "复制代码",
     copiedCode: "已复制",
-    rssFeedTitle: "开源风险观察中文订阅",
-    rssFeedTitleWithSource: (source: string) => `开源风险观察中文订阅 - ${source}`,
+    rssFeedTitle: "VibeGuard 中文订阅",
+    rssFeedTitleWithSource: (source: string) => `VibeGuard 中文订阅 - ${source}`,
     rssFeedDescription: "面向中文用户的供应链攻击、依赖风险与开源安全内容流。",
     rssFeedDescriptionWithSource: (source: string) =>
       `面向中文用户的供应链攻击、依赖风险与开源安全内容流。当前来源：${source}。`,
@@ -84,7 +84,7 @@ export const uiText = {
     zhLabel: "Chinese",
     enLabel: "English",
     languageToggleAdmin: "Admin",
-    publicBrand: "Open Source Risk Watch",
+    publicBrand: "VibeGuard",
     publicBrandBadge: "ORW",
     publicBrandDescription:
       "A calmer reading stream for supply-chain attacks, malicious packages, and critical vulnerability signals.",
@@ -122,9 +122,9 @@ export const uiText = {
     codeLabel: "Code",
     copyCode: "Copy code",
     copiedCode: "Copied",
-    rssFeedTitle: "Open Source Risk Watch English Feed",
+    rssFeedTitle: "VibeGuard English Feed",
     rssFeedTitleWithSource: (source: string) =>
-      `Open Source Risk Watch English Feed - ${source}`,
+      `VibeGuard English Feed - ${source}`,
     rssFeedDescription:
       "A bilingual stream of supply-chain attacks, dependency risk, and open-source security updates.",
     rssFeedDescriptionWithSource: (source: string) =>

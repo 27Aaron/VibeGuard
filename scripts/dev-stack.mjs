@@ -1,17 +1,17 @@
 import { spawn } from "node:child_process";
 import net from "node:net";
 
+import { applyLocalEnvDefaults, loadRootEnv } from "./load-env.mjs";
+
+loadRootEnv();
+applyLocalEnvDefaults();
+
 const packageManagerCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const webPort = Number(process.env.PORT ?? "3000");
 const webHost = process.env.HOSTNAME ?? "127.0.0.1";
 
 const sharedEnv = {
   ...process.env,
-  DATABASE_URL:
-    process.env.DATABASE_URL ??
-    "postgresql://postgres:postgres@127.0.0.1:5432/content_foundation",
-  CONTENT_FOUNDATION_SECRET:
-    process.env.CONTENT_FOUNDATION_SECRET ?? "test-secret",
 };
 
 const processes = [

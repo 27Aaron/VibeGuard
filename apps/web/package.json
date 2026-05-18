@@ -2,14 +2,14 @@
   "name": "web",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint . --max-warnings=0"
+    "dev": "node ../../scripts/with-env.mjs --local-defaults next dev",
+    "build": "node ../../scripts/with-env.mjs --local-defaults next build",
+    "start": "node ../../scripts/with-env.mjs --local-defaults next start",
+    "lint": "node ../../scripts/with-env.mjs eslint . --max-warnings=0"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
-    "@content-foundation/llm": "workspace:*",
+    "@vibeguard/llm": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",

@@ -1,5 +1,5 @@
 const DEFAULT_USER_AGENT =
-  "content-foundation-bot/0.1 (+https://localhost/content-foundation)";
+  "vibeguard-bot/0.1 (+https://localhost/vibeguard)";
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BYTES = 2_000_000;
 

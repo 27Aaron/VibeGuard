@@ -1,14 +1,14 @@
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { fetchFeed } from "@content-foundation/content/feed/fetch-feed";
-import type { FeedItemInput } from "@content-foundation/content/feed/normalize";
+import { fetchFeed } from "@vibeguard/content/feed/fetch-feed";
+import type { FeedItemInput } from "@vibeguard/content/feed/normalize";
 import {
   insertFeedItem,
   type InsertFeedItemResult,
   type ToArticleInsertInput,
-} from "@content-foundation/content/feed/store";
-import { feeds, getDb, schema } from "@content-foundation/db";
+} from "@vibeguard/content/feed/store";
+import { feeds, getDb, schema } from "@vibeguard/db";
 
 import { enqueueExtractJob } from "./jobs";
 

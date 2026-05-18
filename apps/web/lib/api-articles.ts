@@ -1,13 +1,13 @@
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm"
 
-import { articles, getDb } from "@content-foundation/db"
+import { articles, getDb } from "@vibeguard/db"
 import {
   ARTICLE_ECOSYSTEM_VALUES,
   ARTICLE_RISK_CATEGORY_VALUES,
   type ArticleEcosystem,
   type ArticleRiskCategory,
   type ArticleStatus,
-} from "@content-foundation/shared"
+} from "@vibeguard/shared"
 
 import { pickArticleLocale } from "./article-content"
 import { resolveLang } from "./i18n"

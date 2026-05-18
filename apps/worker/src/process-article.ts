@@ -3,13 +3,13 @@ import { createHash } from "node:crypto"
 import { and, eq } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
-import { fetchArticleHtml } from "@content-foundation/content/extract/article-html"
+import { fetchArticleHtml } from "@vibeguard/content/extract/article-html"
 import {
   classifySecurityContent,
   extractMarkdownFromHtml,
   type ExtractedArticle,
-} from "@content-foundation/content"
-import { articles, llmSettings, schema } from "@content-foundation/db"
+} from "@vibeguard/content"
+import { articles, llmSettings, schema } from "@vibeguard/db"
 import {
   createOpenAIClient,
   decryptSecret,
@@ -18,8 +18,8 @@ import {
   resolveTagPrompt,
   summarizeText,
   translateText,
-} from "@content-foundation/llm"
-import { ArticleStatus, JobPipelineStage, JobType } from "@content-foundation/shared"
+} from "@vibeguard/llm"
+import { ArticleStatus, JobPipelineStage, JobType } from "@vibeguard/shared"
 
 import {
   claimQueuedJobById,

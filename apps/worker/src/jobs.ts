@@ -1,7 +1,7 @@
 import { and, asc, eq, lte } from "drizzle-orm";
 
-import { processingJobs, schema } from "@content-foundation/db";
-import { JobPipelineStage, JobStatus, JobType } from "@content-foundation/shared";
+import { processingJobs, schema } from "@vibeguard/db";
+import { JobPipelineStage, JobStatus, JobType } from "@vibeguard/shared";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 type ContentDb = NodePgDatabase<typeof schema>;

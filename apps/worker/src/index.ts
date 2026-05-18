@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 
-import { closeDb, getDb } from "@content-foundation/db";
+import { closeDb, getDb } from "@vibeguard/db";
 
 import { pollActiveFeeds } from "./poll-feeds";
 import { processQueuedJobs } from "./process-article";

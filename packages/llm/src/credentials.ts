@@ -1,11 +1,13 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto"
 
 function getEncryptionKey() {
-  const secret = process.env.CONTENT_FOUNDATION_SECRET?.trim()
+  const secret =
+    process.env.VIBEGUARD_SECRET?.trim() ??
+    process.env.CONTENT_FOUNDATION_SECRET?.trim()
 
   if (!secret) {
     throw new Error(
-      "CONTENT_FOUNDATION_SECRET is required to encrypt or decrypt provider credentials.",
+      "VIBEGUARD_SECRET is required to encrypt or decrypt provider credentials.",
     )
   }
 

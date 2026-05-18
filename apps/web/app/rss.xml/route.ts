@@ -9,11 +9,11 @@ export const dynamic = "force-dynamic"
 function buildFeedTitle(lang: string, source: string | null) {
   if (source) {
     return lang === "zh"
-      ? `开源风险观察中文订阅 - ${source}`
-      : `Open Source Risk Watch English Feed - ${source}`
+      ? `VibeGuard 中文订阅 - ${source}`
+      : `VibeGuard English Feed - ${source}`
   }
 
-  return lang === "zh" ? "开源风险观察中文订阅" : "Open Source Risk Watch English Feed"
+  return lang === "zh" ? "VibeGuard 中文订阅" : "VibeGuard English Feed"
 }
 
 function buildFeedDescription(lang: string, source: string | null) {

@@ -1,5 +1,5 @@
 {
-  "name": "@content-foundation/shared",
+  "name": "@vibeguard/shared",
   "private": true,
   "type": "module",
   "exports": {

@@ -5,13 +5,13 @@ import { redirect } from "next/navigation"
 
 import { and, eq, inArray, sql } from "drizzle-orm"
 
-import { articles, getDb, processingJobs } from "@content-foundation/db"
+import { articles, getDb, processingJobs } from "@vibeguard/db"
 import {
   ArticleStatus,
   JobPipelineStage,
   JobStatus,
   JobType,
-} from "@content-foundation/shared"
+} from "@vibeguard/shared"
 
 import {
   ARTICLE_REGENERATION_TARGETS,

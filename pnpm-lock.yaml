@@ -12,13 +12,13 @@ importers:
 
   .:
     dependencies:
-      '@content-foundation/db':
+      '@vibeguard/db':
         specifier: workspace:*
         version: link:packages/db
-      '@content-foundation/llm':
+      '@vibeguard/llm':
         specifier: workspace:*
         version: link:packages/llm
-      '@content-foundation/shared':
+      '@vibeguard/shared':
         specifier: workspace:*
         version: link:packages/shared
     devDependencies:
@@ -40,7 +40,7 @@ importers:
       '@base-ui/react':
         specifier: ^1.4.1
         version: 1.4.1(@types/react@19.2.14)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@content-foundation/llm':
+      '@vibeguard/llm':
         specifier: workspace:*
         version: link:../../packages/llm
       class-variance-authority:
@@ -119,16 +119,16 @@ importers:
 
   apps/worker:
     dependencies:
-      '@content-foundation/content':
+      '@vibeguard/content':
         specifier: workspace:*
         version: link:../../packages/content
-      '@content-foundation/db':
+      '@vibeguard/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@content-foundation/llm':
+      '@vibeguard/llm':
         specifier: workspace:*
         version: link:../../packages/llm
-      '@content-foundation/shared':
+      '@vibeguard/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       drizzle-orm:
@@ -140,10 +140,10 @@ importers:
 
   packages/content:
     dependencies:
-      '@content-foundation/db':
+      '@vibeguard/db':
         specifier: workspace:*
         version: link:../db
-      '@content-foundation/shared':
+      '@vibeguard/shared':
         specifier: workspace:*
         version: link:../shared
       defuddle:
@@ -161,7 +161,7 @@ importers:
 
   packages/db:
     dependencies:
-      '@content-foundation/shared':
+      '@vibeguard/shared':
         specifier: workspace:*
         version: link:../shared
       drizzle-orm:

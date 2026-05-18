@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { ArticleStatus } from "@content-foundation/shared"
+import { ArticleStatus } from "@vibeguard/shared"
 
 import {
   getRegenerationRequirementError,

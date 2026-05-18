@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { closeDb, getPool } from "@content-foundation/db";
+import { closeDb, getPool } from "@vibeguard/db";
 
 const describeIfDatabase = process.env.DATABASE_URL ? describe : describe.skip;
 

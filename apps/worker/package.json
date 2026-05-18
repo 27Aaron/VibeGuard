@@ -6,13 +6,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "node ../../scripts/with-env.mjs --local-defaults tsx watch src/index.ts"
   },
   "dependencies": {
-    "@content-foundation/content": "workspace:*",
-    "@content-foundation/db": "workspace:*",
-    "@content-foundation/llm": "workspace:*",
-    "@content-foundation/shared": "workspace:*",
+    "@vibeguard/content": "workspace:*",
+    "@vibeguard/db": "workspace:*",
+    "@vibeguard/llm": "workspace:*",
+    "@vibeguard/shared": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "tsx": "^4.20.6"
   }

@@ -5,12 +5,12 @@ import { redirect } from "next/navigation"
 
 import { eq, inArray, sql } from "drizzle-orm"
 
-import { articles, getDb, processingJobs } from "@content-foundation/db"
+import { articles, getDb, processingJobs } from "@vibeguard/db"
 import {
   ArticleStatus,
   JobPipelineStage,
   JobStatus,
-} from "@content-foundation/shared"
+} from "@vibeguard/shared"
 import { processQueuedJobsByIds } from "worker"
 
 import { normalizeUserFacingError } from "../errors"

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation"
 import { inArray } from "drizzle-orm"
 
-import { articles, getDb } from "@content-foundation/db"
+import { articles, getDb } from "@vibeguard/db"
 import { runWorkerCycle } from "worker"
 
 import {

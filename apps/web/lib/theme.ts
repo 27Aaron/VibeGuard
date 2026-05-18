@@ -1,4 +1,4 @@
-export const THEME_STORAGE_KEY = "content-foundation-theme"
+export const THEME_STORAGE_KEY = "vibeguard-theme"
 
 export type ThemePreference = "light" | "dark" | "system"
 export type ResolvedTheme = "light" | "dark"

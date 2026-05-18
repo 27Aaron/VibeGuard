@@ -10,7 +10,7 @@ describe("admin home layout", () => {
     expect(page).toContain("title: \"总览\"")
     expect(page).toContain("title: \"Overview\"")
     expect(page).not.toContain("title: \"内容底座后台\"")
-    expect(page).not.toContain("title: \"Content Foundation Admin\"")
+    expect(page).not.toContain("title: \"VibeGuard Admin\"")
     expect(page).not.toContain("badge:")
   })
 

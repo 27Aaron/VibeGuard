@@ -1,5 +1,5 @@
 {
-  "name": "@content-foundation/db",
+  "name": "@vibeguard/db",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,7 +10,7 @@
     "db:migrate": "pnpm --dir ../.. db:migrate"
   },
   "dependencies": {
-    "@content-foundation/shared": "workspace:*",
+    "@vibeguard/shared": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "pg": "^8.21.0"
   },
