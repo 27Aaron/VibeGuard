@@ -1,0 +1,45 @@
+# Build output and caches
+.cache/
+.next/
+.next-dev/
+.turbo/
+.vite/
+build/
+coverage/
+dist/
+out/
+*.tsbuildinfo
+
+# Dependencies and package-manager state
+.npm/
+.pnpm-store/
+node_modules/
+
+# Editor and OS local files
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+!.env.*.example
+!.env.example
+
+# Local databases, backups, and logs
+*.bak
+*.db
+*.dump
+*.log
+*.sqlite
+*.sqlite3
+*.tmp
+*.temp
+
+# Local-only project documents
+docs/
