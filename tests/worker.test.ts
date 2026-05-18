@@ -7,20 +7,20 @@ import {
   buildJobFailureUpdate,
   buildStaleRunningJobUpdate,
   buildJobSuccessUpdate,
-} from "../workers/ingestion/src/jobs";
+} from "../apps/worker/src/jobs";
 import {
   processArticleJob,
   processQueuedJobs,
   processQueuedJobsByIds,
-} from "../workers/ingestion/src/process-article";
+} from "../apps/worker/src/process-article";
 import {
   pollFeed,
   pollActiveFeeds,
   pollFeedNow,
   shouldPollFeed,
   type ActiveFeed,
-} from "../workers/ingestion/src/poll-feeds";
-import { assertSuccessfulWorkerCycle } from "../workers/ingestion/src/index";
+} from "../apps/worker/src/poll-feeds";
+import { assertSuccessfulWorkerCycle } from "../apps/worker/src/index";
 
 describe("buildExtractJobInsert", () => {
   it("should build a queued extract job payload", () => {

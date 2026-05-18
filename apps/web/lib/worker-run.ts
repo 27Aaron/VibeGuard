@@ -1,4 +1,4 @@
-import type { WorkerCycleSummary } from "ingestion-worker"
+import type { WorkerCycleSummary } from "worker"
 import { normalizeUserFacingError } from "./errors"
 
 export type WorkerRunDetail = {

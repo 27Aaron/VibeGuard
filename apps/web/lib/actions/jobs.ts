@@ -11,7 +11,7 @@ import {
   JobPipelineStage,
   JobStatus,
 } from "@content-foundation/shared"
-import { processQueuedJobsByIds } from "ingestion-worker"
+import { processQueuedJobsByIds } from "worker"
 
 import { normalizeUserFacingError } from "../errors"
 import { resolveLang } from "../i18n"

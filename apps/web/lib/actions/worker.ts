@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { inArray } from "drizzle-orm"
 
 import { articles, getDb } from "@content-foundation/db"
-import { runWorkerCycle } from "ingestion-worker"
+import { runWorkerCycle } from "worker"
 
 import {
   buildWorkerRunErrorParams,

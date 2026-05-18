@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 import { eq } from "drizzle-orm"
 
 import { articles, getDb, feeds } from "@content-foundation/db"
-import { processQueuedJobs, pollFeedNow } from "ingestion-worker"
+import { processQueuedJobs, pollFeedNow } from "worker"
 import {
   type FormActionResult,
   errorResult,

@@ -5,7 +5,7 @@ import { ArticleStatus, JobType } from "@content-foundation/shared"
 import {
   buildSummaryPrompt,
   processArticleJob,
-} from "../workers/ingestion/src/process-article"
+} from "../apps/worker/src/process-article"
 
 describe("buildSummaryPrompt", () => {
   it("adds an explicit locale instruction", () => {

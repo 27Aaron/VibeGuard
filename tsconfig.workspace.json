@@ -6,7 +6,7 @@
   "include": [
     "drizzle.config.ts",
     "packages/**/*.ts",
-    "workers/**/*.ts"
+    "apps/worker/**/*.ts"
   ],
   "exclude": [
     "apps/web",
