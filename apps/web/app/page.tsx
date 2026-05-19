@@ -331,7 +331,7 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
                   href={buildArticleHref(article.id)}
                   className="flex flex-col gap-3 rounded-[1.25rem] bg-[#fcfcfa]/92 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 dark:bg-[#10161d]/92"
                 >
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
                     <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500 dark:text-stone-400">
                       <Badge variant="outline" className="border-black/6 bg-white/70 text-[11px] font-semibold tracking-[0.18em] text-zinc-600 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-300">
                         {article.sourceName.toUpperCase()}
