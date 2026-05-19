@@ -136,7 +136,7 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-emerald-900/12 bg-[#e9f2ec] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] dark:border-emerald-200/14 dark:bg-emerald-300/10 dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <ShieldCheck className="size-3.5" />
                 </span>
-                <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="flex min-w-0 flex-col items-center gap-0.5">
                   <span className="block text-sm font-semibold leading-none tracking-normal">
                     VibeGuard
                   </span>

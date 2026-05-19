@@ -30,12 +30,12 @@ export function AdminHeader() {
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-emerald-900/12 bg-[#e9f2ec] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] dark:border-emerald-200/14 dark:bg-emerald-300/10 dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
               <ShieldCheck className="size-3.5" />
             </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold tracking-normal">
+            <span className="flex min-w-0 flex-col items-center gap-0.5">
+              <span className="block text-sm font-semibold leading-none tracking-normal">
                 VibeGuard
               </span>
-              <span className="flex items-center gap-1.5 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-stone-400">
-                <Radio className="size-3 text-emerald-700 dark:text-emerald-300" />
+              <span className="flex items-center gap-1 text-[0.58rem] font-medium uppercase leading-none tracking-[0.12em] text-zinc-500 dark:text-stone-400">
+                <Radio className="size-2.5 text-emerald-700 dark:text-emerald-300" />
                 Console
               </span>
             </span>
