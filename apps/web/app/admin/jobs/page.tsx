@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Check, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell"
+import { SoftLink } from "@/components/admin/soft-link"
 import { JobTable } from "@/components/admin/job-table"
 import type { JobStageFilter, JobStatusFilter } from "@/components/admin/types"
 import { buttonVariants } from "@/components/ui/button"
@@ -245,7 +246,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
               </span>
               <div className="flex items-center gap-1 rounded-full border border-black/8 bg-[#eef2f7] p-[3px] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)]">
                 {ADMIN_JOB_PAGE_SIZE_OPTIONS.map((option) => (
-                  <Link
+                  <SoftLink
                     key={option}
                     href={buildJobsHref({
                       lang,
@@ -265,7 +266,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
                     aria-current={option === pagination.pageSize ? "page" : undefined}
                   >
                     {option}
-                  </Link>
+                  </SoftLink>
                 ))}
               </div>
             </div>
@@ -280,56 +281,40 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           />
           <div className="mt-4 flex justify-end">
             <div className="flex items-center gap-2">
-              {hasPreviousPage ? (
-                <Link
-                  href={buildJobsHref({
-                    lang,
-                    status,
-                    stage,
-                    page: previousPage,
-                    pageSize: pagination.pageSize,
-                  })}
-                  className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
-                >
-                  <ChevronLeft className="size-3.5" />
-                  {lang === "zh" ? "上一页" : "Previous"}
-                </Link>
-              ) : (
-                <span
-                  className={cn(
-                    buttonVariants({ size: "sm", variant: "outline" }),
-                    "pointer-events-none opacity-50",
-                  )}
-                >
-                  <ChevronLeft className="size-3.5" />
-                  {lang === "zh" ? "上一页" : "Previous"}
-                </span>
-              )}
-              {hasNextPage ? (
-                <Link
-                  href={buildJobsHref({
-                    lang,
-                    status,
-                    stage,
-                    page: nextPage,
-                    pageSize: pagination.pageSize,
-                  })}
-                  className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
-                >
-                  {lang === "zh" ? "下一页" : "Next"}
-                  <ChevronRight className="size-3.5" />
-                </Link>
-              ) : (
-                <span
-                  className={cn(
-                    buttonVariants({ size: "sm", variant: "outline" }),
-                    "pointer-events-none opacity-50",
-                  )}
-                >
-                  {lang === "zh" ? "下一页" : "Next"}
-                  <ChevronRight className="size-3.5" />
-                </span>
-              )}
+              <SoftLink
+                href={buildJobsHref({
+                  lang,
+                  status,
+                  stage,
+                  page: previousPage,
+                  pageSize: pagination.pageSize,
+                })}
+                disabled={!hasPreviousPage}
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "outline" }),
+                  !hasPreviousPage && "pointer-events-none opacity-50",
+                )}
+              >
+                <ChevronLeft className="size-3.5" />
+                {lang === "zh" ? "上一页" : "Previous"}
+              </SoftLink>
+              <SoftLink
+                href={buildJobsHref({
+                  lang,
+                  status,
+                  stage,
+                  page: nextPage,
+                  pageSize: pagination.pageSize,
+                })}
+                disabled={!hasNextPage}
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "outline" }),
+                  !hasNextPage && "pointer-events-none opacity-50",
+                )}
+              >
+                {lang === "zh" ? "下一页" : "Next"}
+                <ChevronRight className="size-3.5" />
+              </SoftLink>
             </div>
           </div>
         </CardContent>
