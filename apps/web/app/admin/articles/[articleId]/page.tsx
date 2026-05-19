@@ -16,6 +16,7 @@ import { AdminPageShell } from "@/components/admin/admin-page-shell"
 import { MarkdownRenderer, MarkdownSummary } from "@/components/content/markdown-renderer"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
+import { SearchToast } from "@/components/ui/search-toast"
 import {
   Card,
   CardContent,
@@ -150,18 +151,7 @@ export default async function ArticleDetailPage({
       currentPath={`/admin/articles/${articleId}`}
       lang={resolvedLang}
     >
-      {message ? (
-        <div
-          className={cn(
-            "rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none",
-            status === "success"
-              ? "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
-              : "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10",
-          )}
-        >
-          {message}
-        </div>
-      ) : null}
+      <SearchToast status={status} message={message} />
 
       <div
         className={cn(
