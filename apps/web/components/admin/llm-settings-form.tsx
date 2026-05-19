@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react"
 import { useFormStatus } from "react-dom"
+import { ChevronDown, ChevronRight } from "lucide-react"
 
 import type {
   PipelineSettings,
@@ -45,6 +46,71 @@ function FeedbackMessage({ state }: { state: FormActionResult }) {
       aria-live="polite"
     >
       {state.message}
+    </div>
+  )
+}
+
+function CollapsiblePromptField({
+  id,
+  name,
+  label,
+  value,
+  onChange,
+  lang,
+}: {
+  id: string
+  name: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  lang: AppLang
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={id} className="text-sm font-medium">
+          {label}
+        </label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 shrink-0 px-2 text-xs text-muted-foreground"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? (
+            <>
+              <ChevronDown className="size-3.5" />
+              {lang === "zh" ? "收起" : "Collapse"}
+            </>
+          ) : (
+            <>
+              <ChevronRight className="size-3.5" />
+              {lang === "zh" ? "展开" : "Expand"}
+            </>
+          )}
+        </Button>
+      </div>
+      {expanded ? (
+        <Textarea
+          id={id}
+          name={name}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      ) : (
+        <>
+          <input type="hidden" name={name} value={value} />
+          <div
+            className="line-clamp-2 cursor-pointer rounded-md border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground leading-relaxed hover:bg-muted/50"
+            onClick={() => setExpanded(true)}
+          >
+            {value || (lang === "zh" ? "未配置" : "Not configured")}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -100,6 +166,7 @@ export function LlmSettingsForm({
   const [summaryPromptEn, setSummaryPromptEn] = useState(pipeline.summaryPromptEn)
   const [summaryPromptZh, setSummaryPromptZh] = useState(pipeline.summaryPromptZh)
   const [tagPrompt, setTagPrompt] = useState(pipeline.tagPrompt)
+  const [relevancePrompt, setRelevancePrompt] = useState(pipeline.relevancePrompt)
   const [modelOptions, setModelOptions] = useState(
     provider.model ? [provider.model] : [],
   )
@@ -121,6 +188,7 @@ export function LlmSettingsForm({
     setSummaryPromptEn(pipeline.summaryPromptEn)
     setSummaryPromptZh(pipeline.summaryPromptZh)
     setTagPrompt(pipeline.tagPrompt)
+    setRelevancePrompt(pipeline.relevancePrompt)
     setModelOptions(provider.model ? [provider.model] : [])
     setModelFeedback("")
   }, [
@@ -134,6 +202,7 @@ export function LlmSettingsForm({
     pipeline.summaryPromptEn,
     pipeline.summaryPromptZh,
     pipeline.tagPrompt,
+    pipeline.relevancePrompt,
   ])
 
   async function loadProviderModels() {
@@ -194,6 +263,7 @@ export function LlmSettingsForm({
   }
 
   function resetPipelineDraft() {
+    setRelevancePrompt(pipeline.relevancePrompt)
     setTranslationTitlePrompt(pipeline.translationTitlePrompt)
     setTranslationContentPrompt(pipeline.translationContentPrompt)
     setSummaryPromptEn(pipeline.summaryPromptEn)
@@ -248,6 +318,11 @@ export function LlmSettingsForm({
             type="hidden"
             name="tagPrompt"
             value={tagPrompt}
+          />
+          <input
+            type="hidden"
+            name="relevancePrompt"
+            value={relevancePrompt}
           />
           <Card>
             <CardHeader>
@@ -414,63 +489,54 @@ export function LlmSettingsForm({
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label htmlFor="title-prompt" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "标题翻译 Prompt" : "Title translation prompt"}
-                </label>
-                <Textarea
-                  id="title-prompt"
-                  name="translateTitlePrompt"
-                  value={translationTitlePrompt}
-                  onChange={(event) => setTranslationTitlePrompt(event.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="system-prompt" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "正文翻译 Prompt" : "Body translation prompt"}
-                </label>
-                <Textarea
-                  id="system-prompt"
-                  name="translateContentPrompt"
-                  value={translationContentPrompt}
-                  onChange={(event) =>
-                    setTranslationContentPrompt(event.target.value)
-                  }
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="summary-prompt-en" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "英文摘要 Prompt" : "English summary prompt"}
-                </label>
-                <Textarea
-                  id="summary-prompt-en"
-                  name="summaryPromptEn"
-                  value={summaryPromptEn}
-                  onChange={(event) => setSummaryPromptEn(event.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="summary-prompt-zh" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "中文摘要 Prompt" : "Chinese summary prompt"}
-                </label>
-                <Textarea
-                  id="summary-prompt-zh"
-                  name="summaryPromptZh"
-                  value={summaryPromptZh}
-                  onChange={(event) => setSummaryPromptZh(event.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="tag-prompt" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "Tag 提取 Prompt" : "Tag extraction prompt"}
-                </label>
-                <Textarea
-                  id="tag-prompt"
-                  name="tagPrompt"
-                  value={tagPrompt}
-                  onChange={(event) => setTagPrompt(event.target.value)}
-                />
-              </div>
+              <CollapsiblePromptField
+                id="relevance-prompt"
+                name="relevancePrompt"
+                label={resolvedLang === "zh" ? "内容相关性判断 Prompt" : "Content relevance prompt"}
+                value={relevancePrompt}
+                onChange={setRelevancePrompt}
+                lang={resolvedLang}
+              />
+              <CollapsiblePromptField
+                id="title-prompt"
+                name="translateTitlePrompt"
+                label={resolvedLang === "zh" ? "标题翻译 Prompt" : "Title translation prompt"}
+                value={translationTitlePrompt}
+                onChange={setTranslationTitlePrompt}
+                lang={resolvedLang}
+              />
+              <CollapsiblePromptField
+                id="system-prompt"
+                name="translateContentPrompt"
+                label={resolvedLang === "zh" ? "正文翻译 Prompt" : "Body translation prompt"}
+                value={translationContentPrompt}
+                onChange={setTranslationContentPrompt}
+                lang={resolvedLang}
+              />
+              <CollapsiblePromptField
+                id="summary-prompt-en"
+                name="summaryPromptEn"
+                label={resolvedLang === "zh" ? "英文摘要 Prompt" : "English summary prompt"}
+                value={summaryPromptEn}
+                onChange={setSummaryPromptEn}
+                lang={resolvedLang}
+              />
+              <CollapsiblePromptField
+                id="summary-prompt-zh"
+                name="summaryPromptZh"
+                label={resolvedLang === "zh" ? "中文摘要 Prompt" : "Chinese summary prompt"}
+                value={summaryPromptZh}
+                onChange={setSummaryPromptZh}
+                lang={resolvedLang}
+              />
+              <CollapsiblePromptField
+                id="tag-prompt"
+                name="tagPrompt"
+                label={resolvedLang === "zh" ? "Tag 提取 Prompt" : "Tag extraction prompt"}
+                value={tagPrompt}
+                onChange={setTagPrompt}
+                lang={resolvedLang}
+              />
               <FeedbackMessage state={state} />
             </CardContent>
             <CardFooter className="justify-end gap-2">

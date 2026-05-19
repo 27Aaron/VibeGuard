@@ -68,6 +68,7 @@ export async function saveLlmSettingsAction(
     const summaryPromptEn = String(formData.get("summaryPromptEn") ?? "").trim()
     const summaryPromptZh = String(formData.get("summaryPromptZh") ?? "").trim()
     const tagPrompt = String(formData.get("tagPrompt") ?? "").trim()
+    const relevancePrompt = String(formData.get("relevancePrompt") ?? "").trim()
     const requestedIsActive = formData.get("isActive") === "on"
 
     if (
@@ -78,7 +79,8 @@ export async function saveLlmSettingsAction(
       !translateContentPrompt ||
       !summaryPromptEn ||
       !summaryPromptZh ||
-      !tagPrompt
+      !tagPrompt ||
+      !relevancePrompt
     ) {
       return errorResult(
         lang === "zh"
@@ -118,6 +120,7 @@ export async function saveLlmSettingsAction(
       summaryPromptEn,
       summaryPromptZh,
       tagPrompt,
+      relevancePrompt,
       isActive,
     }
 

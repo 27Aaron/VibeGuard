@@ -7,7 +7,7 @@ import {
   llmSettings,
   processingJobs,
 } from "@vibeguard/db"
-import { DEFAULT_TAG_PROMPT, resolveTagPrompt } from "@vibeguard/llm"
+import { DEFAULT_TAG_PROMPT, resolveRelevancePrompt, resolveTagPrompt } from "@vibeguard/llm"
 import { normalizeUserFacingError } from "./errors"
 import {
   DEFAULT_ADMIN_ARTICLE_PAGE_SIZE,
@@ -60,6 +60,10 @@ export function normalizeTranslationContentPrompt(input: string | null | undefin
 
 export function normalizeTagPrompt(input: string | null | undefined) {
   return resolveTagPrompt(input)
+}
+
+export function normalizeRelevancePrompt(input: string | null | undefined) {
+  return resolveRelevancePrompt(input)
 }
 
 export async function getFeedRows(lang: AppLang = "zh") {
@@ -134,6 +138,7 @@ export async function getActiveLlmSettings() {
       fallback: DEFAULT_SUMMARY_PROMPT_ZH,
     }),
     tagPrompt: normalizeTagPrompt(row.tagPrompt),
+    relevancePrompt: normalizeRelevancePrompt(row.relevancePrompt),
   }
 }
 
@@ -152,6 +157,7 @@ function buildDefaultLlmSettings() {
     summaryPromptEn: DEFAULT_SUMMARY_PROMPT_EN,
     summaryPromptZh: DEFAULT_SUMMARY_PROMPT_ZH,
     tagPrompt: DEFAULT_TAG_PROMPT,
+    relevancePrompt: normalizeRelevancePrompt(null),
   }
 }
 
@@ -210,6 +216,7 @@ export async function getLlmSettingsDetail(profileId?: string) {
       fallback: DEFAULT_SUMMARY_PROMPT_ZH,
     }),
     tagPrompt: normalizeTagPrompt(row.tagPrompt),
+    relevancePrompt: normalizeRelevancePrompt(row.relevancePrompt),
   }
 }
 
@@ -369,6 +376,14 @@ export async function getJobStatusCounts(lang: AppLang = "zh") {
 
   const countMap = new Map(counts.map((row) => [row.status, Number(row.count)]))
 
+  // 统计被过滤的文章关联的任务数
+  const [filteredCountRow] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(processingJobs)
+    .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
+    .where(eq(articles.status, "filtered"))
+  const filteredCount = Number(filteredCountRow?.count ?? 0)
+
   return [
     {
       status: "all",
@@ -377,11 +392,12 @@ export async function getJobStatusCounts(lang: AppLang = "zh") {
     },
     { status: "running", label: lang === "zh" ? "执行中" : "Running", count: countMap.get("running") ?? 0 },
     { status: "failed", label: lang === "zh" ? "失败" : "Failed", count: countMap.get("failed") ?? 0 },
+    { status: "filtered", label: lang === "zh" ? "已过滤" : "Filtered", count: filteredCount },
     { status: "succeeded", label: lang === "zh" ? "已完成" : "Succeeded", count: countMap.get("succeeded") ?? 0 },
   ] as const
 }
 
-type JobStatusInput = "all" | "running" | "succeeded" | "failed"
+type JobStatusInput = "all" | "running" | "succeeded" | "failed" | "filtered"
 
 export async function getJobRows(input: Partial<AdminJobListParams> & {
   status?: JobStatusInput
@@ -394,16 +410,19 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
   const pageSize = input.pageSize ?? DEFAULT_ADMIN_JOB_PAGE_SIZE
   const requestedPage = Math.max(1, Math.floor(input.page ?? 1))
   const filters = [
-    status === "all" ? undefined : eq(processingJobs.status, status),
+    status === "all" ? undefined
+      : status === "filtered" ? eq(articles.status, "filtered")
+      : eq(processingJobs.status, status),
     stage === "all"
       ? undefined
       : eq(processingJobs.pipelineStage, stage as Exclude<AdminJobStageFilter, "all">),
   ].filter(Boolean)
+  const useJoin = status === "filtered"
+  const baseQuery = useJoin
+    ? db.select({ count: sql<number>`count(*)` }).from(processingJobs).innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
+    : db.select({ count: sql<number>`count(*)` }).from(processingJobs)
   const where = filters.length > 0 ? and(...filters) : undefined
-  const [countRow] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(processingJobs)
-    .where(where)
+  const [countRow] = await baseQuery.where(where)
   const totalCount = Number(countRow?.count ?? 0)
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
   const page = Math.min(requestedPage, totalPages)

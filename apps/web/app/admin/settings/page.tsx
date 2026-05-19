@@ -69,6 +69,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             isActive: settings.isActive,
           }}
           pipeline={{
+            relevancePrompt: settings.relevancePrompt,
             translationTitlePrompt: settings.translationTitlePrompt,
             translationContentPrompt: settings.translationContentPrompt,
             summaryPromptEn: settings.summaryPromptEn,
