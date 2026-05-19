@@ -119,7 +119,7 @@ export function JobTable({
             <TableHead className="w-[30%] px-4">
               {lang === "zh" ? "内容" : "Content"}
             </TableHead>
-            <TableHead className="w-[120px] px-3">
+            <TableHead className="w-[120px] px-3 text-center">
               <JobStageFilterSelect
                 lang={lang}
                 status={status}
@@ -127,22 +127,22 @@ export function JobTable({
                 pageSize={pageSize}
               />
             </TableHead>
-            <TableHead className="w-[96px] px-3">
+            <TableHead className="w-[96px] px-3 text-center">
               {lang === "zh" ? "状态" : "Status"}
             </TableHead>
             <TableHead className="w-[96px] px-3 text-center">
               {lang === "zh" ? "尝试次数" : "Attempts"}
             </TableHead>
-            <TableHead className="w-[140px] px-3">
+            <TableHead className="w-[140px] px-3 text-center">
               {lang === "zh" ? "计划执行" : "Scheduled"}
             </TableHead>
-            <TableHead className="w-[140px] px-3">
+            <TableHead className="w-[140px] px-3 text-center">
               {lang === "zh" ? "更新时间" : "Updated at"}
             </TableHead>
-            <TableHead className="w-[140px] px-3">
+            <TableHead className="w-[140px] px-3 text-center">
               {lang === "zh" ? "错误信息" : "Error"}
             </TableHead>
-            <TableHead className="w-[120px] px-4">
+            <TableHead className="w-[120px] px-4 text-center">
               {lang === "zh" ? "操作" : "Actions"}
             </TableHead>
           </TableRow>
@@ -150,7 +150,7 @@ export function JobTable({
         <TableBody>
           {jobs.length === 0 ? (
             <TableRow>
-              <TableCell className="px-4 py-5 text-sm text-muted-foreground" colSpan={9}>
+              <TableCell className="px-4 py-5 text-center text-sm text-muted-foreground" colSpan={9}>
                 {lang === "zh"
                   ? "当前筛选条件下还没有任务记录。"
                   : "No jobs match the current filter."}
@@ -187,12 +187,12 @@ export function JobTable({
                   </span>
                 </div>
               </TableCell>
-              <TableCell className="px-3 py-3 align-middle">
+              <TableCell className="px-3 py-3 text-center align-middle">
                 <Badge variant={job.status === "succeeded" ? "secondary" : "outline"}>
                   {displayStageLabel(job, lang)}
                 </Badge>
               </TableCell>
-              <TableCell className="px-3 py-3 align-middle">
+              <TableCell className="px-3 py-3 text-center align-middle">
                 <Badge variant={statusVariant(job.status)}>
                   {statusLabel(job.status, lang)}
                 </Badge>
@@ -200,9 +200,9 @@ export function JobTable({
               <TableCell className="px-3 py-3 text-center align-middle">
                 {`${job.attempt}/${job.maxAttempts}`}
               </TableCell>
-              <TableCell className="px-3 py-3 align-middle">{job.runAt}</TableCell>
-              <TableCell className="px-3 py-3 align-middle">{job.updatedAt}</TableCell>
-              <TableCell className="px-3 py-3 align-middle">
+              <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.runAt}</TableCell>
+              <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.updatedAt}</TableCell>
+              <TableCell className="px-3 py-3 text-center align-middle">
                 {job.lastError ? (
                   <p className="line-clamp-2 text-xs text-destructive">{job.lastError}</p>
                 ) : (
@@ -211,7 +211,7 @@ export function JobTable({
                   </span>
                 )}
               </TableCell>
-              <TableCell className="px-4 py-3 text-left align-middle">
+              <TableCell className="px-4 py-3 text-center align-middle">
                 <form action={retryJobAction} className="inline-flex">
                   <input type="hidden" name="id" value={job.id} />
                   <input type="hidden" name="lang" value={lang} />
