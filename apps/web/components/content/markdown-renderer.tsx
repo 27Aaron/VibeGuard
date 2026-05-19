@@ -204,7 +204,7 @@ export function MarkdownRenderer({
     <>
       <div
         className={cn(
-          "markdown-body max-w-none text-[15px] leading-8",
+          "markdown-body max-w-none text-sm leading-7",
           palette.root,
           className,
         )}
@@ -234,7 +234,7 @@ export function MarkdownRenderer({
               </h4>
             ),
             p: ({ node, children }) =>
-              renderMarkdownParagraph(children, cn("my-4 leading-8", palette.body), node),
+              renderMarkdownParagraph(children, cn("my-4 leading-7", palette.body), node),
             a: ({ href, children }) => (
               <a
                 href={resolveAssetUrl(href ?? "", sourceUrl)}

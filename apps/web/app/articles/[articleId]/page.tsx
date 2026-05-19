@@ -112,7 +112,7 @@ export default async function PublicArticlePage({
                 </div>
 
                 <div className="mt-6 max-w-5xl">
-                  <h1 className="max-w-6xl text-3xl font-semibold leading-tight tracking-normal text-zinc-950 [overflow-wrap:anywhere] sm:text-4xl lg:text-5xl dark:text-stone-50">
+                  <h1 className="max-w-6xl text-2xl font-semibold leading-tight tracking-normal text-zinc-950 [overflow-wrap:anywhere] md:text-3xl dark:text-stone-50">
                     {resolvedArticle.title}
                   </h1>
                   <div className="mt-6 flex flex-wrap items-center gap-2">
