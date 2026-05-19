@@ -17,7 +17,7 @@ type DocumentWithViewTransition = Document & {
 }
 
 const TRANSITION_CLASS = "theme-transition-active"
-const THEME_TRANSITION_DURATION_MS = 980
+const THEME_TRANSITION_DURATION_MS = 400
 
 export function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
