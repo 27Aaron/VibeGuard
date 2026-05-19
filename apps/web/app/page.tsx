@@ -46,7 +46,7 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
 
   const urlSearchParams = new URLSearchParams({
     lang,
-    limit: "12",
+    limit: "15",
     page,
   })
 
@@ -258,7 +258,7 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
                   </div>
 
                   <div className="flex flex-col gap-2.5">
-                    <h2 className="line-clamp-3 min-h-[5.25rem] text-xl font-semibold leading-7 text-zinc-950 transition-colors group-hover:text-emerald-950 dark:text-stone-50 dark:group-hover:text-emerald-100">
+                    <h2 className="line-clamp-1 text-base font-semibold leading-7 text-zinc-950 transition-colors group-hover:text-emerald-950 dark:text-stone-50 dark:group-hover:text-emerald-100">
                       {article.title}
                     </h2>
                     <p className="line-clamp-3 text-sm leading-6 text-zinc-600 dark:text-stone-300">
