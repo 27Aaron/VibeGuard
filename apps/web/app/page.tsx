@@ -6,6 +6,7 @@ import {
   X,
 } from "lucide-react"
 
+import { PageSelect } from "@/components/page-select"
 import { PublicHeader } from "@/components/public-header"
 import { PublicTagFilter } from "@/components/public-tag-filter"
 import { Badge } from "@/components/ui/badge"
@@ -305,6 +306,9 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
             previousLabel={text.pagePrev}
             nextLabel={text.pageNext}
             lang={lang}
+            langParam={lang}
+            query={query}
+            tag={tag}
           />
         </footer>
       </div>
@@ -322,6 +326,9 @@ function PaginationControls({
   previousLabel,
   nextLabel,
   lang,
+  langParam,
+  query,
+  tag,
 }: {
   currentPage: number
   totalPages: number
@@ -332,6 +339,9 @@ function PaginationControls({
   previousLabel: string
   nextLabel: string
   lang: AppLang
+  langParam: string
+  query: string
+  tag: string
 }) {
   return (
     <nav
@@ -340,34 +350,39 @@ function PaginationControls({
     >
       <Link
         href={previousHref}
+        scroll={false}
         aria-disabled={!hasPreviousPage}
         aria-label={previousLabel}
         title={previousLabel}
         className={cn(
-          buttonVariants({ size: "icon-sm", variant: "outline" }),
-          "border-black/6 bg-white text-zinc-700 hover:bg-stone-50 hover:text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-stone-200 dark:hover:bg-white/10 dark:hover:text-white",
-          !hasPreviousPage && "pointer-events-none opacity-40",
+          buttonVariants({ size: "sm", variant: "outline" }),
+          !hasPreviousPage && "pointer-events-none opacity-50",
         )}
       >
-        <ChevronLeft className="size-4" />
-        <span className="sr-only">{previousLabel}</span>
+        <ChevronLeft className="size-3.5" />
+        {lang === "zh" ? "上一页" : "Previous"}
       </Link>
-      <span className="min-w-20 rounded-full border border-black/6 bg-white px-3 py-1.5 text-center text-sm font-medium text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-stone-200">
-        {currentPage} / {totalPages}
-      </span>
+      <PageSelect
+        currentPage={currentPage}
+        totalPages={totalPages}
+        lang={langParam}
+        query={query}
+        tag={tag}
+        label={lang === "zh" ? "跳转到页码" : "Jump to page"}
+      />
       <Link
         href={nextHref}
+        scroll={false}
         aria-disabled={!hasNextPage}
         aria-label={nextLabel}
         title={nextLabel}
         className={cn(
-          buttonVariants({ size: "icon-sm", variant: "outline" }),
-          "border-black/6 bg-white text-zinc-700 hover:bg-stone-50 hover:text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-stone-200 dark:hover:bg-white/10 dark:hover:text-white",
-          !hasNextPage && "pointer-events-none opacity-40",
+          buttonVariants({ size: "sm", variant: "outline" }),
+          !hasNextPage && "pointer-events-none opacity-50",
         )}
       >
-        <ChevronRight className="size-4" />
-        <span className="sr-only">{nextLabel}</span>
+        {lang === "zh" ? "下一页" : "Next"}
+        <ChevronRight className="size-3.5" />
       </Link>
     </nav>
   )
