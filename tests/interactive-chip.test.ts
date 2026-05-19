@@ -15,6 +15,7 @@ describe("interactive chip styles", () => {
     expect(helper).toContain("border-emerald-900/18 bg-[#dfe9e2]")
     expect(helper).toContain("text-[0.78rem]")
     expect(publicTagFilter).toContain("getInteractiveChipClassName(item.active)")
-    expect(adminNav).toContain("getInteractiveChipClassName(active)")
+    expect(adminNav).toContain("inline-flex h-8 min-w-0 items-center rounded-full")
+    expect(adminNav).toContain("border-emerald-900/18 bg-[#dfe9e2]")
   })
 })
