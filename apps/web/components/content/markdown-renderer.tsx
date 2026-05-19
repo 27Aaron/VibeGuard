@@ -81,6 +81,12 @@ function resolveAssetUrl(rawUrl: string, sourceUrl?: string) {
   }
 }
 
+function resolveProxyUrl(rawUrl: string, sourceUrl?: string) {
+  const resolved = resolveAssetUrl(rawUrl, sourceUrl)
+  if (!resolved) return resolved
+  return `/api/proxy?url=${encodeURIComponent(resolved)}`
+}
+
 function codeBlockLanguage(className?: string) {
   const match = className?.match(/language-([\w-]+)/)
   return match?.[1] ?? ""
@@ -359,7 +365,7 @@ export function MarkdownRenderer({
             },
             pre: ({ children }) => <>{children}</>,
             img: ({ src, alt }) => {
-              const resolvedSrc = resolveAssetUrl(typeof src === "string" ? src : "", sourceUrl)
+              const resolvedSrc = resolveProxyUrl(typeof src === "string" ? src : "", sourceUrl)
 
               return (
                 <figure className="group my-8">
