@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 
 import type { AppLang } from "@/lib/i18n"
+import { getSectionOuterClassName } from "@/lib/layout-tokens"
+import { cn } from "@/lib/utils"
 
 type AdminPageShellProps = {
   title: string
@@ -19,7 +21,7 @@ export function AdminPageShell({
 }: AdminPageShellProps) {
   return (
     <>
-      <section className="rounded-[1.5rem] border border-black/5 bg-white/45 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+      <section className={cn(getSectionOuterClassName(), "px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-none")}>
         <div className="flex min-w-0 flex-col gap-1">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-stone-400">
             {lang === "zh" ? "后台工作台" : "Workspace"}
