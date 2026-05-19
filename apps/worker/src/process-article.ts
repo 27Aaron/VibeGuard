@@ -11,6 +11,7 @@ import {
 } from "@vibeguard/content"
 import { articles, llmSettings, schema } from "@vibeguard/db"
 import {
+  classifyRelevance,
   createOpenAIClient,
   decryptSecret,
   generateTags,
@@ -210,6 +211,24 @@ async function processExtractJob(input: {
       contentHash: buildContentHash(titleEn, contentMdEn),
       rawMeta,
     })
+
+    // 相关性检查：提取内容后立即判断，不相关的文章跳过后续所有 LLM 步骤
+    await input.dependencies.markJobStage?.(JobPipelineStage.CLASSIFY_RELEVANCE)
+    const relevance = await classifyRelevance({
+      client: input.client,
+      model: input.activeSettings.model,
+      systemPrompt: input.activeSettings.relevancePrompt,
+      sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
+    })
+    if (!relevance.relevant) {
+      rawMeta.relevanceFilter = {
+        reason: relevance.reason,
+        checkedAt: new Date().toISOString(),
+      }
+      await persistArticlePatch(input.dependencies, input.article, { rawMeta })
+      await input.dependencies.markArticleStatus(input.article.id, ArticleStatus.FILTERED)
+      return
+    }
   }
 
   const requiredTitleEn = requireArticleField(titleEn, "English title")

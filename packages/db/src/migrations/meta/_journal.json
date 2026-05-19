@@ -57,6 +57,13 @@
       "when": 1779286275960,
       "tag": "0007_woozy_hitman",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779357531774,
+      "tag": "0008_workable_sinister_six",
+      "breakpoints": true
     }
   ]
 }

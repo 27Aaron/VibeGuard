@@ -18,6 +18,7 @@ const articleStatuses = defineStatuses([
   "processing",
   "ready",
   "failed",
+  "filtered",
 ] as const);
 
 export const ARTICLE_STATUS_VALUES = articleStatuses.values;
@@ -49,6 +50,7 @@ const jobPipelineStages = defineStatuses([
   "waiting",
   "fetch_source",
   "extract_content",
+  "classify_relevance",
   "translate_title",
   "translate_content",
   "summarize_en",

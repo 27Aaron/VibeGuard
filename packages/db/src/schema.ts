@@ -175,6 +175,7 @@ export const llmSettings = pgTable(
     summaryPromptEn: text("summary_prompt_en").notNull(),
     summaryPromptZh: text("summary_prompt_zh").notNull(),
     tagPrompt: text("tag_prompt").notNull().default("Extract short supply-chain security tags as strict JSON."),
+    relevancePrompt: text("relevance_prompt").notNull().default("判断以下文章是否与软件供应链安全、开源安全、依赖安全、恶意包、漏洞利用等相关。只输出 JSON：{\"relevant\": true/false, \"reason\": \"简短理由\"}"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
