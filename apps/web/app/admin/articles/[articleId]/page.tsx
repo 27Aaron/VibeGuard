@@ -43,7 +43,7 @@ type ArticleDetailPageProps = {
 function statusMeta(status: string, lang: "zh" | "en") {
   if (status === "ready") {
     return {
-      label: lang === "zh" ? "已完成" : "Ready",
+      label: lang === "zh" ? "成功" : "Ready",
       className:
         "border-emerald-900/18 bg-[#dfe9e2] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100",
     }

@@ -16,7 +16,7 @@ import {
 function statusLabel(status: ArticleRow["status"], lang: AppLang) {
   switch (status) {
     case "ready":
-      return lang === "zh" ? "已完成" : "Ready"
+      return lang === "zh" ? "成功" : "Ready"
     case "processing":
       return lang === "zh" ? "处理中" : "Processing"
     case "failed":
