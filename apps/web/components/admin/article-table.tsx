@@ -33,12 +33,12 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
         <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
             <TableHead className="px-4">{lang === "zh" ? "标题" : "Title"}</TableHead>
-            <TableHead className="px-4">{lang === "zh" ? "来源" : "Source"}</TableHead>
-            <TableHead className="px-4">{lang === "zh" ? "状态" : "Status"}</TableHead>
-            <TableHead className="px-4">
+            <TableHead className="px-4 text-center">{lang === "zh" ? "来源" : "Source"}</TableHead>
+            <TableHead className="px-4 text-center">{lang === "zh" ? "状态" : "Status"}</TableHead>
+            <TableHead className="px-4 text-center">
               {lang === "zh" ? "发布时间" : "Published at"}
             </TableHead>
-            <TableHead className="px-4">
+            <TableHead className="px-4 text-center">
               {lang === "zh" ? "更新时间" : "Updated at"}
             </TableHead>
           </TableRow>
@@ -46,7 +46,7 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
         <TableBody>
           {articles.map((article) => (
             <TableRow key={article.id}>
-              <TableCell className="max-w-[420px] px-4 py-3 align-top font-medium">
+              <TableCell className="max-w-[420px] px-4 py-3 align-middle font-medium">
                 <div className="flex min-w-0 flex-col gap-1">
                   <Link
                     href={`/admin/articles/${article.id}?lang=${lang}`}
@@ -61,8 +61,8 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
                   ) : null}
                 </div>
               </TableCell>
-              <TableCell className="px-4 py-3 align-top">{article.source}</TableCell>
-              <TableCell className="px-4 py-3 align-top">
+              <TableCell className="px-4 py-3 text-center align-middle">{article.source}</TableCell>
+              <TableCell className="px-4 py-3 text-center align-middle">
                 <Badge
                   variant={
                     article.status === "ready"
@@ -77,10 +77,10 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
                   {statusLabel(article.status, lang)}
                 </Badge>
               </TableCell>
-              <TableCell className="px-4 py-3 align-top">
+              <TableCell className="px-4 py-3 text-center align-middle tabular-nums">
                 {article.publishedAt}
               </TableCell>
-              <TableCell className="px-4 py-3 align-top">
+              <TableCell className="px-4 py-3 text-center align-middle tabular-nums">
                 {article.updatedAt}
               </TableCell>
             </TableRow>
