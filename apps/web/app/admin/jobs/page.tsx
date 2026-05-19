@@ -1,10 +1,9 @@
 import Link from "next/link"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell"
 import { JobTable } from "@/components/admin/job-table"
 import type { JobStageFilter, JobStatusFilter } from "@/components/admin/types"
-import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import {
   Card,
@@ -161,7 +160,9 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">{item.label}</p>
                 {active ? (
-                  <Badge variant="secondary">{lang === "zh" ? "当前筛选" : "Active"}</Badge>
+                  <span className="flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white">
+                    <Check className="size-3" strokeWidth={3} />
+                  </span>
                 ) : null}
               </div>
               <p className="mt-3 text-2xl font-semibold">{item.count}</p>

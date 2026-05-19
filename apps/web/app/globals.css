@@ -139,6 +139,82 @@ body {
   }
 }
 
+/* Checkbox — custom emerald style */
+input[type="checkbox"] {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1.5px solid rgba(0, 0, 0, 0.2);
+  background: white;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+input[type="checkbox"]:hover {
+  border-color: #059669;
+}
+
+input[type="checkbox"]:checked {
+  background: #059669;
+  border-color: #059669;
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:indeterminate {
+  background: #059669;
+  border-color: #059669;
+}
+
+input[type="checkbox"]:indeterminate::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 8px;
+  height: 2px;
+  background: white;
+  border-radius: 1px;
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.4);
+  outline-offset: 2px;
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dark input[type="checkbox"] {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #1a1f27;
+}
+
+.dark input[type="checkbox"]:hover {
+  border-color: #34d399;
+}
+
+.dark input[type="checkbox"]:checked,
+.dark input[type="checkbox"]:indeterminate {
+  background: #10b981;
+  border-color: #10b981;
+}
+
 @supports (view-transition-name: root) {
   :root {
     view-transition-name: root;

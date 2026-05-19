@@ -371,7 +371,6 @@ export function LlmSettingsForm({
                   checked={isActive}
                   onChange={(event) => setIsActive(event.target.checked)}
                   aria-label={resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
-                  className="h-4 w-4 rounded border-black/20 accent-emerald-800 dark:border-white/20 dark:accent-emerald-300"
                 />
               </div>
               <FeedbackMessage state={state} />

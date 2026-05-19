@@ -127,7 +127,6 @@ export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps)
               type="checkbox"
               name="enabled"
               defaultChecked={initialValues.enabled}
-              className="h-4 w-4 shrink-0 rounded border-black/20 accent-emerald-800 dark:border-white/20 dark:accent-emerald-300"
             />
             {lang === "zh" ? "启用该来源" : "Enable this source"}
           </label>
