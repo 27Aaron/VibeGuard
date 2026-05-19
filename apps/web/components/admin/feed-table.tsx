@@ -76,21 +76,21 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
         <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
             <TableHead className="px-4">{lang === "zh" ? "来源" : "Source"}</TableHead>
-            <TableHead className="px-4">{lang === "zh" ? "类型" : "Type"}</TableHead>
-            <TableHead className="px-4">
+            <TableHead className="px-4 text-center">{lang === "zh" ? "类型" : "Type"}</TableHead>
+            <TableHead className="px-4 text-center">
               {lang === "zh" ? "抓取频率" : "Cadence"}
             </TableHead>
-            <TableHead className="px-4">{lang === "zh" ? "状态" : "Status"}</TableHead>
-            <TableHead className="px-4">
+            <TableHead className="px-4 text-center">{lang === "zh" ? "状态" : "Status"}</TableHead>
+            <TableHead className="px-4 text-center">
               {lang === "zh" ? "最近同步" : "Last synced"}
             </TableHead>
-            <TableHead className="px-4">{lang === "zh" ? "操作" : "Actions"}</TableHead>
+            <TableHead className="px-4 text-center">{lang === "zh" ? "操作" : "Actions"}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {feeds.map((feed) => (
             <TableRow key={feed.id}>
-              <TableCell className="px-4 py-3 font-medium">
+              <TableCell className="px-4 py-3 align-middle font-medium">
                 <div className="flex flex-col gap-1">
                   <span>{feed.name}</span>
                   <a
@@ -104,11 +104,11 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
                   </a>
                 </div>
               </TableCell>
-              <TableCell className="px-4 py-3 uppercase text-muted-foreground">
+              <TableCell className="px-4 py-3 text-center align-middle uppercase text-muted-foreground">
                 {feed.feedType}
               </TableCell>
-              <TableCell className="px-4 py-3">{feed.cadence}</TableCell>
-              <TableCell className="px-4 py-3">
+              <TableCell className="px-4 py-3 text-center align-middle">{feed.cadence}</TableCell>
+              <TableCell className="px-4 py-3 text-center align-middle">
                 <Badge variant={feed.status === "enabled" ? "secondary" : "outline"}>
                   {feed.status === "enabled"
                     ? lang === "zh"
@@ -119,8 +119,8 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
                       : "Paused"}
                 </Badge>
               </TableCell>
-              <TableCell className="px-4 py-3">{feed.lastSyncedAt}</TableCell>
-              <TableCell className="px-4 py-3">
+              <TableCell className="px-4 py-3 text-center align-middle tabular-nums">{feed.lastSyncedAt}</TableCell>
+              <TableCell className="px-4 py-3 text-center align-middle">
                 <div className="inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-black/5 bg-white/68 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
                   <Link
                     href={`/admin/feeds/${feed.id}?lang=${lang}`}
