@@ -60,7 +60,7 @@ export function JobSelectAllCheckbox({
   }, [formId, inputName, syncState])
 
   return (
-    <label className="inline-flex cursor-pointer items-center justify-center">
+    <label className="flex cursor-pointer items-center justify-center">
       <input
         ref={inputRef}
         aria-label={label}

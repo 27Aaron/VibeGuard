@@ -160,7 +160,7 @@ export function JobTable({
           {jobs.map((job) => (
             <TableRow key={job.id}>
               <TableCell className="px-4 py-3 align-middle">
-                <label className="inline-flex cursor-pointer items-center justify-center">
+                <label className="flex cursor-pointer items-center justify-center">
                   <input
                     aria-label={
                       lang === "zh"
