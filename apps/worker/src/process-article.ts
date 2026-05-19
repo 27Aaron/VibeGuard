@@ -650,22 +650,28 @@ export async function processQueuedJobs(
   db: ContentDb,
   options: ProcessQueuedJobsOptions = {},
 ) {
-  const results = []
+  const results: ProcessedJobResult[] = []
   const batchSize = resolveWorkerBatchSize(options.batchSize)
+  const concurrency = Math.min(batchSize, 5)
   const processNextJob = options.processNextJob ?? processNextQueuedJob
   const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
 
   await resetStaleJobs(db)
 
-  while (results.length < batchSize) {
-    const result = await processNextJob(db)
+  // 并发处理：同时运行最多 concurrency 个任务
+  const workers = Array.from({ length: concurrency }, async () => {
+    while (results.length < batchSize) {
+      const result = await processNextJob(db)
 
-    if (!result) {
-      break
+      if (!result) {
+        break
+      }
+
+      results.push(result)
     }
+  })
 
-    results.push(result)
-  }
+  await Promise.all(workers)
 
   return results
 }

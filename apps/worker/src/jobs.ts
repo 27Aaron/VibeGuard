@@ -232,7 +232,7 @@ export async function resetStaleRunningJobs(
   } = {},
 ) {
   const now = input.now ?? new Date();
-  const staleAfterMinutes = input.staleAfterMinutes ?? 30;
+  const staleAfterMinutes = input.staleAfterMinutes ?? 3;
   const staleBefore = new Date(now.getTime() - staleAfterMinutes * 60 * 1000);
   const runningJobs = await db.query.processingJobs.findMany({
     where: eq(processingJobs.status, JobStatus.RUNNING),

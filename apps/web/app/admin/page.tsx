@@ -3,6 +3,7 @@ import { ArrowRight, Bot, FileText, Rss, Workflow } from "lucide-react"
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell"
 import { RunWorkerForm } from "@/components/admin/run-worker-form"
+import { WorkerStatusPanel } from "@/components/admin/worker-status-panel"
 import {
   Card,
   CardContent,
@@ -370,6 +371,8 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
           </CardContent>
         </Card>
       </section>
+
+      <WorkerStatusPanel lang={lang} />
     </AdminPageShell>
   )
 }
