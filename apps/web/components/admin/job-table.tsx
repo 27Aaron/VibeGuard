@@ -110,16 +110,18 @@ export function JobTable({
         <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
             <TableHead className="w-14 px-4">
-              <JobSelectAllCheckbox
-                formId="selected-jobs-form"
-                inputName="ids"
-                label={lang === "zh" ? "全选当前页任务" : "Select all jobs on this page"}
-              />
+              <div className="flex h-full items-center justify-center">
+                <JobSelectAllCheckbox
+                  formId="selected-jobs-form"
+                  inputName="ids"
+                  label={lang === "zh" ? "全选当前页任务" : "Select all jobs on this page"}
+                />
+              </div>
             </TableHead>
             <TableHead className="w-[30%] px-4">
               {lang === "zh" ? "内容" : "Content"}
             </TableHead>
-            <TableHead className="w-[150px] px-3">
+            <TableHead className="w-[120px] px-3">
               <JobStageFilterSelect
                 lang={lang}
                 status={status}

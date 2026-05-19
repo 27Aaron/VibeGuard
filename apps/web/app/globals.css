@@ -215,6 +215,19 @@ input[type="checkbox"]:disabled {
   border-color: #10b981;
 }
 
+/* Admin select — custom dropdown arrow */
+select.admin-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: right 7px center;
+  background-repeat: no-repeat;
+}
+
+.dark select.admin-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
 @supports (view-transition-name: root) {
   :root {
     view-transition-name: root;
