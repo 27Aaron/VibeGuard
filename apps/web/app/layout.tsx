@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Geist } from "next/font/google";
+import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );
