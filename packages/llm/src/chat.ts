@@ -71,19 +71,28 @@ export async function createChatCompletionTextWithRetry(input: {
   throw lastError
 }
 
+function stripThinkingTags(text: string): string {
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .replace(/<think>[\s\S]*$/g, "")
+    .trim()
+}
+
 export function extractChatCompletionText(result: ChatCompletionResult) {
   const content = result.choices?.[0]?.message?.content
 
-  if (typeof content === "string") {
-    return content.trim()
-  }
+  let text: string
 
-  if (Array.isArray(content)) {
-    return content
+  if (typeof content === "string") {
+    text = content.trim()
+  } else if (Array.isArray(content)) {
+    text = content
       .map((part) => (typeof part.text === "string" ? part.text : ""))
       .join("")
       .trim()
+  } else {
+    return ""
   }
 
-  return ""
+  return stripThinkingTags(text)
 }
