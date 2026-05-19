@@ -110,13 +110,11 @@ export function JobTable({
         <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
             <TableHead className="w-14 px-4">
-              <div className="flex h-full items-center justify-center">
-                <JobSelectAllCheckbox
-                  formId="selected-jobs-form"
-                  inputName="ids"
-                  label={lang === "zh" ? "全选当前页任务" : "Select all jobs on this page"}
-                />
-              </div>
+              <JobSelectAllCheckbox
+                formId="selected-jobs-form"
+                inputName="ids"
+                label={lang === "zh" ? "全选当前页任务" : "Select all jobs on this page"}
+              />
             </TableHead>
             <TableHead className="w-[30%] px-4">
               {lang === "zh" ? "内容" : "Content"}
@@ -132,7 +130,7 @@ export function JobTable({
             <TableHead className="w-[96px] px-3">
               {lang === "zh" ? "状态" : "Status"}
             </TableHead>
-            <TableHead className="w-[96px] px-3">
+            <TableHead className="w-[96px] px-3 text-center">
               {lang === "zh" ? "尝试次数" : "Attempts"}
             </TableHead>
             <TableHead className="w-[140px] px-3">
@@ -144,7 +142,7 @@ export function JobTable({
             <TableHead className="w-[140px] px-3">
               {lang === "zh" ? "错误信息" : "Error"}
             </TableHead>
-            <TableHead className="w-[120px] px-4 text-left">
+            <TableHead className="w-[120px] px-4">
               {lang === "zh" ? "操作" : "Actions"}
             </TableHead>
           </TableRow>
@@ -199,7 +197,7 @@ export function JobTable({
                   {statusLabel(job.status, lang)}
                 </Badge>
               </TableCell>
-              <TableCell className="px-3 py-3 align-middle">
+              <TableCell className="px-3 py-3 text-center align-middle">
                 {`${job.attempt}/${job.maxAttempts}`}
               </TableCell>
               <TableCell className="px-3 py-3 align-middle">{job.runAt}</TableCell>
