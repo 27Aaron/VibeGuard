@@ -53,7 +53,7 @@ export function AdminPageShell({
                   </span>
                   <span className="flex items-center gap-1.5 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-stone-400">
                     <Radio className="size-3 text-emerald-700 dark:text-emerald-300" />
-                    Admin console
+                    Console
                   </span>
                 </span>
               </Link>
