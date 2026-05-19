@@ -18,6 +18,7 @@ const ALLOWED_STATUSES: ArticleStatus[] = [
   "processing",
   "ready",
   "failed",
+  "filtered",
 ]
 const ALLOWED_ECOSYSTEMS: ArticleEcosystem[] = [...ARTICLE_ECOSYSTEM_VALUES]
 const ALLOWED_RISK_CATEGORIES: ArticleRiskCategory[] = [

@@ -5,6 +5,7 @@ export const ADMIN_JOB_STAGE_FILTERS = [
   "waiting",
   "fetch_source",
   "extract_content",
+  "classify_relevance",
   "translate_title",
   "translate_content",
   "summarize_en",

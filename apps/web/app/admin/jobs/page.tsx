@@ -30,6 +30,7 @@ const allowedStatuses = new Set<JobStatusFilter>([
   "running",
   "succeeded",
   "failed",
+  "filtered",
 ])
 
 type JobsPageProps = {

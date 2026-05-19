@@ -50,12 +50,14 @@ const ARTICLE_STATUS_LABELS: Record<AppLang, Record<string, string>> = {
     processing: "处理中",
     ready: "已就绪",
     failed: "失败",
+    filtered: "已过滤",
   },
   en: {
     pending: "Pending",
     processing: "Processing",
     ready: "Ready",
     failed: "Failed",
+    filtered: "Filtered",
   },
 }
 

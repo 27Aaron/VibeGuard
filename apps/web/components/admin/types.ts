@@ -17,7 +17,7 @@ export type ArticleRow = {
   titleEn: string
   titleZh: string | null
   source: string
-  status: "ready" | "processing" | "pending" | "failed"
+  status: "ready" | "processing" | "pending" | "failed" | "filtered"
   publishedAt: string
   updatedAt: string
 }
@@ -47,6 +47,7 @@ export type JobRow = {
     | "waiting"
     | "fetch_source"
     | "extract_content"
+    | "classify_relevance"
     | "translate_title"
     | "translate_content"
     | "summarize_en"
@@ -62,7 +63,7 @@ export type JobRow = {
   lastError: string | null
 }
 
-export type JobStatusFilter = "all" | "running" | "succeeded" | "failed"
+export type JobStatusFilter = "all" | "running" | "succeeded" | "failed" | "filtered"
 export type JobStageFilter = "all" | JobRow["pipelineStage"]
 
 export type JobStatusCount = {
@@ -92,6 +93,7 @@ export type LlmSettingsRow = {
 }
 
 export type PipelineSettings = {
+  relevancePrompt: string
   translationTitlePrompt: string
   translationContentPrompt: string
   summaryPromptEn: string

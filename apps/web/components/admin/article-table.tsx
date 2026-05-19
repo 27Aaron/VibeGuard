@@ -21,6 +21,8 @@ function statusLabel(status: ArticleRow["status"], lang: AppLang) {
       return lang === "zh" ? "处理中" : "Processing"
     case "failed":
       return lang === "zh" ? "失败" : "Failed"
+    case "filtered":
+      return lang === "zh" ? "已过滤" : "Filtered"
     default:
       return lang === "zh" ? "待处理" : "Pending"
   }
@@ -71,8 +73,11 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
                         ? "outline"
                         : article.status === "failed"
                           ? "destructive"
-                          : "default"
+                          : article.status === "filtered"
+                            ? "outline"
+                            : "default"
                   }
+                  className={article.status === "filtered" ? "border-orange-300 text-orange-600 dark:border-orange-700 dark:text-orange-400" : undefined}
                 >
                   {statusLabel(article.status, lang)}
                 </Badge>

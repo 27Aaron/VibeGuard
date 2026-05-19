@@ -66,6 +66,14 @@ function statusMeta(status: string, lang: "zh" | "en") {
     }
   }
 
+  if (status === "filtered") {
+    return {
+      label: lang === "zh" ? "已过滤" : "Filtered",
+      className:
+        "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-300",
+    }
+  }
+
   return {
     label: lang === "zh" ? "待处理" : "Pending",
     className:

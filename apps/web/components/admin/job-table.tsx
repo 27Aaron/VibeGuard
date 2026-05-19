@@ -53,6 +53,8 @@ function stageLabel(stage: JobStageFilter, lang: AppLang) {
       return lang === "zh" ? "原文抓取" : "Fetch source"
     case "extract_content":
       return lang === "zh" ? "正文提取" : "Extract content"
+    case "classify_relevance":
+      return lang === "zh" ? "相关性判断" : "Classify relevance"
     case "translate_title":
       return lang === "zh" ? "标题翻译" : "Translate title"
     case "translate_content":

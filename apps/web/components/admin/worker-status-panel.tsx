@@ -42,6 +42,7 @@ function stageLabel(stage: string, lang: AppLang) {
     waiting: { zh: "等待中", en: "Waiting" },
     fetch_source: { zh: "抓取原文", en: "Fetching" },
     extract_content: { zh: "提取正文", en: "Extracting" },
+    classify_relevance: { zh: "相关性判断", en: "Relevance" },
     translate_title: { zh: "翻译标题", en: "Translating title" },
     translate_content: { zh: "翻译正文", en: "Translating content" },
     summarize_en: { zh: "英文摘要", en: "EN summary" },
@@ -73,6 +74,7 @@ function formatElapsed(seconds: number | null) {
 const PIPELINE_STAGES = [
   "fetch_source",
   "extract_content",
+  "classify_relevance",
   "translate_title",
   "translate_content",
   "summarize_en",
