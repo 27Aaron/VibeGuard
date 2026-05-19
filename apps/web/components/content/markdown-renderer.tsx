@@ -102,6 +102,16 @@ function renderImageCaption(alt: string | undefined, palette: (typeof variantCla
   )
 }
 
+function normalizeMarkdownEmphasis(raw: string): string {
+  // CJK/fullwidth punctuation (U+3000-U+303F, U+FF00-U+FFEF) before closing
+  // emphasis markers (* / ** / ***) breaks Commonmark right-flanking delimiter
+  // detection. Insert a zero-width space to fix: **text：** → bold rendered.
+  return raw.replace(
+    /([\u3000-\u303f\uff00-\uffef])(\*{1,3})/g,
+    (_, punct: string, stars: string) => punct + "\u200b" + stars,
+  )
+}
+
 export function MarkdownRenderer({
   content,
   sourceUrl,
@@ -384,7 +394,7 @@ export function MarkdownRenderer({
             },
           }}
         >
-          {content}
+          {normalizeMarkdownEmphasis(content)}
         </ReactMarkdown>
       </div>
 
