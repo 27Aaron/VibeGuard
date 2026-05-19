@@ -45,7 +45,6 @@ function resolveTheme(preference: ThemePreference) {
 export function ThemeToggle({ className }: ThemeToggleProps) {
   const [theme, setTheme] = useState<"light" | "dark">("dark")
   const [mounted, setMounted] = useState(false)
-  const buttonRef = useRef<HTMLButtonElement | null>(null)
   const activeTransitionRef = useRef<{ cleanup: () => void } | null>(null)
 
   useEffect(() => {
@@ -85,13 +84,12 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
 
   const isDark = theme === "dark"
 
-  function toggleTheme() {
+  function toggleTheme(e: React.MouseEvent<HTMLButtonElement>) {
     activeTransitionRef.current?.cleanup()
 
     const next = isDark ? "light" : "dark"
-    const rect = buttonRef.current?.getBoundingClientRect()
-    const originX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
-    const originY = rect ? rect.top + rect.height / 2 : window.innerHeight / 2
+    const originX = e.clientX
+    const originY = e.clientY
 
     const transition = createThemeTransition({
       originX,
@@ -116,7 +114,6 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
 
   return (
     <button
-      ref={buttonRef}
       type="button"
       onClick={toggleTheme}
       aria-label={mounted ? (isDark ? "切换到亮色主题" : "切换到暗色主题") : "切换主题"}
