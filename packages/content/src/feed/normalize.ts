@@ -13,6 +13,22 @@ function isValidDate(value: string | Date | undefined | null) {
   return !Number.isNaN(parsed.getTime());
 }
 
+function normalizeFeedItemLink(value: string) {
+  let url: URL;
+
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Feed item link must be a complete URL.");
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("Feed item link must use http or https.");
+  }
+
+  return url.toString();
+}
+
 export type FeedItemInput = {
   title?: string | null;
   link?: string | null;
@@ -65,6 +81,8 @@ export function normalizeFeedItem(
     throw new Error("Feed item must include title and link");
   }
 
+  const url = normalizeFeedItemLink(link);
+
   const publishedAtCandidate = isValidDate(item.isoDate)
     ? item.isoDate
     : item.pubDate;
@@ -75,10 +93,10 @@ export function normalizeFeedItem(
 
   return {
     titleEn: title,
-    url: link,
+    url,
     publishedAt,
     publishedAtIsFallback: isFallback,
     fetchedAt,
-    rawMeta: { ...item, title, link },
+    rawMeta: { ...item, title, link: url },
   };
 }

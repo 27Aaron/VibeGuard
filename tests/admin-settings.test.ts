@@ -6,6 +6,7 @@ import {
   mergeModelOptions,
   normalizeProviderErrorMessage,
 } from "../apps/web/lib/provider-models"
+import { normalizeUserFacingError } from "../apps/web/lib/errors"
 import {
   DEFAULT_TAG_PROMPT,
   DEFAULT_SUMMARY_PROMPT_EN,
@@ -132,6 +133,15 @@ describe("admin settings helpers", () => {
           apiKey: "",
         }),
       ).toThrow("新建模型配置时必须填写 API Key。")
+    })
+
+    it("localizes missing-key errors for the english settings form", () => {
+      expect(
+        normalizeUserFacingError(
+          new Error("新建模型配置时必须填写 API Key。"),
+          "en",
+        ),
+      ).toBe("An API key is required when creating a new model profile.")
     })
   })
 

@@ -78,6 +78,22 @@ describe("normalizeFeedItem", () => {
     ).toThrow("Feed item must include title and link");
   });
 
+  it("should reject feed item links that are not complete http URLs", () => {
+    expect(() =>
+      normalizeFeedItem({
+        title: "Example title",
+        link: "javascript:alert(1)",
+      }),
+    ).toThrow("Feed item link must use http or https.");
+
+    expect(() =>
+      normalizeFeedItem({
+        title: "Example title",
+        link: "/relative-post",
+      }),
+    ).toThrow("Feed item link must be a complete URL.");
+  });
+
   it("should build a minimal article insert payload", () => {
     const fetchedAt = new Date("2026-05-19T12:00:00.000Z");
 

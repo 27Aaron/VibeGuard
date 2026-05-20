@@ -36,6 +36,9 @@ type ContentDb = NodePgDatabase<typeof schema>
 type ArticleRecord = typeof articles.$inferSelect
 type LlmSettingsRecord = typeof llmSettings.$inferSelect
 type JobRecord = typeof schema.processingJobs.$inferSelect
+type ProcessArticleFinalStatus =
+  | typeof ArticleStatus.READY
+  | typeof ArticleStatus.FILTERED
 type ArticlePatch = Partial<
   Pick<
     ArticleRecord,
@@ -164,13 +167,13 @@ export async function processArticleJob(
     return
   }
 
-  await processExtractJob({
+  const finalStatus = await processExtractJob({
     article,
     activeSettings,
     client,
     dependencies,
   })
-  await dependencies.markArticleStatus(article.id, ArticleStatus.READY)
+  await dependencies.markArticleStatus(article.id, finalStatus)
 }
 
 async function processExtractJob(input: {
@@ -178,7 +181,7 @@ async function processExtractJob(input: {
   activeSettings: LlmSettingsRecord
   client: Parameters<typeof translateText>[0]["client"]
   dependencies: ProcessArticleJobDependencies
-}) {
+}): Promise<ProcessArticleFinalStatus> {
   const rawMeta = toRawMetaRecord(input.article.rawMeta)
   let titleEn = input.article.titleEn
   let contentMdEn = input.article.contentMdEn
@@ -226,8 +229,7 @@ async function processExtractJob(input: {
         checkedAt: new Date().toISOString(),
       }
       await persistArticlePatch(input.dependencies, input.article, { rawMeta })
-      await input.dependencies.markArticleStatus(input.article.id, ArticleStatus.FILTERED)
-      return
+      return ArticleStatus.FILTERED
     }
   }
 
@@ -303,13 +305,14 @@ async function processExtractJob(input: {
       : undefined,
   })
   await input.dependencies.markJobStage?.(JobPipelineStage.GENERATE_TAGS)
-  const tags = await generateArticleTags({
+  const generatedTags = await generateArticleTags({
     dependencies: input.dependencies,
     client: input.client,
     model: input.activeSettings.model,
     systemPrompt: resolveTagPrompt(input.activeSettings.tagPrompt || DEFAULT_TAG_PROMPT),
     sourceText: requiredContentMdEn,
   })
+  const tags = generatedTags.length > 0 ? generatedTags : classification.tags
 
   await input.dependencies.updateArticleContent(input.article.id, {
     titleEn: requiredTitleEn,
@@ -324,6 +327,8 @@ async function processExtractJob(input: {
     contentHash: buildContentHash(requiredTitleEn, requiredContentMdEn),
     rawMeta,
   })
+
+  return ArticleStatus.READY
 }
 
 async function generateArticleTags(input: {

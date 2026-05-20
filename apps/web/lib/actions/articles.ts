@@ -1,6 +1,5 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { and, eq, inArray, sql } from "drizzle-orm"
@@ -21,6 +20,7 @@ import {
 } from "../article-regeneration"
 import { normalizeUserFacingError } from "../errors"
 import { resolveLang } from "../i18n"
+import { revalidateLocalizedPaths } from "../revalidate"
 
 function buildArticleDetailRedirect(
   articleId: string,
@@ -172,12 +172,14 @@ export async function reprocessArticleAction(formData: FormData) {
       }
 
       if (redirectStatus === "success") {
-        revalidatePath("/admin")
-        revalidatePath("/admin/articles")
-        revalidatePath("/admin/jobs")
-        revalidatePath(`/admin/articles/${articleId}`)
-        revalidatePath(`/articles/${articleId}`)
-        revalidatePath("/")
+        revalidateLocalizedPaths(
+          "/admin",
+          "/admin/articles",
+          "/admin/jobs",
+          `/admin/articles/${articleId}`,
+          `/articles/${articleId}`,
+          "/",
+        )
       }
     }
   } catch (error) {

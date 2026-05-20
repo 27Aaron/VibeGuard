@@ -1,6 +1,5 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { and, eq, ne } from "drizzle-orm"
@@ -27,6 +26,7 @@ import {
 } from "../provider-models"
 import { normalizeUserFacingError } from "../errors"
 import { resolveLang } from "../i18n"
+import { revalidateLocalizedPaths } from "../revalidate"
 
 function buildSettingsRedirect(
   message: string,
@@ -143,7 +143,7 @@ export async function saveLlmSettingsAction(
       await tx.insert(llmSettings).values(payload)
     })
 
-    revalidatePath("/admin/settings")
+    revalidateLocalizedPaths("/admin/settings")
 
     const successMessage = resolveSettingsSuccessMessage(formKind)
     return successResult(
@@ -187,7 +187,7 @@ export async function activateLlmSettingsAction(formData: FormData) {
       .where(eq(llmSettings.id, row.id))
   })
 
-  revalidatePath("/admin/settings")
+  revalidateLocalizedPaths("/admin/settings")
 
   redirect(
     buildSettingsRedirect(

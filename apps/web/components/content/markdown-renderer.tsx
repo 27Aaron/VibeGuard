@@ -10,6 +10,10 @@ import remarkGfm from "remark-gfm"
 
 import type { AppLang } from "@/lib/i18n"
 import { getUiText } from "@/lib/i18n"
+import {
+  resolveMarkdownImageProxyUrl,
+  resolveMarkdownLinkUrl,
+} from "@/lib/markdown-url"
 import { renderMarkdownParagraph } from "@/lib/markdown-paragraphs"
 import { cn } from "@/lib/utils"
 
@@ -67,24 +71,6 @@ const variantClasses = {
 type LightboxImage = {
   src: string
   alt: string
-}
-
-function resolveAssetUrl(rawUrl: string, sourceUrl?: string) {
-  if (!rawUrl) {
-    return rawUrl
-  }
-
-  try {
-    return new URL(rawUrl, sourceUrl).toString()
-  } catch {
-    return rawUrl
-  }
-}
-
-function resolveProxyUrl(rawUrl: string, sourceUrl?: string) {
-  const resolved = resolveAssetUrl(rawUrl, sourceUrl)
-  if (!resolved) return resolved
-  return `/api/proxy?url=${encodeURIComponent(resolved)}`
 }
 
 function codeBlockLanguage(className?: string) {
@@ -243,7 +229,7 @@ export function MarkdownRenderer({
               renderMarkdownParagraph(children, cn("my-4 leading-7", palette.body), node),
             a: ({ href, children }) => (
               <a
-                href={resolveAssetUrl(href ?? "", sourceUrl)}
+                href={resolveMarkdownLinkUrl(href ?? "", sourceUrl)}
                 target="_blank"
                 rel="noreferrer"
                 className={palette.link}
@@ -365,7 +351,14 @@ export function MarkdownRenderer({
             },
             pre: ({ children }) => <>{children}</>,
             img: ({ src, alt }) => {
-              const resolvedSrc = resolveProxyUrl(typeof src === "string" ? src : "", sourceUrl)
+              const resolvedSrc = resolveMarkdownImageProxyUrl(
+                typeof src === "string" ? src : "",
+                sourceUrl,
+              )
+
+              if (!resolvedSrc) {
+                return null
+              }
 
               return (
                 <figure className="group my-8">

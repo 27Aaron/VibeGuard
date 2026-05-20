@@ -76,6 +76,7 @@ describe("admin job pagination", () => {
     expect(table).not.toContain("筛选阶段")
     expect(stageFilter).toContain("\"use client\"")
     expect(stageFilter).toContain("router.push")
+    expect(stageFilter).toContain("router.push(`/${lang}/admin/jobs?")
     expect(stageFilter).toContain("onChange")
     expect(selectAll).toContain("\"use client\"")
     expect(selectAll).toContain("indeterminate")

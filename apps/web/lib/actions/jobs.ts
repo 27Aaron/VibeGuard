@@ -1,6 +1,5 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { eq, inArray, sql } from "drizzle-orm"
@@ -15,6 +14,7 @@ import { processQueuedJobsByIds } from "worker"
 
 import { normalizeUserFacingError } from "../errors"
 import { resolveLang } from "../i18n"
+import { revalidateLocalizedPaths } from "../revalidate"
 
 const MANUAL_SELECTED_JOB_BATCH_SIZE = 5
 const MANUAL_SINGLE_JOB_BATCH_SIZE = 1
@@ -151,9 +151,7 @@ export async function retryJobAction(formData: FormData) {
         batchSize: MANUAL_SINGLE_JOB_BATCH_SIZE,
       })
 
-      revalidatePath("/admin")
-      revalidatePath("/admin/articles")
-      revalidatePath("/admin/jobs")
+      revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
 
       redirectTarget = buildJobsRedirect(
         "success",
@@ -216,9 +214,7 @@ export async function retryFailedJobsAction(formData: FormData) {
         { batchSize: MANUAL_SELECTED_JOB_BATCH_SIZE },
       )
 
-      revalidatePath("/admin")
-      revalidatePath("/admin/articles")
-      revalidatePath("/admin/jobs")
+      revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
 
       redirectTarget = buildJobsRedirect(
         enqueuedCount > 0 ? "success" : "error",
@@ -289,9 +285,7 @@ export async function retrySelectedJobsAction(formData: FormData) {
       batchSize: MANUAL_SELECTED_JOB_BATCH_SIZE,
     })
 
-    revalidatePath("/admin")
-    revalidatePath("/admin/articles")
-    revalidatePath("/admin/jobs")
+    revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
 
     redirectTarget = buildJobsRedirect(
       enqueuedCount > 0 ? "success" : "error",

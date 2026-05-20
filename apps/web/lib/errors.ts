@@ -81,7 +81,10 @@ export function normalizeUserFacingError(error: unknown, lang: AppLang = "zh") {
       : "The source identifier is missing. Refresh the page and try again."
   }
 
-  if (message.includes("新建 Provider 配置时必须填写 API Key")) {
+  if (
+    message.includes("新建 Provider 配置时必须填写 API Key") ||
+    message.includes("新建模型配置时必须填写 API Key")
+  ) {
     return lang === "zh"
       ? "新建模型配置时必须填写 API Key。"
       : "An API key is required when creating a new model profile."

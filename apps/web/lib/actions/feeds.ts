@@ -1,6 +1,5 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { eq } from "drizzle-orm"
 
@@ -14,6 +13,7 @@ import {
 import { normalizeUserFacingError } from "../errors"
 import { parseFeedInput } from "../feed-input"
 import { resolveLang } from "../i18n"
+import { revalidateLocalizedPaths } from "../revalidate"
 
 function buildFeedRedirect(status: "success" | "error", message: string, lang: "zh" | "en") {
   const params = new URLSearchParams({
@@ -43,7 +43,7 @@ export async function createFeedAction(
 
     await db.insert(feeds).values(payload)
 
-    revalidatePath("/admin/feeds")
+    revalidateLocalizedPaths("/admin/feeds")
 
     return successResult(lang === "zh" ? `已创建来源：${payload.name}。` : `Source created: ${payload.name}.`)
   } catch (error) {
@@ -86,8 +86,7 @@ export async function updateFeedAction(
 
     await db.update(feeds).set(payload).where(eq(feeds.id, feedId))
 
-    revalidatePath("/admin/feeds")
-    revalidatePath(`/admin/feeds/${feedId}`)
+    revalidateLocalizedPaths("/admin/feeds", `/admin/feeds/${feedId}`)
 
     return successResult(lang === "zh" ? `已更新来源：${payload.name}。` : `Source updated: ${payload.name}.`)
   } catch (error) {
@@ -121,7 +120,7 @@ export async function toggleFeedAction(formData: FormData) {
     .set({ enabled: nextEnabled })
     .where(eq(feeds.id, existingFeed.id))
 
-  revalidatePath("/admin/feeds")
+  revalidateLocalizedPaths("/admin/feeds")
 
   redirect(
     buildFeedRedirect(
@@ -170,7 +169,7 @@ export async function deleteFeedAction(formData: FormData) {
 
   await db.delete(feeds).where(eq(feeds.id, existingFeed.id))
 
-  revalidatePath("/admin/feeds")
+  revalidateLocalizedPaths("/admin/feeds")
 
   redirect(
     buildFeedRedirect(
@@ -208,11 +207,13 @@ export async function fetchFeedNowAction(formData: FormData) {
     const pollSummary = await pollFeedNow(feedId, { db })
     const processedJobs = await processQueuedJobs(db)
 
-    revalidatePath("/admin")
-    revalidatePath("/admin/feeds")
-    revalidatePath("/admin/articles")
-    revalidatePath("/admin/jobs")
-    revalidatePath("/")
+    revalidateLocalizedPaths(
+      "/admin",
+      "/admin/feeds",
+      "/admin/articles",
+      "/admin/jobs",
+      "/",
+    )
 
     redirectTarget = buildFeedRedirect(
       "success",

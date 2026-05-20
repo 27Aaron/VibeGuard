@@ -68,7 +68,7 @@ export function JobStageFilterSelect({
           params.set("stage", nextStage)
         }
 
-        router.push(`/admin/jobs?${params.toString()}`)
+        router.push(`/${lang}/admin/jobs?${params.toString()}`)
       }}
     >
       {ADMIN_JOB_STAGE_FILTERS.map((option) => (

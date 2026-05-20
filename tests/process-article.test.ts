@@ -28,6 +28,27 @@ function createRelevantChatClient() {
   }
 }
 
+function createIrrelevantChatClient() {
+  return {
+    chat: {
+      completions: {
+        create: vi.fn().mockResolvedValue({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  relevant: false,
+                  reason: "generic product update",
+                }),
+              },
+            },
+          ],
+        }),
+      },
+    },
+  }
+}
+
 describe("buildSummaryPrompt", () => {
   it("adds an explicit locale instruction", () => {
     expect(buildSummaryPrompt("Summarize the article.", "en")).toContain(
@@ -182,6 +203,129 @@ describe("processArticleJob", () => {
       "article-1",
       expect.objectContaining({
         tags: ["npm", "creds", "postinstall"],
+      }),
+    )
+  })
+
+  it("keeps irrelevant articles filtered instead of marking them ready", async () => {
+    const markArticleStatus = vi.fn().mockResolvedValue(undefined)
+    const updateArticleContent = vi.fn().mockResolvedValue(undefined)
+    const updateArticlePatch = vi.fn().mockResolvedValue(undefined)
+    const translateText = vi.fn()
+    const summarizeText = vi.fn()
+
+    await processArticleJob(
+      { articleId: "article-1", jobType: JobType.EXTRACT },
+      {
+        loadArticle: vi.fn().mockResolvedValue({
+          id: "article-1",
+          url: "https://example.com/post",
+          sourceName: "Example",
+          rawMeta: { seed: true },
+        }),
+        loadActiveLlmSettings: vi.fn().mockResolvedValue({
+          apiKeyEncrypted: "ciphertext",
+          baseUrl: "https://api.openai.com/v1",
+          model: "gpt-5-mini",
+          translateTitlePrompt: "Translate title",
+          translateContentPrompt: "Translate body",
+          summaryPromptEn: "Summarize body in English",
+          summaryPromptZh: "用中文总结正文",
+          relevancePrompt: "Classify relevance",
+        }),
+        markArticleStatus,
+        updateArticleContent,
+        updateArticlePatch,
+        fetchArticleHtml: vi.fn().mockResolvedValue("<html></html>"),
+        extractMarkdownFromHtml: vi.fn().mockResolvedValue({
+          title: "Product launch",
+          contentMd: "A general launch note with no security content.",
+          author: "Author",
+          description: "Description",
+          publishedAt: "2026-05-19T00:00:00.000Z",
+          siteName: "Example",
+        }),
+        createOpenAIClient: vi.fn().mockReturnValue(createIrrelevantChatClient()),
+        decryptSecret: vi.fn().mockReturnValue("sk-live"),
+        translateText,
+        summarizeText,
+      },
+    )
+
+    expect(translateText).not.toHaveBeenCalled()
+    expect(summarizeText).not.toHaveBeenCalled()
+    expect(updateArticleContent).not.toHaveBeenCalled()
+    expect(updateArticlePatch).toHaveBeenLastCalledWith(
+      "article-1",
+      expect.objectContaining({
+        rawMeta: expect.objectContaining({
+          relevanceFilter: expect.objectContaining({
+            reason: "generic product update",
+          }),
+        }),
+      }),
+    )
+    expect(markArticleStatus).toHaveBeenLastCalledWith(
+      "article-1",
+      ArticleStatus.FILTERED,
+    )
+  })
+
+  it("falls back to rule-based tags when LLM tag generation fails", async () => {
+    const updateArticleContent = vi.fn().mockResolvedValue(undefined)
+    const translateText = vi
+      .fn()
+      .mockResolvedValueOnce("中文标题")
+      .mockResolvedValueOnce("中文正文")
+    const summarizeText = vi
+      .fn()
+      .mockResolvedValueOnce("English summary")
+      .mockResolvedValueOnce("中文摘要")
+
+    await processArticleJob(
+      { articleId: "article-1", jobType: JobType.EXTRACT },
+      {
+        loadArticle: vi.fn().mockResolvedValue({
+          id: "article-1",
+          url: "https://example.com/npm-backdoor",
+          sourceName: "Example",
+          rawMeta: { seed: true },
+        }),
+        loadActiveLlmSettings: vi.fn().mockResolvedValue({
+          apiKeyEncrypted: "ciphertext",
+          baseUrl: "https://api.openai.com/v1",
+          model: "gpt-5-mini",
+          translateTitlePrompt: "Translate title",
+          translateContentPrompt: "Translate body",
+          summaryPromptEn: "Summarize body in English",
+          summaryPromptZh: "用中文总结正文",
+          tagPrompt: "Extract tags",
+          relevancePrompt: "Classify relevance",
+        }),
+        markArticleStatus: vi.fn().mockResolvedValue(undefined),
+        updateArticleContent,
+        updateArticlePatch: vi.fn().mockResolvedValue(undefined),
+        fetchArticleHtml: vi.fn().mockResolvedValue("<html></html>"),
+        extractMarkdownFromHtml: vi.fn().mockResolvedValue({
+          title: "NPM package backdoor steals tokens",
+          contentMd: "A malicious npm package used a postinstall backdoor.",
+          author: "Author",
+          description: "A malicious npm package used a postinstall backdoor.",
+          publishedAt: "2026-05-19T00:00:00.000Z",
+          siteName: "Example",
+        }),
+        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
+        decryptSecret: vi.fn().mockReturnValue("sk-live"),
+        translateText,
+        summarizeText,
+        generateTags: vi.fn().mockRejectedValue(new Error("tag model failed")),
+      },
+    )
+
+    expect(updateArticleContent).toHaveBeenCalledWith(
+      "article-1",
+      expect.objectContaining({
+        tags: expect.arrayContaining(["npm", "malicious-package", "malware"]),
       }),
     )
   })
