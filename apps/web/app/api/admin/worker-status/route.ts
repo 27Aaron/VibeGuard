@@ -84,7 +84,7 @@ export async function GET() {
 
   const succeededCount = Number(succeededRow?.count ?? 0)
   const failedCount = Number(failedRow?.count ?? 0)
-  const totalCount = running.length + queued.length + succeededCount + failedCount
+  const totalCount = running.length + queued.length
 
   return Response.json({
     running,

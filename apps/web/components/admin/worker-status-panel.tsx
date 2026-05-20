@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ChevronDown, ChevronUp, Clock, Loader2 } from "lucide-react"
+import { Clock, Loader2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import type { AppLang } from "@/lib/i18n"
@@ -113,7 +113,7 @@ function TaskStepDots({ stage }: { stage: string }) {
 
 export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
   const [status, setStatus] = useState<WorkerStatus | null>(null)
-  const [expanded, setExpanded] = useState(false)
+  const [view, setView] = useState<"running" | "queued">("running")
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchStatus = useCallback(async () => {
@@ -141,56 +141,48 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
   const isActive = status.totalCount > 0
   if (!isActive) return null
 
-  const visibleRunning = expanded ? status.running : status.running.slice(0, 5)
-  const visibleQueued = expanded ? status.queued : status.queued.slice(0, 5)
-  const hasMoreRunning = status.running.length > 5
-  const hasMoreQueued = status.queued.length > 5
-  const hasMore = hasMoreRunning || hasMoreQueued
-
   return (
     <section className="flex flex-col gap-3">
-      {/* 标题栏 */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex size-2.5">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
-        </div>
-        <h2 className="text-lg font-semibold text-zinc-950 dark:text-stone-50">
-          {lang === "zh" ? "任务执行中" : "Tasks Running"}
-        </h2>
-        <div className="flex items-center gap-2">
+      {/* 切换标签 */}
+      <div className="flex items-center gap-1 rounded-[0.9rem] bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+        <button
+          type="button"
+          onClick={() => setView("running")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-[0.7rem] px-3 py-1.5 text-sm font-medium transition-colors ${
+            view === "running"
+              ? "bg-white text-zinc-950 shadow-sm dark:bg-white/10 dark:text-stone-50"
+              : "text-zinc-500 hover:text-zinc-800 dark:text-stone-400 dark:hover:text-stone-200"
+          }`}
+        >
+          {lang === "zh" ? "运行中" : "Running"}
           {status.runningCount > 0 && (
-            <Badge variant="secondary" className="font-mono">
-              {status.runningCount} {lang === "zh" ? "运行中" : "running"}
-            </Badge>
+            <span className="font-mono text-xs">{status.runningCount}</span>
           )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("queued")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-[0.7rem] px-3 py-1.5 text-sm font-medium transition-colors ${
+            view === "queued"
+              ? "bg-white text-zinc-950 shadow-sm dark:bg-white/10 dark:text-stone-50"
+              : "text-zinc-500 hover:text-zinc-800 dark:text-stone-400 dark:hover:text-stone-200"
+          }`}
+        >
+          {lang === "zh" ? "排队中" : "Queued"}
           {status.queuedCount > 0 && (
-            <Badge variant="outline" className="font-mono">
-              {status.queuedCount} {lang === "zh" ? "排队中" : "queued"}
-            </Badge>
+            <span className="font-mono text-xs">{status.queuedCount}</span>
           )}
-          {status.succeededCount > 0 && (
-            <Badge variant="secondary" className="bg-emerald-100 font-mono text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-              {status.succeededCount} {lang === "zh" ? "已完成" : "done"}
-            </Badge>
-          )}
-          {status.failedCount > 0 && (
-            <Badge variant="destructive" className="font-mono">
-              {status.failedCount} {lang === "zh" ? "失败" : "failed"}
-            </Badge>
-          )}
-        </div>
+        </button>
       </div>
 
       {/* 运行中的任务 */}
-      {visibleRunning.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {visibleRunning.map((job) => (
+      {view === "running" && status.running.length > 0 && (
+        <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto">
+          {status.running.map((job) => (
             <div
               key={job.id}
               className="flex flex-col gap-2.5 rounded-[1rem] border border-emerald-900/10 bg-[#f7fbf8] px-4 py-3 dark:border-emerald-200/10 dark:bg-[#121b17]"
             >
-              {/* 头部：标题 + 百分比 + 耗时 */}
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -218,7 +210,6 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
                 </div>
               </div>
 
-              {/* 分步圆点 + 进度条 + 当前阶段 */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <TaskStepDots stage={job.pipelineStage} />
@@ -238,15 +229,18 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
         </div>
       )}
 
+      {view === "running" && status.running.length === 0 && (
+        <div className="rounded-[1rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 text-center dark:border-white/10 dark:bg-white/[0.04]">
+          <p className="text-sm text-muted-foreground">
+            {lang === "zh" ? "当前没有运行中的任务" : "No tasks currently running"}
+          </p>
+        </div>
+      )}
+
       {/* 排队中的任务 */}
-      {visibleQueued.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          {visibleRunning.length > 0 && (
-            <p className="text-xs font-medium text-muted-foreground">
-              {lang === "zh" ? "排队中" : "Queued"}
-            </p>
-          )}
-          {visibleQueued.map((job) => (
+      {view === "queued" && status.queued.length > 0 && (
+        <div className="flex max-h-[420px] flex-col gap-1.5 overflow-y-auto">
+          {status.queued.map((job) => (
             <div
               key={job.id}
               className="flex items-center gap-3 rounded-lg border border-black/5 bg-white/40 px-3 py-2 dark:border-white/5 dark:bg-white/[0.02]"
@@ -265,27 +259,12 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
         </div>
       )}
 
-      {/* 展开/收起 */}
-      {hasMore && (
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-        >
-          {expanded ? (
-            <>
-              {lang === "zh" ? "收起" : "Collapse"}
-              <ChevronUp className="size-3.5" />
-            </>
-          ) : (
-            <>
-              {lang === "zh"
-                ? `查看全部 ${status.totalCount} 个任务`
-                : `Show all ${status.totalCount} tasks`}
-              <ChevronDown className="size-3.5" />
-            </>
-          )}
-        </button>
+      {view === "queued" && status.queued.length === 0 && (
+        <div className="rounded-[1rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 text-center dark:border-white/10 dark:bg-white/[0.04]">
+          <p className="text-sm text-muted-foreground">
+            {lang === "zh" ? "当前没有排队中的任务" : "No tasks currently queued"}
+          </p>
+        </div>
       )}
     </section>
   )

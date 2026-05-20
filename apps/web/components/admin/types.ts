@@ -63,7 +63,7 @@ export type JobRow = {
   lastError: string | null
 }
 
-export type JobStatusFilter = "all" | "running" | "succeeded" | "failed" | "filtered"
+export type JobStatusFilter = "all" | "running" | "queued" | "failed" | "filtered"
 export type JobStageFilter = "all" | JobRow["pipelineStage"]
 
 export type JobStatusCount = {

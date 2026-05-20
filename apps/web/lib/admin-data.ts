@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
 
 import {
   articles,
@@ -352,6 +352,7 @@ export async function getJobPreviewRows() {
     })
     .from(processingJobs)
     .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
+    .where(sql`${processingJobs.status} in ('queued', 'running')`)
     .orderBy(desc(processingJobs.createdAt))
     .limit(5)
 
@@ -388,16 +389,33 @@ export async function getJobStatusCounts(lang: AppLang = "zh") {
     {
       status: "all",
       label: lang === "zh" ? "全部内容" : "All content",
-      count: [...countMap.values()].reduce((sum, count) => sum + count, 0),
+      count:
+        (countMap.get("running") ?? 0) +
+        (countMap.get("queued") ?? 0) +
+        (countMap.get("failed") ?? 0) +
+        filteredCount,
     },
-    { status: "running", label: lang === "zh" ? "执行中" : "Running", count: countMap.get("running") ?? 0 },
-    { status: "failed", label: lang === "zh" ? "失败" : "Failed", count: countMap.get("failed") ?? 0 },
+    {
+      status: "running",
+      label: lang === "zh" ? "执行中" : "Running",
+      count: countMap.get("running") ?? 0,
+    },
+    {
+      status: "queued",
+      label: lang === "zh" ? "排队中" : "Queued",
+      count: countMap.get("queued") ?? 0,
+    },
+    {
+      status: "failed",
+      label: lang === "zh" ? "失败" : "Failed",
+      count: countMap.get("failed") ?? 0,
+    },
     { status: "filtered", label: lang === "zh" ? "已过滤" : "Filtered", count: filteredCount },
-    { status: "succeeded", label: lang === "zh" ? "已完成" : "Succeeded", count: countMap.get("succeeded") ?? 0 },
   ] as const
 }
 
-type JobStatusInput = "all" | "running" | "succeeded" | "failed" | "filtered"
+type JobStatusInput = "all" | "running" | "queued" | "failed" | "filtered"
+const VISIBLE_JOB_STATUSES = ["queued", "running", "failed"] as const
 
 export async function getJobRows(input: Partial<AdminJobListParams> & {
   status?: JobStatusInput
@@ -409,15 +427,16 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
   const lang = input.lang ?? "zh"
   const pageSize = input.pageSize ?? DEFAULT_ADMIN_JOB_PAGE_SIZE
   const requestedPage = Math.max(1, Math.floor(input.page ?? 1))
+  const visibleJobFilter = inArray(processingJobs.status, VISIBLE_JOB_STATUSES)
   const filters = [
-    status === "all" ? undefined
+    status === "all" ? or(visibleJobFilter, eq(articles.status, "filtered"))
       : status === "filtered" ? eq(articles.status, "filtered")
       : eq(processingJobs.status, status),
     stage === "all"
       ? undefined
       : eq(processingJobs.pipelineStage, stage as Exclude<AdminJobStageFilter, "all">),
   ].filter(Boolean)
-  const useJoin = status === "filtered"
+  const useJoin = status === "all" || status === "filtered"
   const baseQuery = useJoin
     ? db.select({ count: sql<number>`count(*)` }).from(processingJobs).innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
     : db.select({ count: sql<number>`count(*)` }).from(processingJobs)

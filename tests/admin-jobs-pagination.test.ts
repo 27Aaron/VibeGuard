@@ -137,6 +137,10 @@ describe("admin job pagination", () => {
 
     expect(adminData).toContain("getJobRows(input")
     expect(adminData).toContain("const pageSize = input.pageSize")
+    expect(adminData).toContain("VISIBLE_JOB_STATUSES")
+    expect(adminData).toContain("or(visibleJobFilter")
+    expect(adminData).toContain("eq(articles.status, \"filtered\")")
+    expect(adminData).toContain("status === \"all\" || status === \"filtered\"")
     expect(adminData).toContain("processingJobs.pipelineStage")
     expect(adminData).toContain(".limit(pageSize)")
     expect(adminData).toContain(".offset(offset)")

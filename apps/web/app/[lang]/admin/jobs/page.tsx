@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic"
 const allowedStatuses = new Set<JobStatusFilter>([
   "all",
   "running",
-  "succeeded",
+  "queued",
   "failed",
   "filtered",
 ])

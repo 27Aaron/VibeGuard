@@ -13,11 +13,9 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { runWorkerOnceAction } from "@/lib/actions/worker"
-import { getDashboardOverview, getJobPreviewRows } from "@/lib/admin-data"
-import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
+import { getDashboardOverview } from "@/lib/admin-data"
 import { resolveLang } from "@/lib/i18n"
 import { decodeWorkerRunDetails } from "@/lib/worker-run"
-import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -73,10 +71,7 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
   const { lang: rawLang } = await routeParams
   const params = (await searchParams) ?? {}
   const lang = resolveLang(rawLang)
-  const [overviewCards, jobPreviewRows] = await Promise.all([
-    getDashboardOverview(lang),
-    getJobPreviewRows(),
-  ])
+  const overviewCards = await getDashboardOverview(lang)
   const copy =
     lang === "zh"
       ? {
@@ -86,24 +81,13 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
           statusBody: "用四个指标快速判断采集、处理和模型链路是否可用。",
           operationsTitle: "常用操作",
           operationsBody: "高频入口集中在这里：手动跑一轮，或进入对应模块继续处理。",
-          queueTitle: "处理队列",
-          queueBody: "最近 5 条 Worker 任务，优先关注失败和长时间排队的项目。",
+          queueTitle: "任务执行",
           runSuccessPrefix: "本轮 Worker 已完成：",
           runSuccessSuffix: "个来源抓取成功，处理了",
           runSuccessJobsSuffix: "个任务。",
           runFailed: "本轮 Worker 执行失败，请查看任务队列里的错误信息。",
           succeeded: "已完成",
           failed: "失败",
-          processing: "处理中",
-          jobsEmptyStateTitle: "任务队列还是空的",
-          noJobs: "还没有任务。先添加来源，再抓取并处理一次即可看到任务进入队列。",
-          jobTypeLabel: "步骤",
-          jobStatusLabel: "状态",
-          jobTimeLabel: "计划执行",
-          extract: "正文提取",
-          translate: "翻译",
-          summarize: "摘要",
-          viewJobs: "查看完整任务列表",
           entries: [
             {
               title: "来源",
@@ -140,26 +124,13 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
           operationsTitle: "Common actions",
           operationsBody:
             "Start one manual cycle or jump into the module that needs attention.",
-          queueTitle: "Processing queue",
-          queueBody:
-            "The latest 5 worker jobs, with failed and long-queued items first in mind.",
+          queueTitle: "Task execution",
           runSuccessPrefix: "Worker cycle finished:",
           runSuccessSuffix: "sources succeeded, and",
           runSuccessJobsSuffix: "jobs were processed.",
           runFailed: "This worker cycle failed. Check the job queue for the error.",
           succeeded: "Succeeded",
           failed: "Failed",
-          processing: "Processing",
-          jobsEmptyStateTitle: "The job queue is still empty",
-          noJobs:
-            "No jobs yet. Add a source, then run one manual cycle to push jobs into the queue.",
-          jobTypeLabel: "Step",
-          jobStatusLabel: "Status",
-          jobTimeLabel: "Scheduled for",
-          extract: "Extraction",
-          translate: "Translation",
-          summarize: "Summary",
-          viewJobs: "View all jobs",
           entries: [
             {
               title: "Sources",
@@ -251,7 +222,7 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+      <section className="grid gap-6 lg:grid-cols-[minmax(320px,1fr)_minmax(0,1.4fr)]">
         <Card>
           <CardHeader>
             <CardTitle>{copy.operationsTitle}</CardTitle>
@@ -260,7 +231,7 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
           <CardContent className="flex flex-col gap-4">
             <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
             <Separator />
-            <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="flex flex-col gap-2.5">
               {copy.entries.map((entry) => {
                 const Icon = entry.icon
 
@@ -296,84 +267,18 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
         <Card>
           <CardHeader>
             <CardTitle>{copy.queueTitle}</CardTitle>
-            <CardDescription>{copy.queueBody}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {jobPreviewRows.length === 0 ? (
-              <div className="rounded-[1.15rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 dark:border-white/10 dark:bg-white/[0.04]">
-                <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
-                  {copy.jobsEmptyStateTitle}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">{copy.noJobs}</p>
-              </div>
-            ) : (
-              <>
-                {jobPreviewRows.map((job) => (
-                  <div
-                    key={job.id}
-                    className={cn("flex flex-col gap-2", getAdminSubtlePanelClassName())}
-                  >
-                    <div className="flex min-w-0 items-center justify-between gap-3">
-                      <p className="min-w-0 flex-1 truncate text-sm font-medium">
-                        {job.articleTitle}
-                      </p>
-                      <span
-                        className={`shrink-0 whitespace-nowrap text-xs ${statusTone(job.status)}`}
-                      >
-                        {job.status === "succeeded"
-                          ? copy.succeeded
-                          : job.status === "failed"
-                            ? copy.failed
-                            : copy.processing}
-                      </span>
-                    </div>
-                    <div className="grid items-end gap-3 text-xs text-muted-foreground sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
-                          {copy.jobTypeLabel}
-                        </span>
-                        <span>
-                          {job.jobType === "extract"
-                            ? copy.extract
-                            : job.jobType === "translate"
-                              ? copy.translate
-                              : copy.summarize}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
-                          {copy.jobStatusLabel}
-                        </span>
-                        <span className={`whitespace-nowrap ${statusTone(job.status)}`}>
-                          {job.status === "succeeded"
-                            ? copy.succeeded
-                            : job.status === "failed"
-                              ? copy.failed
-                              : copy.processing}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[0.68rem] uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
-                          {copy.jobTimeLabel}
-                        </span>
-                        <span>{job.runAt}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <Link
-                  href={buildAdminHref(lang, "jobs")}
-                  className="text-sm font-medium text-zinc-500 hover:text-emerald-800 dark:text-stone-400 dark:hover:text-emerald-300"
-                >
-                  {copy.viewJobs}
-                </Link>
-              </>
-            )}
+          <CardContent className="flex flex-col gap-4">
+            <WorkerStatusPanel lang={lang} />
+            <Link
+              href={buildAdminHref(lang, "jobs")}
+              className="text-sm font-medium text-zinc-500 hover:text-emerald-800 dark:text-stone-400 dark:hover:text-emerald-300"
+            >
+              {lang === "zh" ? "查看完整任务列表" : "View all jobs"}
+            </Link>
           </CardContent>
         </Card>
       </section>
-
-      <WorkerStatusPanel lang={lang} />
     </AdminPageShell>
   )
 }

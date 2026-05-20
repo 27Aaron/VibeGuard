@@ -7,6 +7,7 @@ import {
   buildJobFailureUpdate,
   buildStaleRunningJobUpdate,
   buildJobSuccessUpdate,
+  markJobSucceeded,
 } from "../apps/worker/src/jobs";
 import {
   processArticleJob,
@@ -120,13 +121,16 @@ describe("processArticleJob pipeline stages", () => {
 
 describe("processQueuedJobs", () => {
   it("limits one worker cycle to five jobs by default", async () => {
-    const processNextJob = vi
-      .fn()
-      .mockResolvedValue({
-        jobId: "job-1",
-        articleId: "article-1",
+    let callCount = 0
+    const processNextJob = vi.fn().mockImplementation(() => {
+      callCount += 1
+      if (callCount > 10) return Promise.resolve(null)
+      return Promise.resolve({
+        jobId: `job-${callCount}`,
+        articleId: `article-${callCount}`,
         status: "succeeded" as const,
       })
+    })
     const resetStaleJobs = vi.fn().mockResolvedValue(undefined)
 
     const results = await processQueuedJobs({} as never, {
@@ -140,13 +144,15 @@ describe("processQueuedJobs", () => {
   })
 
   it("allows callers to run a smaller manual batch", async () => {
-    const processNextJob = vi
-      .fn()
-      .mockResolvedValue({
-        jobId: "job-1",
-        articleId: "article-1",
+    let callCount = 0
+    const processNextJob = vi.fn().mockImplementation(() => {
+      callCount += 1
+      return Promise.resolve({
+        jobId: `job-${callCount}`,
+        articleId: `article-${callCount}`,
         status: "succeeded" as const,
       })
+    })
 
     const results = await processQueuedJobs({} as never, {
       batchSize: 2,
@@ -154,8 +160,21 @@ describe("processQueuedJobs", () => {
       resetStaleJobs: vi.fn(),
     })
 
-    expect(results).toHaveLength(2)
+    expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"])
     expect(processNextJob).toHaveBeenCalledTimes(2)
+  })
+
+  it("stops when no jobs are available", async () => {
+    const processNextJob = vi.fn().mockResolvedValue(null)
+    const resetStaleJobs = vi.fn().mockResolvedValue(undefined)
+
+    const results = await processQueuedJobs({} as never, {
+      processNextJob,
+      resetStaleJobs,
+    })
+
+    expect(results).toHaveLength(0)
+    expect(processNextJob).toHaveBeenCalledTimes(5) // one round
   })
 
   it("processes selected job ids directly in batch order", async () => {
@@ -354,6 +373,21 @@ describe("buildJobSuccessUpdate", () => {
       pipelineStage: JobPipelineStage.COMPLETED,
       finishedAt: now,
     });
+  });
+
+  it("preserves successful job rows for filtered task history and reruns", async () => {
+    const now = new Date("2026-05-19T08:00:00.000Z");
+    const where = vi.fn().mockResolvedValue(undefined);
+    const set = vi.fn().mockReturnValue({ where });
+    const update = vi.fn().mockReturnValue({ set });
+    const del = vi.fn();
+
+    await markJobSucceeded({ update, delete: del } as never, "job-1", now);
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(del).not.toHaveBeenCalled();
+    expect(set).toHaveBeenCalledWith(buildJobSuccessUpdate(now));
+    expect(where).toHaveBeenCalledTimes(1);
   });
 });
 

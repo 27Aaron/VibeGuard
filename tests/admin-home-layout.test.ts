@@ -27,43 +27,24 @@ describe("admin home layout", () => {
     expect(page).not.toContain("/admin/settings")
   })
 
-  it("formats the worker trigger and job preview as productized cards", () => {
+  it("formats the worker trigger and job status as productized cards", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
-    const adminData = fs.readFileSync("apps/web/lib/admin-data.ts", "utf8")
     const i18n = fs.readFileSync("apps/web/lib/i18n.ts", "utf8")
 
     expect(page).toContain("statusTitle")
     expect(page).toContain("operationsTitle")
     expect(page).toContain("queueTitle")
-    expect(page).toContain("最近 5 条 Worker 任务")
-    expect(page).toContain("The latest 5 worker jobs")
-    expect(page).not.toContain("最近 6 条 Worker 任务")
-    expect(page).not.toContain("The latest 6 worker jobs")
-    expect(page).toContain("jobsEmptyStateTitle")
-    expect(page).toContain("jobTypeLabel")
-    expect(page).toContain("jobStatusLabel")
-    expect(adminData).toContain(".limit(5)")
-    expect(adminData).not.toContain(".limit(6)")
+    expect(page).toContain("WorkerStatusPanel")
     expect(i18n).toContain('adminRunWorker: "抓取并处理一次"')
     expect(i18n).toContain('adminRunWorker: "Fetch and process once"')
     expect(i18n).not.toContain('adminRunWorker: "手动执行一轮"')
     expect(i18n).not.toContain('adminRunWorker: "Run worker once"')
   })
 
-  it("keeps processing queue rows compact with one-line title and status", () => {
+  it("keeps the common action entry buttons compact and vertically stacked", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
 
-    expect(page).toContain("px-4 py-3")
-    expect(page).toContain("min-w-0 flex-1 truncate")
-    expect(page).toContain("shrink-0 whitespace-nowrap")
-    expect(page).toContain("items-end gap-3")
-    expect(page).not.toContain("px-4 py-4 dark:border-white/10 dark:bg-white/[0.035]")
-  })
-
-  it("keeps the common action entry buttons compact and vertically balanced", () => {
-    const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
-
-    expect(page).toContain("grid gap-2.5 sm:grid-cols-2")
+    expect(page).toContain("flex flex-col gap-2.5")
     expect(page).toContain("group min-h-[92px]")
     expect(page).toContain("px-4 py-3")
     expect(page).toContain("items-center justify-between")

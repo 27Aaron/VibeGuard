@@ -678,21 +678,22 @@ export async function processQueuedJobs(
 
   await resetStaleJobs(db)
 
-  // 并发处理：同时运行最多 concurrency 个任务
-  const workers = Array.from({ length: concurrency }, async () => {
-    while (claimedSlots < batchSize) {
-      claimedSlots += 1
-      const result = await processNextJob(db)
+  while (claimedSlots < batchSize) {
+    const slotCount = Math.min(concurrency, batchSize - claimedSlots)
+    claimedSlots += slotCount
+    const roundResults = await Promise.all(
+      Array.from({ length: slotCount }, () => processNextJob(db)),
+    )
+    const processed = roundResults.filter(
+      (result): result is ProcessedJobResult => Boolean(result),
+    )
 
-      if (!result) {
-        break
-      }
+    results.push(...processed)
 
-      results.push(result)
+    if (processed.length < slotCount) {
+      break
     }
-  })
-
-  await Promise.all(workers)
+  }
 
   return results
 }
