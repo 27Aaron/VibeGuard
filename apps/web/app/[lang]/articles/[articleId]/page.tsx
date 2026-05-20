@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import {
@@ -27,6 +28,27 @@ import {
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({ params }: { params: Promise<{ lang: string; articleId: string }> }): Promise<Metadata> {
+  const { lang: rawLang, articleId } = await params
+  const lang = resolveLang(rawLang)
+  const article = await getArticleById(articleId, lang)
+
+  if (!article) {
+    return { title: "Not Found" }
+  }
+
+  return {
+    title: `${article.title} - VibeGuard`,
+    description: article.summary?.slice(0, 160) ?? undefined,
+    openGraph: {
+      title: article.title,
+      description: article.summary?.slice(0, 160) ?? undefined,
+      type: "article",
+      locale: lang === "zh" ? "zh_CN" : "en_US",
+    },
+  }
+}
 
 type PublicArticlePageProps = {
   params: Promise<{ lang: string; articleId: string }>

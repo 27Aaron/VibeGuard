@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import {
   ChevronLeft,
@@ -27,6 +28,26 @@ import { formatDateTimeInShanghai } from "@/lib/time"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang: rawLang } = await params
+  const lang = resolveLang(rawLang)
+  const title = lang === "zh" ? "VibeGuard - 供应链安全情报" : "VibeGuard - Supply-chain Security Intelligence"
+  const description = lang === "zh"
+    ? "聚合供应链攻击、恶意包与高危漏洞情报，提供双语摘要的开源安全内容流。"
+    : "Aggregated supply-chain attack, malicious package, and vulnerability intelligence with bilingual summaries."
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      locale: lang === "zh" ? "zh_CN" : "en_US",
+    },
+  }
+}
 
 type PublicHomePageProps = {
   params: Promise<{ lang: string }>
