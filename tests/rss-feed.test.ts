@@ -8,7 +8,7 @@ describe("rss feed builder", () => {
       title: "VibeGuard Feed",
       description: "Security <feed> & updates",
       siteUrl: "http://127.0.0.1:3000",
-      feedUrl: "http://127.0.0.1:3000/rss.xml?lang=zh",
+      feedUrl: "http://127.0.0.1:3000/zh-cn/feed.xml",
       language: "zh-cn",
       articles: [
         {
@@ -25,12 +25,14 @@ describe("rss feed builder", () => {
     })
 
     expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>')
-    expect(xml).toContain("<rss version=\"2.0\">")
+    expect(xml).toContain("<rss version=\"2.0\"")
+    expect(xml).toContain("xmlns:atom=")
     expect(xml).toContain("Security &lt;feed&gt; &amp; updates")
     expect(xml).toContain("Malicious &lt;package&gt; &amp; campaign")
     expect(xml).toContain("http://127.0.0.1:3000/articles/article-1?lang=zh")
-    expect(xml).toContain("Original URL: https://example.com/post")
-    expect(xml).toContain("<category>SafeDep</category>")
+    expect(xml).toContain("<author>SafeDep</author>")
+    expect(xml).toContain("<ttl>60</ttl>")
+    expect(xml).not.toContain("<category>")
   })
 
   it("handles empty article lists", () => {
@@ -38,7 +40,7 @@ describe("rss feed builder", () => {
       title: "Empty Feed",
       description: "No items yet",
       siteUrl: "http://127.0.0.1:3000",
-      feedUrl: "http://127.0.0.1:3000/rss.xml",
+      feedUrl: "http://127.0.0.1:3000/feed.xml",
       language: "en-us",
       articles: [],
     })
@@ -52,7 +54,7 @@ describe("rss feed builder", () => {
       title: "Date Feed",
       description: "Date check",
       siteUrl: "http://127.0.0.1:3000",
-      feedUrl: "http://127.0.0.1:3000/rss.xml",
+      feedUrl: "http://127.0.0.1:3000/feed.xml",
       language: "zh-cn",
       articles: [
         {

@@ -21,7 +21,7 @@ const futureSurfaceLinks: Array<{
 }> = [
   { label: "API", icon: FileJson },
   { label: "MCP", icon: Braces },
-  { label: "RSS", icon: Rss, active: true, href: "/rss.xml" },
+  { label: "RSS", icon: Rss, active: true },
   { label: "Skill", icon: ShieldCheck },
 ]
 
@@ -78,9 +78,12 @@ export function PublicHeader({
                 item.active && "text-emerald-800 dark:text-emerald-300",
               )
 
-              if (item.href) {
+              const href =
+                item.href ?? (item.label === "RSS" ? `/${currentLang === "zh" ? "zh-cn" : "en-us"}/feed.xml` : undefined)
+
+              if (href) {
                 return (
-                  <Link key={item.label} href={item.href} className={surfaceClassName}>
+                  <Link key={item.label} href={href} className={surfaceClassName}>
                     <span className={contentClassName}>
                       <Icon className={iconClassName} strokeWidth={2} />
                       {item.label}
