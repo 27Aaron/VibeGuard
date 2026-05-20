@@ -16,18 +16,17 @@ export function AutoRedirectHome({ lang }: AutoRedirectHomeProps) {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          router.push(`/${lang}`)
-          return 0
-        }
-        return prev - 1
-      })
+      setSeconds((prev) => (prev > 0 ? prev - 1 : 0))
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [lang, router])
+  }, [])
+
+  useEffect(() => {
+    if (seconds === 0) {
+      router.push(`/${lang}`)
+    }
+  }, [seconds, lang, router])
 
   return (
     <div className="flex items-center gap-3">
