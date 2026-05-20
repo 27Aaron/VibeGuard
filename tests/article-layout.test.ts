@@ -12,7 +12,7 @@ describe("public article layout helpers", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/articles/[articleId]/page.tsx", "utf8")
 
     expect(page).toContain("lg:grid-cols-[minmax(0,1fr)_390px]")
-    expect(page).toContain("lg:sticky lg:top-[102px]")
+    expect(page).toContain("lg:sticky lg:top-28")
     expect(page).not.toContain("lg:-mt-")
     expect(page).toContain("summaryPanelTitle")
     expect(page).toContain("summaryPanelTags")
