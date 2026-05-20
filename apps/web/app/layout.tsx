@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
+import Script from "next/script";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { Toaster } from "sonner";
@@ -23,8 +24,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={lang === "en" ? "en" : "zh"} className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <head>
-        <script
+        <Script
           id="theme-bootstrap"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
       </head>

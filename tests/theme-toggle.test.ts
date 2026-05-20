@@ -8,8 +8,11 @@ describe("theme toggle", () => {
     const theme = fs.readFileSync("apps/web/lib/theme.ts", "utf8")
 
     expect(layout).toContain('id="theme-bootstrap"')
+    expect(layout).toContain('from "next/script"')
+    expect(layout).toContain('strategy="beforeInteractive"')
     expect(layout).toContain("<head>")
-    expect(layout).toContain("<script")
+    expect(layout).toContain("<Script")
+    expect(layout).not.toContain("<script")
     expect(theme).toContain('window.matchMedia("(prefers-color-scheme: dark)")')
     expect(theme).toContain('const stored = localStorage.getItem(storageKey);')
     expect(theme).toContain('root.classList.toggle("dark", resolved === "dark")')
