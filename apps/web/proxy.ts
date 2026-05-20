@@ -88,14 +88,6 @@ export function proxy(request: NextRequest) {
     return redirectToLangPath(request, "en", segments.slice(1))
   }
 
-  if (
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/_next/") ||
-    pathname.includes(".")
-  ) {
-    return NextResponse.next()
-  }
-
   if (firstSegment && isValidLang(firstSegment)) {
     if (request.nextUrl.searchParams.has("lang")) {
       const url = request.nextUrl.clone()
@@ -110,6 +102,14 @@ export function proxy(request: NextRequest) {
     }
 
     return nextWithLang(request, firstSegment)
+  }
+
+  if (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next()
   }
 
   const lang = resolveLegacyLang(request)

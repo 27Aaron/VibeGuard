@@ -2,6 +2,26 @@ import fs from "node:fs"
 
 import { describe, expect, it } from "vitest"
 
+import { proxy } from "../apps/web/proxy"
+
+type ProxyRequest = Parameters<typeof proxy>[0]
+type TestNextUrl = URL & { clone: () => TestNextUrl }
+
+function createNextUrl(pathname: string): TestNextUrl {
+  const url = new URL(`http://127.0.0.1:3000${pathname}`) as TestNextUrl
+  url.clone = () => createNextUrl(`${url.pathname}${url.search}`)
+  return url
+}
+
+function createProxyRequest(pathname: string, cookie: string): ProxyRequest {
+  return {
+    headers: new Headers({
+      cookie,
+    }),
+    nextUrl: createNextUrl(pathname),
+  } as ProxyRequest
+}
+
 describe("localized not-found page", () => {
   it("uses the route language context for /[lang] 404 pages", () => {
     const notFound = fs.readFileSync("apps/web/app/[lang]/not-found.tsx", "utf8")
@@ -29,5 +49,15 @@ describe("localized not-found page", () => {
     expect(rootLayout).toContain("<Script")
     expect(rootLayout).not.toContain("<script")
     expect(rootLayout).not.toContain("theme-init.js")
+  })
+
+  it("preserves the route language for dotted 404 paths", () => {
+    const response = proxy(createProxyRequest("/en/missing.txt", "lang=zh"))
+
+    expect(response.headers.get("x-middleware-next")).toBe("1")
+    expect(response.headers.get("x-middleware-request-x-vibeguard-lang")).toBe(
+      "en",
+    )
+    expect(response.headers.get("set-cookie")).toContain("lang=en")
   })
 })
