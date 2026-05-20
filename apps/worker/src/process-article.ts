@@ -710,21 +710,23 @@ export async function processQueuedJobsByIds(
 ) {
   const results: ProcessedJobResult[] = []
   const batchSize = resolveWorkerBatchSize(options.batchSize)
+  const concurrency = Math.min(batchSize, 5)
   const processJobById = options.processJobById ?? processQueuedJobById
   const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
+  const idsToProcess = jobIds.slice(0, batchSize)
 
   await resetStaleJobs(db)
 
-  for (const jobId of jobIds) {
-    if (results.length >= batchSize) {
-      break
-    }
+  for (let i = 0; i < idsToProcess.length; i += concurrency) {
+    const chunk = idsToProcess.slice(i, i + concurrency)
+    const roundResults = await Promise.all(
+      chunk.map((jobId) => processJobById(db, jobId)),
+    )
+    const processed = roundResults.filter(
+      (result): result is ProcessedJobResult => Boolean(result),
+    )
 
-    const result = await processJobById(db, jobId)
-
-    if (result) {
-      results.push(result)
-    }
+    results.push(...processed)
   }
 
   return results
