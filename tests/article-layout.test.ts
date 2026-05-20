@@ -9,7 +9,7 @@ describe("public article layout helpers", () => {
   })
 
   it("groups summary, source actions, and tags into a dedicated overview panel before the body", () => {
-    const page = fs.readFileSync("apps/web/app/articles/[articleId]/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/articles/[articleId]/page.tsx", "utf8")
 
     expect(page).toContain("lg:grid-cols-[minmax(0,1fr)_390px]")
     expect(page).toContain("lg:sticky lg:top-[102px]")

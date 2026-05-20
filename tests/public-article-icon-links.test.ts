@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("public article icon links", () => {
   it("uses icon-plus-label affordances for back navigation and source links", () => {
-    const page = fs.readFileSync("apps/web/app/articles/[articleId]/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/articles/[articleId]/page.tsx", "utf8")
 
     expect(page).toContain("ChevronLeft")
     expect(page).toContain("ExternalLink")

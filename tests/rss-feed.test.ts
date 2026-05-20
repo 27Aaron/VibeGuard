@@ -8,8 +8,8 @@ describe("rss feed builder", () => {
       title: "VibeGuard Feed",
       description: "Security <feed> & updates",
       siteUrl: "http://127.0.0.1:3000",
-      feedUrl: "http://127.0.0.1:3000/zh-cn/feed.xml",
-      language: "zh-cn",
+      feedUrl: "http://127.0.0.1:3000/zh/feed.xml",
+      language: "zh",
       articles: [
         {
           id: "article-1",
@@ -29,7 +29,7 @@ describe("rss feed builder", () => {
     expect(xml).toContain("xmlns:atom=")
     expect(xml).toContain("Security &lt;feed&gt; &amp; updates")
     expect(xml).toContain("Malicious &lt;package&gt; &amp; campaign")
-    expect(xml).toContain("http://127.0.0.1:3000/articles/article-1?lang=zh")
+    expect(xml).toContain("http://127.0.0.1:3000/zh/articles/article-1")
     expect(xml).toContain("<author>SafeDep</author>")
     expect(xml).toContain("<ttl>60</ttl>")
     expect(xml).not.toContain("<category>")
@@ -41,7 +41,7 @@ describe("rss feed builder", () => {
       description: "No items yet",
       siteUrl: "http://127.0.0.1:3000",
       feedUrl: "http://127.0.0.1:3000/feed.xml",
-      language: "en-us",
+      language: "en",
       articles: [],
     })
 
@@ -55,7 +55,7 @@ describe("rss feed builder", () => {
       description: "Date check",
       siteUrl: "http://127.0.0.1:3000",
       feedUrl: "http://127.0.0.1:3000/feed.xml",
-      language: "zh-cn",
+      language: "zh",
       articles: [
         {
           id: "article-1",

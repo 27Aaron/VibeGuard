@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("admin home layout", () => {
   it("uses the shared admin page shell instead of a one-off header", () => {
-    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
 
     expect(page).toContain("AdminPageShell")
     expect(page).toContain("title: \"总览\"")
@@ -15,7 +15,7 @@ describe("admin home layout", () => {
   })
 
   it("uses descriptive management entry cards instead of raw route strings", () => {
-    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
 
     expect(page).toContain("维护 RSS/Atom 来源，调整同步节奏。")
     expect(page).toContain("检查入库内容，重生成标题、正文和摘要。")
@@ -28,7 +28,7 @@ describe("admin home layout", () => {
   })
 
   it("formats the worker trigger and job preview as productized cards", () => {
-    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
     const adminData = fs.readFileSync("apps/web/lib/admin-data.ts", "utf8")
     const i18n = fs.readFileSync("apps/web/lib/i18n.ts", "utf8")
 
@@ -51,7 +51,7 @@ describe("admin home layout", () => {
   })
 
   it("keeps processing queue rows compact with one-line title and status", () => {
-    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
 
     expect(page).toContain("px-4 py-3")
     expect(page).toContain("min-w-0 flex-1 truncate")
@@ -61,7 +61,7 @@ describe("admin home layout", () => {
   })
 
   it("keeps the common action entry buttons compact and vertically balanced", () => {
-    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
 
     expect(page).toContain("grid gap-2.5 sm:grid-cols-2")
     expect(page).toContain("group min-h-[92px]")
@@ -74,7 +74,7 @@ describe("admin home layout", () => {
   })
 
   it("keeps overview metric cards compact with more comfortable horizontal padding", () => {
-    const page = fs.readFileSync("apps/web/app/admin/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
 
     expect(page).toContain("min-h-[104px]")
     expect(page).toContain("justify-center py-4")
@@ -88,7 +88,7 @@ describe("admin home layout", () => {
   })
 
   it("keeps the settings page columns top-aligned so the profile rail does not stretch into empty space", () => {
-    const page = fs.readFileSync("apps/web/app/admin/settings/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/settings/page.tsx", "utf8")
 
     expect(page).toContain("grid items-start gap-6")
   })

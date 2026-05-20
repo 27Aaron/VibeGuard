@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("admin article detail layout", () => {
   it("uses the polished admin detail layout instead of the old single-card stack", () => {
-    const file = fs.readFileSync("apps/web/app/admin/articles/[articleId]/page.tsx", "utf8")
+    const file = fs.readFileSync("apps/web/app/[lang]/admin/articles/[articleId]/page.tsx", "utf8")
 
     expect(file).toContain("lg:grid-cols-[minmax(0,1fr)_360px]")
     expect(file).toContain("lg:sticky lg:top-32")

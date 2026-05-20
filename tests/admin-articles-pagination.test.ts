@@ -27,7 +27,7 @@ describe("admin article pagination", () => {
   })
 
   it("renders pagination controls on the admin articles page", () => {
-    const page = fs.readFileSync("apps/web/app/admin/articles/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/articles/page.tsx", "utf8")
 
     expect(page).toContain("parseAdminArticleListParams")
     expect(page).toContain("ADMIN_ARTICLE_PAGE_SIZE_OPTIONS")

@@ -16,7 +16,7 @@ describe("admin feeds layout", () => {
   })
 
   it("gives configured sources table a padded surface instead of hugging the card edge", () => {
-    const page = fs.readFileSync("apps/web/app/admin/feeds/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/feeds/page.tsx", "utf8")
     const table = fs.readFileSync("apps/web/components/admin/feed-table.tsx", "utf8")
     const layoutTokens = fs.readFileSync("apps/web/lib/layout-tokens.ts", "utf8")
 

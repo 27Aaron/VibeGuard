@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("public homepage card layout", () => {
   it("adds a soft status bar with future API, Skill, MCP, and RSS entry points", () => {
-    const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
     const publicHeader = fs.readFileSync("apps/web/components/public-header.tsx", "utf8")
 
     expect(page).toContain("<PublicHeader")
@@ -37,7 +37,7 @@ describe("public homepage card layout", () => {
   })
 
   it("keeps the first screen focused on search and the article stream", () => {
-    const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
     const copy = fs.readFileSync("apps/web/lib/i18n.ts", "utf8")
 
     expect(page).toContain('type="search"')
@@ -66,7 +66,7 @@ describe("public homepage card layout", () => {
   })
 
   it("keeps article cards visually aligned while removing redundant footer labels", () => {
-    const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
     const layoutTokens = fs.readFileSync("apps/web/lib/layout-tokens.ts", "utf8")
 
     expect(page).toContain("grid items-start gap-5")
@@ -82,7 +82,7 @@ describe("public homepage card layout", () => {
   })
 
   it("keeps card metadata readable under long English labels by separating badges from timestamps", () => {
-    const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
 
     expect(page).toContain('className="flex items-center justify-between"')
     expect(page).toContain('tracking-[0.18em] text-zinc-400')

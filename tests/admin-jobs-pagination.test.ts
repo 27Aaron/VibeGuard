@@ -43,7 +43,7 @@ describe("admin job pagination", () => {
   })
 
   it("renders job pagination controls while preserving the status filter", () => {
-    const page = fs.readFileSync("apps/web/app/admin/jobs/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/admin/jobs/page.tsx", "utf8")
     const table = fs.readFileSync("apps/web/components/admin/job-table.tsx", "utf8")
     const stageFilter = fs.readFileSync(
       "apps/web/components/admin/job-stage-filter-select.tsx",

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("public homepage minimal header", () => {
   it("keeps the home screen compact while using the soft reference palette", () => {
-    const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
     const layoutTokens = fs.readFileSync("apps/web/lib/layout-tokens.ts", "utf8")
 
     expect(page).not.toContain("text.publicHeroTitle")

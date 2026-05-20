@@ -17,8 +17,8 @@ describe("theme toggle", () => {
 
   it("uses the lucide-style pill toggle across public and admin surfaces", () => {
     const toggle = fs.readFileSync("apps/web/components/theme-toggle.tsx", "utf8")
-    const home = fs.readFileSync("apps/web/app/page.tsx", "utf8")
-    const article = fs.readFileSync("apps/web/app/articles/[articleId]/page.tsx", "utf8")
+    const home = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
+    const article = fs.readFileSync("apps/web/app/[lang]/articles/[articleId]/page.tsx", "utf8")
     const publicHeader = fs.readFileSync("apps/web/components/public-header.tsx", "utf8")
     const adminHeader = fs.readFileSync("apps/web/components/admin/admin-header.tsx", "utf8")
 

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("public homepage tag filters", () => {
   it("uses a lightweight tag-only filter surface", () => {
-    const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
     const i18n = fs.readFileSync("apps/web/lib/i18n.ts", "utf8")
     const filter = fs.readFileSync("apps/web/components/public-tag-filter.tsx", "utf8")
 

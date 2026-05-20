@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("public homepage icon controls", () => {
   it("uses icon-only actions for search, clear, and pagination controls", () => {
-    const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
 
     expect(page).toContain("Search")
     expect(page).toContain("ChevronLeft")

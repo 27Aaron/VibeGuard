@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest"
 describe("admin shell layout", () => {
   it("shares the widened width and the same light-dark shell language with the public site", () => {
     const shell = fs.readFileSync("apps/web/components/admin/admin-page-shell.tsx", "utf8")
-    const adminLayout = fs.readFileSync("apps/web/app/admin/layout.tsx", "utf8")
+    const adminLayout = fs.readFileSync("apps/web/app/[lang]/admin/layout.tsx", "utf8")
     const adminHeader = fs.readFileSync("apps/web/components/admin/admin-header.tsx", "utf8")
     const layout = fs.readFileSync("apps/web/lib/admin-layout.ts", "utf8")
     const layoutTokens = fs.readFileSync("apps/web/lib/layout-tokens.ts", "utf8")

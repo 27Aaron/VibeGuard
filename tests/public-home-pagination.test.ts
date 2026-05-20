@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("public homepage pagination", () => {
   it("keeps pagination below the article list with visible page numbers", () => {
-    const page = fs.readFileSync("apps/web/app/page.tsx", "utf8")
+    const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
     const layoutTokens = fs.readFileSync("apps/web/lib/layout-tokens.ts", "utf8")
     const emptyStateBoundary = page.indexOf("{feed.items.length === 0")
     const paginationUsage = page.indexOf("<PaginationControls")
