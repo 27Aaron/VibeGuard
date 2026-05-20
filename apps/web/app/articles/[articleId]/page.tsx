@@ -129,7 +129,7 @@ export default async function PublicArticlePage({
             </article>
           </div>
 
-          <aside className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-[106px] lg:self-start">
+          <aside className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-[102px] lg:self-start">
             <section className={getSectionOuterClassName()}>
               <div className={getSectionInnerClassName()}>
                 <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-stone-400">
