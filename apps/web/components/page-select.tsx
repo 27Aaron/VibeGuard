@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
+import type { AppLang } from "@/lib/i18n"
 
 type PageSelectProps = {
   currentPage: number
   totalPages: number
-  lang: string
+  lang: AppLang
   query: string
   tag: string
   label: string
@@ -28,11 +29,10 @@ export function PageSelect({
   function navigateTo(page: number) {
     const clamped = Math.max(1, Math.min(totalPages, page))
     const params = new URLSearchParams()
-    params.set("lang", lang)
     if (query) params.set("q", query)
     if (tag) params.set("tag", tag)
     if (clamped !== 1) params.set("page", String(clamped))
-    router.push(`/?${params.toString()}`)
+    router.push(`/${lang}?${params.toString()}`)
   }
 
   function handleSubmit(e: { preventDefault(): void }) {

@@ -28,14 +28,15 @@ export function AdminNav({ current, lang }: { current: string; lang: AppLang }) 
   return (
     <nav className="grid w-full min-w-0 grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:items-center md:justify-self-center">
       {adminLinks.map((link) => {
+        const hrefWithLang = `/${lang}${link.href}`
         const active =
-          current === link.href ||
-          (link.href !== "/admin" && current.startsWith(`${link.href}/`))
+          current === hrefWithLang ||
+          (link.href !== "/admin" && current.startsWith(`${hrefWithLang}/`))
 
         return (
           <Link
             key={link.href}
-            href={`${link.href}?lang=${lang}`}
+            href={`/${lang}${link.href}`}
             aria-current={active ? "page" : undefined}
             className={cn(shellClassName, active && activeShellClassName)}
           >

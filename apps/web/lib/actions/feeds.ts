@@ -19,10 +19,9 @@ function buildFeedRedirect(status: "success" | "error", message: string, lang: "
   const params = new URLSearchParams({
     status,
     message,
-    lang,
   })
 
-  return `/admin/feeds?${params.toString()}`
+  return `/${lang}/admin/feeds?${params.toString()}`
 }
 
 export async function createFeedAction(

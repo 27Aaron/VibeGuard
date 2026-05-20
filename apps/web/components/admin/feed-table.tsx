@@ -59,7 +59,7 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
             <p className="max-w-xl text-sm text-muted-foreground">{copy.emptyStateBody}</p>
           </div>
           <Link
-            href={`/admin/feeds?lang=${lang}`}
+            href={`/${lang}/admin/feeds`}
             className={cn(buttonVariants({ size: "sm", variant: "outline" }), "inline-flex items-center gap-2")}
           >
             <PlusCircle className="size-4" />
@@ -123,7 +123,7 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
               <TableCell className="px-4 py-3 text-center align-middle">
                 <div className="inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-black/5 bg-white/68 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
                   <Link
-                    href={`/admin/feeds/${feed.id}?lang=${lang}`}
+                    href={`/${lang}/admin/feeds/${feed.id}`}
                     className={cn(
                       buttonVariants({ size: "sm", variant: "outline" }),
                       "inline-flex items-center gap-1.5",

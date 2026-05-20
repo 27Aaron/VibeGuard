@@ -43,19 +43,17 @@ async function loadProcessedJobDetails(
 
 export async function runWorkerOnceAction(formData: FormData) {
   const lang = resolveLang(String(formData.get("lang") ?? "zh"))
-  let redirectTarget = `/admin?lang=${lang}`
+  let redirectTarget = `/${lang}/admin`
 
   try {
     const summary = await runWorkerCycle()
     const details = await loadProcessedJobDetails(summary.processedJobs)
     const params = buildWorkerRunRedirectParams(summary, details)
-    params.set("lang", lang)
 
-    redirectTarget = `/admin?${params.toString()}`
+    redirectTarget = `/${lang}/admin?${params.toString()}`
   } catch (error) {
     const params = buildWorkerRunErrorParams(error)
-    params.set("lang", lang)
-    redirectTarget = `/admin?${params.toString()}`
+    redirectTarget = `/${lang}/admin?${params.toString()}`
   }
 
   redirect(redirectTarget)

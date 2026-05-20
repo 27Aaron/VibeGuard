@@ -35,7 +35,6 @@ function buildJobsRedirect(
   const params = new URLSearchParams({
     result,
     message,
-    lang,
   })
 
   if (context.status && context.status !== "all") {
@@ -54,7 +53,7 @@ function buildJobsRedirect(
     params.set("pageSize", context.pageSize)
   }
 
-  return `/admin/jobs?${params.toString()}`
+  return `/${lang}/admin/jobs?${params.toString()}`
 }
 
 function getJobsRedirectContext(formData: FormData): JobsRedirectContext {

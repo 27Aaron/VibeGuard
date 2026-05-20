@@ -37,14 +37,13 @@ function buildSettingsRedirect(
   const params = new URLSearchParams({
     status,
     message,
-    lang,
   })
 
   if (profile) {
     params.set("profile", profile)
   }
 
-  return `/admin/settings?${params.toString()}`
+  return `/${lang}/admin/settings?${params.toString()}`
 }
 
 export async function saveLlmSettingsAction(

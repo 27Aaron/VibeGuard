@@ -51,7 +51,7 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
               <TableCell className="max-w-[420px] px-4 py-3 align-middle font-medium">
                 <div className="flex min-w-0 flex-col gap-1">
                   <Link
-                    href={`/admin/articles/${article.id}?lang=${lang}`}
+                    href={`/${lang}/admin/articles/${article.id}`}
                     className="truncate hover:underline"
                   >
                     {article.title}

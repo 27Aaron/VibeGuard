@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { Toaster } from "sonner";
@@ -15,9 +16,12 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("lang")?.value === "en" ? "en" : "zh";
+
   return (
-    <html lang="zh-CN" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
+    <html lang={lang === "en" ? "en" : "zh-CN"} className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <head>
         <script
           id="theme-bootstrap"

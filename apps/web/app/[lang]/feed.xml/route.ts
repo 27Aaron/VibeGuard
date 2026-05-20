@@ -5,26 +5,26 @@ import { buildRssFeedXml } from "@/lib/rss"
 
 export const dynamic = "force-dynamic"
 
-const SUPPORTED_LANGS = new Set(["zh-cn", "en-us"])
+const SUPPORTED_LANGS = new Set(["zh", "en"])
 
 function buildFeedTitle(lang: string, source: string | null) {
   if (source) {
-    return lang === "zh-cn"
+    return lang === "zh"
       ? `VibeGuard 中文订阅 - ${source}`
       : `VibeGuard English Feed - ${source}`
   }
 
-  return lang === "zh-cn" ? "VibeGuard 中文订阅" : "VibeGuard English Feed"
+  return lang === "zh" ? "VibeGuard 中文订阅" : "VibeGuard English Feed"
 }
 
 function buildFeedDescription(lang: string, source: string | null) {
   const localeText =
-    lang === "zh-cn"
+    lang === "zh"
       ? "聚合后的供应链攻击与漏洞情报订阅流。"
       : "Aggregated supply-chain attack and vulnerability intelligence feed."
 
   if (source) {
-    return lang === "zh-cn"
+    return lang === "zh"
       ? `${localeText} 当前来源：${source}。`
       : `${localeText} Source filter: ${source}.`
   }
@@ -37,8 +37,8 @@ export async function GET(
   { params }: { params: Promise<{ lang: string }> },
 ) {
   const { lang: rawLang } = await params
-  const lang = SUPPORTED_LANGS.has(rawLang) ? rawLang : "zh-cn"
-  const i18nLang = lang === "zh-cn" ? "zh" : "en"
+  const lang = SUPPORTED_LANGS.has(rawLang) ? rawLang : "zh"
+  const i18nLang = lang
 
   const searchParams = new URLSearchParams(request.nextUrl.searchParams)
   searchParams.set("status", searchParams.get("status") ?? "ready")

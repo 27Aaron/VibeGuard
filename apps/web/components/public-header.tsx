@@ -79,7 +79,7 @@ export function PublicHeader({
               )
 
               const href =
-                item.href ?? (item.label === "RSS" ? `/${currentLang === "zh" ? "zh-cn" : "en-us"}/feed.xml` : undefined)
+                item.href ?? (item.label === "RSS" ? `/${currentLang}/feed.xml` : undefined)
 
               if (href) {
                 return (

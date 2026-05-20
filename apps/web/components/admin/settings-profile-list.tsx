@@ -88,7 +88,7 @@ export function SettingsProfileList({
             </p>
           </div>
           <Link
-            href={`/admin/settings?profile=new&lang=${lang}`}
+            href={`/${lang}/admin/settings?profile=new`}
             className={cn(
               buttonVariants({ variant: "outline" }),
               "inline-flex shrink-0 items-center gap-2",
@@ -122,7 +122,7 @@ export function SettingsProfileList({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-col gap-1">
                     <Link
-                      href={`/admin/settings?profile=${profile.id}&lang=${lang}`}
+                      href={`/${lang}/admin/settings?profile=${profile.id}`}
                       className="truncate text-sm font-medium hover:underline"
                     >
                       {profile.name}
@@ -147,7 +147,7 @@ export function SettingsProfileList({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    href={`/admin/settings?profile=${profile.id}&lang=${lang}`}
+                    href={`/${lang}/admin/settings?profile=${profile.id}`}
                     className={buttonVariants({ size: "sm", variant: "outline" })}
                   >
                     {lang === "zh" ? "编辑" : "Edit"}

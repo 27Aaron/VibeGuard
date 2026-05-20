@@ -179,7 +179,7 @@ export function JobTable({
               <TableCell className="px-4 py-3 align-middle">
                 <div className="flex min-w-0 flex-col gap-1">
                   <Link
-                    href={`/admin/articles/${job.articleId}?lang=${lang}`}
+                    href={`/${lang}/admin/articles/${job.articleId}`}
                     className="truncate font-medium hover:underline"
                   >
                     {job.articleTitle}

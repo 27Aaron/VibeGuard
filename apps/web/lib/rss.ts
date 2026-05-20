@@ -77,7 +77,7 @@ export function buildRssFeedXml(input: BuildRssFeedXmlInput) {
 
   const items = input.articles
     .map((article) => {
-      const itemUrl = `${siteUrl}/articles/${article.id}?lang=${article.locale}`
+      const itemUrl = `${siteUrl}/${article.locale}/articles/${article.id}`
       const plainSummary = article.summary
         ? stripMarkdown(article.summary).replace(/\n+/g, " ")
         : ""

@@ -31,10 +31,9 @@ function buildArticleDetailRedirect(
   const params = new URLSearchParams({
     status,
     message,
-    lang,
   })
 
-  return `/admin/articles/${articleId}?${params.toString()}`
+  return `/${lang}/admin/articles/${articleId}?${params.toString()}`
 }
 
 export async function reprocessArticleAction(formData: FormData) {
@@ -43,7 +42,7 @@ export async function reprocessArticleAction(formData: FormData) {
   const target = resolveRegenerationTarget(formData.get("target"))
 
   if (!articleId) {
-    redirect(`/admin/articles?lang=${lang}`)
+    redirect(`/${lang}/admin/articles`)
   }
 
   let redirectMessage = ""
