@@ -7,6 +7,7 @@ import {
   ADMIN_JOB_PAGE_SIZE_OPTIONS,
   parseAdminJobListParams,
 } from "../apps/web/lib/admin-job-pagination"
+import { buildSelectedJobsQueuedMessage } from "../apps/web/lib/job-action-messages"
 
 describe("admin job pagination", () => {
   it("defaults the admin job list to the first page with 10 rows", () => {
@@ -93,6 +94,25 @@ describe("admin job pagination", () => {
     expect(actions).toContain("MANUAL_SELECTED_JOB_BATCH_SIZE")
     expect(actions).toContain("batchSize: MANUAL_SELECTED_JOB_BATCH_SIZE")
     expect(actions).toContain("clearGeneratedContent")
+  })
+
+  it("tells operators when only a bounded subset starts in the background", () => {
+    expect(
+      buildSelectedJobsQueuedMessage({
+        lang: "zh",
+        queuedCount: 20,
+        backgroundStartLimit: 5,
+      }),
+    ).toBe("已将 20 个任务加入队列，正在后台处理前 5 个，其余会等待下一轮处理。")
+    expect(
+      buildSelectedJobsQueuedMessage({
+        lang: "en",
+        queuedCount: 20,
+        backgroundStartLimit: 5,
+      }),
+    ).toBe(
+      "20 jobs queued. The first 5 are processing in background; the rest will wait for the next worker run.",
+    )
   })
 
   it("shows checkboxes and per-row action buttons for every visible job", () => {

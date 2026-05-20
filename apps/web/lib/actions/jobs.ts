@@ -14,6 +14,7 @@ import { processQueuedJobsByIds } from "worker"
 
 import { normalizeUserFacingError } from "../errors"
 import { resolveLang } from "../i18n"
+import { buildSelectedJobsQueuedMessage } from "../job-action-messages"
 import { revalidateLocalizedPaths } from "../revalidate"
 
 const MANUAL_SELECTED_JOB_BATCH_SIZE = 5
@@ -224,9 +225,11 @@ export async function retrySelectedJobsAction(formData: FormData) {
     redirectTarget = buildJobsRedirect(
       matchedJobs.length > 0 ? "success" : "error",
       matchedJobs.length > 0
-        ? lang === "zh"
-          ? `已将 ${matchedJobs.length} 个任务加入队列，后台正在并发处理中。`
-          : `${matchedJobs.length} jobs queued — processing in background.`
+        ? buildSelectedJobsQueuedMessage({
+            lang,
+            queuedCount: matchedJobs.length,
+            backgroundStartLimit: MANUAL_SELECTED_JOB_BATCH_SIZE,
+          })
         : lang === "zh"
           ? "选中的任务没有可执行项。"
           : "The selected jobs did not include runnable items.",

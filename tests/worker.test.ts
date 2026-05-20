@@ -201,6 +201,35 @@ describe("processQueuedJobs", () => {
     expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"])
     expect(processJobById).toHaveBeenCalledTimes(2)
   })
+
+  it("continues past unavailable selected ids until the batch is filled", async () => {
+    const processJobById = vi
+      .fn()
+      .mockImplementation((_db, jobId: string) => {
+        if (jobId === "claimed-elsewhere") {
+          return Promise.resolve(null)
+        }
+
+        return Promise.resolve({
+          jobId,
+          articleId: `article-${jobId}`,
+          status: "succeeded" as const,
+        })
+      })
+
+    const results = await processQueuedJobsByIds(
+      {} as never,
+      ["claimed-elsewhere", "job-1", "job-2"],
+      {
+        batchSize: 2,
+        processJobById,
+        resetStaleJobs: vi.fn(),
+      },
+    )
+
+    expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"])
+    expect(processJobById).toHaveBeenCalledTimes(3)
+  })
 })
 
 describe("pollFeed", () => {
