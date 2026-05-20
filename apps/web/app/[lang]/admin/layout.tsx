@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Suspense, type ReactNode } from "react"
 
 import { AdminHeader } from "@/components/admin/admin-header"
@@ -6,6 +7,13 @@ import {
   getAdminBackgroundClassName,
   getAdminShellClassName,
 } from "@/lib/admin-layout"
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 type AdminLayoutProps = {
   children: ReactNode
