@@ -42,8 +42,13 @@ function resolveTheme(preference: ThemePreference) {
   return preference
 }
 
+function readInitialTheme(): "light" | "dark" {
+  if (typeof document === "undefined") return "dark"
+  return document.documentElement.classList.contains("dark") ? "dark" : "light"
+}
+
 export function ThemeToggle({ className }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<"light" | "dark">("dark")
+  const [theme, setTheme] = useState<"light" | "dark">(readInitialTheme)
   const [mounted, setMounted] = useState(false)
   const activeTransitionRef = useRef<{ cleanup: () => void } | null>(null)
 
