@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { retryFailedJobsAction, retrySelectedJobsAction } from "@/lib/actions/jobs"
+import { retryJobAction, retrySelectedJobsAction } from "@/lib/actions/jobs"
 import {
   ADMIN_JOB_PAGE_SIZE_OPTIONS,
   parseAdminJobListParams,
@@ -167,19 +167,6 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <form action={retryFailedJobsAction}>
-              <input type="hidden" name="lang" value={lang} />
-              <input type="hidden" name="status" value={status} />
-              <input type="hidden" name="stage" value={stage} />
-              <input type="hidden" name="page" value={String(pagination.page)} />
-              <input type="hidden" name="pageSize" value={String(pagination.pageSize)} />
-              <button
-                type="submit"
-                className={buttonVariants({ size: "sm", variant: "outline" })}
-              >
-                {lang === "zh" ? "继续执行全部失败" : "Continue all failed"}
-              </button>
-            </form>
             <form id="selected-jobs-form" action={retrySelectedJobsAction}>
               <input type="hidden" name="lang" value={lang} />
               <input type="hidden" name="status" value={status} />
@@ -198,18 +185,6 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
             >
               {lang === "zh" ? "执行选中" : "Run selected"}
             </button>
-            <Link
-              href={buildJobsHref({
-                lang,
-                status: "all",
-                stage: "all",
-                page: 1,
-                pageSize: pagination.pageSize,
-              })}
-              className={buttonVariants({ size: "sm", variant: "outline" })}
-            >
-              {lang === "zh" ? "清除筛选" : "Clear filters"}
-            </Link>
           </div>
         </CardHeader>
         <CardContent className="px-6 pb-5">
