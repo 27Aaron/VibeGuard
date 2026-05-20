@@ -95,15 +95,15 @@ describe("admin job pagination", () => {
     expect(actions).toContain("clearGeneratedContent")
   })
 
-  it("shows checkboxes and row actions for every visible job", () => {
+  it("shows checkboxes and per-row action buttons for every visible job", () => {
     const table = fs.readFileSync("apps/web/components/admin/job-table.tsx", "utf8")
 
     expect(table).toContain("actionLabel")
+    expect(table).toContain("retryJobAction")
     expect(table).toContain('form="selected-jobs-form"')
     expect(table).toContain("cursor-pointer")
     expect(table).toContain("重新执行")
     expect(table).toContain("立即执行")
-    expect(table).toContain("w-[120px]")
     expect(table).toContain("text-left")
     expect(table).not.toContain('disabled={job.status !== "failed"}')
     expect(table).not.toContain('className="text-xs text-muted-foreground">-</span>')
