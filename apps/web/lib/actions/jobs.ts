@@ -147,8 +147,11 @@ export async function retryJobAction(formData: FormData) {
       )
     } else {
       await queueJobForManualRun({ db, job })
-      const processedJobs = await processQueuedJobsByIds(db, [job.id], {
+
+      processQueuedJobsByIds(db, [job.id], {
         batchSize: MANUAL_SINGLE_JOB_BATCH_SIZE,
+      }).catch((error) => {
+        console.error("[retryJob] background processing failed:", error)
       })
 
       revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
@@ -156,75 +159,8 @@ export async function retryJobAction(formData: FormData) {
       redirectTarget = buildJobsRedirect(
         "success",
         lang === "zh"
-          ? `已将该任务加入队列，并立即处理了 ${processedJobs.length} 个任务。`
-          : `The job was queued and ${processedJobs.length} job was processed immediately.`,
-        lang,
-        redirectContext,
-      )
-    }
-  } catch (error) {
-    redirectTarget = buildJobsRedirect(
-      "error",
-      normalizeUserFacingError(error, lang),
-      lang,
-      redirectContext,
-    )
-  }
-
-  redirect(redirectTarget)
-}
-
-export async function retryFailedJobsAction(formData: FormData) {
-  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
-  const redirectContext = getJobsRedirectContext(formData)
-  let redirectTarget = buildJobsRedirect(
-    "error",
-    lang === "zh" ? "批量重试失败任务失败。" : "Failed to retry failed jobs.",
-    lang,
-    redirectContext,
-  )
-
-  try {
-    const db = getDb()
-    const failedJobs = await db.query.processingJobs.findMany({
-      where: eq(processingJobs.status, JobStatus.FAILED),
-      orderBy: (table, { desc }) => [desc(table.updatedAt)],
-      limit: 50,
-    })
-
-    if (failedJobs.length === 0) {
-      redirectTarget = buildJobsRedirect(
-        "error",
-        lang === "zh"
-          ? "当前没有可继续执行的失败任务。"
-          : "There are no failed jobs available to continue.",
-        lang,
-        redirectContext,
-      )
-    } else {
-      let enqueuedCount = 0
-
-      for (const job of failedJobs) {
-        await queueJobForManualRun({ db, job })
-        enqueuedCount += 1
-      }
-      const processedJobs = await processQueuedJobsByIds(
-        db,
-        failedJobs.map((job) => job.id),
-        { batchSize: MANUAL_SELECTED_JOB_BATCH_SIZE },
-      )
-
-      revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
-
-      redirectTarget = buildJobsRedirect(
-        enqueuedCount > 0 ? "success" : "error",
-        enqueuedCount > 0
-          ? lang === "zh"
-            ? `已继续执行 ${enqueuedCount} 个失败任务，本轮立即处理 ${processedJobs.length} 个。`
-            : `${enqueuedCount} failed jobs were continued, and ${processedJobs.length} were processed immediately.`
-          : lang === "zh"
-            ? "当前没有可继续执行的失败任务。"
-            : "There are no failed jobs available to continue.",
+          ? "已将该任务加入队列，后台正在处理中。"
+          : "The job was queued — processing in background.",
         lang,
         redirectContext,
       )
@@ -267,32 +203,30 @@ export async function retrySelectedJobsAction(formData: FormData) {
       where: inArray(processingJobs.id, ids),
     })
     const jobMap = new Map(jobs.map((job) => [job.id, job]))
-    const queuedJobIds = []
-    let enqueuedCount = 0
+    const matchedJobs = ids
+      .map((id) => jobMap.get(id))
+      .filter((job): job is NonNullable<typeof job> => Boolean(job))
 
-    for (const id of ids) {
-      const job = jobMap.get(id)
+    await Promise.all(
+      matchedJobs.map((job) => queueJobForManualRun({ db, job })),
+    )
 
-      if (!job) {
-        continue
-      }
+    const queuedJobIds = matchedJobs.map((job) => job.id)
 
-      await queueJobForManualRun({ db, job })
-      queuedJobIds.push(job.id)
-      enqueuedCount += 1
-    }
-    const processedJobs = await processQueuedJobsByIds(db, queuedJobIds, {
+    processQueuedJobsByIds(db, queuedJobIds, {
       batchSize: MANUAL_SELECTED_JOB_BATCH_SIZE,
+    }).catch((error) => {
+      console.error("[retrySelectedJobs] background processing failed:", error)
     })
 
     revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
 
     redirectTarget = buildJobsRedirect(
-      enqueuedCount > 0 ? "success" : "error",
-      enqueuedCount > 0
+      matchedJobs.length > 0 ? "success" : "error",
+      matchedJobs.length > 0
         ? lang === "zh"
-          ? `已将 ${enqueuedCount} 个任务加入处理队列，本轮立即处理 ${processedJobs.length} 个。`
-          : `${enqueuedCount} jobs were queued, and ${processedJobs.length} were processed immediately.`
+          ? `已将 ${matchedJobs.length} 个任务加入队列，后台正在并发处理中。`
+          : `${matchedJobs.length} jobs queued — processing in background.`
         : lang === "zh"
           ? "选中的任务没有可执行项。"
           : "The selected jobs did not include runnable items.",
