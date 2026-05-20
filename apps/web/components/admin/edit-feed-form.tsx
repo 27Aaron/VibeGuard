@@ -52,7 +52,7 @@ export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps)
   const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT)
 
   return (
-    <form action={formAction}>
+    <form key={initialValues.id} action={formAction}>
       <input type="hidden" name="lang" value={lang} />
       <input type="hidden" name="id" value={initialValues.id} />
       <Card>
