@@ -118,7 +118,7 @@ export function JobTable({
                 label={lang === "zh" ? "全选当前页任务" : "Select all jobs on this page"}
               />
             </TableHead>
-            <TableHead className="w-[30%] px-4">
+            <TableHead className="w-[30%] px-4 text-left">
               {lang === "zh" ? "内容" : "Content"}
             </TableHead>
             <TableHead className="w-[120px] px-3 text-center">

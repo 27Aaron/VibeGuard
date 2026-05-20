@@ -120,6 +120,7 @@ export function CreateFeedForm({ action, lang }: CreateFeedFormProps) {
               type="checkbox"
               name="enabled"
               defaultChecked
+              className="h-4 w-4 shrink-0 rounded border-black/20 accent-emerald-800 dark:border-white/20"
             />
           </label>
           {state.status !== "idle" ? (

@@ -11,7 +11,7 @@ describe("theme transition helper", () => {
     expect(helper).toContain("theme-transition-active")
     expect(helper).toContain('"--theme-transition-x"')
     expect(helper).toContain('"--theme-transition-radius"')
-    expect(helper).toContain("THEME_TRANSITION_DURATION_MS = 980")
+    expect(helper).toContain("THEME_TRANSITION_DURATION_MS = 400")
     expect(helper).toContain("Math.hypot")
     expect(helper).toContain("prefers-reduced-motion")
     expect(helper).toContain("applyTheme")

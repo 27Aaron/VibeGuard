@@ -22,6 +22,27 @@ import {
 } from "../apps/worker/src/poll-feeds";
 import { assertSuccessfulWorkerCycle } from "../apps/worker/src/index";
 
+function createRelevantChatClient() {
+  return {
+    chat: {
+      completions: {
+        create: vi.fn().mockResolvedValue({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  relevant: true,
+                  reason: "security content",
+                }),
+              },
+            },
+          ],
+        }),
+      },
+    },
+  };
+}
+
 describe("buildExtractJobInsert", () => {
   it("should build a queued extract job payload", () => {
     const runAfter = new Date("2026-05-19T08:00:00.000Z");
@@ -78,7 +99,7 @@ describe("processArticleJob pipeline stages", () => {
           publishedAt: "2026-05-20T00:00:00.000Z",
           siteName: "Example",
         }),
-        createOpenAIClient: vi.fn().mockReturnValue({}),
+        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
         decryptSecret: vi.fn().mockReturnValue("plain-key"),
         translateText: vi.fn().mockResolvedValue("中文"),
         summarizeText: vi.fn().mockResolvedValue("summary"),
@@ -88,11 +109,12 @@ describe("processArticleJob pipeline stages", () => {
 
     expect(markJobStage).toHaveBeenNthCalledWith(1, JobPipelineStage.FETCH_SOURCE);
     expect(markJobStage).toHaveBeenNthCalledWith(2, JobPipelineStage.EXTRACT_CONTENT);
-    expect(markJobStage).toHaveBeenNthCalledWith(3, JobPipelineStage.TRANSLATE_TITLE);
-    expect(markJobStage).toHaveBeenNthCalledWith(4, JobPipelineStage.TRANSLATE_CONTENT);
-    expect(markJobStage).toHaveBeenNthCalledWith(5, JobPipelineStage.SUMMARIZE_EN);
-    expect(markJobStage).toHaveBeenNthCalledWith(6, JobPipelineStage.SUMMARIZE_ZH);
-    expect(markJobStage).toHaveBeenNthCalledWith(7, JobPipelineStage.GENERATE_TAGS);
+    expect(markJobStage).toHaveBeenNthCalledWith(3, JobPipelineStage.CLASSIFY_RELEVANCE);
+    expect(markJobStage).toHaveBeenNthCalledWith(4, JobPipelineStage.TRANSLATE_TITLE);
+    expect(markJobStage).toHaveBeenNthCalledWith(5, JobPipelineStage.TRANSLATE_CONTENT);
+    expect(markJobStage).toHaveBeenNthCalledWith(6, JobPipelineStage.SUMMARIZE_EN);
+    expect(markJobStage).toHaveBeenNthCalledWith(7, JobPipelineStage.SUMMARIZE_ZH);
+    expect(markJobStage).toHaveBeenNthCalledWith(8, JobPipelineStage.GENERATE_TAGS);
   });
 });
 

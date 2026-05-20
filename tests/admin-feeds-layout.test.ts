@@ -18,14 +18,14 @@ describe("admin feeds layout", () => {
   it("gives configured sources table a padded surface instead of hugging the card edge", () => {
     const page = fs.readFileSync("apps/web/app/admin/feeds/page.tsx", "utf8")
     const table = fs.readFileSync("apps/web/components/admin/feed-table.tsx", "utf8")
-    const layout = fs.readFileSync("apps/web/lib/admin-layout.ts", "utf8")
+    const layoutTokens = fs.readFileSync("apps/web/lib/layout-tokens.ts", "utf8")
 
     expect(page).toContain('<CardContent className="px-6 pb-5">')
     expect(table).toContain("getAdminTableSurfaceClassName")
-    expect(layout).toContain("overflow-hidden rounded-[1.25rem] border border-black/5")
+    expect(layoutTokens).toContain("overflow-hidden rounded-[1.25rem] border border-black/5")
     expect(table).toContain('TableHeader className="bg-white/56 dark:bg-white/[0.035]"')
     expect(table).toContain("<TableHead className=\"px-4\"")
-    expect(table).toContain("<TableCell className=\"px-4 py-3 font-medium\"")
+    expect(table).toContain("<TableCell className=\"px-4 py-3 align-middle font-medium\"")
     expect(table).not.toContain("<CardContent>\n          <FeedTable")
   })
 })

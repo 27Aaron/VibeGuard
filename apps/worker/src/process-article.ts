@@ -674,12 +674,14 @@ export async function processQueuedJobs(
   const concurrency = Math.min(batchSize, 5)
   const processNextJob = options.processNextJob ?? processNextQueuedJob
   const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
+  let claimedSlots = 0
 
   await resetStaleJobs(db)
 
   // 并发处理：同时运行最多 concurrency 个任务
   const workers = Array.from({ length: concurrency }, async () => {
-    while (results.length < batchSize) {
+    while (claimedSlots < batchSize) {
+      claimedSlots += 1
       const result = await processNextJob(db)
 
       if (!result) {

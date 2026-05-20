@@ -19,6 +19,7 @@ describe("admin job pagination", () => {
       "waiting",
       "fetch_source",
       "extract_content",
+      "classify_relevance",
       "translate_title",
       "translate_content",
       "summarize_en",
@@ -119,7 +120,12 @@ describe("admin job pagination", () => {
     expect(table).toContain("Processing complete")
     expect(table).toContain("处理标签")
     expect(table).toContain("Generate tags")
+    expect(table).toContain("相关性判断")
+    expect(table).toContain("Classify relevance")
     expect(table).toContain("job.status === \"succeeded\"")
+    expect(stageFilter).toContain("相关性判断")
+    expect(stageFilter).toContain("Classify relevance")
+    expect(stageFilter).toContain("classify_relevance")
     expect(stageFilter).toContain("处理标签")
     expect(stageFilter).toContain("Generate tags")
     expect(stageFilter).toContain("generate_tags")

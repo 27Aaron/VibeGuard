@@ -7,6 +7,27 @@ import {
   processArticleJob,
 } from "../apps/worker/src/process-article"
 
+function createRelevantChatClient() {
+  return {
+    chat: {
+      completions: {
+        create: vi.fn().mockResolvedValue({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  relevant: true,
+                  reason: "security content",
+                }),
+              },
+            },
+          ],
+        }),
+      },
+    },
+  }
+}
+
 describe("buildSummaryPrompt", () => {
   it("adds an explicit locale instruction", () => {
     expect(buildSummaryPrompt("Summarize the article.", "en")).toContain(
@@ -68,7 +89,7 @@ describe("processArticleJob", () => {
           publishedAt: "2026-05-19T00:00:00.000Z",
           siteName: "Example",
         }),
-        createOpenAIClient: vi.fn().mockReturnValue({ responses: { create: vi.fn() } }),
+        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
         decryptSecret: vi.fn().mockReturnValue("sk-live"),
         translateText,
         summarizeText,
@@ -142,7 +163,7 @@ describe("processArticleJob", () => {
           publishedAt: "2026-05-19T00:00:00.000Z",
           siteName: "Example",
         }),
-        createOpenAIClient: vi.fn().mockReturnValue({ chat: { completions: { create: vi.fn() } } }),
+        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
         decryptSecret: vi.fn().mockReturnValue("sk-live"),
         translateText,
         summarizeText,
@@ -354,7 +375,7 @@ describe("processArticleJob", () => {
             publishedAt: "2026-05-19T00:00:00.000Z",
             siteName: "Example",
           }),
-          createOpenAIClient: vi.fn().mockReturnValue({}),
+          createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
           decryptSecret: vi.fn().mockReturnValue("sk-live"),
           translateText,
           summarizeText: vi.fn(),

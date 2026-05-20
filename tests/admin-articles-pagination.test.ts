@@ -55,10 +55,10 @@ describe("admin article pagination", () => {
 
   it("pads the admin article table so rows are easier to scan", () => {
     const table = fs.readFileSync("apps/web/components/admin/article-table.tsx", "utf8")
-    const layout = fs.readFileSync("apps/web/lib/admin-layout.ts", "utf8")
+    const layoutTokens = fs.readFileSync("apps/web/lib/layout-tokens.ts", "utf8")
 
     expect(table).toContain("getAdminTableSurfaceClassName")
-    expect(layout).toContain("overflow-hidden rounded-[1.25rem] border border-black/5")
+    expect(layoutTokens).toContain("overflow-hidden rounded-[1.25rem] border border-black/5")
     expect(table).toContain('TableHeader className="bg-white/56 dark:bg-white/[0.035]"')
     expect(table).toContain("<TableHead className=\"px-4\"")
     expect(table).toContain("max-w-[420px] px-4 py-3")

@@ -37,6 +37,7 @@ describe("shared status enums", () => {
       "processing",
       "ready",
       "failed",
+      "filtered",
     ]);
     expect(Object.values(ArticleStatus)).toEqual(ARTICLE_STATUS_VALUES);
 

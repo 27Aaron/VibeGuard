@@ -11,7 +11,7 @@ describe("public homepage tag filters", () => {
     expect(page).toContain("PublicTagFilter")
     expect(page).toContain("getPublicTags")
     expect(page).toContain("tag?: string")
-    expect(page).toContain('limit: "12"')
+    expect(page).toContain('limit: "15"')
     expect(page).not.toContain("getPublicSources")
     expect(page).not.toContain("ARTICLE_ECOSYSTEM_VALUES")
     expect(page).not.toContain("ARTICLE_RISK_CATEGORY_VALUES")
