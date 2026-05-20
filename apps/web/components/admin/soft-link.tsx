@@ -17,6 +17,7 @@ export function SoftLink({ href, className, children, disabled }: SoftLinkProps)
     <button
       type="button"
       disabled={disabled}
+      aria-disabled={disabled}
       onClick={() => router.push(href, { scroll: false })}
       className={className}
     >

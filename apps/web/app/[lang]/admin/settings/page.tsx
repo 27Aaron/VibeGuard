@@ -37,9 +37,6 @@ export default async function SettingsPage({ params: routeParams, searchParams }
           : "Configure model services, default models, and processing prompts."
       }
       currentNav="/admin/settings"
-      currentPath={
-        selectedProfileId ? `/admin/settings?profile=${selectedProfileId}` : "/admin/settings"
-      }
       lang={lang}
     >
       {showBanner ? (

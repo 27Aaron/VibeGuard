@@ -29,6 +29,21 @@ function statusLabel(status: ArticleRow["status"], lang: AppLang) {
 }
 
 export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang: AppLang }) {
+  if (articles.length === 0) {
+    return (
+      <div className="rounded-[1.2rem] border border-dashed border-black/10 bg-white/58 px-6 py-10 text-center dark:border-white/10 dark:bg-white/[0.04]">
+        <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
+          {lang === "zh" ? "还没有文章" : "No articles yet"}
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {lang === "zh"
+            ? "先添加来源并执行一轮处理，文章会自动出现在这里。"
+            : "Add a source and run one processing cycle. Articles will appear here automatically."}
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className={getAdminTableSurfaceClassName()}>
       <Table>

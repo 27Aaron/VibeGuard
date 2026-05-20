@@ -39,7 +39,6 @@ export default async function EditFeedPage({ params, searchParams }: EditFeedPag
           : "Adjust source details, polling cadence, and enabled state directly from the admin UI."
       }
       currentNav="/admin/feeds"
-      currentPath={`/admin/feeds/${feedId}`}
       lang={resolvedLang}
     >
       <div

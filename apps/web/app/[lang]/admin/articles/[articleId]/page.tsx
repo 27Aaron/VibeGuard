@@ -156,7 +156,6 @@ export default async function ArticleDetailPage({
           : "Review the saved bilingual content and the current processing outcome."
       }
       currentNav="/admin/articles"
-      currentPath={`/admin/articles/${articleId}`}
       lang={resolvedLang}
     >
       <SearchToast status={status} message={message} />

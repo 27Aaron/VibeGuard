@@ -8,7 +8,6 @@ type AdminPageShellProps = {
   title: string
   description: string
   currentNav: string
-  currentPath?: string
   children: ReactNode
   lang: AppLang
 }

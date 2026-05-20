@@ -68,22 +68,6 @@ function buildJobsHref(input: {
   return `/${input.lang}/admin/jobs?${params.toString()}`
 }
 
-function buildCurrentPath(status: JobStatusFilter, stage: JobStageFilter) {
-  const params = new URLSearchParams()
-
-  if (status !== "all") {
-    params.set("status", status)
-  }
-
-  if (stage !== "all") {
-    params.set("stage", stage)
-  }
-
-  const query = params.toString()
-
-  return query ? `/admin/jobs?${query}` : "/admin/jobs"
-}
-
 export default async function JobsPage({ params: routeParams, searchParams }: JobsPageProps) {
   const { lang: rawLang } = await routeParams
   const params = (await searchParams) ?? {}
@@ -122,7 +106,6 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
           : "Review content pipelines and pinpoint which step each article is blocked on."
       }
       currentNav="/admin/jobs"
-      currentPath={buildCurrentPath(status, stage)}
       lang={lang}
     >
       {params.message ? (
