@@ -29,24 +29,24 @@ import { cn } from "@/lib/utils"
 export const dynamic = "force-dynamic"
 
 type PublicHomePageProps = {
+  params: Promise<{ lang: string }>
   searchParams?: Promise<{
-    lang?: string
     q?: string
     tag?: string
     page?: string
   }>
 }
 
-export default async function PublicHomePage({ searchParams }: PublicHomePageProps) {
-  const params = (await searchParams) ?? {}
-  const lang = resolveLang(params.lang)
+export default async function PublicHomePage({ params: routeParams, searchParams }: PublicHomePageProps) {
+  const { lang: langParam } = await routeParams
+  const lang = resolveLang(langParam)
   const text = getUiText(lang)
-  const query = params.q?.trim() ?? ""
-  const tag = params.tag?.trim().toLowerCase() ?? ""
-  const page = params.page?.trim() ?? "1"
+  const sp = (await searchParams) ?? {}
+  const query = sp.q?.trim() ?? ""
+  const tag = sp.tag?.trim().toLowerCase() ?? ""
+  const page = sp.page?.trim() ?? "1"
 
   const urlSearchParams = new URLSearchParams({
-    lang,
     limit: "15",
     page,
   })
@@ -74,8 +74,8 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
     tag?: string
     page?: number
   }) {
+    const targetLang = next.lang ?? lang
     const hrefParams = new URLSearchParams()
-    hrefParams.set("lang", next.lang ?? lang)
 
     if (next.q ?? query) {
       hrefParams.set("q", next.q ?? query)
@@ -90,16 +90,16 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
     }
 
     const serialized = hrefParams.toString()
-    return serialized ? `/?${serialized}` : "/"
+    return serialized ? `/${targetLang}?${serialized}` : `/${targetLang}`
   }
 
   function buildArticleHref(articleId: string) {
     const hrefParams = new URLSearchParams()
-    hrefParams.set("lang", lang)
     if (query) hrefParams.set("q", query)
     if (tag) hrefParams.set("tag", tag)
     if (currentPage > 1) hrefParams.set("page", String(currentPage))
-    return `/articles/${articleId}?${hrefParams.toString()}`
+    const serialized = hrefParams.toString()
+    return serialized ? `/${lang}/articles/${articleId}?${serialized}` : `/${lang}/articles/${articleId}`
   }
 
   const visibleTagLinks = tagFilterModel.visibleTags.map((item) => ({
@@ -117,7 +117,7 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
 
       <div className={getShellClassName()}>
         <PublicHeader
-          homeHref={buildListHref({ page: 1 })}
+          homeHref={`/${lang}`}
           nextLangHref={buildListHref({ lang: nextLang, page: requestedPage })}
           currentLang={lang}
         />
@@ -146,8 +146,7 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
             </div>
 
             <div className="mt-4 rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
-              <form action="/" className="flex flex-wrap items-center gap-2">
-                <input type="hidden" name="lang" value={lang} />
+              <form action={`/${lang}`} className="flex flex-wrap items-center gap-2">
                 {tag ? <input type="hidden" name="tag" value={tag} /> : null}
                 <input
                   type="search"
@@ -306,7 +305,6 @@ export default async function PublicHomePage({ searchParams }: PublicHomePagePro
             previousLabel={text.pagePrev}
             nextLabel={text.pageNext}
             lang={lang}
-            langParam={lang}
             query={query}
             tag={tag}
           />
@@ -326,7 +324,6 @@ function PaginationControls({
   previousLabel,
   nextLabel,
   lang,
-  langParam,
   query,
   tag,
 }: {
@@ -339,7 +336,6 @@ function PaginationControls({
   previousLabel: string
   nextLabel: string
   lang: AppLang
-  langParam: string
   query: string
   tag: string
 }) {
@@ -365,7 +361,7 @@ function PaginationControls({
       <PageSelect
         currentPage={currentPage}
         totalPages={totalPages}
-        lang={langParam}
+        lang={lang}
         query={query}
         tag={tag}
         label={lang === "zh" ? "跳转到页码" : "Jump to page"}

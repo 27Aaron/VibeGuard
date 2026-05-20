@@ -29,9 +29,8 @@ import { cn } from "@/lib/utils"
 export const dynamic = "force-dynamic"
 
 type PublicArticlePageProps = {
-  params: Promise<{ articleId: string }>
+  params: Promise<{ lang: string; articleId: string }>
   searchParams: Promise<{
-    lang?: string
     q?: string
     tag?: string
     page?: string
@@ -42,9 +41,9 @@ export default async function PublicArticlePage({
   params,
   searchParams,
 }: PublicArticlePageProps) {
-  const { articleId } = await params
-  const { lang, q, tag, page } = await searchParams
-  const resolvedLang = resolveLang(lang)
+  const { lang: langParam, articleId } = await params
+  const resolvedLang = resolveLang(langParam)
+  const { q, tag, page } = await searchParams
   const text = getUiText(resolvedLang)
   const article = await getArticleById(articleId, resolvedLang)
 
@@ -57,7 +56,6 @@ export default async function PublicArticlePage({
   const nextLang = articleLang === "zh" ? "en" : "zh"
 
   const backParams = new URLSearchParams()
-  backParams.set("lang", resolvedArticle.locale)
   if (q) {
     backParams.set("q", q)
   }
@@ -69,9 +67,9 @@ export default async function PublicArticlePage({
   }
 
   function buildArticleHref(nextLang: "zh" | "en") {
-    const params = new URLSearchParams(backParams)
-    params.set("lang", nextLang)
-    return `/articles/${resolvedArticle.id}?${params.toString()}`
+    const nextParams = new URLSearchParams(backParams)
+    const serialized = nextParams.toString()
+    return serialized ? `/${nextLang}/articles/${resolvedArticle.id}?${serialized}` : `/${nextLang}/articles/${resolvedArticle.id}`
   }
 
   return (
@@ -80,7 +78,7 @@ export default async function PublicArticlePage({
 
       <div className={getShellClassName()}>
         <PublicHeader
-          homeHref={`/?${backParams.toString()}`}
+          homeHref={backParams.toString() ? `/${resolvedArticle.locale}?${backParams.toString()}` : `/${resolvedArticle.locale}`}
           nextLangHref={buildArticleHref(nextLang)}
           currentLang={articleLang}
         />
@@ -91,7 +89,7 @@ export default async function PublicArticlePage({
               <div className={cn("min-w-0 p-5 sm:p-7", getSectionInnerClassName())}>
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
-                    href={`/?${backParams.toString()}`}
+                    href={backParams.toString() ? `/${resolvedArticle.locale}?${backParams.toString()}` : `/${resolvedArticle.locale}`}
                     className={cn(
                       buttonVariants({ size: "sm", variant: "outline" }),
                       "h-8 rounded-full border-black/8 bg-[#eef2f7] px-3 text-[0.78rem] font-semibold text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#e7ecf4] hover:text-zinc-950 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white",

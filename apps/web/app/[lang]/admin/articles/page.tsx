@@ -18,36 +18,36 @@ import {
 } from "@/lib/admin-article-pagination"
 import { getArticleRows } from "@/lib/admin-data"
 import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
-import { resolveLang } from "@/lib/i18n"
+import { resolveLang, type AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
 type ArticlesPageProps = {
+  params: Promise<{ lang: string }>
   searchParams?: Promise<{
-    lang?: string
     page?: string
     pageSize?: string
   }>
 }
 
 function buildArticlesHref(input: {
-  lang: string
+  lang: AppLang
   page: number
   pageSize: number
 }) {
   const params = new URLSearchParams({
-    lang: input.lang,
     page: String(input.page),
     pageSize: String(input.pageSize),
   })
 
-  return `/admin/articles?${params.toString()}`
+  return `/${input.lang}/admin/articles?${params.toString()}`
 }
 
-export default async function ArticlesPage({ searchParams }: ArticlesPageProps) {
+export default async function ArticlesPage({ params: routeParams, searchParams }: ArticlesPageProps) {
+  const { lang: rawLang } = await routeParams
   const params = (await searchParams) ?? {}
-  const lang = resolveLang(params.lang)
+  const lang = resolveLang(rawLang)
   const paginationParams = parseAdminArticleListParams(params)
   const { rows: articles, pagination } = await getArticleRows({
     page: paginationParams.page,

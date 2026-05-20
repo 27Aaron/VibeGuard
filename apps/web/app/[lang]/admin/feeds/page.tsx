@@ -15,16 +15,17 @@ import { resolveLang } from "@/lib/i18n"
 export const dynamic = "force-dynamic"
 
 type FeedsPageProps = {
+  params: Promise<{ lang: string }>
   searchParams?: Promise<{
-    lang?: string
     status?: string
     message?: string
   }>
 }
 
-export default async function FeedsPage({ searchParams }: FeedsPageProps) {
+export default async function FeedsPage({ params: routeParams, searchParams }: FeedsPageProps) {
+  const { lang: rawLang } = await routeParams
   const params = (await searchParams) ?? {}
-  const lang = resolveLang(params.lang)
+  const lang = resolveLang(rawLang)
   const feeds = await getFeedRows(lang)
   const showBanner = params.status === "success" || params.status === "error"
 

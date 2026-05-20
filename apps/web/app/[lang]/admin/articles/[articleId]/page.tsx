@@ -37,8 +37,8 @@ import { cn } from "@/lib/utils"
 export const dynamic = "force-dynamic"
 
 type ArticleDetailPageProps = {
-  params: Promise<{ articleId: string }>
-  searchParams: Promise<{ lang?: string; status?: string; message?: string }>
+  params: Promise<{ lang: string; articleId: string }>
+  searchParams: Promise<{ status?: string; message?: string }>
 }
 
 function statusMeta(status: string, lang: "zh" | "en") {
@@ -111,8 +111,8 @@ export default async function ArticleDetailPage({
   params,
   searchParams,
 }: ArticleDetailPageProps) {
-  const { articleId } = await params
-  const { lang, status, message } = await searchParams
+  const { lang, articleId } = await params
+  const { status, message } = await searchParams
   const resolvedLang = resolveLang(lang)
   const article = await getArticleDetail(articleId)
 
@@ -168,7 +168,7 @@ export default async function ArticleDetailPage({
         )}
       >
         <Link
-          href={`/admin/articles?lang=${resolvedLang}`}
+          href={`/${lang}/admin/articles`}
           className={cn(
             buttonVariants({ size: "sm", variant: "outline" }),
             "w-fit rounded-full border-black/8 bg-[#eef2f7] text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#e7ecf4] hover:text-zinc-950 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white",
@@ -179,13 +179,13 @@ export default async function ArticleDetailPage({
         </Link>
         <div className="flex w-fit items-center gap-1 rounded-full border border-black/8 bg-[#eef2f7] p-[3px] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)]">
           <Link
-            href={`/admin/articles/${article.id}?lang=zh`}
+            href={`/zh/admin/articles/${article.id}`}
             className={getInteractiveChipClassName(localized.locale === "zh")}
           >
             {resolvedLang === "zh" ? "中文" : "Chinese"}
           </Link>
           <Link
-            href={`/admin/articles/${article.id}?lang=en`}
+            href={`/en/admin/articles/${article.id}`}
             className={getInteractiveChipClassName(localized.locale === "en")}
           >
             {resolvedLang === "zh" ? "英文" : "English"}

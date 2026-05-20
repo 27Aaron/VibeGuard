@@ -15,14 +15,15 @@ export const dynamic = "force-dynamic"
 
 type EditFeedPageProps = {
   params: Promise<{
+    lang: string
     feedId: string
   }>
-  searchParams?: Promise<{ lang?: string }>
+  searchParams?: Promise<{}>
 }
 
 export default async function EditFeedPage({ params, searchParams }: EditFeedPageProps) {
-  const { feedId } = await params
-  const resolvedLang = resolveLang(((await searchParams) ?? {}).lang)
+  const { lang, feedId } = await params
+  const resolvedLang = resolveLang(lang)
   const feed = await getFeedDetail(feedId)
 
   if (!feed) {
@@ -48,7 +49,7 @@ export default async function EditFeedPage({ params, searchParams }: EditFeedPag
         )}
       >
         <Link
-          href={`/admin/feeds?lang=${resolvedLang}`}
+          href={`/${lang}/admin/feeds`}
           className={cn(
             buttonVariants({ size: "sm", variant: "outline" }),
             "w-fit rounded-full border-black/8 bg-[#eef2f7] text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#e7ecf4] hover:text-zinc-950 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white",

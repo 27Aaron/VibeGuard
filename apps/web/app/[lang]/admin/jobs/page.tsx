@@ -20,7 +20,7 @@ import {
 } from "@/lib/admin-job-pagination"
 import { getJobRows, getJobStatusCounts } from "@/lib/admin-data"
 import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
-import { resolveLang } from "@/lib/i18n"
+import { resolveLang, type AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -34,8 +34,8 @@ const allowedStatuses = new Set<JobStatusFilter>([
 ])
 
 type JobsPageProps = {
+  params: Promise<{ lang: string }>
   searchParams?: Promise<{
-    lang?: string
     status?: string
     stage?: string
     page?: string
@@ -46,14 +46,13 @@ type JobsPageProps = {
 }
 
 function buildJobsHref(input: {
-  lang: string
+  lang: AppLang
   status: JobStatusFilter
   stage: JobStageFilter
   page: number
   pageSize: number
 }) {
   const params = new URLSearchParams({
-    lang: input.lang,
     page: String(input.page),
     pageSize: String(input.pageSize),
   })
@@ -66,7 +65,7 @@ function buildJobsHref(input: {
     params.set("stage", input.stage)
   }
 
-  return `/admin/jobs?${params.toString()}`
+  return `/${input.lang}/admin/jobs?${params.toString()}`
 }
 
 function buildCurrentPath(status: JobStatusFilter, stage: JobStageFilter) {
@@ -85,9 +84,10 @@ function buildCurrentPath(status: JobStatusFilter, stage: JobStageFilter) {
   return query ? `/admin/jobs?${query}` : "/admin/jobs"
 }
 
-export default async function JobsPage({ searchParams }: JobsPageProps) {
+export default async function JobsPage({ params: routeParams, searchParams }: JobsPageProps) {
+  const { lang: rawLang } = await routeParams
   const params = (await searchParams) ?? {}
-  const lang = resolveLang(params.lang)
+  const lang = resolveLang(rawLang)
   const status = allowedStatuses.has((params.status as JobStatusFilter) ?? "all")
     ? ((params.status as JobStatusFilter) ?? "all")
     : "all"

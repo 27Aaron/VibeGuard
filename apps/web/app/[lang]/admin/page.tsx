@@ -53,12 +53,12 @@ type AdminEntry = {
 }
 
 function buildAdminHref(lang: string, segment: string) {
-  return `/${["admin", segment].join("/")}?lang=${lang}`
+  return `/${lang}/admin/${segment}`
 }
 
 type AdminHomePageProps = {
+  params: Promise<{ lang: string }>
   searchParams?: Promise<{
-    lang?: string
     run?: string
     feeds?: string
     succeeded?: string
@@ -69,9 +69,10 @@ type AdminHomePageProps = {
   }>
 }
 
-export default async function AdminHomePage({ searchParams }: AdminHomePageProps) {
+export default async function AdminHomePage({ params: routeParams, searchParams }: AdminHomePageProps) {
+  const { lang: rawLang } = await routeParams
   const params = (await searchParams) ?? {}
-  const lang = resolveLang(params.lang)
+  const lang = resolveLang(rawLang)
   const [overviewCards, jobPreviewRows] = await Promise.all([
     getDashboardOverview(lang),
     getJobPreviewRows(),
