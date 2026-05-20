@@ -1,4 +1,4 @@
-import { AutoRedirectHome } from "@/components/auto-redirect-home"
+import { RedirectCountdown } from "@/components/redirect-countdown"
 import {
   getBackgroundClassName,
   getBackdropClassName,
@@ -20,7 +20,7 @@ export default function NotFound() {
           <p className="max-w-sm text-sm text-zinc-500 dark:text-stone-400">
             你访问的页面不存在或已被移除，3 秒后自动返回首页。
           </p>
-          <AutoRedirectHome lang="zh" />
+          <RedirectCountdown lang="zh" />
         </div>
       </div>
     </main>

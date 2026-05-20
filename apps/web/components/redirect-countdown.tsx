@@ -1,32 +1,33 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { buttonVariants } from "@/components/ui/button"
 import Link from "next/link"
 
-type AutoRedirectHomeProps = {
+type RedirectCountdownProps = {
   lang: string
 }
 
-export function AutoRedirectHome({ lang }: AutoRedirectHomeProps) {
-  const router = useRouter()
+export function RedirectCountdown({ lang }: RedirectCountdownProps) {
   const [seconds, setSeconds] = useState(3)
+  const deadline = useRef(Date.now() + 3000)
+  const redirected = useRef(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setSeconds((prev) => (prev > 0 ? prev - 1 : 0))
-    }, 1000)
+      const remaining = Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000))
+      setSeconds(remaining)
+
+      if (remaining === 0 && !redirected.current) {
+        redirected.current = true
+        clearInterval(timer)
+        window.location.replace(`/${lang}`)
+      }
+    }, 200)
 
     return () => clearInterval(timer)
-  }, [])
-
-  useEffect(() => {
-    if (seconds === 0) {
-      router.push(`/${lang}`)
-    }
-  }, [seconds, lang, router])
+  }, [lang])
 
   return (
     <div className="flex items-center gap-3">
