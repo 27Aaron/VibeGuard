@@ -69,9 +69,7 @@ function escapeXml(value: string) {
 }
 
 export function buildRssFeedXml(input: BuildRssFeedXmlInput) {
-  const lastBuildDate = input.articles[0]?.updatedAt
-    ? toRfc822InShanghai(input.articles[0].updatedAt)
-    : toRfc822InShanghai(new Date())
+  const lastBuildDate = toRfc822InShanghai(new Date())
 
   const siteUrl = input.siteUrl.replace(/\/+$/, "")
 

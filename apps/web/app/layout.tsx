@@ -21,7 +21,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const lang = cookieStore.get("lang")?.value === "en" ? "en" : "zh";
 
   return (
-    <html lang={lang === "en" ? "en" : "zh-CN"} className={cn("font-sans", geist.variable)} suppressHydrationWarning>
+    <html lang={lang === "en" ? "en" : "zh"} className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <head>
         <script
           id="theme-bootstrap"

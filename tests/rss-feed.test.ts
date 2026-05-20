@@ -71,6 +71,6 @@ describe("rss feed builder", () => {
     })
 
     expect(xml).toContain("<pubDate>Tue, 19 May 2026 20:00:00 +0800</pubDate>")
-    expect(xml).toContain("<lastBuildDate>Tue, 19 May 2026 21:00:00 +0800</lastBuildDate>")
+    expect(xml).toMatch(/<lastBuildDate>\w{3}, \d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2} \+0800<\/lastBuildDate>/)
   })
 })
