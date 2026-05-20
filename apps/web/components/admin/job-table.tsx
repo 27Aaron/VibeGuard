@@ -78,6 +78,32 @@ function displayStageLabel(job: JobRow, lang: AppLang) {
   return stageLabel(job.pipelineStage, lang)
 }
 
+const PIPELINE_STAGES: JobRow["pipelineStage"][] = [
+  "waiting",
+  "fetch_source",
+  "extract_content",
+  "classify_relevance",
+  "translate_title",
+  "translate_content",
+  "summarize_en",
+  "summarize_zh",
+  "generate_tags",
+  "completed",
+]
+
+function pipelineProgress(job: JobRow) {
+  if (job.status === "succeeded") {
+    return { current: PIPELINE_STAGES.length, total: PIPELINE_STAGES.length }
+  }
+
+  const index = PIPELINE_STAGES.indexOf(job.pipelineStage)
+
+  return {
+    current: index >= 0 ? index + 1 : 1,
+    total: PIPELINE_STAGES.length,
+  }
+}
+
 function actionLabel(status: JobRow["status"], lang: AppLang) {
   switch (status) {
     case "queued":
@@ -118,7 +144,7 @@ export function JobTable({
                 label={lang === "zh" ? "全选当前页任务" : "Select all jobs on this page"}
               />
             </TableHead>
-            <TableHead className="w-[30%] px-4 text-left">
+            <TableHead className="w-[22%] px-4 text-left">
               {lang === "zh" ? "内容" : "Content"}
             </TableHead>
             <TableHead className="w-[120px] px-3 text-center">
@@ -128,6 +154,9 @@ export function JobTable({
                 stage={stage}
                 pageSize={pageSize}
               />
+            </TableHead>
+            <TableHead className="w-[130px] px-3 text-center">
+              {lang === "zh" ? "进度" : "Progress"}
             </TableHead>
             <TableHead className="w-[96px] px-3 text-center">
               {lang === "zh" ? "状态" : "Status"}
@@ -152,7 +181,7 @@ export function JobTable({
         <TableBody>
           {jobs.length === 0 ? (
             <TableRow>
-              <TableCell className="px-4 py-5 text-center text-sm text-muted-foreground" colSpan={9}>
+              <TableCell className="px-4 py-5 text-center text-sm text-muted-foreground" colSpan={10}>
                 {lang === "zh"
                   ? "当前筛选条件下还没有任务记录。"
                   : "No jobs match the current filter."}
@@ -194,6 +223,31 @@ export function JobTable({
                   {displayStageLabel(job, lang)}
                 </Badge>
               </TableCell>
+              <TableCell className="px-3 py-3 align-middle">
+                {(() => {
+                  const { current, total } = pipelineProgress(job)
+                  const percent = Math.round((current / total) * 100)
+
+                  return (
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {current}/{total}
+                      </span>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            job.status === "failed"
+                              ? "bg-destructive"
+                              : "bg-emerald-500",
+                          )}
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })()}
+              </TableCell>
               <TableCell className="px-3 py-3 text-center align-middle">
                 <Badge variant={statusVariant(job.status)}>
                   {statusLabel(job.status, lang)}
@@ -206,7 +260,7 @@ export function JobTable({
               <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.updatedAt}</TableCell>
               <TableCell className="px-3 py-3 text-center align-middle">
                 {job.lastError ? (
-                  <p className="line-clamp-2 text-xs text-destructive">{job.lastError}</p>
+                  <p className="line-clamp-2 text-xs text-destructive" title={job.lastError}>{job.lastError}</p>
                 ) : (
                   <span className="text-xs text-muted-foreground">
                     {lang === "zh" ? "无错误" : "No error"}
