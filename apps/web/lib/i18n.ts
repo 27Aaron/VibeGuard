@@ -4,18 +4,14 @@ export function resolveLang(value: string | null | undefined): AppLang {
   return value === "en" ? "en" : "zh"
 }
 
-export function withLang(path: string, lang: AppLang) {
-  const separator = path.includes("?") ? "&" : "?"
-  return `${path}${separator}lang=${lang}`
+export function langPrefix(lang: AppLang): string {
+  return `/${lang}`
 }
 
-export function upsertLangInSearchParams(
-  searchParams: URLSearchParams,
-  lang: AppLang,
-) {
-  const next = new URLSearchParams(searchParams)
-  next.set("lang", lang)
-  return next
+export function withLangPrefix(path: string, lang: AppLang): string {
+  const prefix = langPrefix(lang)
+  if (path === "/") return prefix
+  return `${prefix}${path}`
 }
 
 export const uiText = {
