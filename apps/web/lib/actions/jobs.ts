@@ -10,7 +10,6 @@ import {
   JobPipelineStage,
   JobStatus,
 } from "@vibeguard/shared"
-import { processQueuedJobsByIds } from "worker"
 
 import { normalizeUserFacingError } from "../errors"
 import { resolveLang } from "../i18n"
@@ -18,7 +17,6 @@ import { buildSelectedJobsQueuedMessage } from "../job-action-messages"
 import { revalidateLocalizedPaths } from "../revalidate"
 
 const MANUAL_SELECTED_JOB_BATCH_SIZE = 5
-const MANUAL_SINGLE_JOB_BATCH_SIZE = 1
 
 type JobsRedirectContext = {
   status?: string
@@ -149,19 +147,13 @@ export async function retryJobAction(formData: FormData) {
     } else {
       await queueJobForManualRun({ db, job })
 
-      processQueuedJobsByIds(db, [job.id], {
-        batchSize: MANUAL_SINGLE_JOB_BATCH_SIZE,
-      }).catch((error) => {
-        console.error("[retryJob] background processing failed:", error)
-      })
-
       revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
 
       redirectTarget = buildJobsRedirect(
         "success",
         lang === "zh"
-          ? "已将该任务加入队列，后台正在处理中。"
-          : "The job was queued — processing in background.",
+          ? "已将该任务加入队列，常驻 Worker 会按最多 5 个并发处理。"
+          : "The job was queued. The persistent worker will process it with up to 5 concurrent jobs.",
         lang,
         redirectContext,
       )
@@ -211,14 +203,6 @@ export async function retrySelectedJobsAction(formData: FormData) {
     await Promise.all(
       matchedJobs.map((job) => queueJobForManualRun({ db, job })),
     )
-
-    const queuedJobIds = matchedJobs.map((job) => job.id)
-
-    processQueuedJobsByIds(db, queuedJobIds, {
-      batchSize: MANUAL_SELECTED_JOB_BATCH_SIZE,
-    }).catch((error) => {
-      console.error("[retrySelectedJobs] background processing failed:", error)
-    })
 
     revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
 

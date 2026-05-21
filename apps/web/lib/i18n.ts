@@ -64,12 +64,12 @@ export const uiText = {
     adminNavArticles: "文章",
     adminNavJobs: "任务",
     adminNavSettings: "设置",
-    adminRunWorker: "抓取并处理一次",
-    adminRunWorkerPending: "执行中...",
+    adminRunWorker: "抓取并入队一次",
+    adminRunWorkerPending: "抓取中...",
     adminRunWorkerHint:
-      "用于手动抓取已启用来源，并处理当前排队中的文章任务。",
+      "用于手动抓取已启用来源，新任务会交给常驻 Worker 自动处理。",
     adminRunWorkerPendingHint:
-      "Worker 正在抓取来源并处理任务，暂时禁用重复触发。",
+      "正在抓取来源并写入任务队列，暂时禁用重复触发。",
   },
   en: {
     languageName: "English",
@@ -124,12 +124,12 @@ export const uiText = {
     adminNavArticles: "Articles",
     adminNavJobs: "Jobs",
     adminNavSettings: "Settings",
-    adminRunWorker: "Fetch and process once",
-    adminRunWorkerPending: "Running...",
+    adminRunWorker: "Fetch and queue once",
+    adminRunWorkerPending: "Fetching...",
     adminRunWorkerHint:
-      "Manually fetch enabled sources and process the queued article jobs.",
+      "Manually fetch enabled sources; new jobs will be handled by the persistent worker.",
     adminRunWorkerPendingHint:
-      "The worker is fetching sources and processing jobs. Repeated triggers are disabled for now.",
+      "Sources are being fetched and queued. Repeated triggers are disabled for now.",
   },
 } as const
 

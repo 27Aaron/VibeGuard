@@ -11,6 +11,8 @@ import {
 } from "../apps/worker/src/jobs";
 import {
   processArticleJob,
+  processAllRemainingJobs,
+  processAvailableQueuedJobs,
   processQueuedJobs,
   processQueuedJobsByIds,
 } from "../apps/worker/src/process-article";
@@ -21,7 +23,7 @@ import {
   shouldPollFeed,
   type ActiveFeed,
 } from "../apps/worker/src/poll-feeds";
-import { assertSuccessfulWorkerCycle } from "../apps/worker/src/index";
+import { assertSuccessfulWorkerCycle, runWorkerLoop } from "../apps/worker/src/index";
 
 function createRelevantChatClient() {
   return {
@@ -229,6 +231,89 @@ describe("processQueuedJobs", () => {
 
     expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"])
     expect(processJobById).toHaveBeenCalledTimes(3)
+  })
+
+  it("drains the queue while refilling completed slots up to five concurrent jobs", async () => {
+    let nextJob = 0
+    let running = 0
+    let peakRunning = 0
+    const processNextJob = vi.fn().mockImplementation(async () => {
+      nextJob += 1
+
+      if (nextJob > 12) {
+        return null
+      }
+
+      const jobId = `job-${nextJob}`
+      running += 1
+      peakRunning = Math.max(peakRunning, running)
+      await Promise.resolve()
+      running -= 1
+
+      return {
+        jobId,
+        articleId: `article-${jobId}`,
+        status: "succeeded" as const,
+      }
+    })
+
+    const results = await processAllRemainingJobs({} as never, {
+      batchSize: 5,
+      processNextJob,
+      resetStaleJobs: vi.fn(),
+    })
+
+    expect(results).toHaveLength(12)
+    expect(peakRunning).toBeLessThanOrEqual(5)
+    expect(processNextJob).toHaveBeenCalledTimes(17)
+  })
+
+  it("only fills available global running slots", async () => {
+    let nextJob = 0
+    let running = 0
+    let peakRunning = 0
+    const processNextJob = vi.fn().mockImplementation(async () => {
+      nextJob += 1
+
+      if (nextJob > 6) {
+        return null
+      }
+
+      running += 1
+      peakRunning = Math.max(peakRunning, running)
+      await Promise.resolve()
+      running -= 1
+
+      return {
+        jobId: `job-${nextJob}`,
+        articleId: `article-${nextJob}`,
+        status: "succeeded" as const,
+      }
+    })
+
+    const results = await processAvailableQueuedJobs({} as never, {
+      batchSize: 5,
+      countRunningJobs: vi.fn().mockResolvedValue(3),
+      processNextJob,
+      resetStaleJobs: vi.fn(),
+    })
+
+    expect(results).toHaveLength(6)
+    expect(peakRunning).toBeLessThanOrEqual(2)
+  })
+
+  it("does not claim new jobs when the global running limit is already full", async () => {
+    const processNextJob = vi.fn()
+
+    const results = await processAvailableQueuedJobs({} as never, {
+      batchSize: 5,
+      countRunningJobs: vi.fn().mockResolvedValue(5),
+      processNextJob,
+      resetStaleJobs: vi.fn(),
+    })
+
+    expect(results).toEqual([])
+    expect(processNextJob).not.toHaveBeenCalled()
   })
 })
 
@@ -697,3 +782,35 @@ describe("assertSuccessfulWorkerCycle", () => {
     );
   });
 });
+
+describe("runWorkerLoop", () => {
+  it("keeps running worker cycles until stopped", async () => {
+    const controller = new AbortController()
+    const summary = {
+      activeFeedCount: 0,
+      succeeded: [],
+      failed: [],
+      processedJobs: [],
+    }
+    const runCycle = vi.fn().mockImplementation(async () => {
+      if (runCycle.mock.calls.length >= 2) {
+        controller.abort()
+      }
+
+      return summary
+    })
+    const sleep = vi.fn().mockResolvedValue(undefined)
+    const logger = { log: vi.fn(), error: vi.fn() }
+
+    await runWorkerLoop({
+      intervalMs: 10,
+      logger,
+      runCycle,
+      signal: controller.signal,
+      sleep,
+    })
+
+    expect(runCycle).toHaveBeenCalledTimes(2)
+    expect(sleep).toHaveBeenCalledTimes(1)
+  })
+})

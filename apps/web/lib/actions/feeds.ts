@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { eq } from "drizzle-orm"
 
 import { articles, getDb, feeds } from "@vibeguard/db"
-import { processQueuedJobs, pollFeedNow } from "worker"
+import { pollFeedNow } from "worker"
 import {
   type FormActionResult,
   errorResult,
@@ -205,7 +205,6 @@ export async function fetchFeedNowAction(formData: FormData) {
 
   try {
     const pollSummary = await pollFeedNow(feedId, { db })
-    const processedJobs = await processQueuedJobs(db)
 
     revalidateLocalizedPaths(
       "/admin",
@@ -218,8 +217,8 @@ export async function fetchFeedNowAction(formData: FormData) {
     redirectTarget = buildFeedRedirect(
       "success",
       lang === "zh"
-        ? `${existingFeed.name} 已立即抓取，发现 ${pollSummary.processedItemCount} 条 feed item，处理了 ${processedJobs.length} 个任务。`
-        : `${existingFeed.name} fetched immediately. ${pollSummary.processedItemCount} feed items discovered, ${processedJobs.length} jobs processed.`,
+        ? `${existingFeed.name} 已立即抓取，发现 ${pollSummary.processedItemCount} 条 feed item，新任务已交给常驻 Worker。`
+        : `${existingFeed.name} fetched immediately. ${pollSummary.processedItemCount} feed items discovered; new jobs were handed to the persistent worker.`,
       lang,
     )
   } catch (error) {

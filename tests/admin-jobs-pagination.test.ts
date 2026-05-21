@@ -87,12 +87,12 @@ describe("admin job pagination", () => {
     expect(page).not.toContain("服务端完成")
   })
 
-  it("runs selected jobs through a bounded worker batch", () => {
+  it("queues selected jobs for the persistent worker instead of processing inside the web action", () => {
     const actions = fs.readFileSync("apps/web/lib/actions/jobs.ts", "utf8")
 
-    expect(actions).toContain("processQueuedJobsByIds")
+    expect(actions).not.toContain("processAllRemainingJobs")
+    expect(actions).not.toContain("processQueuedJobsByIds")
     expect(actions).toContain("MANUAL_SELECTED_JOB_BATCH_SIZE")
-    expect(actions).toContain("batchSize: MANUAL_SELECTED_JOB_BATCH_SIZE")
     expect(actions).toContain("clearGeneratedContent")
   })
 
@@ -103,7 +103,7 @@ describe("admin job pagination", () => {
         queuedCount: 20,
         backgroundStartLimit: 5,
       }),
-    ).toBe("已将 20 个任务加入队列，正在后台处理前 5 个，其余会等待下一轮处理。")
+    ).toBe("已将 20 个任务加入队列，常驻 Worker 会同时最多处理 5 个，完成一个会继续补一个。")
     expect(
       buildSelectedJobsQueuedMessage({
         lang: "en",
@@ -111,8 +111,20 @@ describe("admin job pagination", () => {
         backgroundStartLimit: 5,
       }),
     ).toBe(
-      "20 jobs queued. The first 5 are processing in background; the rest will wait for the next worker run.",
+      "20 jobs queued. The persistent worker will keep up to 5 running at once and refill each slot as jobs finish.",
     )
+  })
+
+  it("uses the persistent self-refilling worker loop and keeps web actions queue-only", () => {
+    const workerIndex = fs.readFileSync("apps/worker/src/index.ts", "utf8")
+    const feedActions = fs.readFileSync("apps/web/lib/actions/feeds.ts", "utf8")
+    const workerActions = fs.readFileSync("apps/web/lib/actions/worker.ts", "utf8")
+
+    expect(workerIndex).toContain("runWorkerLoop")
+    expect(workerIndex).toContain("processAvailableQueuedJobs(getDb())")
+    expect(feedActions).not.toContain("processAllRemainingJobs")
+    expect(feedActions).not.toContain("processQueuedJobs(db)")
+    expect(workerActions).not.toContain("runWorkerCycle")
   })
 
   it("shows checkboxes and per-row action buttons for every visible job", () => {

@@ -25,6 +25,7 @@ import { ArticleStatus, JobPipelineStage, JobType } from "@vibeguard/shared"
 import {
   claimQueuedJobById,
   claimNextQueuedJob,
+  countRunningJobs,
   markJobFailed,
   markJobStage,
   markJobSucceeded,
@@ -640,6 +641,19 @@ export async function processNextQueuedJob(db: ContentDb) {
   return processClaimedJob(db, job)
 }
 
+export async function processNextAvailableQueuedJob(
+  db: ContentDb,
+  maxRunningJobs: number,
+) {
+  const job = await claimNextQueuedJob(db, new Date(), { maxRunningJobs })
+
+  if (!job) {
+    return null
+  }
+
+  return processClaimedJob(db, job)
+}
+
 export async function processQueuedJobById(db: ContentDb, jobId: string) {
   const job = await claimQueuedJobById(db, jobId)
 
@@ -654,6 +668,7 @@ type ProcessedJobResult = NonNullable<Awaited<ReturnType<typeof processNextQueue
 
 export type ProcessQueuedJobsOptions = {
   batchSize?: number
+  countRunningJobs?: typeof countRunningJobs
   processNextJob?: typeof processNextQueuedJob
   processJobById?: typeof processQueuedJobById
   resetStaleJobs?: typeof resetStaleRunningJobs
@@ -701,6 +716,67 @@ export async function processQueuedJobs(
   }
 
   return results
+}
+
+async function drainQueuedJobs(input: {
+  db: ContentDb
+  concurrency: number
+  processNextJob: typeof processNextQueuedJob
+}) {
+  const results: ProcessedJobResult[] = []
+
+  if (input.concurrency < 1) {
+    return results
+  }
+
+  const workers = Array.from({ length: input.concurrency }, async () => {
+    while (true) {
+      const result = await input.processNextJob(input.db)
+
+      if (!result) {
+        break
+      }
+
+      results.push(result)
+    }
+  })
+
+  await Promise.all(workers)
+
+  return results
+}
+
+export async function processAllRemainingJobs(
+  db: ContentDb,
+  options: ProcessQueuedJobsOptions = {},
+) {
+  const concurrency = Math.min(resolveWorkerBatchSize(options.batchSize), 5)
+  const processNextJob = options.processNextJob ?? processNextQueuedJob
+  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
+
+  await resetStaleJobs(db)
+
+  return drainQueuedJobs({ db, concurrency, processNextJob })
+}
+
+export async function processAvailableQueuedJobs(
+  db: ContentDb,
+  options: ProcessQueuedJobsOptions = {},
+) {
+  const maxConcurrency = Math.min(resolveWorkerBatchSize(options.batchSize), 5)
+  const readRunningCount = options.countRunningJobs ?? countRunningJobs
+  const processNextJob =
+    options.processNextJob ??
+    ((nextDb: ContentDb) =>
+      processNextAvailableQueuedJob(nextDb, maxConcurrency))
+  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
+
+  await resetStaleJobs(db)
+
+  const runningCount = await readRunningCount(db)
+  const concurrency = Math.max(0, maxConcurrency - runningCount)
+
+  return drainQueuedJobs({ db, concurrency, processNextJob })
 }
 
 export async function processQueuedJobsByIds(

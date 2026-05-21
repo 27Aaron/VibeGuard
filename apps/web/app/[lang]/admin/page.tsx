@@ -80,12 +80,11 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
           statusTitle: "运行状态",
           statusBody: "用四个指标快速判断采集、处理和模型链路是否可用。",
           operationsTitle: "常用操作",
-          operationsBody: "高频入口集中在这里：手动跑一轮，或进入对应模块继续处理。",
+          operationsBody: "高频入口集中在这里：抓取来源入队，或进入对应模块继续处理。",
           queueTitle: "任务执行",
-          runSuccessPrefix: "本轮 Worker 已完成：",
-          runSuccessSuffix: "个来源抓取成功，处理了",
-          runSuccessJobsSuffix: "个任务。",
-          runFailed: "本轮 Worker 执行失败，请查看任务队列里的错误信息。",
+          runSuccessPrefix: "本轮来源抓取已完成：",
+          runSuccessSuffix: "个来源抓取成功，新任务已交给常驻 Worker。",
+          runFailed: "本轮来源抓取失败，请查看任务队列里的错误信息。",
           succeeded: "已完成",
           failed: "失败",
           entries: [
@@ -123,12 +122,11 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
             "Four metrics for checking whether ingestion, processing, and model access are usable.",
           operationsTitle: "Common actions",
           operationsBody:
-            "Start one manual cycle or jump into the module that needs attention.",
+            "Fetch sources into the queue or jump into the module that needs attention.",
           queueTitle: "Task execution",
-          runSuccessPrefix: "Worker cycle finished:",
-          runSuccessSuffix: "sources succeeded, and",
-          runSuccessJobsSuffix: "jobs were processed.",
-          runFailed: "This worker cycle failed. Check the job queue for the error.",
+          runSuccessPrefix: "Source fetch finished:",
+          runSuccessSuffix: "sources succeeded. New jobs were handed to the persistent worker.",
+          runFailed: "This source fetch failed. Check the job queue for the error.",
           succeeded: "Succeeded",
           failed: "Failed",
           entries: [
@@ -161,7 +159,7 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
   const runDetails = decodeWorkerRunDetails(params.details)
   const runSummary =
     params.run && params.run !== "failed"
-      ? `${copy.runSuccessPrefix}${params.succeeded ?? "0"}/${params.feeds ?? "0"} ${copy.runSuccessSuffix} ${params.jobs ?? "0"} ${copy.runSuccessJobsSuffix}`
+      ? `${copy.runSuccessPrefix}${params.succeeded ?? "0"}/${params.feeds ?? "0"} ${copy.runSuccessSuffix}`
       : params.run === "failed"
         ? copy.runFailed
         : null

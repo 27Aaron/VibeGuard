@@ -9,11 +9,11 @@ export function buildSelectedJobsQueuedMessage(input: {
 
   if (input.queuedCount > input.backgroundStartLimit) {
     return input.lang === "zh"
-      ? `已将 ${input.queuedCount} 个任务加入队列，正在后台处理前 ${startedCount} 个，其余会等待下一轮处理。`
-      : `${input.queuedCount} jobs queued. The first ${startedCount} are processing in background; the rest will wait for the next worker run.`
+      ? `已将 ${input.queuedCount} 个任务加入队列，常驻 Worker 会同时最多处理 ${startedCount} 个，完成一个会继续补一个。`
+      : `${input.queuedCount} jobs queued. The persistent worker will keep up to ${startedCount} running at once and refill each slot as jobs finish.`
   }
 
   return input.lang === "zh"
-    ? `已将 ${input.queuedCount} 个任务加入队列，后台正在处理中。`
-    : `${input.queuedCount} jobs queued — processing in background.`
+    ? `已将 ${input.queuedCount} 个任务加入队列，常驻 Worker 会按最多 ${startedCount} 个并发处理。`
+    : `${input.queuedCount} jobs queued. The persistent worker will process them with up to ${startedCount} concurrent jobs.`
 }
