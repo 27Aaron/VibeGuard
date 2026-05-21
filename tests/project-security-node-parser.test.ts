@@ -168,4 +168,59 @@ describe("parseNodeDependencyFile", () => {
       },
     ])
   })
+
+  it("treats workspace-declared nested installs as direct dependencies", async () => {
+    const result = await parseNodeDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "npm",
+        kind: "lockfile",
+        path: "package-lock.json",
+        confidence: "high",
+        note: "lockfile",
+      },
+      content: JSON.stringify({
+        name: "workspace-demo",
+        lockfileVersion: 3,
+        packages: {
+          "": {},
+          "apps/web": {
+            dependencies: {
+              react: "^19.1.0",
+            },
+          },
+          "apps/web/node_modules/react": {
+            version: "19.1.0",
+          },
+          "apps/web/node_modules/loose-envify": {
+            version: "1.4.0",
+          },
+        },
+      }),
+    })
+
+    expect(result.warnings).toEqual([])
+    expect(result.packages).toEqual([
+      {
+        ecosystem: "npm",
+        name: "loose-envify",
+        version: "1.4.0",
+        dependencyType: "transitive",
+        sourcePath: "package-lock.json",
+        sourceKind: "lockfile",
+        confidence: "high",
+        note: "resolved from package-lock.json",
+      },
+      {
+        ecosystem: "npm",
+        name: "react",
+        version: "19.1.0",
+        dependencyType: "direct",
+        sourcePath: "package-lock.json",
+        sourceKind: "lockfile",
+        confidence: "high",
+        note: "resolved from package-lock.json",
+      },
+    ])
+  })
 })

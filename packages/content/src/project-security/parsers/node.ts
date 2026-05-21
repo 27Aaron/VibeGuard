@@ -40,16 +40,23 @@ function isInstalledNodePackagePath(packagePath: string) {
   return packagePath.includes("node_modules/")
 }
 
+function collectDeclaredDirectDependencies(parsed: PackageLockData) {
+  return new Set(
+    Object.entries(parsed.packages ?? {})
+      .filter(([packagePath]) => !isInstalledNodePackagePath(packagePath))
+      .flatMap(([, pkg]) => [
+        ...Object.keys(pkg.dependencies ?? {}),
+        ...Object.keys(pkg.devDependencies ?? {}),
+      ]),
+  )
+}
+
 export async function parseNodeDependencyFile(
   input: ParseNodeDependencyFileInput,
 ): Promise<ParseNodeDependencyFileResult> {
   if (input.file.path.endsWith("package-lock.json")) {
     const parsed = JSON.parse(input.content) as PackageLockData
-    const rootPackage = parsed.packages?.[""]
-    const directDependencies = new Set([
-      ...Object.keys(rootPackage?.dependencies ?? {}),
-      ...Object.keys(rootPackage?.devDependencies ?? {}),
-    ])
+    const directDependencies = collectDeclaredDirectDependencies(parsed)
 
     const packages = Object.entries(parsed.packages ?? {})
       .filter(([packagePath]) => isInstalledNodePackagePath(packagePath))
