@@ -7,7 +7,13 @@ import {
   securityAffectedPackages,
   securitySyncState,
 } from "@vibeguard/db"
-import type { SecurityPackageEcosystem } from "@vibeguard/shared"
+import type {
+  SecurityPackageEcosystem,
+  SecurityPackageMatchConfidence,
+  SecurityPackageMatchReason,
+} from "@vibeguard/shared"
+
+import { evaluateAffectedPackageVersion } from "./version-match"
 
 type ContentDb = NodePgDatabase<typeof schema>
 
@@ -27,6 +33,15 @@ export type PackageCheckMetaInput = {
   now?: Date
   lastSyncedAt?: Date | null
   staleAfterMs?: number
+}
+
+export type PackageMatchSummaryInput = {
+  affected: boolean
+  confidence: SecurityPackageMatchConfidence
+  matchReason: SecurityPackageMatchReason
+  ecosystem: SecurityPackageEcosystem
+  name: string
+  version?: string | null
 }
 
 function normalizePackageKey(ecosystem: SecurityPackageEcosystem, name: string) {
@@ -58,12 +73,56 @@ export function buildPackageCheckMeta({
   }
 }
 
-function isExplicitlyAffected(affectedVersions: string[], version?: string | null) {
-  if (!version) {
-    return false
-  }
+function formatPackageCoordinate(
+  name: string,
+  version?: string | null,
+) {
+  const trimmedVersion = version?.trim()
 
-  return affectedVersions.includes(version.trim())
+  return trimmedVersion ? `${name}@${trimmedVersion}` : name
+}
+
+function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
+  switch (ecosystem) {
+    case "go":
+      return "Go"
+    case "pypi":
+      return "PyPI"
+    case "crates-io":
+      return "crates.io"
+    default:
+      return ecosystem
+  }
+}
+
+export function buildPackageMatchSummary({
+  affected,
+  confidence,
+  matchReason,
+  ecosystem,
+  name,
+  version,
+}: PackageMatchSummaryInput) {
+  const coordinate = formatPackageCoordinate(name, version)
+  const sourceLabel = "the local OSV advisory data"
+
+  switch (matchReason) {
+    case "explicit_affected_version":
+      return `${coordinate} is explicitly listed as affected in ${sourceLabel}.`
+    case "version_in_ecosystem_range":
+      return `${coordinate} falls inside an affected ${ecosystemLabel(ecosystem)} version range in ${sourceLabel}.`
+    case "version_outside_ecosystem_range":
+      return `${coordinate} is outside the affected ${ecosystemLabel(ecosystem)} version ranges in ${sourceLabel}.`
+    case "range_present_but_inconclusive":
+      return `${coordinate} has matching advisory ranges in ${sourceLabel}, but the current ${confidence}-confidence matcher cannot prove the version is affected yet.`
+    case "package_match_without_version":
+      return `${coordinate} matches a known package advisory in ${sourceLabel}, but no package version was provided.`
+    default: {
+      const fallback = affected ? "matched" : "did not match"
+
+      return `${coordinate} ${fallback} an advisory check in ${sourceLabel}.`
+    }
+  }
 }
 
 export async function checkPackagesAgainstLocalDb(
@@ -102,17 +161,29 @@ export async function checkPackagesAgainstLocalDb(
         continue
       }
 
-      const affected = isExplicitlyAffected(
-        affectedPackage.affectedVersions,
-        packageInput.version,
-      )
+      const match = evaluateAffectedPackageVersion({
+        ecosystem: packageInput.ecosystem,
+        version: packageInput.version,
+        affectedVersions: affectedPackage.affectedVersions,
+        ranges: affectedPackage.ranges,
+      })
 
-      if (!affected) {
+      if (!match.affected && match.matchReason !== "package_match_without_version") {
         continue
       }
 
       findings.push({
-        affected,
+        affected: match.affected,
+        confidence: match.confidence,
+        matchReason: match.matchReason,
+        matchSummary: buildPackageMatchSummary({
+          affected: match.affected,
+          confidence: match.confidence,
+          matchReason: match.matchReason,
+          ecosystem: packageInput.ecosystem,
+          name: packageInput.name,
+          version: packageInput.version,
+        }),
         package: {
           ecosystem: packageInput.ecosystem,
           name: packageInput.name,

@@ -139,3 +139,31 @@ const securityRiskTypes = defineStatuses([
 export const SECURITY_RISK_TYPE_VALUES = securityRiskTypes.values;
 export const SecurityRiskType = securityRiskTypes.map;
 export type SecurityRiskType = (typeof SECURITY_RISK_TYPE_VALUES)[number];
+
+const securityPackageMatchConfidences = defineStatuses([
+  "high",
+  "medium",
+  "low",
+  "none",
+] as const);
+
+export const SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES =
+  securityPackageMatchConfidences.values;
+export const SecurityPackageMatchConfidence =
+  securityPackageMatchConfidences.map;
+export type SecurityPackageMatchConfidence =
+  (typeof SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES)[number];
+
+const securityPackageMatchReasons = defineStatuses([
+  "explicit_affected_version",
+  "version_in_ecosystem_range",
+  "version_outside_ecosystem_range",
+  "range_present_but_inconclusive",
+  "package_match_without_version",
+] as const);
+
+export const SECURITY_PACKAGE_MATCH_REASON_VALUES =
+  securityPackageMatchReasons.values;
+export const SecurityPackageMatchReason = securityPackageMatchReasons.map;
+export type SecurityPackageMatchReason =
+  (typeof SECURITY_PACKAGE_MATCH_REASON_VALUES)[number];

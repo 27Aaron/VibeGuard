@@ -68,10 +68,34 @@ describe("POST /api/security/check/packages", () => {
           }),
         },
         securityAffectedPackages: {
-          findMany: vi.fn().mockResolvedValue([]),
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "affected-1",
+              ecosystem: "npm",
+              packageName: "cryptoco-auth",
+              packageKey: "cryptoco-auth",
+              purl: "pkg:npm/cryptoco-auth",
+              affectedVersions: ["1.0.0", "1.0.1"],
+              ranges: [],
+              fixedVersions: [],
+              advisoryId: "advisory-1",
+            },
+          ]),
         },
         securityAdvisories: {
-          findFirst: vi.fn(),
+          findFirst: vi.fn().mockResolvedValue({
+            id: "advisory-1",
+            source: "osv",
+            externalId: "MAL-2026-4230",
+            riskType: "malicious-package",
+            summary: "Malicious code in cryptoco-auth (npm)",
+            details: "The package shipped malicious install behavior.",
+            aliases: [],
+            severity: [],
+            references: [],
+            withdrawnAt: null,
+            modifiedAt: new Date("2026-05-21T23:01:37Z"),
+          }),
         },
       },
     }
@@ -102,7 +126,37 @@ describe("POST /api/security/check/packages", () => {
         stale: false,
         warning: null,
       },
-      findings: [],
+      findings: [
+        {
+          affected: true,
+          confidence: "high",
+          matchReason: "explicit_affected_version",
+          matchSummary:
+            "cryptoco-auth@1.0.1 is explicitly listed as affected in the local OSV advisory data.",
+          package: {
+            ecosystem: "npm",
+            name: "cryptoco-auth",
+            version: "1.0.1",
+            purl: "pkg:npm/cryptoco-auth",
+          },
+          advisory: {
+            id: "MAL-2026-4230",
+            source: "osv",
+            riskType: "malicious-package",
+            summary: "Malicious code in cryptoco-auth (npm)",
+            details: "The package shipped malicious install behavior.",
+            aliases: [],
+            severity: [],
+            references: [],
+            modifiedAt: "2026-05-21T23:01:37.000Z",
+          },
+          affectedPackage: {
+            affectedVersions: ["1.0.0", "1.0.1"],
+            ranges: [],
+            fixedVersions: [],
+          },
+        },
+      ],
     })
     expect(getDb).toHaveBeenCalledTimes(1)
     expect(db.query.securityAffectedPackages.findMany).toHaveBeenCalledTimes(1)
