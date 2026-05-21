@@ -112,7 +112,73 @@ describe("parsePythonDependencyFile", () => {
     ])
   })
 
-  it("returns a warning instead of parsing unsupported Python file types", async () => {
+  it("parses pyproject.toml dependency declarations with medium confidence", async () => {
+    const result = await parsePythonDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "pypi",
+        kind: "manifest",
+        path: "pyproject.toml",
+        confidence: "medium",
+        note: "manifest",
+      },
+      content: [
+        "[project]",
+        'dependencies = ["requests>=2.32.3", "rich"]',
+        "",
+        "[tool.poetry.dependencies]",
+        'python = "^3.12"',
+        'fastapi = "^0.115.0"',
+        'uvicorn = { version = "0.34.0", extras = ["standard"] }',
+      ].join("\n"),
+    })
+
+    expect(result.warnings).toEqual([])
+    expect(result.packages).toEqual([
+      {
+        ecosystem: "pypi",
+        name: "fastapi",
+        version: "^0.115.0",
+        dependencyType: "direct",
+        sourcePath: "pyproject.toml",
+        sourceKind: "manifest",
+        confidence: "medium",
+        note: "declared dependency without a lockfile",
+      },
+      {
+        ecosystem: "pypi",
+        name: "requests",
+        version: ">=2.32.3",
+        dependencyType: "direct",
+        sourcePath: "pyproject.toml",
+        sourceKind: "manifest",
+        confidence: "medium",
+        note: "declared dependency without a lockfile",
+      },
+      {
+        ecosystem: "pypi",
+        name: "rich",
+        version: null,
+        dependencyType: "direct",
+        sourcePath: "pyproject.toml",
+        sourceKind: "manifest",
+        confidence: "medium",
+        note: "declared dependency without a lockfile",
+      },
+      {
+        ecosystem: "pypi",
+        name: "uvicorn",
+        version: "0.34.0",
+        dependencyType: "direct",
+        sourcePath: "pyproject.toml",
+        sourceKind: "manifest",
+        confidence: "medium",
+        note: "declared dependency without a lockfile",
+      },
+    ])
+  })
+
+  it("parses poetry.lock package entries conservatively", async () => {
     const result = await parsePythonDependencyFile({
       rootDir: "/repo",
       file: {
@@ -126,12 +192,54 @@ describe("parsePythonDependencyFile", () => {
         "[[package]]",
         'name = "requests"',
         'version = "2.32.3"',
+        "",
+        "[[package]]",
+        'name = "urllib3"',
+        'version = "2.2.2"',
       ].join("\n"),
+    })
+
+    expect(result.warnings).toEqual([])
+    expect(result.packages).toEqual([
+      {
+        ecosystem: "pypi",
+        name: "requests",
+        version: "2.32.3",
+        dependencyType: "unknown",
+        sourcePath: "poetry.lock",
+        sourceKind: "lockfile",
+        confidence: "high",
+        note: "resolved from poetry.lock",
+      },
+      {
+        ecosystem: "pypi",
+        name: "urllib3",
+        version: "2.2.2",
+        dependencyType: "unknown",
+        sourcePath: "poetry.lock",
+        sourceKind: "lockfile",
+        confidence: "high",
+        note: "resolved from poetry.lock",
+      },
+    ])
+  })
+
+  it("still warns on unsupported Python file types outside the safe subset", async () => {
+    const result = await parsePythonDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "pypi",
+        kind: "manifest",
+        path: "setup.py",
+        confidence: "medium",
+        note: "manifest",
+      },
+      content: "install_requires=['requests']",
     })
 
     expect(result.packages).toEqual([])
     expect(result.warnings).toEqual([
-      "Unsupported Python dependency file for Task 4 parser: poetry.lock",
+      "Unsupported Python dependency file for Task 4 parser: setup.py",
     ])
   })
 })

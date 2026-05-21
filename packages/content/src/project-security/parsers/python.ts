@@ -64,7 +64,192 @@ function parsePythonRequirementLine(line: string) {
 }
 
 function isSupportedPythonDependencyFile(filePath: string) {
-  return filePath.endsWith("requirements.txt")
+  return (
+    filePath.endsWith("requirements.txt") ||
+    filePath.endsWith("pyproject.toml") ||
+    filePath.endsWith("poetry.lock")
+  )
+}
+
+function isPythonDirectReference(line: string) {
+  return /\s@\s(?:git\+|file:)/.test(line)
+}
+
+function buildDeclaredPythonDependency(
+  file: DetectedDependencyFile,
+  name: string,
+  version: string | null,
+): ResolvedDependency {
+  return {
+    ecosystem: "pypi",
+    name,
+    version,
+    dependencyType: "direct",
+    sourcePath: file.path,
+    sourceKind: file.kind,
+    confidence: "medium",
+    note: "declared dependency without a lockfile",
+  }
+}
+
+function parsePyprojectArrayEntries(content: string, key: string) {
+  const singleLineMatch = content.match(
+    new RegExp(`^\\s*${key}\\s*=\\s*\\[(.*)\\]\\s*$`, "m"),
+  )
+  if (singleLineMatch?.[1]) {
+    return [...singleLineMatch[1].matchAll(/"([^"]+)"/g)]
+      .map((match) => match[1])
+      .filter((entry): entry is string => Boolean(entry))
+  }
+
+  const blockMatch = content.match(
+    new RegExp(`^\\s*${key}\\s*=\\s*\\[(.*?)^\\s*\\]\\s*$`, "ms"),
+  )
+  if (!blockMatch?.[1]) {
+    return []
+  }
+
+  return [...blockMatch[1].matchAll(/"([^"]+)"/g)]
+    .map((match) => match[1])
+    .filter((entry): entry is string => Boolean(entry))
+}
+
+function parsePyprojectDependencies(file: DetectedDependencyFile, content: string) {
+  const packages: ResolvedDependency[] = []
+  const warnings: string[] = []
+  const seen = new Set<string>()
+
+  for (const requirement of parsePyprojectArrayEntries(content, "dependencies")) {
+    if (isPythonDirectReference(requirement)) {
+      warnings.push(
+        `Unsupported Python direct reference in ${file.path}: ${requirement}`,
+      )
+      continue
+    }
+
+    const parsedRequirement = parsePythonRequirementLine(requirement)
+    if (!parsedRequirement) {
+      warnings.push(`Unsupported Python requirement in ${file.path}: ${requirement}`)
+      continue
+    }
+
+    const key = `${parsedRequirement.name}@${parsedRequirement.version ?? ""}`
+    if (seen.has(key)) {
+      continue
+    }
+    seen.add(key)
+    packages.push(
+      buildDeclaredPythonDependency(
+        file,
+        parsedRequirement.name,
+        parsedRequirement.version,
+      ),
+    )
+  }
+
+  let currentSection: string | null = null
+  for (const line of content.split(/\r?\n/)) {
+    const trimmedLine = line.trim()
+    if (!trimmedLine || trimmedLine.startsWith("#")) {
+      continue
+    }
+
+    const sectionMatch = trimmedLine.match(/^\[(.+)\]$/)
+    if (sectionMatch?.[1]) {
+      currentSection = sectionMatch[1]
+      continue
+    }
+
+    if (currentSection !== "tool.poetry.dependencies") {
+      continue
+    }
+
+    const dependencyMatch = trimmedLine.match(/^([A-Za-z0-9._-]+)\s*=\s*(.+)$/)
+    if (!dependencyMatch?.[1] || !dependencyMatch[2]) {
+      continue
+    }
+
+    const name = dependencyMatch[1]
+    const definition = dependencyMatch[2].trim()
+
+    if (name === "python") {
+      continue
+    }
+
+    if (isPythonDirectReference(definition)) {
+      warnings.push(
+        `Unsupported Python direct reference in ${file.path}: ${trimmedLine}`,
+      )
+      continue
+    }
+
+    const inlineVersionMatch = definition.match(/^"([^"]+)"$/)
+    const tableVersionMatch = definition.match(/version\s*=\s*"([^"]+)"/)
+    const version = normalizePythonVersion(
+      inlineVersionMatch?.[1] ?? tableVersionMatch?.[1] ?? null,
+    )
+
+    const key = `${name}@${version ?? ""}`
+    if (seen.has(key)) {
+      continue
+    }
+    seen.add(key)
+    packages.push(buildDeclaredPythonDependency(file, name, version))
+  }
+
+  return { packages: toSortedPackages(packages), warnings }
+}
+
+function parsePoetryLockPackages(file: DetectedDependencyFile, content: string) {
+  const packages: ResolvedDependency[] = []
+  let currentName: string | null = null
+  let currentVersion: string | null = null
+
+  const flushCurrentPackage = () => {
+    if (!currentName) {
+      return
+    }
+
+    packages.push({
+      ecosystem: "pypi",
+      name: currentName,
+      version: currentVersion,
+      dependencyType: "unknown",
+      sourcePath: file.path,
+      sourceKind: file.kind,
+      confidence: "high",
+      note: "resolved from poetry.lock",
+    })
+  }
+
+  for (const line of content.split(/\r?\n/)) {
+    const trimmedLine = line.trim()
+
+    if (trimmedLine === "[[package]]") {
+      flushCurrentPackage()
+      currentName = null
+      currentVersion = null
+      continue
+    }
+
+    const nameMatch = trimmedLine.match(/^name\s*=\s*"([^"]+)"$/)
+    if (nameMatch?.[1]) {
+      currentName = nameMatch[1]
+      continue
+    }
+
+    const versionMatch = trimmedLine.match(/^version\s*=\s*"([^"]+)"$/)
+    if (versionMatch?.[1]) {
+      currentVersion = versionMatch[1]
+    }
+  }
+
+  flushCurrentPackage()
+
+  return {
+    packages: toSortedPackages(packages),
+    warnings: [] as string[],
+  }
 }
 
 export async function parsePythonDependencyFile(
@@ -79,6 +264,14 @@ export async function parsePythonDependencyFile(
         `Unsupported Python dependency file for Task 4 parser: ${input.file.path}`,
       ],
     }
+  }
+
+  if (input.file.path.endsWith("pyproject.toml")) {
+    return parsePyprojectDependencies(input.file, input.content)
+  }
+
+  if (input.file.path.endsWith("poetry.lock")) {
+    return parsePoetryLockPackages(input.file, input.content)
   }
 
   const packages: ResolvedDependency[] = []
@@ -97,7 +290,7 @@ export async function parsePythonDependencyFile(
       continue
     }
 
-    if (trimmedLine.includes(" @ ")) {
+    if (isPythonDirectReference(trimmedLine)) {
       warnings.push(
         `Unsupported Python direct reference in ${input.file.path}: ${trimmedLine}`,
       )
@@ -112,19 +305,24 @@ export async function parsePythonDependencyFile(
       continue
     }
 
-    packages.push({
-      ecosystem: "pypi",
-      name: parsedRequirement.name,
-      version: parsedRequirement.version,
-      dependencyType: "direct",
-      sourcePath: input.file.path,
-      sourceKind: input.file.kind,
-      confidence: input.file.kind === "lockfile" ? "high" : "medium",
-      note:
-        input.file.kind === "lockfile"
-          ? "resolved from a Python lockfile"
-          : "declared dependency without a lockfile",
-    })
+    packages.push(
+      input.file.kind === "lockfile"
+        ? {
+            ecosystem: "pypi",
+            name: parsedRequirement.name,
+            version: parsedRequirement.version,
+            dependencyType: "direct",
+            sourcePath: input.file.path,
+            sourceKind: input.file.kind,
+            confidence: "high",
+            note: "resolved from a Python lockfile",
+          }
+        : buildDeclaredPythonDependency(
+            input.file,
+            parsedRequirement.name,
+            parsedRequirement.version,
+          ),
+    )
   }
 
   return {
