@@ -758,9 +758,10 @@ describe("pollFeedNow", () => {
 });
 
 describe("assertSuccessfulWorkerCycle", () => {
-  it("should throw when any feed failed in the cycle", () => {
+  it("logs a warning when some feeds fail without throwing", () => {
     const logger = {
       log: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
     };
 
@@ -770,16 +771,18 @@ describe("assertSuccessfulWorkerCycle", () => {
           activeFeedCount: 2,
           succeeded: ["feed-ok"],
           failed: [{ feedId: "feed-bad", error: "feed fetch failed" }],
+          processedJobs: [],
         },
         logger,
       ),
-    ).toThrow("worker cycle errors: feed-bad: feed fetch failed");
+    ).not.toThrow();
     expect(logger.log).toHaveBeenCalledWith(
       "worker cycle complete: 1/2 feeds succeeded",
     );
-    expect(logger.error).toHaveBeenCalledWith(
-      "worker cycle errors: feed-bad: feed fetch failed",
+    expect(logger.warn).toHaveBeenCalledWith(
+      "worker cycle warnings: feed-bad: feed fetch failed",
     );
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });
 
@@ -812,5 +815,35 @@ describe("runWorkerLoop", () => {
 
     expect(runCycle).toHaveBeenCalledTimes(2)
     expect(sleep).toHaveBeenCalledTimes(1)
+  })
+
+  it("treats feed-level failures as warnings instead of loop errors", async () => {
+    const controller = new AbortController()
+    const runCycle = vi.fn().mockImplementation(async () => {
+      controller.abort()
+
+      return {
+        activeFeedCount: 2,
+        succeeded: ["feed-ok"],
+        failed: [{ feedId: "feed-bad", error: "404 Not Found" }],
+        processedJobs: [],
+      }
+    })
+    const sleep = vi.fn().mockResolvedValue(undefined)
+    const logger = { log: vi.fn(), warn: vi.fn(), error: vi.fn() }
+
+    await runWorkerLoop({
+      intervalMs: 10,
+      logger,
+      runCycle,
+      signal: controller.signal,
+      sleep,
+    })
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      "worker cycle warnings: feed-bad: 404 Not Found",
+    )
+    expect(logger.error).not.toHaveBeenCalled()
+    expect(sleep).not.toHaveBeenCalled()
   })
 })

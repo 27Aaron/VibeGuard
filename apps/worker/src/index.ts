@@ -15,9 +15,12 @@ export {
 
 export type WorkerCycleSummary = Awaited<ReturnType<typeof runWorkerCycle>>;
 
+type WorkerLogger = Pick<typeof console, "log" | "error"> &
+  Partial<Pick<typeof console, "warn">>;
+
 type WorkerLoopOptions = {
   intervalMs?: number;
-  logger?: Pick<typeof console, "log" | "error">;
+  logger?: WorkerLogger;
   runCycle?: typeof runWorkerCycle;
   signal?: AbortSignal;
   sleep?: (durationMs: number) => Promise<void>;
@@ -35,7 +38,7 @@ export async function runWorkerCycle() {
 
 export function assertSuccessfulWorkerCycle(
   summary: WorkerCycleSummary,
-  logger: Pick<typeof console, "log" | "error"> = console,
+  logger: WorkerLogger = console,
 ) {
   logger.log(
     `worker cycle complete: ${summary.succeeded.length}/${summary.activeFeedCount} feeds succeeded`,
@@ -45,12 +48,16 @@ export function assertSuccessfulWorkerCycle(
     return;
   }
 
-  const message = `worker cycle errors: ${summary.failed
+  const message = `worker cycle warnings: ${summary.failed
     .map((failure) => `${failure.feedId}: ${failure.error}`)
     .join("; ")}`;
 
-  logger.error(message);
-  throw new Error(message);
+  if (typeof logger.warn === "function") {
+    logger.warn(message);
+    return;
+  }
+
+  logger.log(message);
 }
 
 function sleep(durationMs: number) {
