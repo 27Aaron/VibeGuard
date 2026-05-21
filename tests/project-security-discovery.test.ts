@@ -47,6 +47,7 @@ describe("project-security types", () => {
       ecosystem: "npm" | "pypi" | "go" | "crates-io"
       name: string
       version: string | null
+      versionKind: "resolved" | "declared" | "observed"
       dependencyType: "direct" | "transitive" | "unknown"
       sourcePath: string
       sourceKind: "lockfile" | "manifest"

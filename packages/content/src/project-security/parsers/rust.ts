@@ -116,12 +116,17 @@ function toManifestPackages(
     ecosystem: "crates-io",
     name: dependency.name,
     version: dependency.version,
+    versionKind: "declared",
     dependencyType: "direct",
     sourcePath: file.path,
     sourceKind: file.kind,
     confidence: "medium",
     note: "declared dependency without a lockfile",
   }))
+}
+
+function isRegistryCargoSource(source: string | null) {
+  return Boolean(source?.startsWith("registry+") && source.includes("crates.io-index"))
 }
 
 export async function parseRustDependencyFile(
@@ -153,6 +158,7 @@ export async function parseRustDependencyFile(
 
     let currentName: string | null = null
     let currentVersion: string | null = null
+    let currentSource: string | null = null
 
     const flushCurrentPackage = () => {
       if (!currentName) {
@@ -163,10 +169,15 @@ export async function parseRustDependencyFile(
         return
       }
 
+      if (!isRegistryCargoSource(currentSource)) {
+        return
+      }
+
       packages.push({
         ecosystem: "crates-io",
         name: currentName,
         version: currentVersion,
+        versionKind: "resolved",
         dependencyType:
           directDependencyNames.size === 0
             ? "unknown"
@@ -187,6 +198,7 @@ export async function parseRustDependencyFile(
         flushCurrentPackage()
         currentName = null
         currentVersion = null
+        currentSource = null
         continue
       }
 
@@ -199,6 +211,12 @@ export async function parseRustDependencyFile(
       const versionMatch = trimmedLine.match(/^version\s*=\s*"([^"]+)"$/)
       if (versionMatch?.[1]) {
         currentVersion = versionMatch[1]
+        continue
+      }
+
+      const sourceMatch = trimmedLine.match(/^source\s*=\s*"([^"]+)"$/)
+      if (sourceMatch?.[1]) {
+        currentSource = sourceMatch[1]
       }
     }
 

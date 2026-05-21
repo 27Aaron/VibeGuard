@@ -26,21 +26,23 @@ describe("parseGoDependencyFile", () => {
         ecosystem: "go",
         name: "github.com/pkg/errors",
         version: "v0.9.1",
+        versionKind: "observed",
         dependencyType: "unknown",
         sourcePath: "go.sum",
         sourceKind: "lockfile",
-        confidence: "high",
-        note: "Go dependency extracted without a complete graph",
+        confidence: "low",
+        note: "Go checksum entry observed without proving it is in the active dependency graph",
       },
       {
         ecosystem: "go",
         name: "golang.org/x/text",
         version: "v0.21.0",
+        versionKind: "observed",
         dependencyType: "unknown",
         sourcePath: "go.sum",
         sourceKind: "lockfile",
-        confidence: "high",
-        note: "Go dependency extracted without a complete graph",
+        confidence: "low",
+        note: "Go checksum entry observed without proving it is in the active dependency graph",
       },
     ])
   })
@@ -73,6 +75,7 @@ describe("parseGoDependencyFile", () => {
         ecosystem: "go",
         name: "github.com/gin-gonic/gin",
         version: "v1.10.0",
+        versionKind: "declared",
         dependencyType: "direct",
         sourcePath: "go.mod",
         sourceKind: "manifest",
@@ -83,11 +86,54 @@ describe("parseGoDependencyFile", () => {
         ecosystem: "go",
         name: "golang.org/x/text",
         version: "v0.21.0",
+        versionKind: "declared",
         dependencyType: "transitive",
         sourcePath: "go.mod",
         sourceKind: "manifest",
         confidence: "medium",
         note: "declared dependency without a lockfile",
+      },
+    ])
+  })
+
+  it("keeps go.sum historical versions as low-confidence observations", async () => {
+    const result = await parseGoDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "go",
+        kind: "lockfile",
+        path: "go.sum",
+        confidence: "high",
+        note: "go sum",
+      },
+      content: [
+        "example.com/mod v1.0.0 h1:old",
+        "example.com/mod v1.1.0 h1:new",
+      ].join("\n"),
+    })
+
+    expect(result.packages).toEqual([
+      {
+        ecosystem: "go",
+        name: "example.com/mod",
+        version: "v1.0.0",
+        versionKind: "observed",
+        dependencyType: "unknown",
+        sourcePath: "go.sum",
+        sourceKind: "lockfile",
+        confidence: "low",
+        note: "Go checksum entry observed without proving it is in the active dependency graph",
+      },
+      {
+        ecosystem: "go",
+        name: "example.com/mod",
+        version: "v1.1.0",
+        versionKind: "observed",
+        dependencyType: "unknown",
+        sourcePath: "go.sum",
+        sourceKind: "lockfile",
+        confidence: "low",
+        note: "Go checksum entry observed without proving it is in the active dependency graph",
       },
     ])
   })

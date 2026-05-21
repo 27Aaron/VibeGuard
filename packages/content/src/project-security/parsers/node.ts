@@ -27,6 +27,8 @@ type PackageManifestData = {
   devDependencies?: Record<string, string>
 }
 
+type DirectDependenciesByContext = Map<string, Set<string>>
+
 function toSortedPackages(packages: ResolvedDependency[]) {
   return [...packages].sort((left, right) => left.name.localeCompare(right.name))
 }
@@ -41,14 +43,65 @@ function isInstalledNodePackagePath(packagePath: string) {
 }
 
 function collectDeclaredDirectDependencies(parsed: PackageLockData) {
-  return new Set(
-    Object.entries(parsed.packages ?? {})
-      .filter(([packagePath]) => !isInstalledNodePackagePath(packagePath))
-      .flatMap(([, pkg]) => [
+  const directDependenciesByContext: DirectDependenciesByContext = new Map()
+
+  for (const [packagePath, pkg] of Object.entries(parsed.packages ?? {})) {
+    if (isInstalledNodePackagePath(packagePath)) {
+      continue
+    }
+
+    directDependenciesByContext.set(
+      packagePath,
+      new Set([
         ...Object.keys(pkg.dependencies ?? {}),
         ...Object.keys(pkg.devDependencies ?? {}),
       ]),
-  )
+    )
+  }
+
+  return directDependenciesByContext
+}
+
+function getInstalledPackageContext(packagePath: string) {
+  const suffix = "/node_modules/"
+
+  if (packagePath.startsWith("node_modules/")) {
+    return ""
+  }
+
+  const lastIndex = packagePath.lastIndexOf(suffix)
+
+  if (lastIndex === -1) {
+    return null
+  }
+
+  return packagePath.slice(0, lastIndex)
+}
+
+function resolveDependencyType(
+  packagePath: string,
+  name: string,
+  directDependenciesByContext: DirectDependenciesByContext,
+) {
+  const packageContext = getInstalledPackageContext(packagePath)
+
+  if (packageContext === null) {
+    return "unknown" as const
+  }
+
+  const directDependencies = directDependenciesByContext.get(packageContext)
+
+  if (directDependencies) {
+    return directDependencies.has(name)
+      ? ("direct" as const)
+      : ("transitive" as const)
+  }
+
+  if (packageContext.includes("node_modules/")) {
+    return "transitive" as const
+  }
+
+  return "unknown" as const
 }
 
 export async function parseNodeDependencyFile(
@@ -67,9 +120,12 @@ export async function parseNodeDependencyFile(
           ecosystem: "npm" as const,
           name,
           version: pkg.version ?? null,
-          dependencyType: directDependencies.has(name)
-            ? ("direct" as const)
-            : ("transitive" as const),
+          versionKind: "resolved" as const,
+          dependencyType: resolveDependencyType(
+            packagePath,
+            name,
+            directDependencies,
+          ),
           sourcePath: input.file.path,
           sourceKind: "lockfile" as const,
           confidence: "high" as const,
@@ -92,6 +148,7 @@ export async function parseNodeDependencyFile(
       ecosystem: "npm" as const,
       name,
       version,
+      versionKind: "declared" as const,
       dependencyType: "direct" as const,
       sourcePath: input.file.path,
       sourceKind: "manifest" as const,

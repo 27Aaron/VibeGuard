@@ -90,6 +90,7 @@ export async function parseGoDependencyFile(
         ecosystem: "go",
         name: parsedDependency.name,
         version: parsedDependency.version,
+        versionKind: "declared",
         dependencyType: parsedDependency.dependencyType,
         sourcePath: input.file.path,
         sourceKind: input.file.kind,
@@ -128,11 +129,12 @@ export async function parseGoDependencyFile(
         ecosystem: "go",
         name,
         version,
+        versionKind: "observed",
         dependencyType: "unknown",
         sourcePath: input.file.path,
         sourceKind: input.file.kind,
-        confidence: "high",
-        note: "Go dependency extracted without a complete graph",
+        confidence: "low",
+        note: "Go checksum entry observed without proving it is in the active dependency graph",
       })
     }
 

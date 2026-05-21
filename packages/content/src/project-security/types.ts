@@ -8,6 +8,7 @@ import type { checkPackagesAgainstLocalDb } from "../osv/query"
 export type DependencyFileKind = "lockfile" | "manifest"
 export type DependencyParseConfidence = "high" | "medium" | "low"
 export type DependencyNodeKind = "direct" | "transitive" | "unknown"
+export type DependencyVersionKind = "resolved" | "declared" | "observed"
 export type ProjectSecurityDb = NodePgDatabase<typeof schema>
 
 export type DetectedDependencyFile = {
@@ -31,6 +32,7 @@ export type ResolvedDependency = {
   ecosystem: SecurityPackageEcosystem
   name: string
   version: string | null
+  versionKind: DependencyVersionKind
   dependencyType: DependencyNodeKind
   sourcePath: string
   sourceKind: DependencyFileKind

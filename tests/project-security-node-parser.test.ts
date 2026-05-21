@@ -38,6 +38,7 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "loose-envify",
         version: "1.4.0",
+        versionKind: "resolved",
         dependencyType: "transitive",
         sourcePath: "package-lock.json",
         sourceKind: "lockfile",
@@ -48,6 +49,7 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "react",
         version: "19.1.0",
+        versionKind: "resolved",
         dependencyType: "direct",
         sourcePath: "package-lock.json",
         sourceKind: "lockfile",
@@ -83,6 +85,7 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "react",
         version: "^19.1.0",
+        versionKind: "declared",
         dependencyType: "direct",
         sourcePath: "package.json",
         sourceKind: "manifest",
@@ -93,6 +96,7 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "vitest",
         version: "^3.2.4",
+        versionKind: "declared",
         dependencyType: "direct",
         sourcePath: "package.json",
         sourceKind: "manifest",
@@ -102,7 +106,7 @@ describe("parseNodeDependencyFile", () => {
     ])
   })
 
-  it("parses nested install paths and preserves duplicate nested installs", async () => {
+  it("marks workspace nested installs as unknown when directness cannot be proven", async () => {
     const result = await parseNodeDependencyFile({
       rootDir: "/repo",
       file: {
@@ -140,7 +144,8 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "loose-envify",
         version: "1.4.0",
-        dependencyType: "transitive",
+        versionKind: "resolved",
+        dependencyType: "unknown",
         sourcePath: "package-lock.json",
         sourceKind: "lockfile",
         confidence: "high",
@@ -150,7 +155,8 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "react",
         version: "19.1.0",
-        dependencyType: "direct",
+        versionKind: "resolved",
+        dependencyType: "unknown",
         sourcePath: "package-lock.json",
         sourceKind: "lockfile",
         confidence: "high",
@@ -160,7 +166,8 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "react",
         version: "19.1.0",
-        dependencyType: "direct",
+        versionKind: "resolved",
+        dependencyType: "unknown",
         sourcePath: "package-lock.json",
         sourceKind: "lockfile",
         confidence: "high",
@@ -205,6 +212,7 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "loose-envify",
         version: "1.4.0",
+        versionKind: "resolved",
         dependencyType: "transitive",
         sourcePath: "package-lock.json",
         sourceKind: "lockfile",
@@ -215,6 +223,7 @@ describe("parseNodeDependencyFile", () => {
         ecosystem: "npm",
         name: "react",
         version: "19.1.0",
+        versionKind: "resolved",
         dependencyType: "direct",
         sourcePath: "package-lock.json",
         sourceKind: "lockfile",
