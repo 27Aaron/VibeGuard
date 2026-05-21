@@ -9,3 +9,16 @@ export * from "./osv/normalize";
 export * from "./osv/query";
 export * from "./osv/store";
 export * from "./osv/sync";
+export * from "./project-security/types";
+
+export function discoverDependencyFiles() {
+  throw new Error("discoverDependencyFiles is not implemented yet.")
+}
+
+export function scanDependencies() {
+  throw new Error("scanDependencies is not implemented yet.")
+}
+
+export function checkProjectDependenciesAgainstLocalDb() {
+  throw new Error("checkProjectDependenciesAgainstLocalDb is not implemented yet.")
+}
