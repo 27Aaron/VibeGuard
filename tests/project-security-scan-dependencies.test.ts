@@ -194,4 +194,89 @@ describe("scanDependencies", () => {
       fs.rmSync(rootDir, { recursive: true, force: true })
     }
   })
+
+  it("falls back to package.json when a sibling Node lockfile cannot be parsed", async () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "vg-scan-node-fallback-"))
+
+    try {
+      fs.writeFileSync(path.join(rootDir, "package-lock.json"), "{not-json")
+      fs.writeFileSync(
+        path.join(rootDir, "package.json"),
+        JSON.stringify({
+          dependencies: {
+            react: "^19.1.0",
+          },
+        }),
+      )
+
+      const result = await scanDependencies({ rootDir })
+
+      expect(result.packages).toEqual([
+        {
+          ecosystem: "npm",
+          name: "react",
+          version: "^19.1.0",
+          dependencyType: "direct",
+          sourcePath: "package.json",
+          sourceKind: "manifest",
+          confidence: "medium",
+          note: "declared dependency without a lockfile",
+        },
+      ])
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]).toContain(
+        "Failed to scan dependency file package-lock.json:",
+      )
+      expect(result.warnings[0]).toContain("JSON")
+    } finally {
+      fs.rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it("falls back to Cargo.toml when a sibling Rust lockfile cannot be parsed", async () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "vg-scan-rust-fallback-"))
+
+    try {
+      fs.writeFileSync(
+        path.join(rootDir, "Cargo.lock"),
+        ['[[package]]', 'name = "serde"', 'version = "1.0.217"'].join("\n"),
+      )
+      fs.chmodSync(path.join(rootDir, "Cargo.lock"), 0o000)
+      fs.writeFileSync(
+        path.join(rootDir, "Cargo.toml"),
+        [
+          "[package]",
+          'name = "demo"',
+          "",
+          "[dependencies]",
+          'serde = "1.0"',
+        ].join("\n"),
+      )
+
+      const result = await scanDependencies({ rootDir })
+
+      expect(result.packages).toEqual([
+        {
+          ecosystem: "crates-io",
+          name: "serde",
+          version: "1.0",
+          dependencyType: "direct",
+          sourcePath: "Cargo.toml",
+          sourceKind: "manifest",
+          confidence: "medium",
+          note: "declared dependency without a lockfile",
+        },
+      ])
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]).toContain(
+        "Failed to scan dependency file Cargo.lock:",
+      )
+    } finally {
+      const lockPath = path.join(rootDir, "Cargo.lock")
+      if (fs.existsSync(lockPath)) {
+        fs.chmodSync(lockPath, 0o644)
+      }
+      fs.rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
 })

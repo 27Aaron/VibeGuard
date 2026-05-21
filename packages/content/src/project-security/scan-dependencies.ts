@@ -14,7 +14,7 @@ import type {
 
 function shouldSkipManifest(
   file: DetectedDependencyFile,
-  files: DetectedDependencyFile[],
+  successfulLockfiles: Set<string>,
 ) {
   if (
     file.kind !== "manifest" ||
@@ -23,14 +23,11 @@ function shouldSkipManifest(
     return false
   }
 
-  const directory = path.posix.dirname(file.path)
+  return successfulLockfiles.has(getDirectoryEcosystemKey(file))
+}
 
-  return files.some(
-    (candidate) =>
-      candidate.ecosystem === file.ecosystem &&
-      candidate.kind === "lockfile" &&
-      path.posix.dirname(candidate.path) === directory,
-  )
+function getDirectoryEcosystemKey(file: DetectedDependencyFile) {
+  return `${file.ecosystem}:${path.posix.dirname(file.path)}`
 }
 
 async function parseDependencyFile(
@@ -83,9 +80,10 @@ export async function scanDependencies(
   const discovered = await discoverDependencyFiles({ rootDir: input.rootDir })
   const packages: ScanDependenciesResult["packages"] = []
   const warnings = [...discovered.warnings]
+  const successfulLockfiles = new Set<string>()
 
   for (const file of discovered.files) {
-    if (shouldSkipManifest(file, discovered.files)) {
+    if (shouldSkipManifest(file, successfulLockfiles)) {
       continue
     }
 
@@ -93,6 +91,12 @@ export async function scanDependencies(
       const result = await parseDependencyFile(input, file)
       packages.push(...result.packages)
       warnings.push(...result.warnings)
+      if (
+        file.kind === "lockfile" &&
+        (file.ecosystem === "npm" || file.ecosystem === "crates-io")
+      ) {
+        successfulLockfiles.add(getDirectoryEcosystemKey(file))
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown dependency scan error"
