@@ -72,7 +72,14 @@ function isSupportedPythonDependencyFile(filePath: string) {
 }
 
 function isPythonDirectReference(line: string) {
-  return /\s@\s(?:git\+|file:)/.test(line)
+  return /\s@\s(?:[A-Za-z][A-Za-z0-9+.-]*:)/.test(line)
+}
+
+function isPythonSourceDependencyTable(definition: string) {
+  return (
+    definition.startsWith("{") &&
+    /\b(?:path|git|url)\s*=/.test(definition)
+  )
 }
 
 function buildDeclaredPythonDependency(
@@ -179,6 +186,13 @@ function parsePyprojectDependencies(file: DetectedDependencyFile, content: strin
     if (isPythonDirectReference(definition)) {
       warnings.push(
         `Unsupported Python direct reference in ${file.path}: ${trimmedLine}`,
+      )
+      continue
+    }
+
+    if (isPythonSourceDependencyTable(definition)) {
+      warnings.push(
+        `Unsupported Python source dependency in ${file.path}: ${trimmedLine}`,
       )
       continue
     }

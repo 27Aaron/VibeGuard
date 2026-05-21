@@ -112,6 +112,31 @@ describe("parsePythonDependencyFile", () => {
     ])
   })
 
+  it("warns and skips plain-url direct references in requirements.txt", async () => {
+    const result = await parsePythonDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "pypi",
+        kind: "manifest",
+        path: "requirements.txt",
+        confidence: "medium",
+        note: "requirements",
+      },
+      content: [
+        "remotepkg @ https://example.com/packages/remotepkg-1.0.0.tar.gz",
+        "sshpkg @ ssh://git@example.com/repo.git",
+        "httppkg @ http://example.com/httppkg.whl",
+      ].join("\n"),
+    })
+
+    expect(result.packages).toEqual([])
+    expect(result.warnings).toEqual([
+      "Unsupported Python direct reference in requirements.txt: remotepkg @ https://example.com/packages/remotepkg-1.0.0.tar.gz",
+      "Unsupported Python direct reference in requirements.txt: sshpkg @ ssh://git@example.com/repo.git",
+      "Unsupported Python direct reference in requirements.txt: httppkg @ http://example.com/httppkg.whl",
+    ])
+  })
+
   it("parses pyproject.toml dependency declarations with medium confidence", async () => {
     const result = await parsePythonDependencyFile({
       rootDir: "/repo",
@@ -175,6 +200,33 @@ describe("parsePythonDependencyFile", () => {
         confidence: "medium",
         note: "declared dependency without a lockfile",
       },
+    ])
+  })
+
+  it("warns and skips non-version poetry dependency sources", async () => {
+    const result = await parsePythonDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "pypi",
+        kind: "manifest",
+        path: "pyproject.toml",
+        confidence: "medium",
+        note: "manifest",
+      },
+      content: [
+        "[tool.poetry.dependencies]",
+        'python = "^3.12"',
+        'local-lib = { path = "../lib" }',
+        'git-lib = { git = "https://github.com/example/repo.git" }',
+        'url-lib = { url = "https://example.com/url-lib.whl" }',
+      ].join("\n"),
+    })
+
+    expect(result.packages).toEqual([])
+    expect(result.warnings).toEqual([
+      'Unsupported Python source dependency in pyproject.toml: local-lib = { path = "../lib" }',
+      'Unsupported Python source dependency in pyproject.toml: git-lib = { git = "https://github.com/example/repo.git" }',
+      'Unsupported Python source dependency in pyproject.toml: url-lib = { url = "https://example.com/url-lib.whl" }',
     ])
   })
 
