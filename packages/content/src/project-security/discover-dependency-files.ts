@@ -131,12 +131,7 @@ export async function discoverDependencyFiles(
     }
   }
 
-  try {
-    await walk(input.rootDir)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    warnings.push(`Failed to scan dependency files in ${input.rootDir}: ${message}`)
-  }
+  await walk(input.rootDir)
 
   files.sort((left, right) => left.path.localeCompare(right.path))
 

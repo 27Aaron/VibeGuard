@@ -146,4 +146,13 @@ describe("discoverDependencyFiles", () => {
       fs.rmSync(rootDir, { recursive: true, force: true })
     }
   })
+
+  it("fails fast when dependency file traversal cannot complete", async () => {
+    const rootDir = path.join(
+      os.tmpdir(),
+      `vg-discovery-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    )
+
+    await expect(discoverDependencyFiles({ rootDir })).rejects.toThrow()
+  })
 })
