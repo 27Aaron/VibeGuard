@@ -36,6 +36,10 @@ function extractNodePackageName(packagePath: string) {
   return segments[segments.length - 1] ?? packagePath
 }
 
+function isInstalledNodePackagePath(packagePath: string) {
+  return packagePath.includes("node_modules/")
+}
+
 export async function parseNodeDependencyFile(
   input: ParseNodeDependencyFileInput,
 ): Promise<ParseNodeDependencyFileResult> {
@@ -48,7 +52,7 @@ export async function parseNodeDependencyFile(
     ])
 
     const packages = Object.entries(parsed.packages ?? {})
-      .filter(([packagePath]) => packagePath.startsWith("node_modules/"))
+      .filter(([packagePath]) => isInstalledNodePackagePath(packagePath))
       .map(([packagePath, pkg]) => {
         const name = extractNodePackageName(packagePath)
 
