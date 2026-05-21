@@ -1,0 +1,225 @@
+export const ADMIN_SESSION_COOKIE = "admin_session"
+export const ADMIN_SESSION_MAX_AGE_SECONDS = 60 * 60 * 12
+export const LOGIN_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000
+export const LOGIN_RATE_LIMIT_MAX_FAILURES = 5
+
+const TOKEN_VERSION = "v1"
+const UNSAFE_ADMIN_PASSWORDS = new Set([
+  "admin",
+  "admin123",
+  "password",
+  "password123",
+  "changeme",
+  "replace-with-your-admin-password",
+  "replace-with-a-strong-admin-password",
+])
+const UNSAFE_SESSION_SECRETS = new Set([
+  "test-secret",
+  "replace-with-a-random-secret",
+])
+const failedLoginAttempts = new Map<string, number[]>()
+
+export type AdminAuthConfig = {
+  password: string
+  secret: string
+}
+
+export function getAdminAuthConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): AdminAuthConfig | null {
+  const password = String(env.ADMIN_PASSWORD ?? "").trim()
+  const secret = String(
+    env.VIBEGUARD_SECRET ?? env.CONTENT_FOUNDATION_SECRET ?? "",
+  ).trim()
+
+  if (isUnsafeAdminPassword(password) || isUnsafeSessionSecret(secret)) {
+    return null
+  }
+
+  return {
+    password,
+    secret,
+  }
+}
+
+function isUnsafeAdminPassword(password: string) {
+  return password.length < 12 || UNSAFE_ADMIN_PASSWORDS.has(password.toLowerCase())
+}
+
+function isUnsafeSessionSecret(secret: string) {
+  return secret.length < 16 || UNSAFE_SESSION_SECRETS.has(secret)
+}
+
+export function sanitizeAdminReturnPath(input: string | undefined, lang: "zh" | "en") {
+  const fallback = `/${lang}/admin`
+
+  if (!input || !input.startsWith("/") || input.startsWith("//")) {
+    return fallback
+  }
+
+  try {
+    const url = new URL(input, "http://vibeguard.local")
+    const adminPrefix = `/${lang}/admin`
+    const loginPrefix = `${adminPrefix}/login`
+
+    if (
+      url.pathname === loginPrefix ||
+      url.pathname.startsWith(`${loginPrefix}/`) ||
+      (url.pathname !== adminPrefix && !url.pathname.startsWith(`${adminPrefix}/`))
+    ) {
+      return fallback
+    }
+
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return fallback
+  }
+}
+
+export async function verifyAdminPassword(input: string, expected: string) {
+  const [inputHash, expectedHash] = await Promise.all([
+    sha256Hex(input),
+    sha256Hex(expected),
+  ])
+
+  return constantTimeEqual(inputHash, expectedHash)
+}
+
+export async function createAdminSessionToken(input: {
+  password: string
+  secret: string
+  issuedAt?: number
+}) {
+  const issuedAt = input.issuedAt ?? Date.now()
+  const passwordHash = await sha256Hex(input.password)
+  const signature = await hmacSha256Base64Url(
+    input.secret,
+    buildSessionMessage(issuedAt, passwordHash),
+  )
+
+  return `${TOKEN_VERSION}.${issuedAt}.${signature}`
+}
+
+export async function verifyAdminSessionToken(
+  token: string | undefined,
+  input: {
+    password: string
+    secret: string
+    now?: number
+  },
+) {
+  if (!token) {
+    return false
+  }
+
+  const [version, issuedAtValue, signature, ...extra] = token.split(".")
+  const issuedAt = Number(issuedAtValue)
+  const now = input.now ?? Date.now()
+
+  if (
+    extra.length > 0 ||
+    version !== TOKEN_VERSION ||
+    !Number.isFinite(issuedAt) ||
+    issuedAt > now ||
+    now - issuedAt > ADMIN_SESSION_MAX_AGE_SECONDS * 1000 ||
+    !signature
+  ) {
+    return false
+  }
+
+  const passwordHash = await sha256Hex(input.password)
+  const expectedSignature = await hmacSha256Base64Url(
+    input.secret,
+    buildSessionMessage(issuedAt, passwordHash),
+  )
+
+  return constantTimeEqual(signature, expectedSignature)
+}
+
+function buildSessionMessage(issuedAt: number, passwordHash: string) {
+  return `${TOKEN_VERSION}.${issuedAt}.${passwordHash}`
+}
+
+async function sha256Hex(input: string) {
+  const data = new TextEncoder().encode(input)
+  const hash = await crypto.subtle.digest("SHA-256", data)
+
+  return Array.from(new Uint8Array(hash))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+}
+
+async function hmacSha256Base64Url(secret: string, input: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  )
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(input),
+  )
+
+  return bytesToBase64Url(new Uint8Array(signature))
+}
+
+function bytesToBase64Url(bytes: Uint8Array) {
+  let binary = ""
+
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte)
+  }
+
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
+}
+
+function constantTimeEqual(left: string, right: string) {
+  const maxLength = Math.max(left.length, right.length)
+  let diff = left.length ^ right.length
+
+  for (let index = 0; index < maxLength; index += 1) {
+    diff |= (left.charCodeAt(index) || 0) ^ (right.charCodeAt(index) || 0)
+  }
+
+  return diff === 0
+}
+
+export function resolveLoginRateLimitKey(headers: Headers) {
+  const forwardedFor = headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+
+  return forwardedFor || headers.get("x-real-ip")?.trim() || "local"
+}
+
+export function isLoginRateLimited(key: string, now = Date.now()) {
+  const failures = pruneLoginFailures(key, now)
+
+  return failures.length >= LOGIN_RATE_LIMIT_MAX_FAILURES
+}
+
+export function recordFailedLogin(key: string, now = Date.now()) {
+  const failures = pruneLoginFailures(key, now)
+  failures.push(now)
+  failedLoginAttempts.set(key, failures)
+}
+
+export function clearLoginFailures(key: string) {
+  failedLoginAttempts.delete(key)
+}
+
+function pruneLoginFailures(key: string, now: number) {
+  const cutoff = now - LOGIN_RATE_LIMIT_WINDOW_MS
+  const failures = (failedLoginAttempts.get(key) ?? []).filter(
+    (timestamp) => timestamp > cutoff,
+  )
+
+  if (failures.length === 0) {
+    failedLoginAttempts.delete(key)
+  } else {
+    failedLoginAttempts.set(key, failures)
+  }
+
+  return failures
+}

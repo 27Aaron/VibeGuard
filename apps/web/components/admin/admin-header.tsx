@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
-import { Radio, ShieldCheck } from "lucide-react"
+import { LogOut, Radio, ShieldCheck } from "lucide-react"
 
 import { AdminNav } from "@/components/admin/admin-nav"
 import { LanguageToggle } from "@/components/language-toggle"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { logoutAction } from "@/lib/actions/auth"
 import { resolveLang, type AppLang } from "@/lib/i18n"
 
 export function AdminHeader() {
@@ -46,6 +47,16 @@ export function AdminHeader() {
           <div className="flex items-center justify-end gap-1.5 md:justify-self-end">
             <ThemeToggle />
             <LanguageToggle href={nextHref} currentLang={lang} />
+            <form action={logoutAction}>
+              <input type="hidden" name="lang" value={lang} />
+              <button
+                type="submit"
+                title={lang === "zh" ? "退出登录" : "Sign out"}
+                className="flex size-8 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-stone-100"
+              >
+                <LogOut className="size-4" />
+              </button>
+            </form>
           </div>
         </div>
       </div>

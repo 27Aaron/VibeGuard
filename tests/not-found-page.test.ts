@@ -51,8 +51,8 @@ describe("localized not-found page", () => {
     expect(rootLayout).not.toContain("theme-init.js")
   })
 
-  it("preserves the route language for dotted 404 paths", () => {
-    const response = proxy(createProxyRequest("/en/missing.txt", "lang=zh"))
+  it("preserves the route language for dotted 404 paths", async () => {
+    const response = await proxy(createProxyRequest("/en/missing.txt", "lang=zh"))
 
     expect(response.headers.get("x-middleware-next")).toBe("1")
     expect(response.headers.get("x-middleware-request-x-vibeguard-lang")).toBe(
