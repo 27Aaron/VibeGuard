@@ -4,3 +4,8 @@ export * from "./extract/defuddle";
 export * from "./feed/fetch-feed";
 export * from "./feed/normalize";
 export * from "./feed/store";
+export * from "./osv/cache";
+export * from "./osv/normalize";
+export * from "./osv/query";
+export * from "./osv/store";
+export * from "./osv/sync";

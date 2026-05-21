@@ -10,6 +10,7 @@
     "lint:web": "node scripts/with-env.mjs pnpm --filter web lint",
     "db:generate": "node scripts/with-env.mjs --local-defaults drizzle-kit generate",
     "db:migrate": "node scripts/with-env.mjs --local-defaults drizzle-kit migrate",
+    "osv:sync": "node scripts/with-env.mjs --local-defaults pnpm --filter worker exec tsx src/sync-osv.ts",
     "lint": "pnpm lint:web",
     "test": "node scripts/with-env.mjs vitest run",
     "typecheck": "node scripts/with-env.mjs pnpm --dir apps/web exec tsc --noEmit --project tsconfig.json && node scripts/with-env.mjs pnpm exec tsc --noEmit --project tsconfig.workspace.json"

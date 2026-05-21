@@ -92,3 +92,50 @@ export const ARTICLE_RISK_CATEGORY_VALUES = articleRiskCategories.values;
 export const ArticleRiskCategory = articleRiskCategories.map;
 export type ArticleRiskCategory =
   (typeof ARTICLE_RISK_CATEGORY_VALUES)[number];
+
+const securityPackageEcosystems = defineStatuses([
+  "npm",
+  "pypi",
+  "go",
+  "crates-io",
+] as const);
+
+export const SECURITY_PACKAGE_ECOSYSTEM_VALUES =
+  securityPackageEcosystems.values;
+export const SecurityPackageEcosystem = securityPackageEcosystems.map;
+export type SecurityPackageEcosystem =
+  (typeof SECURITY_PACKAGE_ECOSYSTEM_VALUES)[number];
+
+const securitySyncStatuses = defineStatuses([
+  "idle",
+  "running",
+  "success",
+  "failed",
+] as const);
+
+export const SECURITY_SYNC_STATUS_VALUES = securitySyncStatuses.values;
+export const SecuritySyncStatus = securitySyncStatuses.map;
+export type SecuritySyncStatus =
+  (typeof SECURITY_SYNC_STATUS_VALUES)[number];
+
+const securityParseStatuses = defineStatuses([
+  "pending",
+  "parsed",
+  "failed",
+  "skipped",
+] as const);
+
+export const SECURITY_PARSE_STATUS_VALUES = securityParseStatuses.values;
+export const SecurityParseStatus = securityParseStatuses.map;
+export type SecurityParseStatus =
+  (typeof SECURITY_PARSE_STATUS_VALUES)[number];
+
+const securityRiskTypes = defineStatuses([
+  "unknown",
+  "vulnerability",
+  "malicious-package",
+] as const);
+
+export const SECURITY_RISK_TYPE_VALUES = securityRiskTypes.values;
+export const SecurityRiskType = securityRiskTypes.map;
+export type SecurityRiskType = (typeof SECURITY_RISK_TYPE_VALUES)[number];

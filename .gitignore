@@ -32,6 +32,7 @@ Thumbs.db
 !.env.example
 
 # Local databases, backups, and logs
+data/osv-cache/
 *.bak
 *.db
 *.dump

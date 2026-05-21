@@ -8,7 +8,12 @@
     "./extract/defuddle": "./src/extract/defuddle.ts",
     "./feed/fetch-feed": "./src/feed/fetch-feed.ts",
     "./feed/normalize": "./src/feed/normalize.ts",
-    "./feed/store": "./src/feed/store.ts"
+    "./feed/store": "./src/feed/store.ts",
+    "./osv/cache": "./src/osv/cache.ts",
+    "./osv/normalize": "./src/osv/normalize.ts",
+    "./osv/query": "./src/osv/query.ts",
+    "./osv/store": "./src/osv/store.ts",
+    "./osv/sync": "./src/osv/sync.ts"
   },
   "dependencies": {
     "@vibeguard/db": "workspace:*",

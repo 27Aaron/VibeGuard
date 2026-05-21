@@ -20,6 +20,10 @@ import {
   JOB_PIPELINE_STAGE_VALUES,
   JOB_STATUS_VALUES,
   JOB_TYPE_VALUES,
+  SECURITY_PACKAGE_ECOSYSTEM_VALUES,
+  SECURITY_PARSE_STATUS_VALUES,
+  SECURITY_RISK_TYPE_VALUES,
+  SECURITY_SYNC_STATUS_VALUES,
 } from "@vibeguard/shared";
 
 export const articleStatusValues = ARTICLE_STATUS_VALUES;
@@ -28,6 +32,10 @@ export const articleRiskCategoryValues = ARTICLE_RISK_CATEGORY_VALUES;
 export const jobStatusValues = JOB_STATUS_VALUES;
 export const jobTypeValues = JOB_TYPE_VALUES;
 export const jobPipelineStageValues = JOB_PIPELINE_STAGE_VALUES;
+export const securityPackageEcosystemValues = SECURITY_PACKAGE_ECOSYSTEM_VALUES;
+export const securitySyncStatusValues = SECURITY_SYNC_STATUS_VALUES;
+export const securityParseStatusValues = SECURITY_PARSE_STATUS_VALUES;
+export const securityRiskTypeValues = SECURITY_RISK_TYPE_VALUES;
 
 export const articleStatusEnum = pgEnum(
   "article_status",
@@ -41,6 +49,26 @@ export const jobTypeEnum = pgEnum("job_type", jobTypeValues);
 export const jobPipelineStageEnum = pgEnum(
   "job_pipeline_stage",
   jobPipelineStageValues,
+);
+
+export const securityPackageEcosystemEnum = pgEnum(
+  "security_package_ecosystem",
+  securityPackageEcosystemValues,
+);
+
+export const securitySyncStatusEnum = pgEnum(
+  "security_sync_status",
+  securitySyncStatusValues,
+);
+
+export const securityParseStatusEnum = pgEnum(
+  "security_parse_status",
+  securityParseStatusValues,
+);
+
+export const securityRiskTypeEnum = pgEnum(
+  "security_risk_type",
+  securityRiskTypeValues,
 );
 
 export const feeds = pgTable(
@@ -192,13 +220,182 @@ export const llmSettings = pgTable(
   ],
 );
 
+export const securitySyncState = pgTable(
+  "security_sync_state",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    source: varchar("source", { length: 32 }).notNull().default("osv"),
+    ecosystem: securityPackageEcosystemEnum("ecosystem").notNull(),
+    status: securitySyncStatusEnum("status").notNull().default("idle"),
+    lastProcessedModifiedAt: timestamp("last_processed_modified_at", {
+      withTimezone: true,
+    }),
+    lastStartedAt: timestamp("last_started_at", { withTimezone: true }),
+    lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    recordsSeen: integer("records_seen").notNull().default(0),
+    recordsImported: integer("records_imported").notNull().default(0),
+    recordsFailed: integer("records_failed").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("security_sync_state_source_ecosystem_unique").on(
+      table.source,
+      table.ecosystem,
+    ),
+    index("security_sync_state_status_idx").on(table.status),
+  ],
+);
+
+export const securitySourceRecords = pgTable(
+  "security_source_records",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    source: varchar("source", { length: 32 }).notNull().default("osv"),
+    externalId: varchar("external_id", { length: 160 }).notNull(),
+    sourceUrl: text("source_url").notNull(),
+    sourceEcosystems: jsonb("source_ecosystems")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    schemaVersion: varchar("schema_version", { length: 32 }),
+    modifiedAt: timestamp("modified_at", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    rawHash: varchar("raw_hash", { length: 128 }),
+    rawSizeBytes: integer("raw_size_bytes"),
+    syncedAt: timestamp("synced_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    parseStatus: securityParseStatusEnum("parse_status")
+      .notNull()
+      .default("pending"),
+    parseError: text("parse_error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("security_source_records_source_external_unique").on(
+      table.source,
+      table.externalId,
+    ),
+    index("security_source_records_modified_at_idx").on(table.modifiedAt),
+    index("security_source_records_parse_status_idx").on(table.parseStatus),
+  ],
+);
+
+export const securityAdvisories = pgTable(
+  "security_advisories",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceRecordId: uuid("source_record_id").references(
+      () => securitySourceRecords.id,
+    ),
+    source: varchar("source", { length: 32 }).notNull().default("osv"),
+    externalId: varchar("external_id", { length: 160 }).notNull(),
+    riskType: securityRiskTypeEnum("risk_type").notNull().default("unknown"),
+    summary: text("summary").notNull().default(""),
+    details: text("details"),
+    aliases: jsonb("aliases").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    severity: jsonb("severity")
+      .$type<Array<{ type?: string; score?: string }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    modifiedAt: timestamp("modified_at", { withTimezone: true }),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    references: jsonb("references")
+      .$type<Array<{ type?: string; url: string }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("security_advisories_source_external_unique").on(
+      table.source,
+      table.externalId,
+    ),
+    index("security_advisories_risk_type_idx").on(table.riskType),
+    index("security_advisories_modified_at_idx").on(table.modifiedAt),
+  ],
+);
+
+export const securityAffectedPackages = pgTable(
+  "security_affected_packages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    advisoryId: uuid("advisory_id")
+      .notNull()
+      .references(() => securityAdvisories.id),
+    ecosystem: securityPackageEcosystemEnum("ecosystem").notNull(),
+    packageName: text("package_name").notNull(),
+    packageKey: text("package_key").notNull(),
+    purl: text("purl"),
+    affectedVersions: jsonb("affected_versions")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    ranges: jsonb("ranges")
+      .$type<Array<{ type?: string; events?: Array<Record<string, string>> }>>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    fixedVersions: jsonb("fixed_versions")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("security_affected_packages_advisory_package_unique").on(
+      table.advisoryId,
+      table.ecosystem,
+      table.packageKey,
+    ),
+    index("security_affected_packages_lookup_idx").on(
+      table.ecosystem,
+      table.packageKey,
+    ),
+  ],
+);
+
 export const schema = {
   articleStatusEnum,
   jobStatusEnum,
   jobTypeEnum,
   jobPipelineStageEnum,
+  securityPackageEcosystemEnum,
+  securitySyncStatusEnum,
+  securityParseStatusEnum,
+  securityRiskTypeEnum,
   feeds,
   articles,
   processingJobs,
   llmSettings,
+  securitySyncState,
+  securitySourceRecords,
+  securityAdvisories,
+  securityAffectedPackages,
 } as const;
