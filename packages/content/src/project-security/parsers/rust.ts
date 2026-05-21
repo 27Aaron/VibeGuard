@@ -17,6 +17,11 @@ type CargoManifestDependency = {
   version: string | null
 }
 
+type ParsedCargoManifest = {
+  dependencies: CargoManifestDependency[]
+  packageName: string | null
+}
+
 function toSortedPackages(packages: ResolvedDependency[]) {
   return [...packages].sort((left, right) => {
     const nameComparison = left.name.localeCompare(right.name)
@@ -48,11 +53,10 @@ function normalizeCargoVersion(rawVersion: string | null) {
   return rawVersion.trim() || null
 }
 
-function parseCargoManifestDependencies(
-  content: string,
-): CargoManifestDependency[] {
+function parseCargoManifest(content: string): ParsedCargoManifest {
   const dependencies: CargoManifestDependency[] = []
   let currentSection: string | null = null
+  let packageName: string | null = null
 
   for (const line of content.split(/\r?\n/)) {
     const trimmedLine = line.trim()
@@ -64,6 +68,13 @@ function parseCargoManifestDependencies(
     if (sectionMatch) {
       currentSection = sectionMatch[1] ?? null
       continue
+    }
+
+    if (currentSection === "package") {
+      const packageNameMatch = trimmedLine.match(/^name\s*=\s*"([^"]+)"$/)
+      if (packageNameMatch?.[1]) {
+        packageName = packageNameMatch[1]
+      }
     }
 
     if (!currentSection || !isCargoDependencySection(currentSection)) {
@@ -91,7 +102,10 @@ function parseCargoManifestDependencies(
     })
   }
 
-  return dependencies
+  return {
+    dependencies,
+    packageName,
+  }
 }
 
 function toManifestPackages(
@@ -120,7 +134,7 @@ export async function parseRustDependencyFile(
       packages: toSortedPackages(
         toManifestPackages(
           input.file,
-          parseCargoManifestDependencies(input.content),
+          parseCargoManifest(input.content).dependencies,
         ),
       ),
       warnings: [],
@@ -128,11 +142,13 @@ export async function parseRustDependencyFile(
   }
 
   if (input.file.path.endsWith("Cargo.lock")) {
+    const parsedManifest = input.manifestContent
+      ? parseCargoManifest(input.manifestContent)
+      : null
     const directDependencyNames = new Set(
-      parseCargoManifestDependencies(input.manifestContent ?? "").map(
-        (dependency) => dependency.name,
-      ),
+      parsedManifest?.dependencies.map((dependency) => dependency.name) ?? [],
     )
+    const manifestPackageName = parsedManifest?.packageName ?? null
     const packages: ResolvedDependency[] = []
 
     let currentName: string | null = null
@@ -143,13 +159,20 @@ export async function parseRustDependencyFile(
         return
       }
 
+      if (manifestPackageName && currentName === manifestPackageName) {
+        return
+      }
+
       packages.push({
         ecosystem: "crates-io",
         name: currentName,
         version: currentVersion,
-        dependencyType: directDependencyNames.has(currentName)
-          ? "direct"
-          : "transitive",
+        dependencyType:
+          directDependencyNames.size === 0
+            ? "unknown"
+            : directDependencyNames.has(currentName)
+              ? "direct"
+              : "transitive",
         sourcePath: input.file.path,
         sourceKind: input.file.kind,
         confidence: "high",

@@ -63,10 +63,23 @@ function parsePythonRequirementLine(line: string) {
   }
 }
 
+function isSupportedPythonDependencyFile(filePath: string) {
+  return filePath.endsWith("requirements.txt")
+}
+
 export async function parsePythonDependencyFile(
   input: ParsePythonDependencyFileInput,
 ): Promise<ParsePythonDependencyFileResult> {
   void input.rootDir
+
+  if (!isSupportedPythonDependencyFile(input.file.path)) {
+    return {
+      packages: [],
+      warnings: [
+        `Unsupported Python dependency file for Task 4 parser: ${input.file.path}`,
+      ],
+    }
+  }
 
   const packages: ResolvedDependency[] = []
   const warnings: string[] = []
@@ -80,6 +93,13 @@ export async function parsePythonDependencyFile(
     if (trimmedLine.startsWith("-") || trimmedLine.startsWith("--")) {
       warnings.push(
         `Unsupported Python requirement directive in ${input.file.path}: ${trimmedLine}`,
+      )
+      continue
+    }
+
+    if (trimmedLine.includes(" @ ")) {
+      warnings.push(
+        `Unsupported Python direct reference in ${input.file.path}: ${trimmedLine}`,
       )
       continue
     }

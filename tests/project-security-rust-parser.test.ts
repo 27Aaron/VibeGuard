@@ -113,4 +113,79 @@ describe("parseRustDependencyFile", () => {
       },
     ])
   })
+
+  it("keeps Cargo.lock dependency type unknown without manifest support", async () => {
+    const result = await parseRustDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "crates-io",
+        kind: "lockfile",
+        path: "Cargo.lock",
+        confidence: "high",
+        note: "lockfile",
+      },
+      content: [
+        "[[package]]",
+        'name = "serde"',
+        'version = "1.0.217"',
+      ].join("\n"),
+    })
+
+    expect(result.warnings).toEqual([])
+    expect(result.packages).toEqual([
+      {
+        ecosystem: "crates-io",
+        name: "serde",
+        version: "1.0.217",
+        dependencyType: "unknown",
+        sourcePath: "Cargo.lock",
+        sourceKind: "lockfile",
+        confidence: "high",
+        note: "resolved from Cargo.lock",
+      },
+    ])
+  })
+
+  it("skips the workspace crate when it appears in Cargo.lock and manifest identifies it", async () => {
+    const result = await parseRustDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "crates-io",
+        kind: "lockfile",
+        path: "Cargo.lock",
+        confidence: "high",
+        note: "lockfile",
+      },
+      content: [
+        "[[package]]",
+        'name = "demo"',
+        'version = "0.1.0"',
+        "",
+        "[[package]]",
+        'name = "serde"',
+        'version = "1.0.217"',
+      ].join("\n"),
+      manifestContent: [
+        "[package]",
+        'name = "demo"',
+        "",
+        "[dependencies]",
+        'serde = "1.0"',
+      ].join("\n"),
+    })
+
+    expect(result.warnings).toEqual([])
+    expect(result.packages).toEqual([
+      {
+        ecosystem: "crates-io",
+        name: "serde",
+        version: "1.0.217",
+        dependencyType: "direct",
+        sourcePath: "Cargo.lock",
+        sourceKind: "lockfile",
+        confidence: "high",
+        note: "resolved from Cargo.lock",
+      },
+    ])
+  })
 })

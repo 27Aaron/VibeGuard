@@ -88,4 +88,50 @@ describe("parsePythonDependencyFile", () => {
       "Unsupported Python requirement directive in requirements.txt: --index-url https://example.com/simple",
     ])
   })
+
+  it("warns and skips direct reference requirements instead of treating them as versions", async () => {
+    const result = await parsePythonDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "pypi",
+        kind: "manifest",
+        path: "requirements.txt",
+        confidence: "medium",
+        note: "requirements",
+      },
+      content: [
+        "mypkg @ git+https://github.com/example/mypkg.git",
+        "localpkg @ file:///tmp/localpkg",
+      ].join("\n"),
+    })
+
+    expect(result.packages).toEqual([])
+    expect(result.warnings).toEqual([
+      "Unsupported Python direct reference in requirements.txt: mypkg @ git+https://github.com/example/mypkg.git",
+      "Unsupported Python direct reference in requirements.txt: localpkg @ file:///tmp/localpkg",
+    ])
+  })
+
+  it("returns a warning instead of parsing unsupported Python file types", async () => {
+    const result = await parsePythonDependencyFile({
+      rootDir: "/repo",
+      file: {
+        ecosystem: "pypi",
+        kind: "lockfile",
+        path: "poetry.lock",
+        confidence: "high",
+        note: "lockfile",
+      },
+      content: [
+        "[[package]]",
+        'name = "requests"',
+        'version = "2.32.3"',
+      ].join("\n"),
+    })
+
+    expect(result.packages).toEqual([])
+    expect(result.warnings).toEqual([
+      "Unsupported Python dependency file for Task 4 parser: poetry.lock",
+    ])
+  })
 })
