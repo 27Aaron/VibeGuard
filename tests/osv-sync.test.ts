@@ -4,6 +4,10 @@ import path from "node:path"
 import { describe, expect, it, vi } from "vitest"
 
 import {
+  bootstrapAllOsvEcosystems,
+  bootstrapOsvEcosystem,
+  buildBootstrapArchiveExtractCommand,
+  buildBootstrapArchiveEntriesListCommand,
   buildModifiedIdCsvUrl,
   parseModifiedIdCsv,
   syncAllOsvEcosystems,
@@ -38,6 +42,29 @@ describe("OSV sync urls", () => {
     expect(buildModifiedIdCsvUrl("npm")).toBe(
       "https://storage.googleapis.com/osv-vulnerabilities/npm/modified_id.csv",
     )
+  })
+
+  it("builds the unzip command used to list bootstrap archive entries", () => {
+    expect(buildBootstrapArchiveEntriesListCommand("/tmp/npm/all.zip")).toEqual([
+      "unzip",
+      "-Z1",
+      "/tmp/npm/all.zip",
+    ])
+  })
+
+  it("builds the unzip command used to extract a bootstrap archive once", () => {
+    expect(
+      buildBootstrapArchiveExtractCommand(
+        "/tmp/npm/all.zip",
+        "/tmp/npm/all-extracted",
+      ),
+    ).toEqual([
+      "unzip",
+      "-oq",
+      "/tmp/npm/all.zip",
+      "-d",
+      "/tmp/npm/all-extracted",
+    ])
   })
 })
 
@@ -139,5 +166,104 @@ describe("syncAllOsvEcosystems", () => {
       1,
       expect.objectContaining({ ecosystem: "npm", limit: 2 }),
     )
+  })
+})
+
+describe("bootstrapOsvEcosystem", () => {
+  it("imports every JSON entry from an official per-ecosystem all.zip archive and deletes the cached zip", async () => {
+    const repoRoot = fs.mkdtempSync(path.join("/tmp", "vibeguard-osv-bootstrap-"))
+    const upsertNormalizedOsvRecord = vi.fn().mockResolvedValue({
+      sourceRecordId: "source-1",
+      advisoryId: "advisory-1",
+      affectedPackageCount: 1,
+    })
+    const upsertSecuritySyncState = vi.fn().mockResolvedValue(undefined)
+    const deleteCachedFile = vi.fn().mockResolvedValue(undefined)
+    const downloadArchive = vi.fn().mockResolvedValue(
+      path.join(repoRoot, "data", "osv-bootstrap", "npm", "all.zip"),
+    )
+
+    const summary = await bootstrapOsvEcosystem({
+      db: {} as never,
+      ecosystem: "npm",
+      repoRoot,
+      now: () => new Date("2026-05-22T08:00:00Z"),
+      downloadArchiveToCache: downloadArchive,
+      extractArchiveToDirectory: vi.fn().mockResolvedValue(undefined),
+      listExtractedEntries: async () => ["MAL-2026-4230.json", "README.txt"],
+      readExtractedEntryText: async () =>
+        JSON.stringify({
+          schema_version: "1.7.5",
+          id: "MAL-2026-4230",
+          published: "2026-05-21T21:15:38Z",
+          modified: "2026-05-21T23:01:37.118219322Z",
+          summary: "Malicious code in cryptoco-auth (npm)",
+          affected: [
+            {
+              package: {
+                name: "cryptoco-auth",
+                ecosystem: "npm",
+                purl: "pkg:npm/cryptoco-auth",
+              },
+              versions: ["1.0.6"],
+            },
+          ],
+        }),
+      deleteCachedFile,
+      upsertNormalizedOsvRecord,
+      upsertSecuritySyncState,
+    })
+
+    expect(summary).toEqual({
+      ecosystem: "npm",
+      recordsSeen: 1,
+      recordsImported: 1,
+      recordsFailed: 0,
+      lastProcessedModifiedAt: new Date("2026-05-21T23:01:37.118Z"),
+    })
+    expect(downloadArchive).toHaveBeenCalledTimes(1)
+    expect(upsertNormalizedOsvRecord).toHaveBeenCalledTimes(1)
+    expect(deleteCachedFile).toHaveBeenCalledWith(
+      path.join(repoRoot, "data", "osv-bootstrap", "npm", "all.zip"),
+    )
+    expect(deleteCachedFile).toHaveBeenCalledWith(
+      path.join(repoRoot, "data", "osv-bootstrap", "npm", "all-extracted"),
+    )
+  })
+})
+
+describe("bootstrapAllOsvEcosystems", () => {
+  it("bootstraps the four MVP ecosystems with limited concurrency", async () => {
+    let active = 0
+    let maxActive = 0
+    const syncOne = vi.fn().mockImplementation(async ({ ecosystem }) => {
+      active += 1
+      maxActive = Math.max(maxActive, active)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      active -= 1
+
+      return {
+        ecosystem,
+        recordsSeen: 1,
+        recordsImported: 1,
+        recordsFailed: 0,
+        lastProcessedModifiedAt: new Date("2026-05-21T23:01:37.118Z"),
+      }
+    })
+
+    const results = await bootstrapAllOsvEcosystems({
+      db: {} as never,
+      concurrency: 2,
+      syncOne,
+    })
+
+    expect(results.map((result) => result.ecosystem)).toEqual([
+      "npm",
+      "PyPI",
+      "Go",
+      "crates.io",
+    ])
+    expect(syncOne).toHaveBeenCalledTimes(4)
+    expect(maxActive).toBeLessThanOrEqual(2)
   })
 })

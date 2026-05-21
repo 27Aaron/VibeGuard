@@ -1,12 +1,16 @@
 import fs from "node:fs"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 import { describe, expect, it } from "vitest"
 
 import {
   buildOsvCachePath,
+  buildOsvBootstrapArchiveUrl,
+  buildOsvBootstrapPath,
   buildOsvVulnerabilityUrl,
   deleteCachedOsvFile,
+  resolveOsvBootstrapDir,
   downloadOsvTextToCache,
   resolveOsvCacheDir,
 } from "../packages/content/src/osv/cache"
@@ -30,6 +34,40 @@ describe("OSV cache paths", () => {
     ).toBe(
       path.join(repoRoot, "data", "osv-cache", "PyPI", "modified_id.csv"),
     )
+    expect(resolveOsvBootstrapDir({ repoRoot })).toBe(
+      path.join(repoRoot, "data", "osv-bootstrap"),
+    )
+    expect(buildOsvBootstrapPath({ repoRoot, ecosystem: "npm" })).toBe(
+      path.join(repoRoot, "data", "osv-bootstrap", "npm"),
+    )
+    expect(
+      buildOsvBootstrapPath({
+        repoRoot,
+        ecosystem: "Go",
+        fileName: "all.zip",
+      }),
+    ).toBe(path.join(repoRoot, "data", "osv-bootstrap", "Go", "all.zip"))
+  })
+
+  it("defaults to the repository data directories instead of the caller cwd", () => {
+    const originalCwd = process.cwd()
+    const expectedRepoRoot = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "..",
+    )
+
+    try {
+      process.chdir("/tmp")
+
+      expect(resolveOsvCacheDir()).toBe(
+        path.join(expectedRepoRoot, "data", "osv-cache"),
+      )
+      expect(resolveOsvBootstrapDir()).toBe(
+        path.join(expectedRepoRoot, "data", "osv-bootstrap"),
+      )
+    } finally {
+      process.chdir(originalCwd)
+    }
   })
 
   it("allows an explicit cache directory override for deployment", () => {
@@ -47,6 +85,9 @@ describe("OSV cache paths", () => {
     )
     expect(buildOsvVulnerabilityUrl("crates.io", "GHSA-test")).toBe(
       "https://storage.googleapis.com/osv-vulnerabilities/crates.io/GHSA-test.json",
+    )
+    expect(buildOsvBootstrapArchiveUrl("PyPI")).toBe(
+      "https://storage.googleapis.com/osv-vulnerabilities/PyPI/all.zip",
     )
   })
 
@@ -90,5 +131,6 @@ describe(".gitignore", () => {
     const gitignore = fs.readFileSync(".gitignore", "utf8")
 
     expect(gitignore).toContain("data/osv-cache/")
+    expect(gitignore).toContain("data/osv-bootstrap/")
   })
 })

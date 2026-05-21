@@ -1,11 +1,18 @@
-import { closeDb, getDb } from "@vibeguard/db"
-import { syncAllOsvEcosystems } from "@vibeguard/content/osv/sync"
+import { pathToFileURL } from "node:url"
 
-function parseLimit(argv: string[]) {
+import { closeDb, getDb } from "@vibeguard/db"
+import {
+  bootstrapAllOsvEcosystems,
+  syncAllOsvEcosystems,
+} from "@vibeguard/content/osv/sync"
+
+export type OsvSyncMode = "bootstrap" | "incremental"
+
+function parseExplicitLimit(argv: string[]) {
   const limitArg = argv.find((arg) => arg.startsWith("--limit="))
 
   if (!limitArg) {
-    return 20
+    return undefined
   }
 
   const parsed = Number.parseInt(limitArg.slice("--limit=".length), 10)
@@ -17,19 +24,72 @@ function parseLimit(argv: string[]) {
   return parsed
 }
 
+function parseConcurrency(argv: string[]) {
+  const concurrencyArg = argv.find((arg) => arg.startsWith("--concurrency="))
+
+  if (!concurrencyArg) {
+    return 2
+  }
+
+  const parsed = Number.parseInt(
+    concurrencyArg.slice("--concurrency=".length),
+    10,
+  )
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error("--concurrency must be a positive integer")
+  }
+
+  return parsed
+}
+
+function parseMode(argv: string[]): OsvSyncMode {
+  const modeArg = argv.find((arg) => arg.startsWith("--mode="))
+
+  if (!modeArg) {
+    return "incremental"
+  }
+
+  const mode = modeArg.slice("--mode=".length).trim()
+
+  if (mode === "bootstrap" || mode === "incremental") {
+    return mode
+  }
+
+  throw new Error("--mode must be bootstrap or incremental")
+}
+
+export function parseArgs(argv: string[]) {
+  const mode = parseMode(argv)
+  const explicitLimit = parseExplicitLimit(argv)
+
+  return {
+    mode,
+    limit: explicitLimit ?? (mode === "incremental" ? 20 : undefined),
+    concurrency: parseConcurrency(argv),
+  }
+}
+
 export async function main(argv = process.argv.slice(2)) {
-  const limit = parseLimit(argv)
+  const { mode, limit, concurrency } = parseArgs(argv)
 
   try {
-    const results = await syncAllOsvEcosystems({
-      db: getDb(),
-      limit,
-    })
+    const results =
+      mode === "bootstrap"
+        ? await bootstrapAllOsvEcosystems({
+            db: getDb(),
+            limit,
+            concurrency,
+          })
+        : await syncAllOsvEcosystems({
+            db: getDb(),
+            limit,
+          })
 
     for (const result of results) {
       console.log(
         [
-          `osv sync ${result.ecosystem}`,
+          `osv ${mode} ${result.ecosystem}`,
           `seen=${result.recordsSeen}`,
           `imported=${result.recordsImported}`,
           `failed=${result.recordsFailed}`,
@@ -41,7 +101,13 @@ export async function main(argv = process.argv.slice(2)) {
   }
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exit(1)
-})
+const isDirectExecution =
+  typeof process.argv[1] === "string" &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+
+if (isDirectExecution) {
+  main().catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+}

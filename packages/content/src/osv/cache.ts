@@ -1,5 +1,6 @@
 import fs from "node:fs/promises"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 export const OSV_VULNERABILITIES_BASE_URL =
   "https://storage.googleapis.com/osv-vulnerabilities"
@@ -15,7 +16,14 @@ type ResolveOsvCacheDirInput = {
   env?: OsvCacheEnv
 }
 
+type ResolveOsvBootstrapDirInput = ResolveOsvCacheDirInput
+
 type BuildOsvCachePathInput = ResolveOsvCacheDirInput & {
+  ecosystem?: OsvDumpEcosystem
+  fileName?: string
+}
+
+type BuildOsvBootstrapPathInput = ResolveOsvBootstrapDirInput & {
   ecosystem?: OsvDumpEcosystem
   fileName?: string
 }
@@ -26,6 +34,18 @@ type DownloadOsvTextToCacheInput = ResolveOsvCacheDirInput & {
   url: string
   fetchText?: (url: string) => Promise<string>
 }
+
+type DownloadOsvArchiveToCacheInput = ResolveOsvBootstrapDirInput & {
+  ecosystem: OsvDumpEcosystem
+  fileName: string
+  url: string
+  fetchBytes?: (url: string) => Promise<Uint8Array>
+}
+
+const DEFAULT_REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../../",
+)
 
 function assertSafeFileName(fileName: string) {
   if (
@@ -39,13 +59,28 @@ function assertSafeFileName(fileName: string) {
 }
 
 export function resolveOsvCacheDir({
-  repoRoot = process.cwd(),
+  repoRoot = DEFAULT_REPO_ROOT,
   env = process.env,
 }: ResolveOsvCacheDirInput = {}) {
   const configured = env.VIBEGUARD_OSV_CACHE_DIR?.trim()
 
   if (!configured) {
     return path.join(repoRoot, "data", "osv-cache")
+  }
+
+  return path.isAbsolute(configured)
+    ? configured
+    : path.resolve(repoRoot, configured)
+}
+
+export function resolveOsvBootstrapDir({
+  repoRoot = DEFAULT_REPO_ROOT,
+  env = process.env,
+}: ResolveOsvBootstrapDirInput = {}) {
+  const configured = env.VIBEGUARD_OSV_BOOTSTRAP_DIR?.trim()
+
+  if (!configured) {
+    return path.join(repoRoot, "data", "osv-bootstrap")
   }
 
   return path.isAbsolute(configured)
@@ -71,6 +106,24 @@ export function buildOsvCachePath({
   return path.join(ecosystemDir, fileName)
 }
 
+export function buildOsvBootstrapPath({
+  repoRoot,
+  env,
+  ecosystem,
+  fileName,
+}: BuildOsvBootstrapPathInput = {}) {
+  const bootstrapDir = resolveOsvBootstrapDir({ repoRoot, env })
+  const ecosystemDir = ecosystem ? path.join(bootstrapDir, ecosystem) : bootstrapDir
+
+  if (!fileName) {
+    return ecosystemDir
+  }
+
+  assertSafeFileName(fileName)
+
+  return path.join(ecosystemDir, fileName)
+}
+
 export function buildOsvVulnerabilityUrl(
   ecosystem: OsvDumpEcosystem,
   vulnerabilityId: string,
@@ -78,6 +131,10 @@ export function buildOsvVulnerabilityUrl(
   return `${OSV_VULNERABILITIES_BASE_URL}/${encodeURIComponent(
     ecosystem,
   )}/${encodeURIComponent(vulnerabilityId)}.json`
+}
+
+export function buildOsvBootstrapArchiveUrl(ecosystem: OsvDumpEcosystem) {
+  return `${OSV_VULNERABILITIES_BASE_URL}/${encodeURIComponent(ecosystem)}/all.zip`
 }
 
 async function defaultFetchText(url: string) {
@@ -88,6 +145,16 @@ async function defaultFetchText(url: string) {
   }
 
   return response.text()
+}
+
+async function defaultFetchBytes(url: string) {
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error(`Failed to download OSV archive: ${response.status} ${url}`)
+  }
+
+  return new Uint8Array(await response.arrayBuffer())
 }
 
 export async function downloadOsvTextToCache({
@@ -107,6 +174,23 @@ export async function downloadOsvTextToCache({
   return target
 }
 
+export async function downloadOsvArchiveToCache({
+  repoRoot,
+  env,
+  ecosystem,
+  fileName,
+  url,
+  fetchBytes = defaultFetchBytes,
+}: DownloadOsvArchiveToCacheInput) {
+  const target = buildOsvBootstrapPath({ repoRoot, env, ecosystem, fileName })
+  const bytes = fetchBytes ? await fetchBytes(url) : await defaultFetchBytes(url)
+
+  await fs.mkdir(path.dirname(target), { recursive: true })
+  await fs.writeFile(target, bytes)
+
+  return target
+}
+
 export async function deleteCachedOsvFile(filePath: string) {
-  await fs.rm(filePath, { force: true })
+  await fs.rm(filePath, { recursive: true, force: true })
 }
