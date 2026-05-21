@@ -1,22 +1,33 @@
 import { describe, expect, it } from "vitest"
 
 import type {
+  DiscoverDependencyFilesInput,
+  DiscoverDependencyFilesResult,
   DetectedDependencyFile,
   ResolvedDependency,
   ScanDependenciesResult,
 } from "../packages/content/src/project-security/types"
+import { checkProjectDependenciesAgainstLocalDb } from "../packages/content/src/project-security/check-project"
+import { discoverDependencyFiles } from "../packages/content/src/project-security/discover-dependency-files"
+import { scanDependencies } from "../packages/content/src/project-security/scan-dependencies"
 import * as content from "../packages/content/src"
 
 describe("project-security exports", () => {
-  it("exports the dependency parser surface from the package root", () => {
-    expect(content).toHaveProperty("discoverDependencyFiles")
-    expect(content).toHaveProperty("scanDependencies")
-    expect(content).toHaveProperty("checkProjectDependenciesAgainstLocalDb")
+  it("re-exports the dependency parser modules from the package root", () => {
+    expect(content.discoverDependencyFiles).toBe(discoverDependencyFiles)
+    expect(content.scanDependencies).toBe(scanDependencies)
+    expect(content.checkProjectDependenciesAgainstLocalDb).toBe(
+      checkProjectDependenciesAgainstLocalDb,
+    )
   })
 })
 
 describe("project-security types", () => {
   it("keeps the parser result shape stable", () => {
+    const discoverInput: DiscoverDependencyFilesInput = {
+      rootDir: "/tmp/project",
+    }
+
     const file: DetectedDependencyFile = {
       ecosystem: "npm",
       kind: "lockfile",
@@ -36,12 +47,19 @@ describe("project-security types", () => {
       note: "explicit installed dependency",
     }
 
-    const result: ScanDependenciesResult = {
+    const discovered: DiscoverDependencyFilesResult = {
       files: [file],
-      packages: [pkg],
       warnings: [],
     }
 
+    const result: ScanDependenciesResult = {
+      files: discovered.files,
+      packages: [pkg],
+      warnings: discovered.warnings,
+    }
+
+    expect(discoverInput.rootDir).toBe("/tmp/project")
+    expect(discovered.files[0]?.path).toBe("package-lock.json")
     expect(result.packages[0]?.name).toBe("react")
   })
 })

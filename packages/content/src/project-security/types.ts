@@ -12,6 +12,15 @@ export type DetectedDependencyFile = {
   note: string
 }
 
+export type DiscoverDependencyFilesInput = {
+  rootDir: string
+}
+
+export type DiscoverDependencyFilesResult = {
+  files: DetectedDependencyFile[]
+  warnings: string[]
+}
+
 export type ResolvedDependency = {
   ecosystem: SecurityPackageEcosystem
   name: string
