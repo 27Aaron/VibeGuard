@@ -233,6 +233,47 @@ describe("scanDependencies", () => {
     }
   })
 
+  it("does not suppress package.json when a sibling npm lockfile is unsupported", async () => {
+    const rootDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "vg-scan-node-unsupported-lockfile-"),
+    )
+
+    try {
+      fs.writeFileSync(
+        path.join(rootDir, "pnpm-lock.yaml"),
+        "lockfileVersion: '9.0'\n",
+      )
+      fs.writeFileSync(
+        path.join(rootDir, "package.json"),
+        JSON.stringify({
+          dependencies: {
+            react: "^19.1.0",
+          },
+        }),
+      )
+
+      const result = await scanDependencies({ rootDir })
+
+      expect(result.packages).toEqual([
+        {
+          ecosystem: "npm",
+          name: "react",
+          version: "^19.1.0",
+          dependencyType: "direct",
+          sourcePath: "package.json",
+          sourceKind: "manifest",
+          confidence: "medium",
+          note: "declared dependency without a lockfile",
+        },
+      ])
+      expect(result.warnings).toEqual([
+        "Unsupported Node file: pnpm-lock.yaml",
+      ])
+    } finally {
+      fs.rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
   it("falls back to Cargo.toml when a sibling Rust lockfile cannot be parsed", async () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "vg-scan-rust-fallback-"))
 

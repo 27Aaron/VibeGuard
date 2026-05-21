@@ -30,6 +30,37 @@ function getDirectoryEcosystemKey(file: DetectedDependencyFile) {
   return `${file.ecosystem}:${path.posix.dirname(file.path)}`
 }
 
+function shouldPreferLockfileBeforeManifest(file: DetectedDependencyFile) {
+  return file.ecosystem === "npm" || file.ecosystem === "crates-io"
+}
+
+function compareFilesForScan(left: DetectedDependencyFile, right: DetectedDependencyFile) {
+  const leftKey = getDirectoryEcosystemKey(left)
+  const rightKey = getDirectoryEcosystemKey(right)
+
+  if (
+    leftKey === rightKey &&
+    shouldPreferLockfileBeforeManifest(left) &&
+    shouldPreferLockfileBeforeManifest(right) &&
+    left.kind !== right.kind
+  ) {
+    return left.kind === "lockfile" ? -1 : 1
+  }
+
+  return left.path.localeCompare(right.path)
+}
+
+function shouldRecordSuccessfulLockfile(
+  file: DetectedDependencyFile,
+  packages: ScanDependenciesResult["packages"],
+) {
+  return (
+    file.kind === "lockfile" &&
+    shouldPreferLockfileBeforeManifest(file) &&
+    packages.length > 0
+  )
+}
+
 async function parseDependencyFile(
   input: ScanDependenciesInput,
   file: DetectedDependencyFile,
@@ -78,11 +109,12 @@ export async function scanDependencies(
   input: ScanDependenciesInput,
 ): Promise<ScanDependenciesResult> {
   const discovered = await discoverDependencyFiles({ rootDir: input.rootDir })
+  const filesToScan = [...discovered.files].sort(compareFilesForScan)
   const packages: ScanDependenciesResult["packages"] = []
   const warnings = [...discovered.warnings]
   const successfulLockfiles = new Set<string>()
 
-  for (const file of discovered.files) {
+  for (const file of filesToScan) {
     if (shouldSkipManifest(file, successfulLockfiles)) {
       continue
     }
@@ -91,10 +123,7 @@ export async function scanDependencies(
       const result = await parseDependencyFile(input, file)
       packages.push(...result.packages)
       warnings.push(...result.warnings)
-      if (
-        file.kind === "lockfile" &&
-        (file.ecosystem === "npm" || file.ecosystem === "crates-io")
-      ) {
+      if (shouldRecordSuccessfulLockfile(file, result.packages)) {
         successfulLockfiles.add(getDirectoryEcosystemKey(file))
       }
     } catch (error) {
