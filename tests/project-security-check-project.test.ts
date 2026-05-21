@@ -20,6 +20,7 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
           ecosystem: "npm",
           name: "react",
           version: "19.1.0",
+          versionKind: "resolved",
           dependencyType: "direct",
           sourcePath: "package-lock.json",
           sourceKind: "lockfile",
@@ -29,12 +30,13 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
         {
           ecosystem: "go",
           name: "example.com/mod",
-          version: null,
+          version: "v1.1.0",
+          versionKind: "observed",
           dependencyType: "unknown",
           sourcePath: "go.sum",
           sourceKind: "lockfile",
           confidence: "low",
-          note: "detected without a reliable installed version",
+          note: "Go checksum entry observed without proving it is in the active dependency graph",
         },
       ],
     })
@@ -115,6 +117,7 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
           ecosystem: "npm",
           name: "react",
           version: "19.1.0",
+          versionKind: "resolved",
           dependencyType: "direct",
           sourcePath: "package-lock.json",
           sourceKind: "lockfile",
@@ -124,12 +127,13 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
         {
           ecosystem: "go",
           name: "example.com/mod",
-          version: null,
+          version: "v1.1.0",
+          versionKind: "observed",
           dependencyType: "unknown",
           sourcePath: "go.sum",
           sourceKind: "lockfile",
           confidence: "low",
-          note: "detected without a reliable installed version",
+          note: "Go checksum entry observed without proving it is in the active dependency graph",
         },
       ],
       warnings: ["manifest fallback skipped"],
@@ -172,6 +176,7 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
       ecosystem: "npm" as const,
       name: "react",
       version: "19.1.0",
+      versionKind: "resolved" as const,
       dependencyType: "direct" as const,
       sourcePath: "package-lock.json",
       sourceKind: "lockfile" as const,
@@ -182,11 +187,12 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
       ecosystem: "go" as const,
       name: "example.com/mod",
       version: null,
+      versionKind: "observed" as const,
       dependencyType: "unknown" as const,
       sourcePath: "go.sum",
       sourceKind: "lockfile" as const,
       confidence: "low" as const,
-      note: "detected without a reliable installed version",
+      note: "Go checksum entry observed without proving it is in the active dependency graph",
     }
     const scanDependencies = vi.fn().mockResolvedValue({
       files: [],
@@ -241,6 +247,7 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
       sourceKind: "manifest" as const,
       confidence: "medium" as const,
       note: "declared dependency without a lockfile",
+      versionKind: "declared" as const,
     }
     const requestsNormalized = {
       ...requestsUpper,
@@ -255,6 +262,7 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
       sourceKind: "manifest" as const,
       confidence: "medium" as const,
       note: "declared dependency without a lockfile",
+      versionKind: "declared" as const,
     }
     const myPkgHyphen = {
       ...myPkgUnderscore,
@@ -290,8 +298,8 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
       {} as never,
       {
         packages: [
-          { ecosystem: "pypi", name: "Requests", version: "2.32.3" },
-          { ecosystem: "pypi", name: "my_pkg", version: "1.0.0" },
+          { ecosystem: "pypi", name: "Requests", version: null },
+          { ecosystem: "pypi", name: "my_pkg", version: null },
         ],
       },
     )

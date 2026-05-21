@@ -33,7 +33,7 @@ const defaultDeps: CheckProjectDependenciesDeps = {
 function buildForwardedPackageKey(
   pkg: ScanDependenciesResult["packages"][number],
 ) {
-  return `${pkg.ecosystem}\u0000${normalizePackageNameForLookup(pkg)}\u0000${pkg.version ?? ""}`
+  return `${pkg.ecosystem}\u0000${normalizePackageNameForLookup(pkg)}\u0000${getLookupVersion(pkg) ?? ""}`
 }
 
 function normalizePackageNameForLookup(
@@ -69,9 +69,15 @@ function dedupeForwardedPackages(
     return {
       ecosystem: pkg.ecosystem,
       name: pkg.name,
-      version: pkg.version,
+      version: getLookupVersion(pkg),
     }
   })
+}
+
+function getLookupVersion(
+  pkg: ScanDependenciesResult["packages"][number],
+) {
+  return pkg.versionKind === "resolved" ? pkg.version : null
 }
 
 export async function checkProjectDependenciesAgainstLocalDb(
