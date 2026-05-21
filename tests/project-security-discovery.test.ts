@@ -1,3 +1,7 @@
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+
 import { describe, expect, expectTypeOf, it } from "vitest"
 
 import type {
@@ -91,5 +95,55 @@ describe("project-security types", () => {
     >()
 
     expect(true).toBe(true)
+  })
+})
+
+describe("discoverDependencyFiles", () => {
+  it("finds supported files, skips ignored directories, and keeps relative paths", async () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "vg-discovery-"))
+
+    try {
+      fs.writeFileSync(path.join(rootDir, "package-lock.json"), "{}")
+      fs.writeFileSync(path.join(rootDir, "package.json"), "{}")
+      fs.mkdirSync(path.join(rootDir, "services", "api"), { recursive: true })
+      fs.writeFileSync(
+        path.join(rootDir, "services", "api", "requirements.txt"),
+        "requests==2.32.3\n",
+      )
+      fs.mkdirSync(path.join(rootDir, "node_modules"), { recursive: true })
+      fs.writeFileSync(
+        path.join(rootDir, "node_modules", "package-lock.json"),
+        "{}",
+      )
+
+      const result = await discoverDependencyFiles({ rootDir })
+
+      expect(result.files).toEqual([
+        {
+          ecosystem: "npm",
+          kind: "lockfile",
+          path: "package-lock.json",
+          confidence: "high",
+          note: "lockfile discovered during recursive scan",
+        },
+        {
+          ecosystem: "npm",
+          kind: "manifest",
+          path: "package.json",
+          confidence: "medium",
+          note: "manifest discovered during recursive scan",
+        },
+        {
+          ecosystem: "pypi",
+          kind: "manifest",
+          path: "services/api/requirements.txt",
+          confidence: "medium",
+          note: "manifest discovered during recursive scan",
+        },
+      ])
+      expect(result.warnings).toEqual([])
+    } finally {
+      fs.rmSync(rootDir, { recursive: true, force: true })
+    }
   })
 })
