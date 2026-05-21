@@ -1,5 +1,6 @@
 # Build output and caches
 .cache/
+.worktrees/
 .next/
 .next-dev/
 .turbo/
