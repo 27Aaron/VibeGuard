@@ -230,4 +230,76 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
       { ...duplicateGo },
     ])
   })
+
+  it("dedupes alias-equivalent package names using OSV lookup normalization rules", async () => {
+    const requestsUpper = {
+      ecosystem: "pypi" as const,
+      name: "Requests",
+      version: "2.32.3",
+      dependencyType: "direct" as const,
+      sourcePath: "requirements.txt",
+      sourceKind: "manifest" as const,
+      confidence: "medium" as const,
+      note: "declared dependency without a lockfile",
+    }
+    const requestsNormalized = {
+      ...requestsUpper,
+      name: "requests",
+    }
+    const myPkgUnderscore = {
+      ecosystem: "pypi" as const,
+      name: "my_pkg",
+      version: "1.0.0",
+      dependencyType: "direct" as const,
+      sourcePath: "requirements.txt",
+      sourceKind: "manifest" as const,
+      confidence: "medium" as const,
+      note: "declared dependency without a lockfile",
+    }
+    const myPkgHyphen = {
+      ...myPkgUnderscore,
+      name: "my-pkg",
+    }
+    const scanDependencies = vi.fn().mockResolvedValue({
+      files: [],
+      warnings: [],
+      packages: [
+        requestsUpper,
+        requestsNormalized,
+        myPkgUnderscore,
+        myPkgHyphen,
+      ],
+    })
+    const checkPackagesAgainstLocalDb = vi.fn().mockResolvedValue({
+      meta: {
+        source: "local-osv-mirror",
+        stale: false,
+        warning: null,
+        lastSyncedAt: null,
+      },
+      findings: [],
+    })
+
+    const result = await checkProjectDependenciesAgainstLocalDb(
+      {} as never,
+      { rootDir: "/repo" },
+      { scanDependencies, checkPackagesAgainstLocalDb },
+    )
+
+    expect(checkPackagesAgainstLocalDb).toHaveBeenCalledWith(
+      {} as never,
+      {
+        packages: [
+          { ecosystem: "pypi", name: "Requests", version: "2.32.3" },
+          { ecosystem: "pypi", name: "my_pkg", version: "1.0.0" },
+        ],
+      },
+    )
+    expect(result.dependencies).toEqual([
+      requestsUpper,
+      requestsNormalized,
+      myPkgUnderscore,
+      myPkgHyphen,
+    ])
+  })
 })

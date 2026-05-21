@@ -33,7 +33,23 @@ const defaultDeps: CheckProjectDependenciesDeps = {
 function buildForwardedPackageKey(
   pkg: ScanDependenciesResult["packages"][number],
 ) {
-  return `${pkg.ecosystem}\u0000${pkg.name}\u0000${pkg.version ?? ""}`
+  return `${pkg.ecosystem}\u0000${normalizePackageNameForLookup(pkg)}\u0000${pkg.version ?? ""}`
+}
+
+function normalizePackageNameForLookup(
+  pkg: ScanDependenciesResult["packages"][number],
+) {
+  const trimmedName = pkg.name.trim()
+
+  if (pkg.ecosystem === "pypi") {
+    return trimmedName.toLowerCase().replace(/[-_.]+/g, "-")
+  }
+
+  if (pkg.ecosystem === "npm" || pkg.ecosystem === "crates-io") {
+    return trimmedName.toLowerCase()
+  }
+
+  return trimmedName
 }
 
 function dedupeForwardedPackages(
