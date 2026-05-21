@@ -166,4 +166,68 @@ describe("checkProjectDependenciesAgainstLocalDb", () => {
       ],
     })
   })
+
+  it("dedupes forwarded lookup coordinates while preserving the original dependency list", async () => {
+    const duplicateReact = {
+      ecosystem: "npm" as const,
+      name: "react",
+      version: "19.1.0",
+      dependencyType: "direct" as const,
+      sourcePath: "package-lock.json",
+      sourceKind: "lockfile" as const,
+      confidence: "high" as const,
+      note: "resolved from package-lock.json",
+    }
+    const duplicateGo = {
+      ecosystem: "go" as const,
+      name: "example.com/mod",
+      version: null,
+      dependencyType: "unknown" as const,
+      sourcePath: "go.sum",
+      sourceKind: "lockfile" as const,
+      confidence: "low" as const,
+      note: "detected without a reliable installed version",
+    }
+    const scanDependencies = vi.fn().mockResolvedValue({
+      files: [],
+      warnings: [],
+      packages: [
+        duplicateReact,
+        { ...duplicateReact, dependencyType: "transitive" as const },
+        duplicateGo,
+        { ...duplicateGo },
+      ],
+    })
+    const checkPackagesAgainstLocalDb = vi.fn().mockResolvedValue({
+      meta: {
+        source: "local-osv-mirror",
+        stale: false,
+        warning: null,
+        lastSyncedAt: null,
+      },
+      findings: [],
+    })
+
+    const result = await checkProjectDependenciesAgainstLocalDb(
+      {} as never,
+      { rootDir: "/repo" },
+      { scanDependencies, checkPackagesAgainstLocalDb },
+    )
+
+    expect(checkPackagesAgainstLocalDb).toHaveBeenCalledWith(
+      {} as never,
+      {
+        packages: [
+          { ecosystem: "npm", name: "react", version: "19.1.0" },
+          { ecosystem: "go", name: "example.com/mod", version: null },
+        ],
+      },
+    )
+    expect(result.dependencies).toEqual([
+      duplicateReact,
+      { ...duplicateReact, dependencyType: "transitive" },
+      duplicateGo,
+      { ...duplicateGo },
+    ])
+  })
 })

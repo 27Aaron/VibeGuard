@@ -30,6 +30,34 @@ const defaultDeps: CheckProjectDependenciesDeps = {
   checkPackagesAgainstLocalDb,
 }
 
+function buildForwardedPackageKey(
+  pkg: ScanDependenciesResult["packages"][number],
+) {
+  return `${pkg.ecosystem}\u0000${pkg.name}\u0000${pkg.version ?? ""}`
+}
+
+function dedupeForwardedPackages(
+  packages: ScanDependenciesResult["packages"],
+) {
+  const seen = new Set<string>()
+
+  return packages.flatMap((pkg) => {
+    const key = buildForwardedPackageKey(pkg)
+
+    if (seen.has(key)) {
+      return []
+    }
+
+    seen.add(key)
+
+    return {
+      ecosystem: pkg.ecosystem,
+      name: pkg.name,
+      version: pkg.version,
+    }
+  })
+}
+
 export async function checkProjectDependenciesAgainstLocalDb(
   db: ProjectSecurityDb,
   input: CheckProjectDependenciesInput,
@@ -37,11 +65,7 @@ export async function checkProjectDependenciesAgainstLocalDb(
 ): Promise<CheckProjectDependenciesResult> {
   const dependencyScan = await deps.scanDependencies({ rootDir: input.rootDir })
   const packageCheck = await deps.checkPackagesAgainstLocalDb(db, {
-    packages: dependencyScan.packages.map((pkg) => ({
-      ecosystem: pkg.ecosystem,
-      name: pkg.name,
-      version: pkg.version,
-    })),
+    packages: dedupeForwardedPackages(dependencyScan.packages),
   })
 
   return {
