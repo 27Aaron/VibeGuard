@@ -1,7 +1,13 @@
+import type {
+  CheckProjectDependenciesInput,
+  CheckProjectDependenciesResult,
+  ProjectSecurityDb,
+} from "./types"
+
 export async function checkProjectDependenciesAgainstLocalDb(
-  db: unknown,
-  input: { rootDir: string },
-): Promise<never> {
+  db: ProjectSecurityDb,
+  input: CheckProjectDependenciesInput,
+): Promise<CheckProjectDependenciesResult> {
   void db
   void input
 

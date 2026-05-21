@@ -1,10 +1,13 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, expectTypeOf, it } from "vitest"
 
 import type {
+  CheckProjectDependenciesInput,
+  CheckProjectDependenciesResult,
   DiscoverDependencyFilesInput,
   DiscoverDependencyFilesResult,
   DetectedDependencyFile,
   ResolvedDependency,
+  ScanDependenciesInput,
   ScanDependenciesResult,
 } from "../packages/content/src/project-security/types"
 import { checkProjectDependenciesAgainstLocalDb } from "../packages/content/src/project-security/check-project"
@@ -23,43 +26,70 @@ describe("project-security exports", () => {
 })
 
 describe("project-security types", () => {
-  it("keeps the parser result shape stable", () => {
-    const discoverInput: DiscoverDependencyFilesInput = {
-      rootDir: "/tmp/project",
-    }
+  it("locks the public parser type contracts", () => {
+    expectTypeOf<DiscoverDependencyFilesInput>().toEqualTypeOf<{
+      rootDir: string
+    }>()
 
-    const file: DetectedDependencyFile = {
-      ecosystem: "npm",
-      kind: "lockfile",
-      path: "package-lock.json",
-      confidence: "high",
-      note: "locked dependency file",
-    }
+    expectTypeOf<DetectedDependencyFile>().toEqualTypeOf<{
+      ecosystem: "npm" | "pypi" | "go" | "crates-io"
+      kind: "lockfile" | "manifest"
+      path: string
+      confidence: "high" | "medium" | "low"
+      note: string
+    }>()
 
-    const pkg: ResolvedDependency = {
-      ecosystem: "npm",
-      name: "react",
-      version: "19.1.0",
-      dependencyType: "direct",
-      sourcePath: "package-lock.json",
-      sourceKind: "lockfile",
-      confidence: "high",
-      note: "explicit installed dependency",
-    }
+    expectTypeOf<ResolvedDependency>().toEqualTypeOf<{
+      ecosystem: "npm" | "pypi" | "go" | "crates-io"
+      name: string
+      version: string | null
+      dependencyType: "direct" | "transitive" | "unknown"
+      sourcePath: string
+      sourceKind: "lockfile" | "manifest"
+      confidence: "high" | "medium" | "low"
+      note: string
+    }>()
 
-    const discovered: DiscoverDependencyFilesResult = {
-      files: [file],
-      warnings: [],
-    }
+    expectTypeOf<DiscoverDependencyFilesResult>().toEqualTypeOf<{
+      files: DetectedDependencyFile[]
+      warnings: string[]
+    }>()
 
-    const result: ScanDependenciesResult = {
-      files: discovered.files,
-      packages: [pkg],
-      warnings: discovered.warnings,
-    }
+    expectTypeOf<ScanDependenciesInput>().toEqualTypeOf<{
+      rootDir: string
+    }>()
 
-    expect(discoverInput.rootDir).toBe("/tmp/project")
-    expect(discovered.files[0]?.path).toBe("package-lock.json")
-    expect(result.packages[0]?.name).toBe("react")
+    expectTypeOf<ScanDependenciesResult>().toEqualTypeOf<{
+      files: DetectedDependencyFile[]
+      packages: ResolvedDependency[]
+      warnings: string[]
+    }>()
+
+    expectTypeOf<CheckProjectDependenciesInput>().toEqualTypeOf<{
+      rootDir: string
+    }>()
+
+    expectTypeOf(discoverDependencyFiles).parameters.toEqualTypeOf<
+      [DiscoverDependencyFilesInput]
+    >()
+    expectTypeOf(discoverDependencyFiles).returns.toEqualTypeOf<
+      Promise<DiscoverDependencyFilesResult>
+    >()
+
+    expectTypeOf(scanDependencies).parameters.toEqualTypeOf<
+      [ScanDependenciesInput]
+    >()
+    expectTypeOf(scanDependencies).returns.toEqualTypeOf<
+      Promise<ScanDependenciesResult>
+    >()
+
+    expectTypeOf(checkProjectDependenciesAgainstLocalDb).parameters.toMatchTypeOf<
+      [unknown, CheckProjectDependenciesInput]
+    >()
+    expectTypeOf(checkProjectDependenciesAgainstLocalDb).returns.toEqualTypeOf<
+      Promise<CheckProjectDependenciesResult>
+    >()
+
+    expect(true).toBe(true)
   })
 })

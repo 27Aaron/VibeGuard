@@ -1,8 +1,8 @@
-import type { ScanDependenciesResult } from "./types"
+import type { ScanDependenciesInput, ScanDependenciesResult } from "./types"
 
-export async function scanDependencies(input: {
-  rootDir: string
-}): Promise<ScanDependenciesResult> {
+export async function scanDependencies(
+  input: ScanDependenciesInput,
+): Promise<ScanDependenciesResult> {
   void input
 
   throw new Error("scanDependencies is not implemented yet.")
