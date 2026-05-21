@@ -16,7 +16,10 @@ function shouldSkipManifest(
   file: DetectedDependencyFile,
   files: DetectedDependencyFile[],
 ) {
-  if (file.kind !== "manifest") {
+  if (
+    file.kind !== "manifest" ||
+    (file.ecosystem !== "npm" && file.ecosystem !== "crates-io")
+  ) {
     return false
   }
 
@@ -86,9 +89,15 @@ export async function scanDependencies(
       continue
     }
 
-    const result = await parseDependencyFile(input, file)
-    packages.push(...result.packages)
-    warnings.push(...result.warnings)
+    try {
+      const result = await parseDependencyFile(input, file)
+      packages.push(...result.packages)
+      warnings.push(...result.warnings)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown dependency scan error"
+      warnings.push(`Failed to scan dependency file ${file.path}: ${message}`)
+    }
   }
 
   return {
