@@ -70,6 +70,7 @@ export default async function PublicHomePage({ params: routeParams, searchParams
   const urlSearchParams = new URLSearchParams({
     limit: "15",
     page,
+    lang,
   })
 
   if (query) urlSearchParams.set("q", query)
