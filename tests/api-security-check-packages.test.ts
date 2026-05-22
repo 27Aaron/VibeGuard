@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   parseSecurityPackageCheckBody,
@@ -58,6 +58,15 @@ describe("parseSecurityPackageCheckBody", () => {
 })
 
 describe("POST /api/security/check/packages", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-05-22T10:00:00.000Z"))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it("checks packages against the local database mirror", async () => {
     vi.resetModules()
     const db = {

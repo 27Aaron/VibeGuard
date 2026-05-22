@@ -84,6 +84,7 @@ describe("image proxy safety", () => {
     const response = new Response(body, {
       headers: {
         "content-type": "image/png",
+        "content-length": String(IMAGE_PROXY_MAX_BYTES + 1),
       },
     })
 
