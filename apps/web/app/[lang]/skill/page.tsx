@@ -11,7 +11,7 @@ import {
   getShellClassName,
 } from "@/lib/layout-tokens"
 
-import { CopyButton } from "./copy-button"
+import { CopyButton } from "@/components/ui/copy-button"
 
 export const dynamic = "force-dynamic"
 
