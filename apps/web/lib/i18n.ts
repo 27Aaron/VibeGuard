@@ -81,10 +81,10 @@ export const uiText = {
     publicCheckDetailsCollapse: "收起详细说明",
     publicCheckAffectedVersionsLabel: "受影响版本",
     publicCheckAffectedRangesLabel: "受影响范围",
-    adminRunWorker: "抓取并入队一次",
+    adminRunWorker: "抓取来源",
     adminRunWorkerPending: "抓取中...",
     adminRunWorkerHint:
-      "用于手动抓取已启用来源，新任务会交给常驻 Worker 自动处理。",
+      "手动触发一轮来源抓取，新文章自动进入处理队列。",
     adminRunWorkerPendingHint:
       "正在抓取来源并写入任务队列，暂时禁用重复触发。",
   },
@@ -169,10 +169,10 @@ export const uiText = {
     publicCheckDetailsCollapse: "Collapse full details",
     publicCheckAffectedVersionsLabel: "Affected versions",
     publicCheckAffectedRangesLabel: "Affected ranges",
-    adminRunWorker: "Fetch and queue once",
+    adminRunWorker: "Fetch sources",
     adminRunWorkerPending: "Fetching...",
     adminRunWorkerHint:
-      "Manually fetch enabled sources; new jobs will be handled by the persistent worker.",
+      "Manually trigger a source fetch cycle. New articles are queued automatically.",
     adminRunWorkerPendingHint:
       "Sources are being fetched and queued. Repeated triggers are disabled for now.",
   },

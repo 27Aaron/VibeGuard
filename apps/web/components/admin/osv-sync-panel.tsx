@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { AppLang } from "@/lib/i18n"
 import { formatDateTimeInShanghai } from "@/lib/time"
-import { cn } from "@/lib/utils"
 
 type OsvSyncEcosystem = {
   ecosystem: string
@@ -16,10 +15,6 @@ type OsvSyncEcosystem = {
   lastError: string | null
   recordsImported: number
   recordsFailed: number
-}
-
-type OsvSyncPanelProps = {
-  lang: AppLang
 }
 
 function ecosystemLabel(eco: string) {
@@ -66,10 +61,60 @@ function statusBadge(status: string, lang: AppLang) {
   }
 }
 
-export function OsvSyncPanel({ lang }: OsvSyncPanelProps) {
-  const [ecosystems, setEcosystems] = useState<OsvSyncEcosystem[]>([])
+export function OsvSyncButton({ lang }: { lang: AppLang }) {
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  async function handleSync() {
+    setSyncing(true)
+    setError(null)
+
+    try {
+      const res = await fetch("/api/admin/osv-sync", { method: "POST" })
+      const data = await res.json()
+
+      if (!data.ok) {
+        setError(data.error ?? "Unknown error")
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Request failed")
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const syncLabel = syncing
+    ? (lang === "zh" ? "同步中…" : "Syncing…")
+    : (lang === "zh" ? "同步漏洞库" : "Sync Vuln DB")
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        type="button"
+        disabled={syncing}
+        variant="outline"
+        size="lg"
+        onClick={handleSync}
+        className="justify-between rounded-full border-emerald-900/14 bg-[#f7fbf8] text-emerald-950 shadow-[0_1px_2px_rgba(15,23,42,0.10),0_5px_12px_rgba(20,83,45,0.10)] hover:border-emerald-900/22 hover:bg-white dark:border-emerald-200/14 dark:bg-[#18241e] dark:text-emerald-100 dark:shadow-none dark:hover:border-emerald-200/24 dark:hover:bg-[#1b2a22]"
+      >
+        <span>{syncLabel}</span>
+        <RefreshCw className={syncing ? "size-4 animate-spin" : "size-4"} />
+      </Button>
+      {error ? (
+        <p className="text-xs text-destructive">{error}</p>
+      ) : (
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          {syncing
+            ? (lang === "zh" ? "正在同步漏洞数据库…" : "Syncing vulnerability database…")
+            : (lang === "zh" ? "手动同步 OSV 漏洞库到本地。" : "Manually sync the OSV vulnerability database.")}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export function OsvSyncPanel({ lang }: { lang: AppLang }) {
+  const [ecosystems, setEcosystems] = useState<OsvSyncEcosystem[]>([])
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -87,79 +132,40 @@ export function OsvSyncPanel({ lang }: OsvSyncPanelProps) {
     fetchStatus()
   }, [fetchStatus])
 
-  async function handleSync() {
-    setSyncing(true)
-    setError(null)
-
-    try {
-      const res = await fetch("/api/admin/osv-sync", { method: "POST" })
-      const data = await res.json()
-
-      if (!data.ok) {
-        setError(data.error ?? "Unknown error")
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed")
-    } finally {
-      setSyncing(false)
-      await fetchStatus()
-    }
+  if (ecosystems.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {lang === "zh" ? "暂无同步记录，首次同步后将显示状态。" : "No sync records yet. Status will appear after the first sync."}
+      </p>
+    )
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <Button
-          type="button"
-          disabled={syncing}
-          variant="outline"
-          size="lg"
-          onClick={handleSync}
-          className="w-full justify-between rounded-full border-emerald-900/14 bg-[#f7fbf8] text-emerald-950 shadow-[0_1px_2px_rgba(15,23,42,0.10),0_5px_12px_rgba(20,83,45,0.10)] hover:border-emerald-900/22 hover:bg-white dark:border-emerald-200/14 dark:bg-[#18241e] dark:text-emerald-100 dark:shadow-none dark:hover:border-emerald-200/24 dark:hover:bg-[#1b2a22] sm:w-auto"
+    <div className="grid gap-2 sm:grid-cols-2">
+      {ecosystems.map((eco) => (
+        <div
+          key={eco.ecosystem}
+          className="flex items-center justify-between gap-3 rounded-[0.85rem] border border-black/5 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]"
         >
-          <span>{syncing ? (lang === "zh" ? "同步中…" : "Syncing…") : (lang === "zh" ? "同步漏洞库" : "Sync Vulnerability DB")}</span>
-          <RefreshCw className={syncing ? "size-4 animate-spin" : "size-4"} />
-        </Button>
-      </div>
-
-      {error ? (
-        <div className="rounded-[1.15rem] border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive dark:bg-destructive/10">
-          {error}
+          <div className="flex items-center gap-2">
+            <Database className="size-3.5 text-zinc-400 dark:text-stone-500" />
+            <span className="text-sm font-medium text-zinc-950 dark:text-stone-100">
+              {ecosystemLabel(eco.ecosystem)}
+            </span>
+            {statusBadge(eco.status, lang)}
+          </div>
+          <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-stone-400">
+            <span>
+              {lang === "zh" ? "已导入" : "Imported"} {eco.recordsImported}
+            </span>
+            {eco.lastSuccessAt ? (
+              <span className="hidden sm:inline">
+                {formatDateTimeInShanghai(eco.lastSuccessAt, { lang })}
+              </span>
+            ) : null}
+          </div>
         </div>
-      ) : null}
-
-      {ecosystems.length > 0 ? (
-        <div className="grid gap-2 sm:grid-cols-2">
-          {ecosystems.map((eco) => (
-            <div
-              key={eco.ecosystem}
-              className="flex items-center justify-between gap-3 rounded-[0.85rem] border border-black/5 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]"
-            >
-              <div className="flex items-center gap-2">
-                <Database className="size-3.5 text-zinc-400 dark:text-stone-500" />
-                <span className="text-sm font-medium text-zinc-950 dark:text-stone-100">
-                  {ecosystemLabel(eco.ecosystem)}
-                </span>
-                {statusBadge(eco.status, lang)}
-              </div>
-              <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-stone-400">
-                <span>
-                  {lang === "zh" ? "已导入" : "Imported"} {eco.recordsImported}
-                </span>
-                {eco.lastSuccessAt ? (
-                  <span className="hidden sm:inline">
-                    {formatDateTimeInShanghai(eco.lastSuccessAt, { lang })}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          {lang === "zh" ? "暂无同步记录，首次同步后将显示状态。" : "No sync records yet. Status will appear after the first sync."}
-        </p>
-      )}
+      ))}
     </div>
   )
 }

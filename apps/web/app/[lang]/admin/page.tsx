@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ArrowRight, Bot, FileText, Rss, Workflow } from "lucide-react"
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { OsvSyncPanel } from "@/components/admin/osv-sync-panel"
+import { OsvSyncButton, OsvSyncPanel } from "@/components/admin/osv-sync-panel"
 import { RunWorkerForm } from "@/components/admin/run-worker-form"
 import { WorkerStatusPanel } from "@/components/admin/worker-status-panel"
 import {
@@ -228,8 +228,10 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
             <CardDescription>{copy.operationsBody}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
-            <Separator />
+            <div className="flex flex-wrap items-end gap-3">
+              <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
+              <OsvSyncButton lang={lang} />
+            </div>
             <OsvSyncPanel lang={lang} />
             <Separator />
             <div className="flex flex-col gap-2.5">

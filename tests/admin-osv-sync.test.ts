@@ -17,7 +17,7 @@ describe("admin OSV sync panel", () => {
     )
 
     expect(component).toContain("同步漏洞库")
-    expect(component).toContain("Sync Vulnerability DB")
+    expect(component).toContain("Sync Vuln DB")
     expect(component).toContain("同步中…")
     expect(component).toContain("Syncing…")
   })
