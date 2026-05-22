@@ -121,8 +121,7 @@ export async function getJobStatusCounts(lang: AppLang = "zh") {
       count:
         (countMap.get("running") ?? 0) +
         (countMap.get("queued") ?? 0) +
-        (countMap.get("failed") ?? 0) +
-        filteredCount,
+        (countMap.get("failed") ?? 0),
     },
     {
       status: "running",
