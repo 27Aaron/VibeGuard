@@ -1,6 +1,7 @@
 import crypto from "node:crypto"
 import { execFile as execFileCallback } from "node:child_process"
 import fs from "node:fs/promises"
+import path from "node:path"
 import { text as readStreamText } from "node:stream/consumers"
 import { promisify } from "node:util"
 
@@ -135,6 +136,16 @@ function parseOsvTimestamp(value: string) {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+function assertSafeArchivePath(archivePath: string) {
+  const normalized = path.resolve(archivePath)
+
+  if (normalized.includes("\u0000")) {
+    throw new Error(`Invalid OSV archive path: ${archivePath}`)
+  }
+
+  return normalized
+}
+
 function toSecurityPackageEcosystem(
   ecosystem: OsvDumpEcosystem,
 ): SecurityPackageEcosystem {
@@ -204,7 +215,8 @@ export function buildBootstrapArchiveEntriesListCommand(archivePath: string) {
 }
 
 async function defaultListArchiveEntries(archivePath: string) {
-  const command = buildBootstrapArchiveEntriesListCommand(archivePath)
+  const safeArchivePath = assertSafeArchivePath(archivePath)
+  const command = buildBootstrapArchiveEntriesListCommand(safeArchivePath)
   const result = await execFile(command[0]!, command.slice(1), {
     maxBuffer: UNZIP_MAX_BUFFER_BYTES,
   })
@@ -347,13 +359,15 @@ export async function bootstrapOsvEcosystem({
     now: syncedAt,
   })
 
-  const archivePath = await downloadArchive({
-    repoRoot,
-    ecosystem,
-    fileName: "all.zip",
-    url: buildOsvBootstrapArchiveUrl(ecosystem),
-    ...(fetchBytes ? { fetchBytes } : {}),
-  })
+  const archivePath = assertSafeArchivePath(
+    await downloadArchive({
+      repoRoot,
+      ecosystem,
+      fileName: "all.zip",
+      url: buildOsvBootstrapArchiveUrl(ecosystem),
+      ...(fetchBytes ? { fetchBytes } : {}),
+    }),
+  )
 
   let recordsSeen = 0
   let recordsImported = 0

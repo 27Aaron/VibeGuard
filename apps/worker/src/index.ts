@@ -60,6 +60,31 @@ export function assertSuccessfulWorkerCycle(
   logger.log(message);
 }
 
+function resolveInt(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10)
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback
+  }
+
+  return parsed
+}
+
+const DEFAULT_IDLE_MAX_INTERVAL_MS = 60_000
+
+function computeIdleInterval(baseIntervalMs: number, consecutiveIdleCycles: number) {
+  if (consecutiveIdleCycles <= 0) {
+    return baseIntervalMs
+  }
+
+  const maxIntervalMs = resolveInt(
+    process.env.WORKER_MAX_IDLE_INTERVAL_MS,
+    DEFAULT_IDLE_MAX_INTERVAL_MS,
+  )
+  const backoffFactor = 2 ** Math.min(consecutiveIdleCycles, 6)
+  return Math.min(baseIntervalMs * backoffFactor, maxIntervalMs)
+}
+
 function sleep(durationMs: number) {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, durationMs);
@@ -73,19 +98,38 @@ export async function runWorkerLoop({
   signal,
   sleep: wait = sleep,
 }: WorkerLoopOptions = {}) {
+  let consecutiveIdleCycles = 0
+  let currentInterval = intervalMs
+
   while (!signal?.aborted) {
+    let didPerformWork = false
+
     try {
       const summary = await runCycle();
       assertSuccessfulWorkerCycle(summary, logger);
+
+      didPerformWork =
+        summary.activeFeedCount > 0 || summary.processedJobs.length > 0
+      if (didPerformWork) {
+        consecutiveIdleCycles = 0
+      } else {
+        consecutiveIdleCycles += 1
+      }
     } catch (error) {
       logger.error(error);
+      consecutiveIdleCycles += 1
+      didPerformWork = false
     }
+
+    currentInterval = didPerformWork
+      ? intervalMs
+      : computeIdleInterval(intervalMs, consecutiveIdleCycles)
 
     if (signal?.aborted) {
       break;
     }
 
-    await wait(intervalMs);
+    await wait(currentInterval);
   }
 }
 

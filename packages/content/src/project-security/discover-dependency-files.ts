@@ -100,19 +100,36 @@ function toRelativePath(rootDir: string, absolutePath: string) {
 export async function discoverDependencyFiles(
   input: DiscoverDependencyFilesInput,
 ): Promise<DiscoverDependencyFilesResult> {
+  const rootDir = path.resolve(input.rootDir)
   const files: DetectedDependencyFile[] = []
   const warnings: string[] = []
+
+  function isWithinRoot(absolutePath: string) {
+    const relativePath = path.relative(rootDir, path.resolve(absolutePath))
+
+    return (
+      relativePath !== ".." &&
+      !relativePath.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relativePath)
+    )
+  }
 
   async function walk(currentDir: string) {
     const entries = await fs.readdir(currentDir, { withFileTypes: true })
 
     for (const entry of entries) {
+      const absolutePath = path.join(currentDir, entry.name)
+
+      if (entry.isSymbolicLink() || !isWithinRoot(absolutePath)) {
+        continue
+      }
+
       if (entry.isDirectory()) {
         if (IGNORED_DIRS.has(entry.name)) {
           continue
         }
 
-        await walk(path.join(currentDir, entry.name))
+        await walk(absolutePath)
         continue
       }
 
@@ -124,7 +141,7 @@ export async function discoverDependencyFiles(
       files.push({
         ecosystem: rule.ecosystem,
         kind: rule.kind,
-        path: toRelativePath(input.rootDir, path.join(currentDir, entry.name)),
+        path: toRelativePath(rootDir, absolutePath),
         confidence: rule.confidence,
         note: `${rule.kind} discovered during recursive scan`,
       })
