@@ -78,8 +78,6 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
       ? {
           title: "总览",
           description: "集中查看来源、文章、任务和模型配置的运行状态。",
-          statusTitle: "运行状态",
-          statusBody: "用四个指标快速判断采集、处理和模型链路是否可用。",
           operationsTitle: "常用操作",
           operationsBody: "高频入口集中在这里：抓取来源入队，或进入对应模块继续处理。",
           queueTitle: "任务执行",
@@ -118,9 +116,6 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
       : {
           title: "Overview",
           description: "Review source, article, job, and model status in one place.",
-          statusTitle: "Operating status",
-          statusBody:
-            "Four metrics for checking whether ingestion, processing, and model access are usable.",
           operationsTitle: "Common actions",
           operationsBody:
             "Fetch sources into the queue or jump into the module that needs attention.",
@@ -202,12 +197,6 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
       ) : null}
 
       <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold text-zinc-950 dark:text-stone-50">
-            {copy.statusTitle}
-          </h2>
-          <p className="text-sm text-muted-foreground">{copy.statusBody}</p>
-        </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {overviewCards.map((card) => (
             <Card key={card.title} className="min-h-[104px] justify-center py-4">

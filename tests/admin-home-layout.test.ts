@@ -31,7 +31,6 @@ describe("admin home layout", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
     const i18n = fs.readFileSync("apps/web/lib/i18n.ts", "utf8")
 
-    expect(page).toContain("statusTitle")
     expect(page).toContain("operationsTitle")
     expect(page).toContain("queueTitle")
     expect(page).toContain("WorkerStatusPanel")
