@@ -168,7 +168,7 @@ describe("admin job pagination", () => {
   })
 
   it("keeps admin job queries paginated and filtered", () => {
-    const adminData = fs.readFileSync("apps/web/lib/admin-data.ts", "utf8")
+    const adminData = fs.readFileSync("apps/web/lib/job-data.ts", "utf8")
 
     expect(adminData).toContain("getJobRows(input")
     expect(adminData).toContain("const pageSize = input.pageSize")
