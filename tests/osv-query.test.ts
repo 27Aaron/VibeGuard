@@ -14,7 +14,7 @@ describe("buildPackageCheckMeta", () => {
       buildPackageCheckMeta({
         now,
         lastSyncedAt: new Date("2026-05-22T07:00:00Z"),
-        staleAfterMs: 6 * 60 * 60 * 1000,
+        staleAfterMs: 3 * 60 * 60 * 1000,
       }),
     ).toMatchObject({
       source: "local-osv-mirror",
@@ -25,7 +25,7 @@ describe("buildPackageCheckMeta", () => {
       buildPackageCheckMeta({
         now,
         lastSyncedAt: new Date("2026-05-21T23:00:00Z"),
-        staleAfterMs: 6 * 60 * 60 * 1000,
+        staleAfterMs: 3 * 60 * 60 * 1000,
       }),
     ).toMatchObject({
       source: "local-osv-mirror",

@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 
+import { syncAllOsvEcosystems } from "@vibeguard/content/osv/sync"
 import { closeDb, getDb } from "@vibeguard/db";
 
 import { pollActiveFeeds } from "./poll-feeds";
@@ -93,6 +94,61 @@ function sleep(durationMs: number) {
   });
 }
 
+// --- OSV Sync Scheduler ---
+
+const DEFAULT_OSV_SYNC_INTERVAL_MS = 3 * 60 * 60 * 1000
+
+function resolveOsvSyncInterval(env = process.env) {
+  const configured = env.OSV_SYNC_INTERVAL_MS?.trim()
+  if (!configured) return DEFAULT_OSV_SYNC_INTERVAL_MS
+
+  const parsed = Number.parseInt(configured, 10)
+  if (!Number.isFinite(parsed) || parsed < 60_000) return DEFAULT_OSV_SYNC_INTERVAL_MS
+
+  return parsed
+}
+
+export async function runOsvSyncCycle(logger: WorkerLogger = console) {
+  try {
+    const results = await syncAllOsvEcosystems({ db: getDb() })
+    for (const result of results) {
+      logger.log(
+        `osv sync ${result.ecosystem}: imported=${result.recordsImported} new=${result.recordsNew} changed=${result.recordsChanged} failed=${result.recordsFailed}`,
+      )
+    }
+    return results
+  } catch (error) {
+    logger.error("osv sync failed:", error)
+    return null
+  }
+}
+
+export async function startOsvSyncScheduler(
+  signal: AbortSignal,
+  logger: WorkerLogger = console,
+) {
+  const intervalMs = resolveOsvSyncInterval()
+
+  await runOsvSyncCycle(logger)
+
+  while (!signal.aborted) {
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, intervalMs)
+      const onAbort = () => {
+        clearTimeout(timer)
+        resolve()
+      }
+      signal.addEventListener("abort", onAbort, { once: true })
+    })
+
+    if (signal.aborted) break
+
+    await runOsvSyncCycle(logger)
+  }
+}
+
+// --- Worker Loop ---
+
 function resolvePollInterval(value: number, fallback: number) {
   const parsed = Number.parseInt(String(value), 10)
 
@@ -159,7 +215,10 @@ export async function main() {
   process.once("SIGTERM", stop);
 
   try {
-    await runWorkerLoop({ signal: controller.signal });
+    await Promise.all([
+      runWorkerLoop({ signal: controller.signal }),
+      startOsvSyncScheduler(controller.signal),
+    ]);
   } finally {
     process.off("SIGINT", stop);
     process.off("SIGTERM", stop);
