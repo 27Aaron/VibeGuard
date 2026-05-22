@@ -350,7 +350,7 @@ export function PackageCheckWorkbench({
               {selectOpen ? (
                 <div
                   role="listbox"
-                  className="absolute left-0 top-[calc(100%+0.45rem)] z-20 flex w-full flex-col rounded-[1.1rem] border border-black/8 bg-[#fcfcfa] p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-[#1b2028]"
+                  className="absolute left-0 top-[calc(100%+0.45rem)] z-20 flex w-full flex-col gap-1.5 rounded-[1.1rem] border border-black/8 bg-[#fcfcfa] p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-[#1b2028]"
                 >
                   {SECURITY_PACKAGE_ECOSYSTEM_VALUES.map((option) => {
                     const active = option === ecosystem

@@ -37,9 +37,7 @@ export default async function CheckPage({ params: routeParams }: CheckPageProps)
 
         <section className={getSectionOuterClassName()}>
           <div className={getSectionInnerClassName()}>
-            <div className="mt-4">
-              <PackageCheckWorkbench lang={lang} initialOverviewTotals={overviewTotals} />
-            </div>
+            <PackageCheckWorkbench lang={lang} initialOverviewTotals={overviewTotals} />
           </div>
         </section>
       </div>
