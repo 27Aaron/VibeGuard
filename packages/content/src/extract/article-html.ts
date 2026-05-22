@@ -1,15 +1,7 @@
-const DEFAULT_USER_AGENT =
-  "vibeguard-bot/0.1 (+https://localhost/vibeguard)";
+import { DEFAULT_USER_AGENT, assertHttpUrl } from "../shared/http";
+
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BYTES = 2_000_000;
-
-function assertHttpUrl(url: string) {
-  const parsed = new URL(url);
-
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("Article URL must use http or https.");
-  }
-}
 
 export async function fetchArticleHtml(
   url: string,
