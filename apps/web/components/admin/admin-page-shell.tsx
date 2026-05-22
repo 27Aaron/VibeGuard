@@ -19,7 +19,7 @@ export function AdminPageShell({
 }: AdminPageShellProps) {
   return (
     <>
-      <section className={cn(getSectionOuterClassName(), "px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-none")}>
+      <section className={cn(getSectionOuterClassName(), "px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-none")}>
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-normal text-zinc-950 dark:text-stone-50">
             {title}
