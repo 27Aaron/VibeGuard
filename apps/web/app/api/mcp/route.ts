@@ -3,6 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js"
 import { VibeGuardClient } from "@vibeguard/mcp-server/client"
 import { createMcpServer } from "@vibeguard/mcp-server/server"
+import { normalizeInt } from "@vibeguard/shared"
 
 export const dynamic = "force-dynamic"
 
@@ -42,16 +43,6 @@ function jsonRpcError(status: number, code: number, message: string) {
 
 function nowMs() {
   return Date.now()
-}
-
-function normalizeInt(value: string | undefined, fallback: number, minimum = 1) {
-  const parsed = Number.parseInt(value ?? "", 10)
-
-  if (!Number.isFinite(parsed) || parsed < minimum) {
-    return fallback
-  }
-
-  return parsed
 }
 
 function extractBearerToken(headers: Headers) {

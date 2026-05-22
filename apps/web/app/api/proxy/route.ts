@@ -3,6 +3,8 @@ import { isIP } from "node:net"
 
 import { NextRequest, NextResponse } from "next/server"
 
+import { normalizeInt } from "@vibeguard/shared"
+
 export const IMAGE_PROXY_MAX_BYTES = 5_000_000
 const DEFAULT_IMAGE_PROXY_MAX_REDIRECTS = 3
 const DEFAULT_IMAGE_PROXY_FETCH_TIMEOUT_MS = 10_000
@@ -12,16 +14,6 @@ const DEFAULT_IMAGE_PROXY_DNS_CACHE_TTL_MS = 60_000
 type CachedDnsLookup = {
   addresses: Array<{ address: string; family: number }>
   expiresAt: number
-}
-
-function normalizeInt(value: string | undefined, fallback: number, minimum = 1) {
-  const parsed = Number.parseInt(value ?? "", 10)
-
-  if (!Number.isFinite(parsed) || parsed < minimum) {
-    return fallback
-  }
-
-  return parsed
 }
 
 const IMAGE_PROXY_BYTES = normalizeInt(
