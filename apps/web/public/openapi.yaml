@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: VibeGuard Public API
   version: 1.0.0
-  description: VibeGuard 供应链安全情报公开 API，无需认证。
+  description: VibeGuard 为开发者和安全团队提供供应链威胁情报的公开 API，支持漏洞包检查与安全文章检索，无需认证即可访问。
   contact:
     name: VibeGuard
     url: https://github.com/27Aaron/VibeGuard
