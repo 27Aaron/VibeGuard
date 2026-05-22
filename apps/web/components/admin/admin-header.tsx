@@ -1,22 +1,18 @@
-"use client"
-
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { LogOut, Radio, ShieldCheck } from "lucide-react"
 
 import { AdminNav } from "@/components/admin/admin-nav"
 import { LanguageToggle } from "@/components/language-toggle"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { logoutAction } from "@/lib/actions/auth"
-import { resolveLang, type AppLang } from "@/lib/i18n"
+import type { AppLang } from "@/lib/i18n"
 
-export function AdminHeader() {
-  const pathname = usePathname()
-  const lang = resolveLang(pathname.split("/")[1] || undefined)
+type AdminHeaderProps = {
+  lang: AppLang
+  nextLangHref: string
+}
 
-  const nextLang: AppLang = lang === "zh" ? "en" : "zh"
-  const nextHref = pathname.replace(/^\/(zh|en)/, `/${nextLang}`)
-
+export function AdminHeader({ lang, nextLangHref }: AdminHeaderProps) {
   return (
     <header className="sticky top-3 z-40">
       <div className="w-full min-w-0 rounded-[2rem] border border-black/5 bg-white/45 p-1.5 shadow-[0_20px_55px_-34px_rgba(10,10,10,0.45),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-2xl md:rounded-full dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_22px_60px_-36px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -39,11 +35,11 @@ export function AdminHeader() {
             </span>
           </Link>
 
-          <AdminNav current={pathname} lang={lang} />
+          <AdminNav lang={lang} />
 
           <div className="flex items-center justify-end gap-1.5 md:justify-self-end">
             <ThemeToggle />
-            <LanguageToggle href={nextHref} currentLang={lang} />
+            <LanguageToggle href={nextLangHref} currentLang={lang} />
             <form action={logoutAction}>
               <input type="hidden" name="lang" value={lang} />
               <button

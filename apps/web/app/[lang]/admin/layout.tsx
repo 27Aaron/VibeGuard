@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
+import { resolveLang } from "@/lib/i18n"
 import { AdminHeader } from "@/components/admin/admin-header"
 import {
   getAdminBackdropClassName,
@@ -17,14 +18,23 @@ export const metadata: Metadata = {
 
 type AdminLayoutProps = {
   children: ReactNode
+  params: Promise<{ lang: string }>
 }
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default async function AdminLayout({ children, params }: AdminLayoutProps) {
+  const { lang: rawLang } = await params
+  const lang = resolveLang(rawLang)
+  const nextLang = lang === "zh" ? "en" : "zh"
+  const nextLangHref = `/${nextLang}/admin`
+
   return (
     <main className={getAdminBackgroundClassName()}>
       <div className={getAdminBackdropClassName()} />
       <div className={getAdminShellClassName()}>
-        <AdminHeader />
+        <AdminHeader
+          lang={lang}
+          nextLangHref={nextLangHref}
+        />
         {children}
       </div>
     </main>

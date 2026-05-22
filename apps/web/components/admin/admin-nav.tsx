@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 import type { AppLang } from "@/lib/i18n"
 import { getUiText } from "@/lib/i18n"
@@ -16,7 +19,8 @@ const pillClassName =
 const activePillClassName =
   "border-emerald-900/12 bg-[#f7fbf8] text-emerald-950 shadow-[0_1px_2px_rgba(15,23,42,0.10),0_5px_12px_rgba(20,83,45,0.10)] dark:border-emerald-200/12 dark:bg-[#18241e] dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_6px_16px_rgba(0,0,0,0.26)]"
 
-export function AdminNav({ current, lang }: { current: string; lang: AppLang }) {
+export function AdminNav({ lang }: { lang: AppLang }) {
+  const pathname = usePathname()
   const adminLinks = [
     { href: "/admin", label: getUiText(lang).adminNavOverview },
     { href: "/admin/feeds", label: getUiText(lang).adminNavFeeds },
@@ -30,13 +34,13 @@ export function AdminNav({ current, lang }: { current: string; lang: AppLang }) 
       {adminLinks.map((link) => {
         const hrefWithLang = `/${lang}${link.href}`
         const active =
-          current === hrefWithLang ||
-          (link.href !== "/admin" && current.startsWith(`${hrefWithLang}/`))
+          pathname === hrefWithLang ||
+          (link.href !== "/admin" && pathname.startsWith(`${hrefWithLang}/`))
 
         return (
           <Link
             key={link.href}
-            href={`/${lang}${link.href}`}
+            href={hrefWithLang}
             aria-current={active ? "page" : undefined}
             className={cn(shellClassName, active && activeShellClassName)}
           >
