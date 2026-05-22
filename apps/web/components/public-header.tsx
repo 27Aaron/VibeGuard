@@ -39,7 +39,7 @@ export function PublicHeader({
   homeHref,
   nextLangHref,
   currentLang,
-  currentSurface = "rss",
+  currentSurface,
 }: PublicHeaderProps) {
   const copy = getUiText(currentLang)
 
@@ -68,7 +68,7 @@ export function PublicHeader({
           <div className="grid w-full min-w-0 grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:items-center md:justify-self-center">
             {futureSurfaceLinks.map((item) => {
               const Icon = item.icon
-              const active = item.surface === currentSurface
+              const active = currentSurface != null && item.surface === currentSurface
               const className =
                 "inline-flex h-8 min-w-0 items-center rounded-full border border-black/8 bg-[#eef2f7] p-[2px] text-xs font-semibold text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] transition-[background-color,border-color,box-shadow,color] duration-200 hover:bg-[#e7ecf4] hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white"
               const surfaceClassName = cn(
@@ -88,7 +88,7 @@ export function PublicHeader({
 
               const href =
                 item.label === "RSS"
-                  ? `/${currentLang}/feed.xml`
+                  ? `/${currentLang}/rss`
                   : item.label === "Check"
                     ? `/${currentLang}/check`
                     : undefined
