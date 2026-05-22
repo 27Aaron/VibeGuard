@@ -45,10 +45,9 @@ describe("localized not-found page", () => {
     expect(content).toContain("页面没有找到")
     expect(content).toContain("<ThemeToggle />")
     expect(content).toContain("dark:")
-    expect(rootLayout).toContain("<Script")
-    expect(rootLayout).not.toContain("<script")
-    expect(rootLayout).toContain('src="/theme-init.js"')
-    expect(rootLayout).not.toContain("THEME_BOOTSTRAP_SCRIPT")
+    expect(rootLayout).not.toContain("<Script")
+    expect(rootLayout).not.toContain('src="/theme-init.js"')
+    expect(rootLayout).toContain("data-theme={resolvedTheme}")
   })
 
   it("preserves the route language for dotted 404 paths", async () => {

@@ -9,6 +9,7 @@ import {
   applyResolvedTheme,
   readStoredThemePreference,
   THEME_STORAGE_KEY,
+  writeStoredThemePreference,
   type ThemePreference,
 } from "@/lib/theme"
 import { cn } from "@/lib/utils"
@@ -106,7 +107,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       },
     })
 
-    window.localStorage.setItem(THEME_STORAGE_KEY, next)
+    writeStoredThemePreference(next)
     activeTransitionRef.current = transition
 
     transition.finished.finally(() => {
@@ -148,7 +149,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
           />
         </span>
       </span>
-      <span className="sr-only">{isDark ? "暗色主题" : "亮色主题"}</span>
+      <span className="sr-only">{mounted ? (isDark ? "暗色主题" : "亮色主题") : "主题"}</span>
     </button>
   )
 }

@@ -3,24 +3,20 @@ import fs from "node:fs"
 import { describe, expect, it } from "vitest"
 
 describe("theme toggle", () => {
-  it("boots theme from system preference and local storage before hydration", () => {
+  it("derives the initial theme from cookies without injecting a bootstrap script", () => {
     const layout = fs.readFileSync("apps/web/app/layout.tsx", "utf8")
     const theme = fs.readFileSync("apps/web/lib/theme.ts", "utf8")
-    const themeInit = fs.readFileSync("apps/web/public/theme-init.js", "utf8")
 
-    expect(layout).toContain('id="theme-bootstrap"')
-    expect(layout).toContain('from "next/script"')
-    expect(layout).toContain('strategy="beforeInteractive"')
-    expect(layout).toContain('src="/theme-init.js"')
-    expect(layout).toContain("<body")
-    expect(layout).toContain("<Script")
-    expect(layout).not.toContain("<script")
-    expect(layout).not.toContain("dangerouslySetInnerHTML")
-    expect(layout).not.toContain("THEME_BOOTSTRAP_SCRIPT")
+    expect(layout).not.toContain('from "next/script"')
+    expect(layout).not.toContain("<Script")
+    expect(layout).not.toContain('src="/theme-init.js"')
+    expect(layout).toContain('const themePreference = cookieStore.get(THEME_COOKIE_KEY)?.value')
+    expect(layout).toContain('const resolvedTheme = themePreference === "light" ? "light" : "dark"')
+    expect(layout).toContain('className={cn("font-sans", geist.variable, resolvedTheme === "dark" && "dark")}')
+    expect(layout).toContain('data-theme={resolvedTheme}')
     expect(theme).toContain('export const THEME_STORAGE_KEY = "vibeguard-theme"')
-    expect(themeInit).toContain('window.matchMedia("(prefers-color-scheme: dark)")')
-    expect(themeInit).toContain('const stored = localStorage.getItem(storageKey);')
-    expect(themeInit).toContain('root.classList.toggle("dark", resolved === "dark")')
+    expect(theme).toContain('export const THEME_COOKIE_KEY = "vibeguard-theme"')
+    expect(theme).toContain("document.cookie =")
   })
 
   it("uses the lucide-style pill toggle across public and admin surfaces", () => {
