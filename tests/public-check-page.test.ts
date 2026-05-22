@@ -52,7 +52,6 @@ describe("public check page scaffolding", () => {
     expect(component).toContain("items-center justify-between")
     expect(component).toContain("publicCheckAffectedVersionsLabel")
     expect(component).toContain("publicCheckAffectedRangesLabel")
-    expect(component).toContain("result?.warning")
     expect(component).toContain("publicCheckNoFindings")
     expect(component).toContain("finding.advisory.summary")
     expect(component).toContain("finding.advisory.details")

@@ -98,7 +98,6 @@ describe("security workbench helpers", () => {
           source: "local-osv-mirror",
           lastSyncedAt: "2026-05-22T08:00:00.000Z",
           stale: false,
-          warning: null,
         },
       }),
     ).toThrow("Malformed security check response.")
@@ -111,7 +110,6 @@ describe("security workbench helpers", () => {
           source: "local-osv-mirror",
           lastSyncedAt: "2026-05-22T08:00:00.000Z",
           stale: false,
-          warning: null,
         },
         findings: [
           {
@@ -155,7 +153,6 @@ describe("security workbench helpers", () => {
           source: "local-osv-mirror",
           lastSyncedAt: "2026-05-22T08:00:00.000Z",
           stale: false,
-          warning: null,
         },
         findings: [
           {
@@ -199,7 +196,6 @@ describe("security workbench helpers", () => {
           source: "local-osv-mirror",
           lastSyncedAt: "2026-05-22T08:00:00.000Z",
           stale: false,
-          warning: null,
         },
         findings: [
           {
@@ -243,7 +239,6 @@ describe("security workbench helpers", () => {
           source: "local-osv-mirror",
           lastSyncedAt: "2026-05-22T08:00:00.000Z",
           stale: false,
-          warning: null,
         },
         findings: [
           {
@@ -287,7 +282,6 @@ describe("security workbench helpers", () => {
           source: "local-osv-mirror",
           lastSyncedAt: "2026-05-22T08:00:00.000Z",
           stale: false,
-          warning: null,
         },
         findings: [
           {
@@ -361,27 +355,24 @@ describe("security workbench helpers", () => {
           source: "local-osv-mirror",
           lastSyncedAt: "2026-05-22T08:00:00.000Z",
           stale: false,
-          warning: null,
         },
         findings: [],
       }),
     ).toEqual({
       empty: true,
       stale: false,
-      warning: null,
       source: "local-osv-mirror",
       lastSyncedAt: "2026-05-22T08:00:00.000Z",
       findings: [],
     })
   })
 
-  it("keeps stale mirror warnings visible in result state for the live non-affected payload", async () => {
+  it("propagates stale flag in result state for the live non-affected payload", async () => {
     const payload = await buildPackageMatchWithoutVersionPayload()
 
     expect(buildSecurityWorkbenchResultState(payload)).toEqual({
       empty: false,
       stale: true,
-      warning: "Local OSV mirror is stale; run the OSV sync job.",
       source: "local-osv-mirror",
       lastSyncedAt: "2026-05-21T23:00:00.000Z",
       findings: payload.findings,

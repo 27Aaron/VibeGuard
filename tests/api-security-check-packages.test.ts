@@ -133,7 +133,6 @@ describe("POST /api/security/check/packages", () => {
         source: "local-osv-mirror",
         lastSyncedAt: "2026-05-22T08:00:00.000Z",
         stale: false,
-        warning: null,
       },
       findings: [
         {

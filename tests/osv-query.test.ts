@@ -30,7 +30,6 @@ describe("buildPackageCheckMeta", () => {
     ).toMatchObject({
       source: "local-osv-mirror",
       stale: true,
-      warning: "Local OSV mirror is stale; run the OSV sync job.",
     })
   })
 })

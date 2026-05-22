@@ -289,7 +289,6 @@ export function PackageCheckWorkbench({
               ecosystem,
               name: packageName,
               version,
-              lang,
             }),
           ),
         }),
@@ -429,15 +428,6 @@ export function PackageCheckWorkbench({
           aria-live="polite"
         >
           {error}
-        </div>
-      ) : null}
-
-      {result?.warning ? (
-        <div
-          className="rounded-[1.15rem] border border-black/8 bg-white/75 px-4 py-3 text-sm text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:text-stone-200 dark:shadow-none"
-          aria-live="polite"
-        >
-          {result.warning}
         </div>
       ) : null}
 

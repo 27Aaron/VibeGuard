@@ -27,14 +27,12 @@ export type CheckPackagesInput = {
   packages: PackageCheckInput[]
   now?: Date
   staleAfterMs?: number
-  lang?: "zh" | "en"
 }
 
 export type PackageCheckMetaInput = {
   now?: Date
   lastSyncedAt?: Date | null
   staleAfterMs?: number
-  lang?: "zh" | "en"
 }
 
 export type PackageMatchSummaryInput = {
@@ -64,7 +62,6 @@ export function buildPackageCheckMeta({
   now = new Date(),
   lastSyncedAt,
   staleAfterMs = 3 * 60 * 60 * 1000,
-  lang = "en",
 }: PackageCheckMetaInput) {
   const stale = !lastSyncedAt || now.getTime() - lastSyncedAt.getTime() > staleAfterMs
 
@@ -72,11 +69,6 @@ export function buildPackageCheckMeta({
     source: "local-osv-mirror" as const,
     lastSyncedAt: lastSyncedAt?.toISOString() ?? null,
     stale,
-    warning: stale
-      ? lang === "zh"
-        ? "本地 OSV 镜像数据已过期，请运行 OSV 同步任务。"
-        : "Local OSV mirror is stale; run the OSV sync job."
-      : null,
   }
 }
 
@@ -143,7 +135,6 @@ export async function checkPackagesAgainstLocalDb(
     now: input.now,
     staleAfterMs: input.staleAfterMs,
     lastSyncedAt: syncState?.lastSuccessAt ?? null,
-    lang: input.lang,
   })
   const findings = []
 
