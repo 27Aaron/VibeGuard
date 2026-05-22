@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
+import { PIPELINE_STAGES, stageLabel } from "@/lib/pipeline-stages"
 import { cn } from "@/lib/utils"
 import {
   Table,
@@ -43,33 +44,6 @@ function statusLabel(status: JobRow["status"], lang: AppLang) {
   }
 }
 
-function stageLabel(stage: JobStageFilter, lang: AppLang) {
-  switch (stage) {
-    case "all":
-      return lang === "zh" ? "全部阶段" : "All stages"
-    case "waiting":
-      return lang === "zh" ? "等待处理" : "Waiting"
-    case "fetch_source":
-      return lang === "zh" ? "原文抓取" : "Fetch source"
-    case "extract_content":
-      return lang === "zh" ? "正文提取" : "Extract content"
-    case "classify_relevance":
-      return lang === "zh" ? "相关性判断" : "Classify relevance"
-    case "translate_title":
-      return lang === "zh" ? "标题翻译" : "Translate title"
-    case "translate_content":
-      return lang === "zh" ? "正文翻译" : "Translate content"
-    case "summarize_en":
-      return lang === "zh" ? "英文摘要" : "English summary"
-    case "summarize_zh":
-      return lang === "zh" ? "中文摘要" : "Chinese summary"
-    case "generate_tags":
-      return lang === "zh" ? "处理标签" : "Generate tags"
-    case "completed":
-      return lang === "zh" ? "处理完成" : "Processing complete"
-  }
-}
-
 function displayStageLabel(job: JobRow, lang: AppLang) {
   if (job.status === "succeeded") {
     return lang === "zh" ? "处理完成" : "Processing complete"
@@ -77,19 +51,6 @@ function displayStageLabel(job: JobRow, lang: AppLang) {
 
   return stageLabel(job.pipelineStage, lang)
 }
-
-const PIPELINE_STAGES: JobRow["pipelineStage"][] = [
-  "waiting",
-  "fetch_source",
-  "extract_content",
-  "classify_relevance",
-  "translate_title",
-  "translate_content",
-  "summarize_en",
-  "summarize_zh",
-  "generate_tags",
-  "completed",
-]
 
 function pipelineProgress(job: JobRow) {
   if (job.status === "succeeded") {

@@ -6,33 +6,7 @@ import type { JobStageFilter, JobStatusFilter } from "@/components/admin/types"
 import { ADMIN_JOB_STAGE_FILTERS } from "@/lib/admin-job-pagination"
 import { getAdminFilterSelectClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
-
-function stageLabel(stage: JobStageFilter, lang: AppLang) {
-  switch (stage) {
-    case "all":
-      return lang === "zh" ? "全部阶段" : "All stages"
-    case "waiting":
-      return lang === "zh" ? "等待处理" : "Waiting"
-    case "fetch_source":
-      return lang === "zh" ? "原文抓取" : "Fetch source"
-    case "extract_content":
-      return lang === "zh" ? "正文提取" : "Extract content"
-    case "classify_relevance":
-      return lang === "zh" ? "相关性判断" : "Classify relevance"
-    case "translate_title":
-      return lang === "zh" ? "标题翻译" : "Translate title"
-    case "translate_content":
-      return lang === "zh" ? "正文翻译" : "Translate content"
-    case "summarize_en":
-      return lang === "zh" ? "英文摘要" : "English summary"
-    case "summarize_zh":
-      return lang === "zh" ? "中文摘要" : "Chinese summary"
-    case "generate_tags":
-      return lang === "zh" ? "处理标签" : "Generate tags"
-    case "completed":
-      return lang === "zh" ? "处理完成" : "Processing complete"
-  }
-}
+import { stageLabel } from "@/lib/pipeline-stages"
 
 export function JobStageFilterSelect({
   lang,

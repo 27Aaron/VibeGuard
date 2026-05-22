@@ -5,6 +5,7 @@ import { Clock, Loader2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import type { AppLang } from "@/lib/i18n"
+import { ACTIVE_PIPELINE_STAGES, stageLabel } from "@/lib/pipeline-stages"
 
 type RunningJob = {
   id: string
@@ -37,22 +38,6 @@ type WorkerStatus = {
   totalCount: number
 }
 
-function stageLabel(stage: string, lang: AppLang) {
-  const labels: Record<string, { zh: string; en: string }> = {
-    waiting: { zh: "等待中", en: "Waiting" },
-    fetch_source: { zh: "抓取原文", en: "Fetching" },
-    extract_content: { zh: "提取正文", en: "Extracting" },
-    classify_relevance: { zh: "相关性判断", en: "Relevance" },
-    translate_title: { zh: "翻译标题", en: "Translating title" },
-    translate_content: { zh: "翻译正文", en: "Translating content" },
-    summarize_en: { zh: "英文摘要", en: "EN summary" },
-    summarize_zh: { zh: "中文摘要", en: "ZH summary" },
-    generate_tags: { zh: "生成标签", en: "Tags" },
-    completed: { zh: "已完成", en: "Completed" },
-  }
-  return labels[stage]?.[lang] ?? stage
-}
-
 function jobTypeLabel(type: string, lang: AppLang) {
   const labels: Record<string, { zh: string; en: string }> = {
     extract: { zh: "提取", en: "Extract" },
@@ -70,17 +55,8 @@ function formatElapsed(seconds: number | null) {
   return `${min}m${sec}s`
 }
 
-/** 进度阶段列表 */
-const PIPELINE_STAGES = [
-  "fetch_source",
-  "extract_content",
-  "classify_relevance",
-  "translate_title",
-  "translate_content",
-  "summarize_en",
-  "summarize_zh",
-  "generate_tags",
-]
+/** 进度阶段列表 — only active stages (no waiting/completed) */
+const PIPELINE_STAGES: readonly string[] = ACTIVE_PIPELINE_STAGES
 
 function stagePercent(stage: string): number {
   const idx = PIPELINE_STAGES.indexOf(stage)
