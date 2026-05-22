@@ -1,5 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm"
 import { articles, feeds, getDb } from "@vibeguard/db"
+import type { AppLang } from "./i18n"
 import {
   DEFAULT_ADMIN_ARTICLE_PAGE_SIZE,
   type AdminArticleListParams,
@@ -10,8 +11,9 @@ function formatDateTime(value: Date | null | undefined, lang: "zh" | "en" = "zh"
   return formatDateTimeInShanghai(value, { lang, fallback })
 }
 
-export async function getArticleRows(input: Partial<AdminArticleListParams> = {}) {
+export async function getArticleRows(input: Partial<AdminArticleListParams> & { lang?: AppLang } = {}) {
   const db = getDb()
+  const lang = input.lang ?? "zh"
   const pageSize = input.pageSize ?? DEFAULT_ADMIN_ARTICLE_PAGE_SIZE
   const requestedPage = Math.max(1, Math.floor(input.page ?? 1))
   const [countRow] = await db
@@ -26,6 +28,8 @@ export async function getArticleRows(input: Partial<AdminArticleListParams> = {}
       id: articles.id,
       titleEn: articles.titleEn,
       titleZh: articles.titleZh,
+      summaryEn: articles.summaryEn,
+      summaryZh: articles.summaryZh,
       sourceName: feeds.name,
       status: articles.status,
       publishedAt: articles.publishedAt,
@@ -40,9 +44,10 @@ export async function getArticleRows(input: Partial<AdminArticleListParams> = {}
   return {
     rows: rows.map((article) => ({
       id: article.id,
-      title: article.titleZh || article.titleEn,
+      title: lang === "zh" ? (article.titleZh || article.titleEn) : (article.titleEn || article.titleZh),
       titleEn: article.titleEn,
       titleZh: article.titleZh,
+      summary: lang === "zh" ? (article.summaryZh || article.summaryEn) : (article.summaryEn || article.summaryZh),
       source: article.sourceName,
       status: article.status,
       publishedAt: formatDateTime(article.publishedAt),

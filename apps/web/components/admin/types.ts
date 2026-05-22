@@ -16,6 +16,7 @@ export type ArticleRow = {
   title: string
   titleEn: string
   titleZh: string | null
+  summary: string | null
   source: string
   status: "ready" | "processing" | "pending" | "failed" | "filtered"
   publishedAt: string

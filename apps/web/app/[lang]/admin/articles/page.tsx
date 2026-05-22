@@ -52,6 +52,7 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
   const { rows: articles, pagination } = await getArticleRows({
     page: paginationParams.page,
     pageSize: paginationParams.pageSize,
+    lang,
   })
   const rangeText =
     lang === "zh"

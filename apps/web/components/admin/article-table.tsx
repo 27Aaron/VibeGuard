@@ -71,9 +71,9 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
                   >
                     {article.title}
                   </Link>
-                  {article.titleZh ? (
+                  {article.summary ? (
                     <span className="truncate text-xs text-muted-foreground">
-                      {article.titleZh}
+                      {article.summary}
                     </span>
                   ) : null}
                 </div>
