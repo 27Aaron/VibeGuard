@@ -4,7 +4,92 @@ import { isIP } from "node:net"
 import { NextRequest, NextResponse } from "next/server"
 
 export const IMAGE_PROXY_MAX_BYTES = 5_000_000
-const MAX_REDIRECTS = 3
+const DEFAULT_IMAGE_PROXY_MAX_REDIRECTS = 3
+const DEFAULT_IMAGE_PROXY_FETCH_TIMEOUT_MS = 10_000
+const DEFAULT_IMAGE_PROXY_DNS_CACHE_SIZE = 128
+const DEFAULT_IMAGE_PROXY_DNS_CACHE_TTL_MS = 60_000
+
+type CachedDnsLookup = {
+  addresses: Array<{ address: string; family: number }>
+  expiresAt: number
+}
+
+function normalizeInt(value: string | undefined, fallback: number, minimum = 1) {
+  const parsed = Number.parseInt(value ?? "", 10)
+
+  if (!Number.isFinite(parsed) || parsed < minimum) {
+    return fallback
+  }
+
+  return parsed
+}
+
+const IMAGE_PROXY_BYTES = normalizeInt(
+  process.env.IMAGE_PROXY_MAX_BYTES,
+  IMAGE_PROXY_MAX_BYTES,
+)
+const IMAGE_PROXY_MAX_REDIRECTS = normalizeInt(
+  process.env.IMAGE_PROXY_MAX_REDIRECTS,
+  DEFAULT_IMAGE_PROXY_MAX_REDIRECTS,
+)
+const IMAGE_PROXY_FETCH_TIMEOUT_MS = normalizeInt(
+  process.env.IMAGE_PROXY_FETCH_TIMEOUT_MS,
+  DEFAULT_IMAGE_PROXY_FETCH_TIMEOUT_MS,
+  250,
+)
+const IMAGE_PROXY_DNS_CACHE_SIZE = normalizeInt(
+  process.env.IMAGE_PROXY_DNS_CACHE_SIZE,
+  DEFAULT_IMAGE_PROXY_DNS_CACHE_SIZE,
+  0,
+)
+const IMAGE_PROXY_DNS_CACHE_TTL_MS = normalizeInt(
+  process.env.IMAGE_PROXY_DNS_CACHE_TTL_MS,
+  DEFAULT_IMAGE_PROXY_DNS_CACHE_TTL_MS,
+)
+
+const dnsLookupCache = new Map<string, CachedDnsLookup>()
+
+function getCachedDnsLookup(hostname: string, now = Date.now()) {
+  const cached = dnsLookupCache.get(hostname)
+
+  if (!cached) {
+    return null
+  }
+
+  if (cached.expiresAt <= now) {
+    dnsLookupCache.delete(hostname)
+    return null
+  }
+
+  dnsLookupCache.delete(hostname)
+  dnsLookupCache.set(hostname, cached)
+
+  return cached.addresses
+}
+
+function cacheDnsLookup(
+  hostname: string,
+  addresses: CachedDnsLookup["addresses"],
+) {
+  if (IMAGE_PROXY_DNS_CACHE_SIZE <= 0) {
+    return
+  }
+
+  while (dnsLookupCache.size >= IMAGE_PROXY_DNS_CACHE_SIZE) {
+    const firstKey = dnsLookupCache.keys().next().value
+
+    if (firstKey === undefined) {
+      break
+    }
+
+    dnsLookupCache.delete(firstKey)
+  }
+
+  dnsLookupCache.set(hostname, {
+    addresses,
+    expiresAt: Date.now() + IMAGE_PROXY_DNS_CACHE_TTL_MS,
+  })
+}
 
 class ImageProxyError extends Error {
   constructor(
@@ -142,15 +227,19 @@ async function assertSafeProxyTarget(target: URL) {
     return
   }
 
-  let addresses: Array<{ address: string; family: number }>
+  let addresses = getCachedDnsLookup(hostname)
 
-  try {
-    addresses = await lookup(hostname, {
-      all: true,
-      verbatim: true,
-    })
-  } catch {
-    throw new ImageProxyError("Unable to resolve proxy target", 400)
+  if (!addresses) {
+    try {
+      addresses = await lookup(hostname, {
+        all: true,
+        verbatim: true,
+      })
+    } catch {
+      throw new ImageProxyError("Unable to resolve proxy target", 400)
+    }
+
+    cacheDnsLookup(hostname, addresses)
   }
 
   if (
@@ -171,7 +260,7 @@ function isAllowedImageContentType(contentType: string | null) {
 
 export async function readBoundedResponseBody(
   response: Response,
-  maxBytes = IMAGE_PROXY_MAX_BYTES,
+  maxBytes = IMAGE_PROXY_BYTES,
 ) {
   const contentLength = Number(response.headers.get("content-length") ?? "0")
 
@@ -225,12 +314,12 @@ export async function readBoundedResponseBody(
   return body
 }
 
-async function fetchSafeImage(target: URL, remainingRedirects = MAX_REDIRECTS) {
+async function fetchSafeImage(target: URL, remainingRedirects = IMAGE_PROXY_MAX_REDIRECTS) {
   await assertSafeProxyTarget(target)
 
   const upstream = await fetch(target.toString(), {
     redirect: "manual",
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(IMAGE_PROXY_FETCH_TIMEOUT_MS),
     headers: {
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       Accept: "image/*",
