@@ -19,7 +19,11 @@ const UNSAFE_SESSION_SECRETS = new Set([
   "test-secret",
   "replace-with-a-random-secret",
 ])
+const MAX_TRACKED_LOGIN_KEYS = 2_000
+const MAX_FAILURES_PER_KEY = 32
+const LOGIN_FAIL_MAP_PRUNE_INTERVAL_MS = 15_000
 const failedLoginAttempts = new Map<string, number[]>()
+let lastLoginFailureCleanupAt = 0
 
 export type AdminAuthConfig = {
   password: string
@@ -224,11 +228,71 @@ export function isLoginRateLimited(key: string, now = Date.now()) {
 export function recordFailedLogin(key: string, now = Date.now()) {
   const failures = pruneLoginFailures(key, now)
   failures.push(now)
-  failedLoginAttempts.set(key, failures)
+  if (failures.length > MAX_FAILURES_PER_KEY) {
+    failures.splice(0, failures.length - MAX_FAILURES_PER_KEY)
+  }
+
+  setLoginFailures(key, failures)
+  pruneLoginFailureMap(now)
 }
 
 export function clearLoginFailures(key: string) {
   failedLoginAttempts.delete(key)
+}
+
+function setLoginFailures(key: string, failures: number[]) {
+  // Keep recently used keys at the end for bounded eviction.
+  failedLoginAttempts.delete(key)
+  failedLoginAttempts.set(key, failures)
+}
+
+function pruneLoginFailureMap(now = Date.now()) {
+  if (failedLoginAttempts.size <= MAX_TRACKED_LOGIN_KEYS) {
+    return
+  }
+
+  if (now - lastLoginFailureCleanupAt < LOGIN_FAIL_MAP_PRUNE_INTERVAL_MS) {
+    return
+  }
+
+  lastLoginFailureCleanupAt = now
+  const staleCutoff = now - LOGIN_RATE_LIMIT_WINDOW_MS
+  const staleKeys: string[] = []
+
+  for (const [address, timestamps] of failedLoginAttempts) {
+    const survivors = timestamps.filter((timestamp) => timestamp > staleCutoff)
+    if (survivors.length === 0) {
+      staleKeys.push(address)
+      continue
+    }
+
+    if (survivors.length < timestamps.length) {
+      failedLoginAttempts.set(address, survivors)
+    }
+  }
+
+  for (const staleKey of staleKeys) {
+    failedLoginAttempts.delete(staleKey)
+  }
+
+  if (failedLoginAttempts.size <= MAX_TRACKED_LOGIN_KEYS) {
+    return
+  }
+
+  const targetSize = Math.max(
+    Math.floor(MAX_TRACKED_LOGIN_KEYS * 0.8),
+    1,
+  )
+  const excess = failedLoginAttempts.size - targetSize
+
+  if (excess <= 0) {
+    return
+  }
+
+  const keys = [...failedLoginAttempts.keys()].slice(0, excess)
+  for (const key of keys) {
+    failedLoginAttempts.delete(key)
+  }
 }
 
 function pruneLoginFailures(key: string, now: number) {
@@ -240,7 +304,7 @@ function pruneLoginFailures(key: string, now: number) {
   if (failures.length === 0) {
     failedLoginAttempts.delete(key)
   } else {
-    failedLoginAttempts.set(key, failures)
+    setLoginFailures(key, failures)
   }
 
   return failures
