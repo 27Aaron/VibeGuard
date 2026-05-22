@@ -3,7 +3,7 @@ import {
   type ChatCompletionsClient,
 } from "./chat";
 
-import { stripJsonFence } from "./utils";
+import { stripJsonFence, tryParseJsonCandidates, resolvePrompt } from "./utils";
 
 export const DEFAULT_TAG_PROMPT = `你是一个供应链安全文章的短标签提取器。
 
@@ -136,15 +136,9 @@ export function extractGeneratedTags(value: string) {
     stripped.match(/\{[\s\S]*\}/)?.[0] ?? "",
   ].filter(Boolean);
 
-  for (const candidate of candidates) {
-    try {
-      return normalizeGeneratedTags(JSON.parse(candidate));
-    } catch {
-      // Try the next candidate.
-    }
-  }
+  const parsed = tryParseJsonCandidates(candidates);
 
-  return [];
+  return parsed !== null ? normalizeGeneratedTags(parsed) : [];
 }
 
 export function buildTagExtractionPrompt(input: {
@@ -161,13 +155,13 @@ export function buildTagExtractionPrompt(input: {
 }
 
 export function resolveTagPrompt(value: string | null | undefined) {
-  const normalized = String(value ?? "").trim();
+  const resolved = resolvePrompt(value, DEFAULT_TAG_PROMPT);
 
-  if (!normalized || normalized === LEGACY_TAG_PROMPT) {
+  if (resolved === LEGACY_TAG_PROMPT) {
     return DEFAULT_TAG_PROMPT;
   }
 
-  return normalized;
+  return resolved;
 }
 
 export async function generateTags(input: {

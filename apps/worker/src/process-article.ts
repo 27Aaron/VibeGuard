@@ -28,7 +28,8 @@ import { fetchArticleHtml } from "@vibeguard/content/extract/article-html"
 import { extractMarkdownFromHtml } from "@vibeguard/content"
 
 // Re-export public API from article-pipeline for backward compatibility
-export { buildSummaryPrompt, processArticleJob } from "./article-pipeline"
+export { buildLocalizedSummaryPrompt } from "@vibeguard/llm"
+export { processArticleJob } from "./article-pipeline"
 export type { ProcessArticleJobDependencies } from "./article-pipeline"
 
 type ContentDb = NodePgDatabase<typeof schema>

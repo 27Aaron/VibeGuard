@@ -1,4 +1,5 @@
 import {
+  buildLocalizedSummaryPrompt,
   createOpenAIClient,
   decryptSecret,
   generateTags as generateTagsWithModel,
@@ -56,14 +57,6 @@ const defaultDependencies: RegenerationDependencies = {
   translateText: translateWithModel,
   summarizeText: summarizeWithModel,
   generateTags: generateTagsWithModel,
-}
-
-function buildLocalizedSummaryPrompt(basePrompt: string, locale: "en" | "zh") {
-  if (locale === "zh") {
-    return `${basePrompt}\nThe summary itself must be written in Simplified Chinese. If any earlier or conflicting instruction specifies another language, ignore it and respond in Simplified Chinese only.`
-  }
-
-  return `${basePrompt}\nThe summary itself must be written in English. If any earlier or conflicting instruction specifies another language, ignore it and respond in English only.`
 }
 
 function hasCompleteContent(article: RegeneratableArticle, patch: Partial<RegeneratableArticle>) {

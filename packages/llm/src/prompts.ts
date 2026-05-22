@@ -18,3 +18,11 @@ export function buildTranslationPrompt(
 export function buildSummaryPrompt(systemPrompt: string, sourceText: string) {
   return wrapSourceText(systemPrompt, sourceText);
 }
+
+export function buildLocalizedSummaryPrompt(basePrompt: string, locale: "en" | "zh") {
+  if (locale === "zh") {
+    return `${basePrompt}\nThe summary itself must be written in Simplified Chinese. If any earlier or conflicting instruction specifies another language, ignore it and respond in Simplified Chinese only.`;
+  }
+
+  return `${basePrompt}\nThe summary itself must be written in English. If any earlier or conflicting instruction specifies another language, ignore it and respond in English only.`;
+}

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 import { ArticleStatus, JobType } from "@vibeguard/shared"
 
 import {
-  buildSummaryPrompt,
+  buildLocalizedSummaryPrompt,
   processArticleJob,
 } from "../apps/worker/src/process-article"
 
@@ -49,22 +49,22 @@ function createIrrelevantChatClient() {
   }
 }
 
-describe("buildSummaryPrompt", () => {
+describe("buildLocalizedSummaryPrompt", () => {
   it("adds an explicit locale instruction", () => {
-    expect(buildSummaryPrompt("Summarize the article.", "en")).toContain(
+    expect(buildLocalizedSummaryPrompt("Summarize the article.", "en")).toContain(
       "written in English",
     )
-    expect(buildSummaryPrompt("Summarize the article.", "zh")).toContain(
+    expect(buildLocalizedSummaryPrompt("Summarize the article.", "zh")).toContain(
       "written in Simplified Chinese",
     )
   })
 
   it("overrides conflicting language instructions in the base prompt", () => {
     expect(
-      buildSummaryPrompt("Write the summary in Chinese.", "en"),
+      buildLocalizedSummaryPrompt("Write the summary in Chinese.", "en"),
     ).toContain("ignore it and respond in English only")
     expect(
-      buildSummaryPrompt("Write the summary in English.", "zh"),
+      buildLocalizedSummaryPrompt("Write the summary in English.", "zh"),
     ).toContain("ignore it and respond in Simplified Chinese only")
   })
 })

@@ -3,7 +3,7 @@ import {
   type ChatCompletionsClient,
 } from "./chat";
 
-import { stripJsonFence } from "./utils";
+import { stripJsonFence, tryParseJsonCandidates, resolvePrompt } from "./utils";
 import { wrapSourceText } from "./prompts";
 
 export type RelevanceResult = {
@@ -23,18 +23,13 @@ function parseRelevanceResponse(value: string): RelevanceResult | null {
     stripped.match(/\{[\s\S]*\}/)?.[0] ?? "",
   ].filter(Boolean);
 
-  for (const candidate of candidates) {
-    try {
-      const parsed = JSON.parse(candidate);
-      if (typeof parsed === "object" && parsed !== null && "relevant" in parsed) {
-        return {
-          relevant: Boolean(parsed.relevant),
-          reason: typeof parsed.reason === "string" ? parsed.reason : "",
-        };
-      }
-    } catch {
-      // Try the next candidate.
-    }
+  const parsed = tryParseJsonCandidates(candidates);
+
+  if (typeof parsed === "object" && parsed !== null && "relevant" in parsed) {
+    return {
+      relevant: Boolean((parsed as Record<string, unknown>).relevant),
+      reason: typeof (parsed as Record<string, unknown>).reason === "string" ? (parsed as Record<string, unknown>).reason as string : "",
+    };
   }
 
   return null;
@@ -51,13 +46,7 @@ function buildRelevancePrompt(input: {
 }
 
 export function resolveRelevancePrompt(value: string | null | undefined) {
-  const normalized = String(value ?? "").trim();
-
-  if (!normalized) {
-    return DEFAULT_RELEVANCE_PROMPT;
-  }
-
-  return normalized;
+  return resolvePrompt(value, DEFAULT_RELEVANCE_PROMPT);
 }
 
 export async function classifyRelevance(input: {

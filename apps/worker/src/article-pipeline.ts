@@ -8,6 +8,7 @@ import {
 } from "@vibeguard/content"
 import { articles, llmSettings, schema } from "@vibeguard/db"
 import {
+  buildLocalizedSummaryPrompt,
   classifyRelevance,
   createOpenAIClient,
   decryptSecret,
@@ -42,14 +43,6 @@ type ArticlePatch = Partial<
     | "rawMeta"
   >
 >
-
-export function buildSummaryPrompt(basePrompt: string, locale: "en" | "zh") {
-  if (locale === "zh") {
-    return `${basePrompt}\nThe summary itself must be written in Simplified Chinese. If any earlier or conflicting instruction specifies another language, ignore it and respond in Simplified Chinese only.`
-  }
-
-  return `${basePrompt}\nThe summary itself must be written in English. If any earlier or conflicting instruction specifies another language, ignore it and respond in English only.`
-}
 
 export type ProcessArticleJobDependencies = {
   loadArticle: (articleId: string) => Promise<ArticleRecord | undefined>
@@ -249,7 +242,7 @@ async function processExtractJob(input: {
     summaryEn = await input.dependencies.summarizeText({
       client: input.client,
       model: input.activeSettings.model,
-      systemPrompt: buildSummaryPrompt(
+      systemPrompt: buildLocalizedSummaryPrompt(
         resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
         "en",
       ),
@@ -265,7 +258,7 @@ async function processExtractJob(input: {
     summaryZh = await input.dependencies.summarizeText({
       client: input.client,
       model: input.activeSettings.model,
-      systemPrompt: buildSummaryPrompt(
+      systemPrompt: buildLocalizedSummaryPrompt(
         resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
         "zh",
       ),
@@ -350,7 +343,7 @@ async function processSummarizeJob(input: {
   const summaryEn = await input.dependencies.summarizeText({
     client: input.client,
     model: input.activeSettings.model,
-    systemPrompt: buildSummaryPrompt(
+    systemPrompt: buildLocalizedSummaryPrompt(
       resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
       "en",
     ),
@@ -360,7 +353,7 @@ async function processSummarizeJob(input: {
   const summaryZh = await input.dependencies.summarizeText({
     client: input.client,
     model: input.activeSettings.model,
-    systemPrompt: buildSummaryPrompt(
+    systemPrompt: buildLocalizedSummaryPrompt(
       resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
       "zh",
     ),
@@ -399,7 +392,7 @@ async function processTranslateJob(input: {
   const summaryEn = await input.dependencies.summarizeText({
     client: input.client,
     model: input.activeSettings.model,
-    systemPrompt: buildSummaryPrompt(
+    systemPrompt: buildLocalizedSummaryPrompt(
       resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
       "en",
     ),
@@ -409,7 +402,7 @@ async function processTranslateJob(input: {
   const summaryZh = await input.dependencies.summarizeText({
     client: input.client,
     model: input.activeSettings.model,
-    systemPrompt: buildSummaryPrompt(
+    systemPrompt: buildLocalizedSummaryPrompt(
       resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
       "zh",
     ),
