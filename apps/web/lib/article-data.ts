@@ -5,6 +5,7 @@ import {
   DEFAULT_ADMIN_ARTICLE_PAGE_SIZE,
   type AdminArticleListParams,
 } from "./admin-article-pagination"
+import { stripMarkdown } from "./strip-markdown"
 import { formatDateTimeInShanghai } from "./time"
 
 function formatDateTime(value: Date | null | undefined, lang: "zh" | "en" = "zh", fallback?: string) {
@@ -47,7 +48,9 @@ export async function getArticleRows(input: Partial<AdminArticleListParams> & { 
       title: lang === "zh" ? (article.titleZh || article.titleEn) : (article.titleEn || article.titleZh),
       titleEn: article.titleEn,
       titleZh: article.titleZh,
-      summary: lang === "zh" ? (article.summaryZh || article.summaryEn) : (article.summaryEn || article.summaryZh),
+      summary: lang === "zh"
+        ? (article.summaryZh ? stripMarkdown(article.summaryZh) : (article.summaryEn ? stripMarkdown(article.summaryEn) : null))
+        : (article.summaryEn ? stripMarkdown(article.summaryEn) : (article.summaryZh ? stripMarkdown(article.summaryZh) : null)),
       source: article.sourceName,
       status: article.status,
       publishedAt: formatDateTime(article.publishedAt),
