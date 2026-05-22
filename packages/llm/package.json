@@ -4,9 +4,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./chat": "./src/chat.ts",
     "./client": "./src/client.ts",
     "./credentials": "./src/credentials.ts",
     "./prompts": "./src/prompts.ts",
+    "./relevance": "./src/relevance.ts",
     "./tags": "./src/tags.ts",
     "./translate": "./src/translate.ts",
     "./summarize": "./src/summarize.ts"
