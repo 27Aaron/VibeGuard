@@ -91,7 +91,9 @@ export function PublicHeader({
                   ? `/${currentLang}/rss`
                   : item.label === "Check"
                     ? `/${currentLang}/check`
-                    : undefined
+                    : item.label === "API"
+                      ? "/api/reference"
+                      : undefined
               const label = item.label === "Check" ? copy.publicCheckNav : item.label
 
               if (href) {
