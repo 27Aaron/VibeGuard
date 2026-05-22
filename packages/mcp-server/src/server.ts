@@ -1,12 +1,28 @@
+import fs from "node:fs"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 
 import type { VibeGuardClient } from "./client"
 import { tools } from "./tools"
 
+function readPackageVersion(): string {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url))
+    const raw = fs.readFileSync(join(here, "..", "package.json"), "utf8")
+    return JSON.parse(raw).version ?? "0.0.0"
+  } catch {
+    return "0.0.0"
+  }
+}
+
+const version = readPackageVersion()
+
 export function createMcpServer(client: VibeGuardClient) {
   const server = new McpServer({
     name: "vibeguard",
-    version: "0.1.0",
+    version,
   })
 
   for (const tool of tools) {
