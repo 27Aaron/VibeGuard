@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Suspense, type ReactNode } from "react"
+import type { ReactNode } from "react"
 
 import { AdminHeader } from "@/components/admin/admin-header"
 import {
@@ -24,9 +24,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     <main className={getAdminBackgroundClassName()}>
       <div className={getAdminBackdropClassName()} />
       <div className={getAdminShellClassName()}>
-        <Suspense>
-          <AdminHeader />
-        </Suspense>
+        <AdminHeader />
         {children}
       </div>
     </main>

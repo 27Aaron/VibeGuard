@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useSearchParams } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { LogOut, Radio, ShieldCheck } from "lucide-react"
 
 import { AdminNav } from "@/components/admin/admin-nav"
@@ -12,13 +12,10 @@ import { resolveLang, type AppLang } from "@/lib/i18n"
 
 export function AdminHeader() {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const lang = resolveLang(pathname.split("/")[1] || undefined)
 
   const nextLang: AppLang = lang === "zh" ? "en" : "zh"
-  const nextPath = pathname.replace(/^\/(zh|en)/, `/${nextLang}`)
-  const query = searchParams.toString()
-  const nextHref = query ? `${nextPath}?${query}` : nextPath
+  const nextHref = pathname.replace(/^\/(zh|en)/, `/${nextLang}`)
 
   return (
     <header className="sticky top-3 z-40">
