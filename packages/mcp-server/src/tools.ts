@@ -28,21 +28,23 @@ export const tools: ToolDefinition[] = [
       ecosystem: z.enum(ecosystems).optional().describe("按生态系统筛选"),
       riskCategory: z.enum(riskCategories).optional().describe("按风险类别筛选"),
       limit: z.number().min(1).max(100).optional().describe("返回数量，默认 10，最大 100"),
+      lang: z.enum(["zh", "en"]).optional().describe("语言 (zh/en)，默认 zh"),
     },
     async handler(client, args) {
       const result = await client.searchArticles({
-        q: args.q as string,
-        tag: args.tag as string,
-        ecosystem: args.ecosystem as string,
-        riskCategory: args.riskCategory as string,
-        limit: args.limit as number,
+        q: args.q as string | undefined,
+        tag: args.tag as string | undefined,
+        ecosystem: args.ecosystem as string | undefined,
+        riskCategory: args.riskCategory as string | undefined,
+        limit: args.limit as number | undefined,
+        lang: args.lang as string | undefined,
       })
 
       if (result.items.length === 0) {
         return "未找到匹配的文章。"
       }
 
-      const lines = result.items.map((a: any, i: number) =>
+      const lines = result.items.map((a, i: number) =>
         `${i + 1}. **${a.title}**\n   来源: ${a.sourceName} | 生态: ${a.ecosystem} | 风险: ${a.riskCategory}\n   标签: ${a.tags.join(", ")}\n   发布: ${a.publishedAtDisplay}\n   摘要: ${a.summary}\n   ID: ${a.id}`,
       )
 
@@ -94,7 +96,7 @@ export const tools: ToolDefinition[] = [
         return "未发现已知漏洞。"
       }
 
-      const lines = result.findings.map((f: any, i: number) => {
+      const lines = result.findings.map((f, i: number) => {
         const pkg = f.package
         const adv = f.advisory
         const fixed = f.affectedPackage.fixedVersions.length > 0

@@ -1,5 +1,72 @@
 const DEFAULT_API_URL = "http://127.0.0.1:3000"
 
+type ArticleListItem = {
+  id: string
+  title: string
+  summary: string
+  url: string | null
+  sourceName: string
+  ecosystem: string
+  riskCategory: string
+  tags: string[]
+  status: string
+  publishedAt: string
+  publishedAtDisplay: string
+  updatedAt: string
+  updatedAtDisplay: string
+  locale: string
+}
+
+type ArticleListMeta = {
+  lang: string
+  status: string
+  source: string | null
+  query: string | null
+  ecosystem: string | null
+  riskCategory: string | null
+  tag: string | null
+  limit: number
+  count: number
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}
+
+type ArticleDetail = {
+  id: string
+  title: string
+  summary: string
+  content: string
+  url: string | null
+  canonicalUrl: string | null
+  sourceName: string
+  ecosystem: string
+  riskCategory: string
+  tags: string[]
+  status: string
+  publishedAt: string
+  publishedAtDisplay: string
+  updatedAt: string
+  updatedAtDisplay: string
+  locale: string
+}
+
+type PackageFinding = {
+  package: { ecosystem: string; name: string; version?: string }
+  advisory: { id: string; riskType: string; summary: string }
+  affectedPackage: { fixedVersions: string[] }
+  affected: boolean
+  matchSummary?: string
+}
+
+type SecurityOverviewTotals = {
+  npm: number
+  pypi: number
+  go: number
+  "crates-io": number
+}
+
 export class VibeGuardClient {
   private baseUrl: string
 
@@ -14,7 +81,7 @@ export class VibeGuardClient {
     riskCategory?: string
     limit?: number
     lang?: string
-  }): Promise<{ meta: any; items: any[] }> {
+  }): Promise<{ meta: ArticleListMeta; items: ArticleListItem[] }> {
     const searchParams = new URLSearchParams()
     if (params.q) searchParams.set("q", params.q)
     if (params.tag) searchParams.set("tag", params.tag)
@@ -28,7 +95,7 @@ export class VibeGuardClient {
     return res.json()
   }
 
-  async getArticle(id: string, lang?: string): Promise<any> {
+  async getArticle(id: string, lang?: string): Promise<ArticleDetail | null> {
     const searchParams = new URLSearchParams()
     searchParams.set("lang", lang || "zh")
 
@@ -42,7 +109,7 @@ export class VibeGuardClient {
     ecosystem: string
     name: string
     version?: string
-  }>): Promise<any> {
+  }>): Promise<{ findings: PackageFinding[] }> {
     const res = await fetch(`${this.baseUrl}/api/security/check/packages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -52,7 +119,7 @@ export class VibeGuardClient {
     return res.json()
   }
 
-  async securityOverview(): Promise<any> {
+  async securityOverview(): Promise<{ totals: SecurityOverviewTotals }> {
     const res = await fetch(`${this.baseUrl}/api/security/check/overview`)
     if (!res.ok) throw new Error(`API error: ${res.status}`)
     return res.json()
