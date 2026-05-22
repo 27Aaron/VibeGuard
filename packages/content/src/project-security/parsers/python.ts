@@ -1,4 +1,5 @@
 import type { DetectedDependencyFile, ResolvedDependency } from "../types"
+import { toSortedPackages } from "./shared"
 
 type ParsePythonDependencyFileInput = {
   rootDir: string
@@ -9,17 +10,6 @@ type ParsePythonDependencyFileInput = {
 type ParsePythonDependencyFileResult = {
   packages: ResolvedDependency[]
   warnings: string[]
-}
-
-function toSortedPackages(packages: ResolvedDependency[]) {
-  return [...packages].sort((left, right) => {
-    const nameComparison = left.name.localeCompare(right.name)
-    if (nameComparison !== 0) {
-      return nameComparison
-    }
-
-    return (left.version ?? "").localeCompare(right.version ?? "")
-  })
 }
 
 function stripPythonRequirementMetadata(line: string) {

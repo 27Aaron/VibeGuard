@@ -1,4 +1,5 @@
 import type { DetectedDependencyFile, ResolvedDependency } from "../types"
+import { toSortedPackages } from "./shared"
 
 type ParseRustDependencyFileInput = {
   rootDir: string
@@ -20,17 +21,6 @@ type CargoManifestDependency = {
 type ParsedCargoManifest = {
   dependencies: CargoManifestDependency[]
   packageName: string | null
-}
-
-function toSortedPackages(packages: ResolvedDependency[]) {
-  return [...packages].sort((left, right) => {
-    const nameComparison = left.name.localeCompare(right.name)
-    if (nameComparison !== 0) {
-      return nameComparison
-    }
-
-    return (left.version ?? "").localeCompare(right.version ?? "")
-  })
 }
 
 function isCargoDependencySection(sectionName: string) {

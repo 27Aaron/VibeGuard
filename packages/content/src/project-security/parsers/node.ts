@@ -1,4 +1,5 @@
 import type { DetectedDependencyFile, ResolvedDependency } from "../types"
+import { toSortedPackages } from "./shared"
 
 type ParseNodeDependencyFileInput = {
   rootDir: string
@@ -28,10 +29,6 @@ type PackageManifestData = {
 }
 
 type DirectDependenciesByContext = Map<string, Set<string>>
-
-function toSortedPackages(packages: ResolvedDependency[]) {
-  return [...packages].sort((left, right) => left.name.localeCompare(right.name))
-}
 
 function extractNodePackageName(packagePath: string) {
   const segments = packagePath.split("node_modules/")
