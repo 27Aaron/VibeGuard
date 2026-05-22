@@ -21,7 +21,6 @@ describe("admin shell layout", () => {
     expect(adminLayout).toContain("<AdminHeader")
     expect(adminHeader).toContain("backdrop-blur-2xl")
     expect(adminHeader).toContain("Console")
-    expect(shell).toContain("后台工作台")
     expect(shell).not.toContain("adminShellLabel")
     expect(shell).not.toContain("内容底座后台")
     expect(shell).not.toContain("VibeGuard Admin")

@@ -21,9 +21,6 @@ export function AdminPageShell({
     <>
       <section className={cn(getSectionOuterClassName(), "px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-none")}>
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-stone-400">
-            {lang === "zh" ? "后台工作台" : "Workspace"}
-          </p>
           <h1 className="text-2xl font-semibold tracking-normal text-zinc-950 dark:text-stone-50">
             {title}
           </h1>
