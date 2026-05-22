@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react"
 
 import { buttonVariants } from "@/components/ui/button"
+import type { AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
 type RedirectCountdownProps = {
-  lang: string
+  lang: AppLang
 }
 
 export function RedirectCountdown({ lang }: RedirectCountdownProps) {
