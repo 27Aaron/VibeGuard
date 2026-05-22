@@ -1,6 +1,6 @@
 "use client"
 
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react"
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
@@ -196,21 +196,92 @@ function ExpandableMarkdownBlock({
   )
 }
 
+const CHECK_STATE_STORAGE_KEY = "vibeguard-check-state"
+
+type PersistedCheckState = {
+  ecosystem: SecurityPackageEcosystem
+  packageName: string
+  version: string
+  submittedQuery: SubmittedQuery | null
+  result: PackageCheckWorkbenchResult | null
+}
+
+function loadPersistedCheckState(): PersistedCheckState | null {
+  try {
+    const raw = sessionStorage.getItem(CHECK_STATE_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<PersistedCheckState>
+    if (
+      parsed.ecosystem &&
+      SECURITY_PACKAGE_ECOSYSTEM_VALUES.includes(parsed.ecosystem as SecurityPackageEcosystem)
+    ) {
+      return {
+        ecosystem: parsed.ecosystem as SecurityPackageEcosystem,
+        packageName: typeof parsed.packageName === "string" ? parsed.packageName : "",
+        version: typeof parsed.version === "string" ? parsed.version : "",
+        submittedQuery: parsed.submittedQuery ?? null,
+        result: parsed.result ?? null,
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+function savePersistedCheckState(state: PersistedCheckState) {
+  try {
+    sessionStorage.setItem(CHECK_STATE_STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // ignore
+  }
+}
+
+function clearPersistedCheckState() {
+  try {
+    sessionStorage.removeItem(CHECK_STATE_STORAGE_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export function PackageCheckWorkbench({
   lang,
   initialOverviewTotals,
 }: PackageCheckWorkbenchProps) {
   const copy = getUiText(lang)
-  const [ecosystem, setEcosystem] = useState<SecurityPackageEcosystem>("npm")
-  const [packageName, setPackageName] = useState("")
-  const [version, setVersion] = useState("")
+  const saved = useMemo(() => loadPersistedCheckState(), [])
+  const [ecosystem, setEcosystem] = useState<SecurityPackageEcosystem>(
+    saved?.ecosystem ?? "npm",
+  )
+  const [packageName, setPackageName] = useState(saved?.packageName ?? "")
+  const [version, setVersion] = useState(saved?.version ?? "")
   const [selectOpen, setSelectOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(null)
+  const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(saved?.result ?? null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [submittedQuery, setSubmittedQuery] = useState<SubmittedQuery | null>(null)
+  const [submittedQuery, setSubmittedQuery] = useState<SubmittedQuery | null>(saved?.submittedQuery ?? null)
   const selectRef = useRef<HTMLDivElement | null>(null)
+
+  const persistState = useCallback(
+    (
+      eco: SecurityPackageEcosystem,
+      name: string,
+      ver: string,
+      query: SubmittedQuery | null,
+      res: PackageCheckWorkbenchResult | null,
+    ) => {
+      savePersistedCheckState({
+        ecosystem: eco,
+        packageName: name,
+        version: ver,
+        submittedQuery: query,
+        result: res,
+      })
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!selectOpen) {
@@ -266,6 +337,7 @@ export function PackageCheckWorkbench({
     setResult(null)
     setCurrentPage(1)
     setSubmittedQuery(null)
+    clearPersistedCheckState()
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -294,8 +366,11 @@ export function PackageCheckWorkbench({
         }),
       )
 
-      setResult(buildSecurityWorkbenchResultState(payload))
-      setSubmittedQuery({ version: normalizedVersion })
+      const resultState = buildSecurityWorkbenchResultState(payload)
+      const query = { version: normalizedVersion }
+      setResult(resultState)
+      setSubmittedQuery(query)
+      persistState(ecosystem, packageName, version, query, resultState)
     } catch (submitError) {
       setResult(null)
       setSubmittedQuery(null)
@@ -386,7 +461,10 @@ export function PackageCheckWorkbench({
               id="security-package-name"
               type="search"
               value={packageName}
-              onChange={(event) => setPackageName(event.target.value)}
+              onChange={(event) => {
+                setPackageName(event.target.value)
+                persistState(ecosystem, event.target.value, version, submittedQuery, result)
+              }}
               placeholder={ecosystem === "npm" ? "@scope/package" : "package-name"}
               className="h-11 min-w-0 flex-1 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
               disabled={pending}
@@ -398,7 +476,10 @@ export function PackageCheckWorkbench({
             <Input
               id="security-package-version"
               value={version}
-              onChange={(event) => setVersion(event.target.value)}
+              onChange={(event) => {
+                setVersion(event.target.value)
+                persistState(ecosystem, packageName, event.target.value, submittedQuery, result)
+              }}
               placeholder="1.0.0"
               className="h-11 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 lg:w-[180px] dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
               disabled={pending}

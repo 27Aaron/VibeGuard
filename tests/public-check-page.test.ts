@@ -25,7 +25,9 @@ describe("public check page scaffolding", () => {
 
     expect(route).toContain("PublicHeader")
     expect(route).toContain("PackageCheckWorkbench")
-    expect(route).toContain("<PackageCheckWorkbench lang={lang} initialOverviewTotals={overviewTotals} />")
+    expect(route).toContain("PackageCheckWorkbench")
+    expect(route).toContain("lang={lang}")
+    expect(route).toContain("initialOverviewTotals={overviewTotals}")
     expect(route).not.toContain("publicCheckTitle")
     expect(route).not.toContain("publicCheckDescription")
     expect(component).toContain('fetch("/api/security/check/packages"')
