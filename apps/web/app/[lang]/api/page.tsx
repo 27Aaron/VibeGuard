@@ -68,7 +68,7 @@ export default async function ApiPage({ params: routeParams }: ApiPageProps) {
                   <h1 className="text-2xl font-bold tracking-tight text-zinc-950 dark:text-stone-100">
                     {lang === "zh" ? "API 文档" : "API Reference"}
                   </h1>
-                  <p className="mt-2 max-w-lg text-sm leading-relaxed text-zinc-600 dark:text-stone-400">
+                  <p className="mt-2 text-sm text-zinc-600 sm:whitespace-nowrap dark:text-stone-400">
                     {lang === "zh"
                       ? "公开接口无需认证，浏览器直接访问即可。点击参数标签查看详情与示例。"
                       : "Public endpoints require no authentication. Click parameter tags for details and examples."}
