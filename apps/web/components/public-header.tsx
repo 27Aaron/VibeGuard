@@ -98,7 +98,12 @@ export function PublicHeader({
 
               if (href) {
                 return (
-                  <Link key={item.label} href={href} className={surfaceClassName}>
+                  <Link
+                    key={item.label}
+                    href={href}
+                    prefetch={item.label === "API" ? false : undefined}
+                    className={surfaceClassName}
+                  >
                     <span className={contentClassName}>
                       <Icon className={iconClassName} strokeWidth={2} />
                       {label}

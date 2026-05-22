@@ -28,7 +28,7 @@ describe("public homepage card layout", () => {
     expect(publicHeader).toContain("inline-flex h-8 min-w-0 items-center rounded-full border border-black/8 bg-[#eef2f7] p-[2px]")
     expect(publicHeader).toContain("inline-flex h-[26px] items-center gap-1.5 rounded-full border border-black/8 bg-white px-2.5")
     expect(publicHeader).toContain("dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100")
-    expect(publicHeader).toContain("const active = item.surface === currentSurface")
+    expect(publicHeader).toContain("const active = currentSurface != null && item.surface === currentSurface")
     expect(publicHeader).toContain("border-emerald-900/18 bg-[#dfe9e2] text-emerald-950")
     expect(publicHeader).toContain("dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100")
     expect(publicHeader).toContain("border-emerald-900/12 bg-[#f7fbf8] text-emerald-950")
