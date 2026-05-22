@@ -10,6 +10,8 @@ export type SecurityCheckPayload = Awaited<ReturnType<typeof checkPackagesAgains
 export type SecurityFinding = SecurityCheckPayload["findings"][number]
 export type SecurityFindingConfidence = SecurityFinding["confidence"]
 
+type SecurityRange = SecurityFinding["affectedPackage"]["ranges"][number]
+
 export function buildSecurityCheckRequestBody(input: {
   ecosystem: SecurityPackageEcosystem
   name: string
@@ -192,6 +194,73 @@ export function getSecurityFindingTone(
       return exhaustiveCheck
     }
   }
+}
+
+function formatRangeEvent(event: Record<string, string>) {
+  if ("introduced" in event && "fixed" in event) {
+    return `>= ${event.introduced}, < ${event.fixed}`
+  }
+
+  if ("introduced" in event && "last_affected" in event) {
+    return `>= ${event.introduced}, <= ${event.last_affected}`
+  }
+
+  if ("introduced" in event) {
+    return `>= ${event.introduced}`
+  }
+
+  if ("fixed" in event) {
+    return `< ${event.fixed}`
+  }
+
+  if ("last_affected" in event) {
+    return `<= ${event.last_affected}`
+  }
+
+  return null
+}
+
+export function formatAffectedRanges(ranges: SecurityRange[]) {
+  return ranges.flatMap((range) => {
+    if (range.type !== "ECOSYSTEM" || !Array.isArray(range.events) || range.events.length === 0) {
+      return []
+    }
+
+    const formatted: string[] = []
+    let introduced: string | null = null
+
+    for (const event of range.events) {
+      if ("introduced" in event) {
+        introduced = event.introduced
+      }
+
+      if (introduced && "fixed" in event) {
+        formatted.push(`>= ${introduced}, < ${event.fixed}`)
+        introduced = null
+        continue
+      }
+
+      if (introduced && "last_affected" in event) {
+        formatted.push(`>= ${introduced}, <= ${event.last_affected}`)
+        introduced = null
+        continue
+      }
+
+      if (!introduced) {
+        const fallback = formatRangeEvent(event)
+
+        if (fallback) {
+          formatted.push(fallback)
+        }
+      }
+    }
+
+    if (introduced) {
+      formatted.push(`>= ${introduced}`)
+    }
+
+    return formatted
+  })
 }
 
 export function buildSecurityWorkbenchResultState(payload: SecurityCheckPayload) {

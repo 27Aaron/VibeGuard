@@ -4,6 +4,7 @@ import { checkPackagesAgainstLocalDb } from "../packages/content/src/osv/query"
 
 import {
   buildSecurityCheckRequestBody,
+  formatAffectedRanges,
   parseSecurityCheckPayload,
   buildSecurityWorkbenchResultState,
   getSecurityFindingTone,
@@ -385,5 +386,20 @@ describe("security workbench helpers", () => {
       lastSyncedAt: "2026-05-21T23:00:00.000Z",
       findings: payload.findings,
     })
+  })
+
+  it("formats ecosystem range events into human-readable summaries", () => {
+    expect(
+      formatAffectedRanges([
+        {
+          type: "ECOSYSTEM",
+          events: [{ introduced: "0" }, { fixed: "1.2.0" }],
+        },
+        {
+          type: "ECOSYSTEM",
+          events: [{ introduced: "2.0.0" }, { last_affected: "2.4.0" }],
+        },
+      ]),
+    ).toEqual([">= 0, < 1.2.0", ">= 2.0.0, <= 2.4.0"])
   })
 })

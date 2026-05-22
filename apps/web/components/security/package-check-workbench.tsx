@@ -20,6 +20,7 @@ import type { AppLang } from "@/lib/i18n"
 import { getUiText } from "@/lib/i18n"
 import {
   buildSecurityCheckRequestBody,
+  formatAffectedRanges,
   parseSecurityCheckPayload,
   buildSecurityWorkbenchResultState,
   getSecurityFindingTone,
@@ -142,9 +143,13 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
 
   return (
     <Card>
-      <CardContent className="space-y-4">
-        <form className="grid gap-4 pt-5 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)_auto]" onSubmit={handleSubmit}>
-          <div className="flex flex-col gap-2">
+      <CardContent className="space-y-5">
+        <div className="rounded-[1.15rem] border border-black/6 bg-[#f6f7f3] px-4 py-3 text-sm text-zinc-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-300 dark:shadow-none">
+          {copy.publicCheckDescription}
+        </div>
+
+        <form className="grid gap-4 lg:grid-cols-[minmax(0,170px)_minmax(0,1.3fr)_minmax(0,220px)_auto]" onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-2.5">
             <label htmlFor="security-ecosystem" className="text-sm font-medium">
               {lang === "zh" ? "生态" : "Ecosystem"}
             </label>
@@ -162,7 +167,7 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
               ))}
             </select>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             <label htmlFor="security-package-name" className="text-sm font-medium">
               {copy.publicCheckPackageName}
             </label>
@@ -175,7 +180,7 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
               required
             />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             <label htmlFor="security-package-version" className="text-sm font-medium">
               {copy.publicCheckVersion}
             </label>
@@ -186,9 +191,16 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
               placeholder="1.0.0"
               disabled={pending}
             />
+            <p className="text-xs leading-5 text-zinc-500 dark:text-stone-400">
+              {copy.publicCheckVersionHint}
+            </p>
           </div>
           <div className="flex items-end">
-            <Button type="submit" disabled={pending || !packageName.trim()} className="w-full lg:w-auto">
+            <Button
+              type="submit"
+              disabled={pending || !packageName.trim()}
+              className="h-10 w-full rounded-full px-5 lg:w-auto"
+            >
               {pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit}
             </Button>
           </div>
@@ -222,13 +234,21 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
           </section>
         ) : (
           <section className="space-y-3">
-            {result.findings.map((finding, index) => (
-              <article
-                key={`${finding.advisory.id}-${finding.package.name}-${index}`}
-                className={cn("space-y-3", getAdminSubtlePanelClassName())}
-              >
+            {result.findings.map((finding, index) => {
+              const formattedRanges = formatAffectedRanges(
+                finding.affectedPackage.ranges,
+              )
+
+              return (
+                <article
+                  key={`${finding.advisory.id}-${finding.package.name}-${index}`}
+                  className={cn("space-y-3", getAdminSubtlePanelClassName())}
+                >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
+                      {copy.publicCheckResultLabel}
+                    </p>
                     <p className="text-sm font-medium text-zinc-950 dark:text-stone-50">
                       {finding.matchSummary}
                     </p>
@@ -238,6 +258,58 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
                   </div>
                   <Badge variant={toneBadgeVariant(finding)}>{toneLabel(finding, lang)}</Badge>
                 </div>
+
+                {finding.advisory.summary ? (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                      {copy.publicCheckSummaryLabel}
+                    </p>
+                    <p className="text-sm leading-6 text-zinc-700 dark:text-stone-200">
+                      {finding.advisory.summary}
+                    </p>
+                  </div>
+                ) : null}
+
+                {finding.advisory.details ? (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                      {copy.publicCheckDetailsLabel}
+                    </p>
+                    <p className="text-sm leading-6 text-zinc-600 dark:text-stone-300">
+                      {finding.advisory.details}
+                    </p>
+                  </div>
+                ) : null}
+
+                {finding.affectedPackage.affectedVersions.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                      {copy.publicCheckAffectedVersionsLabel}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {finding.affectedPackage.affectedVersions.map((affectedVersion, affectedVersionIndex) => (
+                        <Badge key={`${affectedVersion}-${affectedVersionIndex}`} variant="outline">
+                          {affectedVersion}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {formattedRanges.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                      {copy.publicCheckAffectedRangesLabel}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {formattedRanges.map((rangeLabel, rangeIndex) => (
+                        <Badge key={`${rangeLabel}-${rangeIndex}`} variant="outline">
+                          {rangeLabel}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {finding.affectedPackage.fixedVersions.length > 0 ? (
                   <div className="space-y-2">
@@ -260,8 +332,8 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
                       {lang === "zh" ? "参考链接" : "References"}
                     </p>
                     <ul className="space-y-1 text-xs text-zinc-500 dark:text-stone-400">
-                      {finding.advisory.references.map((reference) => (
-                        <li key={reference.url} className="break-all">
+                      {finding.advisory.references.map((reference, referenceIndex) => (
+                        <li key={`${reference.url}-${referenceIndex}`} className="break-all">
                           <a
                             href={reference.url}
                             target="_blank"
@@ -276,8 +348,9 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
                     </ul>
                   </div>
                 ) : null}
-              </article>
-            ))}
+                </article>
+              )
+            })}
           </section>
         )}
       </CardContent>
