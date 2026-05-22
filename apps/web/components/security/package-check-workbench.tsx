@@ -1,12 +1,17 @@
 "use client"
 
-import { type FormEvent, useState } from "react"
+import { type FormEvent, useEffect, useRef, useState } from "react"
 
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   type SecurityPackageEcosystem,
 } from "@vibeguard/shared"
+import { ChevronDown, ChevronRight } from "lucide-react"
 
+import {
+  MarkdownRenderer,
+  MarkdownSummary,
+} from "@/components/content/markdown-renderer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,6 +31,7 @@ import {
   getSecurityFindingTone,
   type SecurityFinding,
 } from "@/lib/security-workbench"
+import { buildSummaryPreviewText } from "@/lib/summary-preview"
 import { cn } from "@/lib/utils"
 
 type PackageCheckWorkbenchProps = {
@@ -33,6 +39,14 @@ type PackageCheckWorkbenchProps = {
 }
 
 type PackageCheckWorkbenchResult = ReturnType<typeof buildSecurityWorkbenchResultState>
+
+type ExpandableMarkdownBlockProps = {
+  label: string
+  content: string
+  lang: AppLang
+  expandLabel: string
+  collapseLabel: string
+}
 
 function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
   switch (ecosystem) {
@@ -91,6 +105,92 @@ async function parseCheckResponse(response: Response) {
   }
 
   return parseSecurityCheckPayload(payload)
+}
+
+function ExpandableMarkdownBlock({
+  label,
+  content,
+  lang,
+  expandLabel,
+  collapseLabel,
+}: ExpandableMarkdownBlockProps) {
+  const [expanded, setExpanded] = useState(false)
+  const [canExpand, setCanExpand] = useState(false)
+  const [measured, setMeasured] = useState(false)
+  const previewRef = useRef<HTMLDivElement | null>(null)
+  const previewText = buildSummaryPreviewText(content)
+
+  useEffect(() => {
+    const element = previewRef.current
+
+    if (!element) {
+      return
+    }
+
+    setCanExpand(false)
+    setMeasured(false)
+
+    const measureOverflow = () => {
+      const nextCanExpand = element.scrollHeight > element.clientHeight + 1
+      setCanExpand((current) => current || nextCanExpand)
+      setMeasured(true)
+    }
+
+    measureOverflow()
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measureOverflow)
+      return () => window.removeEventListener("resize", measureOverflow)
+    }
+
+    const observer = new ResizeObserver(measureOverflow)
+    observer.observe(element)
+    window.addEventListener("resize", measureOverflow)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("resize", measureOverflow)
+    }
+  }, [previewText])
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+          {label}
+        </p>
+        {canExpand ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 shrink-0 px-2 text-xs text-zinc-500 hover:text-zinc-950 dark:text-stone-400 dark:hover:text-stone-50"
+            onClick={() => setExpanded((current) => !current)}
+          >
+            {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+            {expanded ? collapseLabel : expandLabel}
+          </Button>
+        ) : null}
+      </div>
+      <div className="rounded-2xl border border-black/6 bg-white/65 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.035] dark:shadow-none">
+        {expanded || (measured && !canExpand) ? (
+          <MarkdownRenderer
+            content={content}
+            variant="public"
+            lang={lang}
+            className="text-sm leading-6 text-zinc-600 dark:text-stone-300 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit [&_.markdown-body]:text-inherit"
+          />
+        ) : (
+          <div
+            ref={previewRef}
+            className="line-clamp-2 text-sm leading-6 text-zinc-600 dark:text-stone-300"
+          >
+            {previewText}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
@@ -264,20 +364,24 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
                     <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
                       {copy.publicCheckSummaryLabel}
                     </p>
-                    <p className="text-sm leading-6 text-zinc-700 dark:text-stone-200">
-                      {finding.advisory.summary}
-                    </p>
+                    <MarkdownSummary
+                      content={finding.advisory.summary}
+                      variant="public"
+                      lang={lang}
+                      className="text-sm leading-6 text-zinc-700 dark:text-stone-200 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit"
+                    />
                   </div>
                 ) : null}
 
                 {finding.advisory.details ? (
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {copy.publicCheckDetailsLabel}
-                    </p>
-                    <p className="text-sm leading-6 text-zinc-600 dark:text-stone-300">
-                      {finding.advisory.details}
-                    </p>
+                  <div>
+                    <ExpandableMarkdownBlock
+                      label={copy.publicCheckDetailsLabel}
+                      content={finding.advisory.details}
+                      lang={lang}
+                      expandLabel={copy.publicCheckDetailsToggle}
+                      collapseLabel={copy.publicCheckDetailsCollapse}
+                    />
                   </div>
                 ) : null}
 

@@ -5,7 +5,6 @@ import "./globals.css";
 import { Geist } from "next/font/google";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
-import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -23,16 +22,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={lang === "en" ? "en" : "zh"} className={cn("font-sans", geist.variable)} suppressHydrationWarning>
-      <head>
-        <Script
-          id="theme-bootstrap"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
-        />
-      </head>
       <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
         <Toaster position="top-center" richColors />
+        <Script
+          id="theme-bootstrap"
+          src="/theme-init.js"
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   );

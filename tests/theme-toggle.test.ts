@@ -6,16 +6,21 @@ describe("theme toggle", () => {
   it("boots theme from system preference and local storage before hydration", () => {
     const layout = fs.readFileSync("apps/web/app/layout.tsx", "utf8")
     const theme = fs.readFileSync("apps/web/lib/theme.ts", "utf8")
+    const themeInit = fs.readFileSync("apps/web/public/theme-init.js", "utf8")
 
     expect(layout).toContain('id="theme-bootstrap"')
     expect(layout).toContain('from "next/script"')
     expect(layout).toContain('strategy="beforeInteractive"')
-    expect(layout).toContain("<head>")
+    expect(layout).toContain('src="/theme-init.js"')
+    expect(layout).toContain("<body")
     expect(layout).toContain("<Script")
     expect(layout).not.toContain("<script")
-    expect(theme).toContain('window.matchMedia("(prefers-color-scheme: dark)")')
-    expect(theme).toContain('const stored = localStorage.getItem(storageKey);')
-    expect(theme).toContain('root.classList.toggle("dark", resolved === "dark")')
+    expect(layout).not.toContain("dangerouslySetInnerHTML")
+    expect(layout).not.toContain("THEME_BOOTSTRAP_SCRIPT")
+    expect(theme).toContain('export const THEME_STORAGE_KEY = "vibeguard-theme"')
+    expect(themeInit).toContain('window.matchMedia("(prefers-color-scheme: dark)")')
+    expect(themeInit).toContain('const stored = localStorage.getItem(storageKey);')
+    expect(themeInit).toContain('root.classList.toggle("dark", resolved === "dark")')
   })
 
   it("uses the lucide-style pill toggle across public and admin surfaces", () => {
