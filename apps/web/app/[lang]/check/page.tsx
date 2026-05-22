@@ -9,7 +9,7 @@ import {
   getSectionOuterClassName,
   getShellClassName,
 } from "@/lib/layout-tokens"
-import { getSecurityOverviewTotals } from "@/lib/security-overview"
+import { getLastSyncTime, getSecurityOverviewTotals } from "@/lib/security-overview"
 
 export const dynamic = "force-dynamic"
 
@@ -21,7 +21,10 @@ export default async function CheckPage({ params: routeParams }: CheckPageProps)
   const { lang: rawLang } = await routeParams
   const lang = resolveLang(rawLang)
   const nextLang = lang === "zh" ? "en" : "zh"
-  const overviewTotals = await getSecurityOverviewTotals(getDb())
+  const [overviewTotals, lastSyncTime] = await Promise.all([
+    getSecurityOverviewTotals(getDb()),
+    getLastSyncTime(getDb()),
+  ])
 
   return (
     <main className={getBackgroundClassName()}>
@@ -37,7 +40,7 @@ export default async function CheckPage({ params: routeParams }: CheckPageProps)
 
         <section className={getSectionOuterClassName()}>
           <div className={getSectionInnerClassName()}>
-            <PackageCheckWorkbench lang={lang} initialOverviewTotals={overviewTotals} />
+            <PackageCheckWorkbench lang={lang} initialOverviewTotals={overviewTotals} lastSyncTime={lastSyncTime?.toISOString() ?? null} />
           </div>
         </section>
       </div>

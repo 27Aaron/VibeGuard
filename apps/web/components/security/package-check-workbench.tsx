@@ -28,11 +28,13 @@ import {
   type SecurityFinding,
 } from "@/lib/security-workbench"
 import { buildSummaryPreviewText } from "@/lib/summary-preview"
+import { formatDateTimeInShanghai } from "@/lib/time"
 import { cn } from "@/lib/utils"
 
 type PackageCheckWorkbenchProps = {
   lang: AppLang
   initialOverviewTotals: SecurityOverviewTotals
+  lastSyncTime: string | null
 }
 
 type PackageCheckWorkbenchResult = ReturnType<typeof buildSecurityWorkbenchResultState>
@@ -248,21 +250,30 @@ function clearPersistedCheckState() {
 export function PackageCheckWorkbench({
   lang,
   initialOverviewTotals,
+  lastSyncTime,
 }: PackageCheckWorkbenchProps) {
   const copy = getUiText(lang)
-  const saved = useMemo(() => loadPersistedCheckState(), [])
-  const [ecosystem, setEcosystem] = useState<SecurityPackageEcosystem>(
-    saved?.ecosystem ?? "npm",
-  )
-  const [packageName, setPackageName] = useState(saved?.packageName ?? "")
-  const [version, setVersion] = useState(saved?.version ?? "")
+  const [ecosystem, setEcosystem] = useState<SecurityPackageEcosystem>("npm")
+  const [packageName, setPackageName] = useState("")
+  const [version, setVersion] = useState("")
   const [selectOpen, setSelectOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(saved?.result ?? null)
+  const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [submittedQuery, setSubmittedQuery] = useState<SubmittedQuery | null>(saved?.submittedQuery ?? null)
+  const [submittedQuery, setSubmittedQuery] = useState<SubmittedQuery | null>(null)
   const selectRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const saved = loadPersistedCheckState()
+    if (saved) {
+      setEcosystem(saved.ecosystem)
+      setPackageName(saved.packageName)
+      setVersion(saved.version)
+      if (saved.result) setResult(saved.result)
+      if (saved.submittedQuery) setSubmittedQuery(saved.submittedQuery)
+    }
+  }, [])
 
   const persistState = useCallback(
     (
@@ -401,6 +412,11 @@ export function PackageCheckWorkbench({
               {resultBadge ? (
                 <Badge variant="outline" className="h-7 px-3">
                   {resultBadge}
+                </Badge>
+              ) : null}
+              {lastSyncTime ? (
+                <Badge variant="outline" className="h-7 px-3">
+                  {lang === "zh" ? "数据更新于" : "Data updated"} {formatDateTimeInShanghai(lastSyncTime, { lang })}
                 </Badge>
               ) : null}
             </div>

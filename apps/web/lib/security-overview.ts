@@ -1,9 +1,10 @@
-import { sql } from "drizzle-orm"
+import { desc, sql } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
 import {
   schema,
   securityAffectedPackages,
+  securitySyncState,
 } from "@vibeguard/db"
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
@@ -32,4 +33,12 @@ export async function getSecurityOverviewTotals(db: ContentDb): Promise<Security
   }
 
   return totals
+}
+
+export async function getLastSyncTime(db: ContentDb): Promise<Date | null> {
+  const row = await db.query.securitySyncState.findFirst({
+    columns: { lastSuccessAt: true },
+    orderBy: [desc(securitySyncState.lastSuccessAt)],
+  })
+  return row?.lastSuccessAt ?? null
 }
