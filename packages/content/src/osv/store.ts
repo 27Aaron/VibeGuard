@@ -29,6 +29,7 @@ type StoreTables = {
 
 type UpsertOptions = {
   tables?: Partial<StoreTables>
+  affectedPackageInsertChunkSize?: number
 }
 
 const advisoryConflictUpdateSet = {
@@ -45,14 +46,29 @@ const advisoryConflictUpdateSet = {
   references: sql.raw("excluded.references"),
 }
 
+const DEFAULT_AFFECTED_PACKAGE_INSERT_CHUNK_SIZE = 1000
+
+function chunkArray<T>(values: T[], chunkSize: number) {
+  const chunks: T[][] = []
+
+  for (let index = 0; index < values.length; index += chunkSize) {
+    chunks.push(values.slice(index, index + chunkSize))
+  }
+
+  return chunks
+}
+
 export type UpsertNormalizedOsvRecordResult = {
   advisoryId: string
   affectedPackageCount: number
   skipped: boolean
+  writeKind: "new" | "changed" | null
 }
 
 export type UpsertNormalizedOsvRecordsBatchResult = {
   importedCount: number
+  newCount: number
+  changedCount: number
   skippedCount: number
   results: UpsertNormalizedOsvRecordResult[]
 }
@@ -155,6 +171,8 @@ export async function upsertNormalizedOsvRecordsBatch(
   if (normalizedRecords.length === 0) {
     return {
       importedCount: 0,
+      newCount: 0,
+      changedCount: 0,
       skippedCount: 0,
       results: [],
     }
@@ -164,6 +182,13 @@ export async function upsertNormalizedOsvRecordsBatch(
     options.tables?.securityAdvisories ?? securityAdvisories
   const affectedPackagesTable =
     options.tables?.securityAffectedPackages ?? securityAffectedPackages
+  const affectedPackageInsertChunkSize = Math.max(
+    1,
+    Math.floor(
+      options.affectedPackageInsertChunkSize ??
+        DEFAULT_AFFECTED_PACKAGE_INSERT_CHUNK_SIZE,
+    ),
+  )
 
   const externalIds = Array.from(
     new Set(normalizedRecords.map((record) => record.advisory.externalId)),
@@ -204,6 +229,7 @@ export async function upsertNormalizedOsvRecordsBatch(
         advisoryId: existing.id,
         affectedPackageCount: record.affectedPackages.length,
         skipped: true,
+        writeKind: null,
       })
       continue
     }
@@ -214,6 +240,8 @@ export async function upsertNormalizedOsvRecordsBatch(
   if (recordsToWrite.length === 0) {
     return {
       importedCount: 0,
+      newCount: 0,
+      changedCount: 0,
       skippedCount,
       results: normalizedRecords.map((record) => {
         const result = resultsByExternalId.get(record.advisory.externalId)
@@ -251,9 +279,14 @@ export async function upsertNormalizedOsvRecordsBatch(
   const affectedPackageInsertValues: Array<
     ReturnType<typeof buildSecurityAffectedPackageInsert>
   > = []
+  let newCount = 0
+  let changedCount = 0
 
   for (const record of recordsToWrite) {
     const advisoryId = advisoryIdByExternalId.get(record.advisory.externalId)
+    const writeKind = existingByExternalId.has(record.advisory.externalId)
+      ? "changed"
+      : "new"
 
     if (!advisoryId) {
       throw new Error(
@@ -261,11 +294,17 @@ export async function upsertNormalizedOsvRecordsBatch(
       )
     }
 
+    if (writeKind === "new") {
+      newCount += 1
+    } else {
+      changedCount += 1
+    }
     advisoryIdsToRewrite.push(advisoryId)
     resultsByExternalId.set(record.advisory.externalId, {
       advisoryId,
       affectedPackageCount: record.affectedPackages.length,
       skipped: false,
+      writeKind,
     })
     affectedPackageInsertValues.push(
       ...record.affectedPackages.map((affectedPackage) =>
@@ -281,15 +320,22 @@ export async function upsertNormalizedOsvRecordsBatch(
   }
 
   if (affectedPackageInsertValues.length > 0) {
-    await db
-      .insert(affectedPackagesTable)
-      .values(affectedPackageInsertValues)
-      .onConflictDoNothing()
-      .returning()
+    for (const chunk of chunkArray(
+      affectedPackageInsertValues,
+      affectedPackageInsertChunkSize,
+    )) {
+      await db
+        .insert(affectedPackagesTable)
+        .values(chunk)
+        .onConflictDoNothing()
+        .returning()
+    }
   }
 
   return {
     importedCount: recordsToWrite.length,
+    newCount,
+    changedCount,
     skippedCount,
     results: normalizedRecords.map((record) => {
       const result = resultsByExternalId.get(record.advisory.externalId)

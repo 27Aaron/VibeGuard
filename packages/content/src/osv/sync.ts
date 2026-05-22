@@ -108,6 +108,9 @@ export type SyncOsvEcosystemSummary = {
   ecosystem: OsvDumpEcosystem
   recordsSeen: number
   recordsImported: number
+  recordsNew: number
+  recordsChanged: number
+  recordsSkipped: number
   recordsFailed: number
   lastProcessedModifiedAt: Date | null
 }
@@ -256,6 +259,9 @@ export async function syncOsvEcosystem({
   const modifiedCsv = await fetchText(buildModifiedIdCsvUrl(ecosystem))
   const rows = parseModifiedIdCsv(modifiedCsv).slice(0, Math.max(0, limit))
   let recordsImported = 0
+  let recordsNew = 0
+  let recordsChanged = 0
+  let recordsSkipped = 0
   let recordsFailed = 0
   let lastProcessedModifiedAt: Date | null = null
 
@@ -280,6 +286,9 @@ export async function syncOsvEcosystem({
       const result = await upsertRecord(db, normalized)
       await deleteCachedOsvFile(filePath)
       recordsImported += result.skipped ? 0 : 1
+      recordsNew += result.writeKind === "new" ? 1 : 0
+      recordsChanged += result.writeKind === "changed" ? 1 : 0
+      recordsSkipped += result.skipped ? 1 : 0
       lastProcessedModifiedAt =
         !lastProcessedModifiedAt ||
         row.modifiedAt.getTime() > lastProcessedModifiedAt.getTime()
@@ -307,6 +316,9 @@ export async function syncOsvEcosystem({
     ecosystem,
     recordsSeen: rows.length,
     recordsImported,
+    recordsNew,
+    recordsChanged,
+    recordsSkipped,
     recordsFailed,
     lastProcessedModifiedAt,
   }
@@ -345,6 +357,9 @@ export async function bootstrapOsvEcosystem({
 
   let recordsSeen = 0
   let recordsImported = 0
+  let recordsNew = 0
+  let recordsChanged = 0
+  let recordsSkipped = 0
   let recordsFailed = 0
   let lastProcessedModifiedAt: Date | null = null
   let pendingRecords = [] as Array<ReturnType<typeof normalizeOsvRecord>>
@@ -361,12 +376,18 @@ export async function bootstrapOsvEcosystem({
     try {
       const result = await upsertRecordsBatch(db, batch)
       recordsImported += result.importedCount
+      recordsNew += result.newCount
+      recordsChanged += result.changedCount
+      recordsSkipped += result.skippedCount
       return
     } catch {
       for (const record of batch) {
         try {
           const result = await upsertRecord(db, record)
           recordsImported += result.skipped ? 0 : 1
+          recordsNew += result.writeKind === "new" ? 1 : 0
+          recordsChanged += result.writeKind === "changed" ? 1 : 0
+          recordsSkipped += result.skipped ? 1 : 0
         } catch {
           recordsFailed += 1
         }
@@ -434,6 +455,9 @@ export async function bootstrapOsvEcosystem({
     ecosystem,
     recordsSeen,
     recordsImported,
+    recordsNew,
+    recordsChanged,
+    recordsSkipped,
     recordsFailed,
     lastProcessedModifiedAt,
   }

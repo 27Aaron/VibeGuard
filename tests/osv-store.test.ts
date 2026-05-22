@@ -141,6 +141,7 @@ describe("upsertNormalizedOsvRecord", () => {
       advisoryId: "advisory-1",
       affectedPackageCount: 1,
       skipped: false,
+      writeKind: "new",
     })
     expect(calls).toEqual(["delete-affected"])
   })
@@ -171,6 +172,7 @@ describe("upsertNormalizedOsvRecord", () => {
       advisoryId: "advisory-1",
       affectedPackageCount: 1,
       skipped: true,
+      writeKind: null,
     })
     expect(db.insert).not.toHaveBeenCalled()
     expect(db.delete).not.toHaveBeenCalled()
@@ -282,22 +284,27 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
     )
 
     expect(result.importedCount).toBe(2)
+    expect(result.newCount).toBe(1)
+    expect(result.changedCount).toBe(1)
     expect(result.skippedCount).toBe(1)
     expect(result.results).toEqual([
       {
         advisoryId: "advisory-changed",
         affectedPackageCount: 1,
         skipped: false,
+        writeKind: "changed",
       },
       {
         advisoryId: "advisory-unchanged",
         affectedPackageCount: 1,
         skipped: true,
+        writeKind: null,
       },
       {
         advisoryId: "advisory-new",
         affectedPackageCount: 1,
         skipped: false,
+        writeKind: "new",
       },
     ])
     expect(db.select).toHaveBeenCalledTimes(1)
@@ -306,5 +313,72 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
     expect(deleteWhere).toHaveBeenCalledTimes(1)
     expect(affectedValuesCalls).toHaveLength(1)
     expect(affectedValuesCalls[0]).toHaveLength(2)
+  })
+
+  it("chunks affected package inserts to keep single SQL payloads smaller", async () => {
+    const affectedValuesCalls: unknown[] = []
+    const db = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([]),
+        })),
+      })),
+      insert: vi.fn((table) => ({
+        values: vi.fn((values) => {
+          if (table === "advisory") {
+            return {
+              onConflictDoUpdate: vi.fn(() => ({
+                returning: vi.fn().mockResolvedValue([
+                  { id: "advisory-1", externalId: "GHSA-many" },
+                ]),
+              })),
+            }
+          }
+
+          affectedValuesCalls.push(values)
+          return {
+            onConflictDoNothing: vi.fn(() => ({
+              returning: vi.fn().mockResolvedValue(values),
+            })),
+          }
+        }),
+      })),
+      delete: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue(undefined),
+      })),
+    } as never
+
+    await upsertNormalizedOsvRecordsBatch(
+      db,
+      [
+        {
+          advisory: {
+            ...advisory,
+            externalId: "GHSA-many",
+            rawHash: "sha256:many",
+          },
+          affectedPackages: [
+            affectedPackage,
+            {
+              ...affectedPackage,
+              packageName: "cryptoco-auth-2",
+              packageKey: "cryptoco-auth-2",
+              purl: "pkg:npm/cryptoco-auth-2",
+            },
+          ],
+        },
+      ],
+      {
+        tables: {
+          securityAdvisories: "advisory",
+          securityAffectedPackages: "affected",
+        } as never,
+        affectedPackageInsertChunkSize: 1,
+      },
+    )
+
+    expect(affectedValuesCalls).toHaveLength(2)
+    expect(affectedValuesCalls[0]).toHaveLength(1)
+    expect(affectedValuesCalls[1]).toHaveLength(1)
   })
 })

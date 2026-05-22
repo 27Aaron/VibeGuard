@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url"
 import { closeDb, getDb } from "@vibeguard/db"
 import {
   bootstrapAllOsvEcosystems,
+  type SyncOsvEcosystemSummary,
   syncAllOsvEcosystems,
 } from "@vibeguard/content/osv/sync"
 
@@ -70,6 +71,21 @@ export function parseArgs(argv: string[]) {
   }
 }
 
+export function formatSyncSummaryLine(
+  mode: OsvSyncMode,
+  result: SyncOsvEcosystemSummary,
+) {
+  return [
+    `osv ${mode} ${result.ecosystem}`,
+    `seen=${result.recordsSeen}`,
+    `imported=${result.recordsImported}`,
+    `new=${result.recordsNew}`,
+    `changed=${result.recordsChanged}`,
+    `skipped=${result.recordsSkipped}`,
+    `failed=${result.recordsFailed}`,
+  ].join(" ")
+}
+
 export async function main(argv = process.argv.slice(2)) {
   const { mode, limit, concurrency } = parseArgs(argv)
 
@@ -87,14 +103,7 @@ export async function main(argv = process.argv.slice(2)) {
           })
 
     for (const result of results) {
-      console.log(
-        [
-          `osv ${mode} ${result.ecosystem}`,
-          `seen=${result.recordsSeen}`,
-          `imported=${result.recordsImported}`,
-          `failed=${result.recordsFailed}`,
-        ].join(" "),
-      )
+      console.log(formatSyncSummaryLine(mode, result))
     }
   } finally {
     await closeDb()

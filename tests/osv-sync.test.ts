@@ -56,9 +56,10 @@ describe("syncOsvEcosystem", () => {
   it("downloads a limited set, stores normalized records, deletes cached JSON, and updates sync state", async () => {
     const repoRoot = fs.mkdtempSync(path.join("/tmp", "vibeguard-osv-sync-"))
     const upsertNormalizedOsvRecord = vi.fn().mockResolvedValue({
-      sourceRecordId: "source-1",
       advisoryId: "advisory-1",
       affectedPackageCount: 1,
+      skipped: false,
+      writeKind: "new",
     })
     const upsertSecuritySyncState = vi.fn().mockResolvedValue(undefined)
 
@@ -99,6 +100,9 @@ describe("syncOsvEcosystem", () => {
       ecosystem: "npm",
       recordsSeen: 1,
       recordsImported: 1,
+      recordsNew: 1,
+      recordsChanged: 0,
+      recordsSkipped: 0,
       recordsFailed: 0,
       lastProcessedModifiedAt: new Date("2026-05-21T23:01:37.118Z"),
     })
@@ -209,6 +213,9 @@ describe("bootstrapOsvEcosystem", () => {
       ecosystem: "npm",
       recordsSeen: 1,
       recordsImported: 1,
+      recordsNew: 0,
+      recordsChanged: 0,
+      recordsSkipped: 0,
       recordsFailed: 0,
       lastProcessedModifiedAt: new Date("2026-05-21T23:01:37.118Z"),
     })
@@ -266,11 +273,15 @@ describe("bootstrapOsvEcosystem", () => {
       .fn()
       .mockResolvedValueOnce({
         importedCount: 2,
+        newCount: 1,
+        changedCount: 1,
         skippedCount: 0,
         results: [],
       })
       .mockResolvedValueOnce({
         importedCount: 1,
+        newCount: 0,
+        changedCount: 1,
         skippedCount: 0,
         results: [],
       })
@@ -314,7 +325,52 @@ describe("bootstrapOsvEcosystem", () => {
     expect(upsertNormalizedOsvRecordsBatch.mock.calls[1]?.[1]).toHaveLength(1)
     expect(summary.recordsSeen).toBe(3)
     expect(summary.recordsImported).toBe(3)
+    expect(summary.recordsNew).toBe(1)
+    expect(summary.recordsChanged).toBe(2)
+    expect(summary.recordsSkipped).toBe(0)
     expect(summary.recordsFailed).toBe(0)
+  })
+
+  it("surfaces new changed and skipped bootstrap counts in the summary", async () => {
+    const repoRoot = fs.mkdtempSync(path.join("/tmp", "vibeguard-osv-bootstrap-"))
+    const summary = await bootstrapOsvEcosystem({
+      db: {} as never,
+      ecosystem: "npm",
+      repoRoot,
+      batchSize: 3,
+      now: () => new Date("2026-05-22T08:00:00Z"),
+      downloadArchiveToCache: vi.fn().mockResolvedValue(
+        path.join(repoRoot, "data", "osv-bootstrap", "npm", "all.zip"),
+      ),
+      iterateArchiveEntries: async function* () {
+        yield {
+          entryName: "MAL-2026-4230.json",
+          readText: async () =>
+            JSON.stringify({
+              schema_version: "1.7.5",
+              id: "MAL-2026-4230",
+              published: "2026-05-21T21:15:38Z",
+              modified: "2026-05-21T23:01:37.118219322Z",
+              summary: "Malicious code in cryptoco-auth (npm)",
+              affected: [],
+            }),
+        }
+      },
+      deleteCachedFile: vi.fn().mockResolvedValue(undefined),
+      upsertNormalizedOsvRecordsBatch: vi.fn().mockResolvedValue({
+        importedCount: 2,
+        newCount: 1,
+        changedCount: 1,
+        skippedCount: 4,
+        results: [],
+      }),
+      upsertSecuritySyncState: vi.fn().mockResolvedValue(undefined),
+    })
+
+    expect(summary.recordsImported).toBe(2)
+    expect(summary.recordsNew).toBe(1)
+    expect(summary.recordsChanged).toBe(1)
+    expect(summary.recordsSkipped).toBe(4)
   })
 })
 
