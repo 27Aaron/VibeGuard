@@ -542,14 +542,14 @@ async function updateArticleContent(
     titleZh: string
     summaryEn: string
     summaryZh: string
-      contentMdEn: string
-      contentMdZh: string
-      ecosystem: string
-      riskCategory: string
-      tags: string[]
-      contentHash: string
-      rawMeta: Record<string, unknown>
-    },
+    contentMdEn: string
+    contentMdZh: string
+    ecosystem: string
+    riskCategory: string
+    tags: string[]
+    contentHash: string
+    rawMeta: Record<string, unknown>
+  },
 ) {
   await db
     .update(articles)
