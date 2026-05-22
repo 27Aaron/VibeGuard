@@ -1,5 +1,5 @@
-import { desc, sql } from "drizzle-orm"
-import { articles, getDb } from "@vibeguard/db"
+import { desc, eq, sql } from "drizzle-orm"
+import { articles, feeds, getDb } from "@vibeguard/db"
 import {
   DEFAULT_ADMIN_ARTICLE_PAGE_SIZE,
   type AdminArticleListParams,
@@ -26,12 +26,13 @@ export async function getArticleRows(input: Partial<AdminArticleListParams> = {}
       id: articles.id,
       titleEn: articles.titleEn,
       titleZh: articles.titleZh,
-      sourceName: articles.sourceName,
+      sourceName: feeds.name,
       status: articles.status,
       publishedAt: articles.publishedAt,
       updatedAt: articles.updatedAt,
     })
     .from(articles)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
     .orderBy(desc(articles.publishedAt))
     .limit(pageSize)
     .offset(offset)
@@ -60,8 +61,14 @@ export async function getArticleRows(input: Partial<AdminArticleListParams> = {}
 
 export async function getArticleDetail(articleId: string) {
   const db = getDb()
+  const rows = await db
+    .select()
+    .from(articles)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
+    .where(eq(articles.id, articleId))
 
-  return db.query.articles.findFirst({
-    where: (table, { eq: whereEq }) => whereEq(table.id, articleId),
-  })
+  const row = rows[0]
+  if (!row) return null
+
+  return { ...row.articles, sourceName: row.feeds.name }
 }

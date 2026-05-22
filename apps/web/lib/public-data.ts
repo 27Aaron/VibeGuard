@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm"
 
-import { articles, getDb, getPool } from "@vibeguard/db"
+import { articles, feeds, getDb, getPool } from "@vibeguard/db"
 
 import { listArticles } from "./api-articles"
 
@@ -15,7 +15,7 @@ export async function getPublicOverview() {
     .from(articles)
     .where(eq(articles.status, "ready"))
   const [sourceCountRow] = await db
-    .select({ count: sql<number>`count(distinct ${articles.sourceName})` })
+    .select({ count: sql<number>`count(distinct ${articles.feedId})` })
     .from(articles)
     .where(eq(articles.status, "ready"))
 
@@ -29,12 +29,13 @@ export async function getPublicSources() {
   const db = getDb()
   const rows = await db
     .select({
-      sourceName: articles.sourceName,
+      sourceName: feeds.name,
       count: sql<number>`count(*)`,
     })
     .from(articles)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
     .where(eq(articles.status, "ready"))
-    .groupBy(articles.sourceName)
+    .groupBy(feeds.name)
 
   return rows
     .map((row) => ({

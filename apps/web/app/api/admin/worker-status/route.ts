@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm"
 
-import { articles, getDb, processingJobs } from "@vibeguard/db"
+import { articles, feeds, getDb, processingJobs } from "@vibeguard/db"
 
 import { formatDateTimeInShanghai } from "@/lib/time"
 
@@ -25,7 +25,7 @@ export async function GET() {
       id: processingJobs.id,
       articleTitleZh: articles.titleZh,
       articleTitleEn: articles.titleEn,
-      sourceName: articles.sourceName,
+      sourceName: feeds.name,
       jobType: processingJobs.jobType,
       pipelineStage: processingJobs.pipelineStage,
       attempt: processingJobs.attempt,
@@ -34,6 +34,7 @@ export async function GET() {
     })
     .from(processingJobs)
     .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
     .where(eq(processingJobs.status, "running"))
     .orderBy(desc(processingJobs.startedAt))
     .limit(WORKER_STATUS_LIST_LIMIT / 2)
@@ -43,13 +44,14 @@ export async function GET() {
       id: processingJobs.id,
       articleTitleZh: articles.titleZh,
       articleTitleEn: articles.titleEn,
-      sourceName: articles.sourceName,
+      sourceName: feeds.name,
       jobType: processingJobs.jobType,
       attempt: processingJobs.attempt,
       maxAttempts: processingJobs.maxAttempts,
     })
     .from(processingJobs)
     .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
     .where(eq(processingJobs.status, "queued"))
     .orderBy(desc(processingJobs.updatedAt))
     .limit(WORKER_STATUS_LIST_LIMIT / 2)

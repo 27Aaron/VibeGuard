@@ -1,6 +1,6 @@
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm"
 
-import { articles, getDb } from "@vibeguard/db"
+import { articles, feeds, getDb } from "@vibeguard/db"
 import {
   ARTICLE_ECOSYSTEM_VALUES,
   ARTICLE_RISK_CATEGORY_VALUES,
@@ -114,7 +114,7 @@ export async function listArticles(searchParams: URLSearchParams) {
   const params = parseArticleListParams(searchParams)
   const filters = [
     eq(articles.status, params.status),
-    params.source ? eq(articles.sourceName, params.source) : undefined,
+    params.source ? eq(feeds.name, params.source) : undefined,
     params.ecosystem ? eq(articles.ecosystem, params.ecosystem) : undefined,
     params.riskCategory ? eq(articles.riskCategory, params.riskCategory) : undefined,
     params.tag ? sql`${articles.tags} ? ${params.tag}` : undefined,
@@ -124,7 +124,7 @@ export async function listArticles(searchParams: URLSearchParams) {
           ilike(articles.titleZh, `%${params.query}%`),
           ilike(articles.summaryEn, `%${params.query}%`),
           ilike(articles.summaryZh, `%${params.query}%`),
-          ilike(articles.sourceName, `%${params.query}%`),
+          ilike(feeds.name, `%${params.query}%`),
           sql`exists (
             select 1
             from jsonb_array_elements_text(${articles.tags}) as tag
@@ -137,18 +137,37 @@ export async function listArticles(searchParams: URLSearchParams) {
   const countRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(articles)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
     .where(where)
 
   const totalCount = Number(countRows[0]?.count ?? 0)
   const totalPages = Math.max(1, Math.ceil(totalCount / params.limit))
   const page = Math.min(params.page, totalPages)
   const offset = (page - 1) * params.limit
-  const rows = await db.query.articles.findMany({
-    where,
-    orderBy: [desc(articles.publishedAt)],
-    limit: params.limit,
-    offset,
-  })
+  const rows = await db
+    .select({
+      id: articles.id,
+      titleEn: articles.titleEn,
+      titleZh: articles.titleZh,
+      summaryEn: articles.summaryEn,
+      summaryZh: articles.summaryZh,
+      contentMdEn: articles.contentMdEn,
+      contentMdZh: articles.contentMdZh,
+      url: articles.url,
+      sourceName: feeds.name,
+      ecosystem: articles.ecosystem,
+      riskCategory: articles.riskCategory,
+      tags: articles.tags,
+      status: articles.status,
+      publishedAt: articles.publishedAt,
+      updatedAt: articles.updatedAt,
+    })
+    .from(articles)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
+    .where(where)
+    .orderBy(desc(articles.publishedAt))
+    .limit(params.limit)
+    .offset(offset)
 
   return {
     meta: buildArticleListMeta({
@@ -184,9 +203,30 @@ export async function listArticles(searchParams: URLSearchParams) {
 
 export async function getArticleById(articleId: string, requestedLocale: string | undefined) {
   const db = getDb()
-  const article = await db.query.articles.findFirst({
-    where: eq(articles.id, articleId),
-  })
+  const rows = await db
+    .select({
+      id: articles.id,
+      titleEn: articles.titleEn,
+      titleZh: articles.titleZh,
+      summaryEn: articles.summaryEn,
+      summaryZh: articles.summaryZh,
+      contentMdEn: articles.contentMdEn,
+      contentMdZh: articles.contentMdZh,
+      url: articles.url,
+      canonicalUrl: articles.canonicalUrl,
+      sourceName: feeds.name,
+      ecosystem: articles.ecosystem,
+      riskCategory: articles.riskCategory,
+      tags: articles.tags,
+      status: articles.status,
+      publishedAt: articles.publishedAt,
+      updatedAt: articles.updatedAt,
+    })
+    .from(articles)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
+    .where(eq(articles.id, articleId))
+
+  const article = rows[0]
 
   if (!article) {
     return null

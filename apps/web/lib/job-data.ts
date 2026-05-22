@@ -181,7 +181,7 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
       articleId: articles.id,
       articleTitleZh: articles.titleZh,
       articleTitleEn: articles.titleEn,
-      sourceName: articles.sourceName,
+      sourceName: feeds.name,
       jobType: processingJobs.jobType,
       status: processingJobs.status,
       pipelineStage: processingJobs.pipelineStage,
@@ -195,6 +195,7 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
     })
     .from(processingJobs)
     .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
     .where(where)
     .orderBy(desc(processingJobs.updatedAt))
     .limit(pageSize)

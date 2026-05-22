@@ -86,13 +86,6 @@ export async function updateFeedAction(
 
     await db.update(feeds).set(payload).where(eq(feeds.id, feedId))
 
-    if (payload.name !== existingFeed.name) {
-      await db
-        .update(articles)
-        .set({ sourceName: payload.name })
-        .where(eq(articles.feedId, feedId))
-    }
-
     revalidateLocalizedPaths("/admin/feeds", "/admin/articles", `/admin/feeds/${feedId}`)
 
     return successResult(lang === "zh" ? `已更新来源：${payload.name}。` : `Source updated: ${payload.name}.`)
