@@ -2,7 +2,7 @@
   "name": "web",
   "private": true,
   "scripts": {
-    "dev": "node ../../scripts/with-env.mjs --local-defaults next dev",
+    "dev": "node ../../scripts/prune-next-dev-cache.mjs && node ../../scripts/with-env.mjs --local-defaults next dev",
     "build": "node ../../scripts/with-env.mjs --local-defaults next build",
     "start": "node ../../scripts/with-env.mjs --local-defaults next start",
     "lint": "node ../../scripts/with-env.mjs eslint . --max-warnings=0"
