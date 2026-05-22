@@ -437,8 +437,7 @@ export async function syncOsvEcosystem({
     } catch (error) {
       recordsFailed += 1
       await deleteCachedOsvFile(filePath)
-      // Continue syncing newer records; the summary and sync state expose failures.
-      void error
+      console.error(`[osv/sync] Failed to process ${row.externalId}:`, error)
     }
   }
 
