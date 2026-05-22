@@ -83,7 +83,7 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
               : "Recently ingested articles with status and bilingual title previews."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-6 pb-5">
+        <CardContent className="px-6 pb-4">
           <div className={cn("mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", getAdminSubtlePanelClassName())}>
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
@@ -121,7 +121,7 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
             </div>
           </div>
           <ArticleTable articles={articles} lang={lang} />
-          <div className="mt-4 flex justify-end">
+          <div className="mt-3 flex justify-end">
             <div className="flex items-center gap-2">
               <SoftLink
                 href={buildArticlesHref({
