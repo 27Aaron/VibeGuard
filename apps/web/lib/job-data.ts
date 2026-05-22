@@ -158,14 +158,14 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
   const requestedPage = Math.max(1, Math.floor(input.page ?? 1))
   const visibleJobFilter = inArray(processingJobs.status, VISIBLE_JOB_STATUSES)
   const filters = [
-    status === "all" ? or(visibleJobFilter, eq(articles.status, "filtered"))
+    status === "all" ? visibleJobFilter
       : status === "filtered" ? eq(articles.status, "filtered")
       : eq(processingJobs.status, status),
     stage === "all"
       ? undefined
       : eq(processingJobs.pipelineStage, stage as Exclude<AdminJobStageFilter, "all">),
   ].filter(Boolean)
-  const useJoin = status === "all" || status === "filtered"
+  const useJoin = status === "filtered"
   const baseQuery = useJoin
     ? db.select({ count: sql<number>`count(*)` }).from(processingJobs).innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
     : db.select({ count: sql<number>`count(*)` }).from(processingJobs)
