@@ -39,8 +39,11 @@ type SkillPageProps = {
   params: Promise<{ lang: string }>
 }
 
-const installCommand =
-  "帮我安装这个 skill：https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard"
+function getInstallCommand(lang: "zh" | "en") {
+  return lang === "zh"
+    ? "帮我安装这个 skill：https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard"
+    : "Install this skill: https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard"
+}
 
 const features = [
   {
@@ -114,9 +117,9 @@ export default async function SkillPage({ params: routeParams }: SkillPageProps)
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-900/10 bg-[#f0f7f2] px-4 py-2.5 dark:border-emerald-200/10 dark:bg-emerald-300/8">
                     <span className="inline-block size-2 shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                     <code className="min-w-0 flex-1 text-sm font-mono text-emerald-900 dark:text-emerald-100">
-                      {installCommand}
+                      {getInstallCommand(lang)}
                     </code>
-                    <CopyButton text={installCommand} />
+                    <CopyButton text={getInstallCommand(lang)} />
                   </div>
                 </div>
               </div>
