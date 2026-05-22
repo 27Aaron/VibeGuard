@@ -8,11 +8,16 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
   min-height: 100%;
+}
+
+body {
+  min-height: 100svh;
   margin: 0;
   padding: 0;
+  background-color: var(--background);
+  overscroll-behavior-y: none;
 }
 
 @theme inline {
@@ -135,7 +140,7 @@ body {
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply bg-background font-sans text-foreground;
   }
 }
 
