@@ -73,6 +73,18 @@ export default async function ApiPage({ params: routeParams }: ApiPageProps) {
                       ? "公开接口无需认证，浏览器直接访问即可。点击参数标签查看详情与示例。"
                       : "Public endpoints require no authentication. Click parameter tags for details and examples."}
                   </p>
+                  <a
+                    href="/openapi.yaml"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                  >
+                    <svg className="size-3" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M3.75 2a.75.75 0 0 0-.75.75v10.5a.75.75 0 0 0 1.5 0V5.56l5.22 5.22a.75.75 0 1 0 1.06-1.06L5.56 4.5h7.69a.75.75 0 0 0 0-1.5H3.75Z" />
+                    </svg>
+                    OpenAPI
+                    <span className="font-mono text-[0.6rem] opacity-60">v3.1</span>
+                  </a>
                 </div>
               </div>
 

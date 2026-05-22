@@ -1,0 +1,563 @@
+openapi: 3.1.0
+info:
+  title: VibeGuard Public API
+  version: 1.0.0
+  description: |
+    VibeGuard 供应链安全情报公开 API。
+    所有接口无需认证，浏览器直接访问即可。
+  contact:
+    name: VibeGuard
+    url: https://github.com/anthropics/vibeguard
+
+servers:
+  - url: /
+    description: Current server
+
+paths:
+  /api/articles:
+    get:
+      operationId: listArticles
+      summary: 查询文章列表
+      description: 支持关键词搜索、标签筛选、来源过滤、生态系统与风险类别筛选、分页。
+      tags: [Articles]
+      parameters:
+        - name: lang
+          in: query
+          schema:
+            type: string
+            enum: [zh, en]
+            default: zh
+          description: 返回内容的语言。zh 返回中文，en 返回英文。
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, processing, ready, failed, filtered]
+            default: ready
+          description: 按文章状态筛选。
+        - name: source
+          in: query
+          schema:
+            type: string
+          description: 按内容来源名称精确筛选。
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: 全文搜索关键词，匹配标题、摘要、来源名和标签。
+        - name: ecosystem
+          in: query
+          schema:
+            type: string
+            enum: [unknown, npm, pypi, maven, go, crates-io, github-actions, docker, multi]
+          description: 按包管理生态系统筛选。
+        - name: riskCategory
+          in: query
+          schema:
+            type: string
+            enum: [unknown, vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk]
+          description: 按风险类别筛选。
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: 按标签筛选（小写，JSON 包含匹配）。
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 每页返回数量。
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+            default: 1
+          description: 页码，从 1 开始。
+      responses:
+        "200":
+          description: 文章列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleListResponse"
+
+  /api/articles/{articleId}:
+    get:
+      operationId: getArticle
+      summary: 获取单篇文章详情
+      description: 根据文章 ID 获取完整详情，包含 Markdown 正文。
+      tags: [Articles]
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 文章 UUID。
+        - name: lang
+          in: query
+          schema:
+            type: string
+            enum: [zh, en]
+            default: zh
+          description: 返回内容的语言。
+      responses:
+        "200":
+          description: 文章详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleDetail"
+        "404":
+          description: 文章未找到
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/security/check/overview:
+    get:
+      operationId: securityOverview
+      summary: 漏洞统计概览
+      description: 返回本地 OSV 数据库各生态系统的受影响包数量统计。
+      tags: [Security]
+      responses:
+        "200":
+          description: 统计概览
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totals:
+                    type: object
+                    properties:
+                      npm:
+                        type: integer
+                      pypi:
+                        type: integer
+                      go:
+                        type: integer
+                      crates-io:
+                        type: integer
+                    required: [npm, pypi, go, crates-io]
+                required: [totals]
+
+  /api/security/check/packages:
+    post:
+      operationId: checkPackages
+      summary: 批量检查包漏洞
+      description: 检查指定依赖包是否存在已知安全漏洞。支持 npm、pypi、go、crates-io 生态，单次最多 100 个包。
+      tags: [Security]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PackageCheckRequest"
+      responses:
+        "200":
+          description: 检查结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PackageCheckResponse"
+        "400":
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/proxy:
+    get:
+      operationId: proxyImage
+      summary: 图片代理
+      description: 安全图片代理，避免 CORS 和混合内容问题。屏蔽内网地址，限制 5MB。
+      tags: [Utility]
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: 目标图片 URL。
+      responses:
+        "200":
+          description: 图片二进制流
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: 参数错误（缺少 url、无效 URL、内网地址等）
+          content:
+            text/plain:
+              schema:
+                type: string
+        "413":
+          description: 图片超过 5MB 限制
+          content:
+            text/plain:
+              schema:
+                type: string
+        "415":
+          description: 非图片类型
+          content:
+            text/plain:
+              schema:
+                type: string
+        "502":
+          description: 上游请求失败
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  schemas:
+    ArticleStatus:
+      type: string
+      enum: [pending, processing, ready, failed, filtered]
+
+    ArticleEcosystem:
+      type: string
+      enum: [unknown, npm, pypi, maven, go, crates-io, github-actions, docker, multi]
+
+    ArticleRiskCategory:
+      type: string
+      enum: [unknown, vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk]
+
+    SecurityPackageEcosystem:
+      type: string
+      enum: [npm, pypi, go, crates-io]
+
+    SecurityRiskType:
+      type: string
+      enum: [unknown, vulnerability, malicious-package]
+
+    SecurityPackageMatchConfidence:
+      type: string
+      enum: [high, medium, low, none]
+
+    SecurityPackageMatchReason:
+      type: string
+      enum:
+        - explicit_affected_version
+        - version_in_ecosystem_range
+        - version_outside_ecosystem_range
+        - range_present_but_inconclusive
+        - package_match_without_version
+
+    ArticleListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          description: 本地化标题
+        summary:
+          type: string
+          description: 本地化摘要
+        url:
+          type: string
+          format: uri
+        sourceName:
+          type: string
+        ecosystem:
+          $ref: "#/components/schemas/ArticleEcosystem"
+        riskCategory:
+          $ref: "#/components/schemas/ArticleRiskCategory"
+        tags:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/ArticleStatus"
+        publishedAt:
+          type: string
+          format: date-time
+        publishedAtDisplay:
+          type: string
+          description: "格式: YYYY-MM-DD HH:mm (上海时区)"
+        updatedAt:
+          type: string
+          format: date-time
+        updatedAtDisplay:
+          type: string
+        locale:
+          type: string
+          enum: [zh, en]
+      required: [id, title, summary, url, sourceName, ecosystem, riskCategory, tags, status, publishedAt, publishedAtDisplay, updatedAt, updatedAtDisplay, locale]
+
+    ArticleDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        summary:
+          type: string
+        content:
+          type: string
+          description: Markdown 格式正文
+        url:
+          type: string
+          format: uri
+        canonicalUrl:
+          type: string
+          nullable: true
+        sourceName:
+          type: string
+        ecosystem:
+          $ref: "#/components/schemas/ArticleEcosystem"
+        riskCategory:
+          $ref: "#/components/schemas/ArticleRiskCategory"
+        tags:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/ArticleStatus"
+        publishedAt:
+          type: string
+          format: date-time
+        publishedAtDisplay:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        updatedAtDisplay:
+          type: string
+        locale:
+          type: string
+          enum: [zh, en]
+      required: [id, title, summary, content, url, sourceName, ecosystem, riskCategory, tags, status, publishedAt, publishedAtDisplay, updatedAt, updatedAtDisplay, locale]
+
+    ArticleListMeta:
+      type: object
+      properties:
+        lang:
+          type: string
+          enum: [zh, en]
+        status:
+          $ref: "#/components/schemas/ArticleStatus"
+        source:
+          type: string
+          nullable: true
+        query:
+          type: string
+          nullable: true
+        ecosystem:
+          type: string
+          nullable: true
+        riskCategory:
+          type: string
+          nullable: true
+        tag:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+        count:
+          type: integer
+          description: 当前页实际返回数量
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalCount:
+          type: integer
+        totalPages:
+          type: integer
+      required: [lang, status, limit, count, page, pageSize, totalCount, totalPages]
+
+    ArticleListResponse:
+      type: object
+      properties:
+        meta:
+          $ref: "#/components/schemas/ArticleListMeta"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArticleListItem"
+      required: [meta, items]
+
+    PackageCoordinate:
+      type: object
+      properties:
+        ecosystem:
+          $ref: "#/components/schemas/SecurityPackageEcosystem"
+        name:
+          type: string
+          minLength: 1
+        version:
+          type: string
+          nullable: true
+      required: [ecosystem, name]
+
+    PackageCheckRequest:
+      type: object
+      properties:
+        packages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PackageCoordinate"
+          minItems: 1
+          maxItems: 100
+      required: [packages]
+
+    AdvisorySeverity:
+      type: object
+      properties:
+        type:
+          type: string
+        score:
+          type: string
+
+    AdvisoryReference:
+      type: object
+      properties:
+        type:
+          type: string
+        url:
+          type: string
+          format: uri
+
+    Advisory:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 外部公告 ID，如 GHSA-xxx 或 OSV-xxx
+        source:
+          type: string
+          default: osv
+        riskType:
+          $ref: "#/components/schemas/SecurityRiskType"
+        summary:
+          type: string
+        details:
+          type: string
+          nullable: true
+        aliases:
+          type: array
+          items:
+            type: string
+        severity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdvisorySeverity"
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdvisoryReference"
+        modifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, source, riskType, summary, aliases, severity, references]
+
+    AffectedPackage:
+      type: object
+      properties:
+        affectedVersions:
+          type: array
+          items:
+            type: string
+        ranges:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              events:
+                type: array
+                items:
+                  type: object
+        fixedVersions:
+          type: array
+          items:
+            type: string
+      required: [affectedVersions, ranges, fixedVersions]
+
+    Finding:
+      type: object
+      properties:
+        affected:
+          type: boolean
+        confidence:
+          $ref: "#/components/schemas/SecurityPackageMatchConfidence"
+        matchReason:
+          $ref: "#/components/schemas/SecurityPackageMatchReason"
+        matchSummary:
+          type: string
+        package:
+          type: object
+          properties:
+            ecosystem:
+              $ref: "#/components/schemas/SecurityPackageEcosystem"
+            name:
+              type: string
+            version:
+              type: string
+              nullable: true
+            purl:
+              type: string
+              nullable: true
+          required: [ecosystem, name]
+        advisory:
+          $ref: "#/components/schemas/Advisory"
+        affectedPackage:
+          $ref: "#/components/schemas/AffectedPackage"
+      required: [affected, confidence, matchReason, matchSummary, package, advisory, affectedPackage]
+
+    PackageCheckMeta:
+      type: object
+      properties:
+        source:
+          type: string
+          default: local-osv-mirror
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        stale:
+          type: boolean
+        warning:
+          type: string
+          nullable: true
+
+    PackageCheckResponse:
+      type: object
+      properties:
+        meta:
+          $ref: "#/components/schemas/PackageCheckMeta"
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Finding"
+      required: [meta, findings]
+
+    ErrorResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+        message:
+          type: string
+      required: [ok, message]
