@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { useParams } from "next/navigation"
 
 import { buttonVariants } from "@/components/ui/button"
 import {
@@ -8,6 +9,7 @@ import {
   getAdminBackdropClassName,
   getAdminShellClassName,
 } from "@/lib/admin-layout"
+import type { AppLang } from "@/lib/i18n"
 
 export default function AdminError({
   error,
@@ -16,6 +18,8 @@ export default function AdminError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const lang = (useParams().lang as AppLang) || "en"
+
   useEffect(() => {
     console.error(error)
   }, [error])
@@ -29,17 +33,19 @@ export default function AdminError({
             Error
           </p>
           <h1 className="text-2xl font-semibold tracking-normal text-zinc-950 dark:text-stone-50">
-            Something went wrong
+            {lang === "zh" ? "出了点问题" : "Something went wrong"}
           </h1>
           <p className="max-w-md text-sm text-zinc-600 dark:text-stone-300">
-            An error occurred while loading this page. Try refreshing.
+            {lang === "zh"
+              ? "页面加载时遇到了错误，请尝试刷新。"
+              : "An error occurred while loading this page. Try refreshing."}
           </p>
           <button
             type="button"
             onClick={reset}
             className={buttonVariants({ variant: "outline" })}
           >
-            Retry
+            {lang === "zh" ? "重试" : "Retry"}
           </button>
         </div>
       </div>

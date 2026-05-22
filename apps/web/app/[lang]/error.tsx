@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect } from "react"
+import { useParams } from "next/navigation"
 
 import { buttonVariants } from "@/components/ui/button"
+import type { AppLang } from "@/lib/i18n"
 
 export default function Error({
   error,
@@ -11,6 +13,8 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const lang = (useParams().lang as AppLang) || "zh"
+
   useEffect(() => {
     console.error(error)
   }, [error])
@@ -24,17 +28,19 @@ export default function Error({
             Error
           </p>
           <h1 className="text-2xl font-semibold tracking-normal text-zinc-950 dark:text-stone-50">
-            出了点问题
+            {lang === "zh" ? "出了点问题" : "Something went wrong"}
           </h1>
           <p className="max-w-md text-sm text-zinc-600 dark:text-stone-300">
-            页面加载时遇到了错误，请尝试刷新。
+            {lang === "zh"
+              ? "页面加载时遇到了错误，请尝试刷新。"
+              : "An error occurred while loading this page. Try refreshing."}
           </p>
           <button
             type="button"
             onClick={reset}
             className={buttonVariants({ variant: "outline" })}
           >
-            重试
+            {lang === "zh" ? "重试" : "Retry"}
           </button>
         </div>
       </div>
