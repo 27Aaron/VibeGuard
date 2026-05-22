@@ -180,20 +180,48 @@ export function buildModifiedIdCsvUrl(ecosystem: OsvDumpEcosystem) {
   )}/modified_id.csv`
 }
 
-export function parseModifiedIdCsv(csv: string): ModifiedIdRow[] {
-  return csv
-    .split(/\r?\n/)
-    .flatMap((line): ModifiedIdRow[] => {
-      const [timestamp, externalId] = line.split(",")
-      const modifiedAt = timestamp ? parseOsvTimestamp(timestamp.trim()) : null
-      const trimmedId = externalId?.trim()
+export function parseModifiedIdCsv(
+  csv: string,
+  limit?: number,
+): ModifiedIdRow[] {
+  const maxRows = Math.max(0, limit ?? Number.POSITIVE_INFINITY)
+  const rows: ModifiedIdRow[] = []
+  const effectiveLimit = Number.isFinite(maxRows) ? Math.floor(maxRows) : Infinity
 
-      if (!modifiedAt || !trimmedId) {
-        return []
-      }
+  if (effectiveLimit <= 0) {
+    return rows
+  }
 
-      return [{ modifiedAt, externalId: trimmedId }]
-    })
+  let lineStart = 0
+  for (let index = 0; index <= csv.length; index += 1) {
+    if (index < csv.length && csv[index] !== "\n") {
+      continue
+    }
+
+    const rawLine = csv.slice(lineStart, index).trimEnd()
+    lineStart = index + 1
+
+    if (!rawLine) {
+      continue
+    }
+
+    const line = rawLine.replace(/\r$/, "")
+    const [timestamp, externalId] = line.split(",")
+    const modifiedAt = timestamp ? parseOsvTimestamp(timestamp.trim()) : null
+    const trimmedId = externalId?.trim()
+
+    if (!modifiedAt || !trimmedId) {
+      continue
+    }
+
+    rows.push({ modifiedAt, externalId: trimmedId })
+
+    if (rows.length >= effectiveLimit) {
+      break
+    }
+  }
+
+  return rows
 }
 
 function sha256(text: string) {
@@ -269,7 +297,7 @@ export async function syncOsvEcosystem({
   })
 
   const modifiedCsv = await fetchText(buildModifiedIdCsvUrl(ecosystem))
-  const rows = parseModifiedIdCsv(modifiedCsv).slice(0, Math.max(0, limit))
+  const rows = parseModifiedIdCsv(modifiedCsv, Math.max(0, limit))
   let recordsImported = 0
   let recordsNew = 0
   let recordsChanged = 0
