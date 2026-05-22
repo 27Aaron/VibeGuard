@@ -52,7 +52,7 @@ const execFile = promisify(execFileCallback)
 const UNZIP_MAX_BUFFER_BYTES = 64 * 1024 * 1024
 const DEFAULT_BOOTSTRAP_BATCH_SIZE = 200
 const DEFAULT_MODIFIED_ID_ROW_LIMIT = 2000
-const DEFAULT_VULNERABILITY_TEXT_BYTES = 2 * 1024 * 1024
+const DEFAULT_VULNERABILITY_TEXT_BYTES = 16 * 1024 * 1024
 
 type SyncOsvEcosystemInput = {
   db: ContentDb
