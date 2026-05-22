@@ -7,6 +7,18 @@ import { parseSecurityPackageCheckBody } from "../../../../../lib/api-security"
 
 export const dynamic = "force-dynamic"
 
+function parseLang(body: unknown): "zh" | "en" {
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "lang" in body &&
+    (body as Record<string, unknown>).lang === "zh"
+  ) {
+    return "zh"
+  }
+  return "en"
+}
+
 export async function POST(request: Request) {
   let body: unknown
 
@@ -36,6 +48,7 @@ export async function POST(request: Request) {
 
   const payload = await checkPackagesAgainstLocalDb(getDb(), {
     packages: parsed.packages,
+    lang: parseLang(body),
   })
 
   return NextResponse.json(payload)

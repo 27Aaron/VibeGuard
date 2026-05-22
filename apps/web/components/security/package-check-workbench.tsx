@@ -289,6 +289,7 @@ export function PackageCheckWorkbench({
               ecosystem,
               name: packageName,
               version,
+              lang,
             }),
           ),
         }),

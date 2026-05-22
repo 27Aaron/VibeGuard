@@ -16,6 +16,7 @@ export function buildSecurityCheckRequestBody(input: {
   ecosystem: SecurityPackageEcosystem
   name: string
   version: string
+  lang?: "zh" | "en"
 }) {
   const trimmedName = input.name.trim()
   const trimmedVersion = input.version.trim()
@@ -28,6 +29,7 @@ export function buildSecurityCheckRequestBody(input: {
         version: trimmedVersion || null,
       },
     ],
+    lang: input.lang,
   }
 }
 
