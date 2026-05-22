@@ -503,7 +503,7 @@ export function PackageCheckWorkbench({
                       {copy.publicCheckAffectedVersionsLabel}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {finding.affectedPackage.affectedVersions.map((affectedVersion, affectedVersionIndex) => (
+                      {finding.affectedPackage.affectedVersions.map((affectedVersion: string, affectedVersionIndex: number) => (
                         <Badge key={`${affectedVersion}-${affectedVersionIndex}`} variant="outline">
                           {affectedVersion}
                         </Badge>
@@ -533,7 +533,7 @@ export function PackageCheckWorkbench({
                       {lang === "zh" ? "已知修复版本" : "Known fixed versions"}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {finding.affectedPackage.fixedVersions.map((fixedVersion) => (
+                      {finding.affectedPackage.fixedVersions.map((fixedVersion: string) => (
                         <Badge key={fixedVersion} variant="secondary">
                           {fixedVersion}
                         </Badge>
@@ -548,7 +548,7 @@ export function PackageCheckWorkbench({
                       {lang === "zh" ? "参考链接" : "References"}
                     </p>
                     <ul className="space-y-1 text-xs text-zinc-500 dark:text-stone-400">
-                      {finding.advisory.references.map((reference, referenceIndex) => (
+                      {finding.advisory.references.map((reference: SecurityFinding["advisory"]["references"][number], referenceIndex: number) => (
                         <li key={`${reference.url}-${referenceIndex}`} className="break-all">
                           <a
                             href={reference.url}

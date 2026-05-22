@@ -16,6 +16,7 @@
     "./osv/sync": "./src/osv/sync.ts"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "@vibeguard/db": "workspace:*",
     "@vibeguard/shared": "workspace:*",
     "defuddle": "^0.18.1",

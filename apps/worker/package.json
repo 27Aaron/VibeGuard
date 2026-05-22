@@ -9,6 +9,7 @@
     "dev": "node ../../scripts/with-env.mjs --local-defaults tsx watch src/index.ts"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "@vibeguard/content": "workspace:*",
     "@vibeguard/db": "workspace:*",
     "@vibeguard/llm": "workspace:*",
