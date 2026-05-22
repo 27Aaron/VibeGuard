@@ -233,7 +233,7 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
               <OsvSyncButton lang={lang} />
             </div>
             <Separator />
-            <div className="flex flex-col gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
               {copy.entries.map((entry) => {
                 const Icon = entry.icon
 
@@ -241,7 +241,7 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
                   <Link
                     key={entry.href}
                     href={entry.href}
-                    className="group min-h-[92px] rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]"
+                    className="group rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]"
                   >
                     <div className="flex h-full items-center justify-between gap-3">
                       <div className="flex min-w-0 flex-col gap-2">

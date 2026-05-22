@@ -41,11 +41,10 @@ describe("admin home layout", () => {
     expect(i18n).not.toContain('adminRunWorker: "Run worker once"')
   })
 
-  it("keeps the common action entry buttons compact and vertically stacked", () => {
+  it("keeps the common action entry cards in a 2-column grid", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8")
 
-    expect(page).toContain("flex flex-col gap-2.5")
-    expect(page).toContain("group min-h-[92px]")
+    expect(page).toContain("grid grid-cols-2 gap-2.5")
     expect(page).toContain("px-4 py-3")
     expect(page).toContain("items-center justify-between")
     expect(page).toContain("text-sm leading-5 text-zinc-500")
