@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from "vitest"
 import {
   bootstrapAllOsvEcosystems,
   bootstrapOsvEcosystem,
-  buildBootstrapArchiveExtractCommand,
   buildBootstrapArchiveEntriesListCommand,
   buildModifiedIdCsvUrl,
   parseModifiedIdCsv,
@@ -49,21 +48,6 @@ describe("OSV sync urls", () => {
       "unzip",
       "-Z1",
       "/tmp/npm/all.zip",
-    ])
-  })
-
-  it("builds the unzip command used to extract a bootstrap archive once", () => {
-    expect(
-      buildBootstrapArchiveExtractCommand(
-        "/tmp/npm/all.zip",
-        "/tmp/npm/all-extracted",
-      ),
-    ).toEqual([
-      "unzip",
-      "-oq",
-      "/tmp/npm/all.zip",
-      "-d",
-      "/tmp/npm/all-extracted",
     ])
   })
 })
@@ -173,9 +157,9 @@ describe("bootstrapOsvEcosystem", () => {
   it("imports every JSON entry from an official per-ecosystem all.zip archive and deletes the cached zip", async () => {
     const repoRoot = fs.mkdtempSync(path.join("/tmp", "vibeguard-osv-bootstrap-"))
     const upsertNormalizedOsvRecord = vi.fn().mockResolvedValue({
-      sourceRecordId: "source-1",
       advisoryId: "advisory-1",
       affectedPackageCount: 1,
+      skipped: false,
     })
     const upsertSecuritySyncState = vi.fn().mockResolvedValue(undefined)
     const deleteCachedFile = vi.fn().mockResolvedValue(undefined)
@@ -189,26 +173,33 @@ describe("bootstrapOsvEcosystem", () => {
       repoRoot,
       now: () => new Date("2026-05-22T08:00:00Z"),
       downloadArchiveToCache: downloadArchive,
-      extractArchiveToDirectory: vi.fn().mockResolvedValue(undefined),
-      listExtractedEntries: async () => ["MAL-2026-4230.json", "README.txt"],
-      readExtractedEntryText: async () =>
-        JSON.stringify({
-          schema_version: "1.7.5",
-          id: "MAL-2026-4230",
-          published: "2026-05-21T21:15:38Z",
-          modified: "2026-05-21T23:01:37.118219322Z",
-          summary: "Malicious code in cryptoco-auth (npm)",
-          affected: [
-            {
-              package: {
-                name: "cryptoco-auth",
-                ecosystem: "npm",
-                purl: "pkg:npm/cryptoco-auth",
-              },
-              versions: ["1.0.6"],
-            },
-          ],
-        }),
+      iterateArchiveEntries: async function* () {
+        yield {
+          entryName: "MAL-2026-4230.json",
+          readText: async () =>
+            JSON.stringify({
+              schema_version: "1.7.5",
+              id: "MAL-2026-4230",
+              published: "2026-05-21T21:15:38Z",
+              modified: "2026-05-21T23:01:37.118219322Z",
+              summary: "Malicious code in cryptoco-auth (npm)",
+              affected: [
+                {
+                  package: {
+                    name: "cryptoco-auth",
+                    ecosystem: "npm",
+                    purl: "pkg:npm/cryptoco-auth",
+                  },
+                  versions: ["1.0.6"],
+                },
+              ],
+            }),
+        }
+        yield {
+          entryName: "README.txt",
+          readText: async () => "ignored",
+        }
+      },
       deleteCachedFile,
       upsertNormalizedOsvRecord,
       upsertSecuritySyncState,
@@ -226,9 +217,47 @@ describe("bootstrapOsvEcosystem", () => {
     expect(deleteCachedFile).toHaveBeenCalledWith(
       path.join(repoRoot, "data", "osv-bootstrap", "npm", "all.zip"),
     )
-    expect(deleteCachedFile).toHaveBeenCalledWith(
-      path.join(repoRoot, "data", "osv-bootstrap", "npm", "all-extracted"),
-    )
+    expect(deleteCachedFile).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not count hash-skipped advisories as imported", async () => {
+    const repoRoot = fs.mkdtempSync(path.join("/tmp", "vibeguard-osv-bootstrap-"))
+    const upsertNormalizedOsvRecord = vi.fn().mockResolvedValue({
+      advisoryId: "advisory-1",
+      affectedPackageCount: 1,
+      skipped: true,
+    })
+
+    const summary = await bootstrapOsvEcosystem({
+      db: {} as never,
+      ecosystem: "npm",
+      repoRoot,
+      now: () => new Date("2026-05-22T08:00:00Z"),
+      downloadArchiveToCache: vi.fn().mockResolvedValue(
+        path.join(repoRoot, "data", "osv-bootstrap", "npm", "all.zip"),
+      ),
+      iterateArchiveEntries: async function* () {
+        yield {
+          entryName: "MAL-2026-4230.json",
+          readText: async () =>
+            JSON.stringify({
+              schema_version: "1.7.5",
+              id: "MAL-2026-4230",
+              published: "2026-05-21T21:15:38Z",
+              modified: "2026-05-21T23:01:37.118219322Z",
+              summary: "Malicious code in cryptoco-auth (npm)",
+              affected: [],
+            }),
+        }
+      },
+      deleteCachedFile: vi.fn().mockResolvedValue(undefined),
+      upsertNormalizedOsvRecord,
+      upsertSecuritySyncState: vi.fn().mockResolvedValue(undefined),
+    })
+
+    expect(summary.recordsSeen).toBe(1)
+    expect(summary.recordsImported).toBe(0)
+    expect(summary.recordsFailed).toBe(0)
   })
 })
 

@@ -1,7 +1,7 @@
 import crypto from "node:crypto"
 import { execFile as execFileCallback } from "node:child_process"
 import fs from "node:fs/promises"
-import path from "node:path"
+import { text as readStreamText } from "node:stream/consumers"
 import { promisify } from "node:util"
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
@@ -77,15 +77,9 @@ type BootstrapOsvEcosystemInput = {
   now?: () => Date
   fetchBytes?: FetchBytes
   downloadArchiveToCache?: typeof downloadOsvArchiveToCache
-  extractArchiveToDirectory?: (
+  iterateArchiveEntries?: (
     archivePath: string,
-    targetDirectory: string,
-  ) => Promise<void>
-  listExtractedEntries?: (targetDirectory: string) => Promise<string[]>
-  readExtractedEntryText?: (
-    targetDirectory: string,
-    entryName: string,
-  ) => Promise<string>
+  ) => Promise<AsyncIterable<BootstrapArchiveEntry>> | AsyncIterable<BootstrapArchiveEntry>
   deleteCachedFile?: typeof deleteCachedOsvFile
   upsertNormalizedOsvRecord?: typeof upsertNormalizedOsvRecord
   upsertSecuritySyncState?: (
@@ -117,6 +111,11 @@ export type SyncOsvEcosystemSummary = {
 export type ModifiedIdRow = {
   modifiedAt: Date
   externalId: string
+}
+
+type BootstrapArchiveEntry = {
+  entryName: string
+  readText: () => Promise<string>
 }
 
 function parseOsvTimestamp(value: string) {
@@ -197,13 +196,6 @@ export function buildBootstrapArchiveEntriesListCommand(archivePath: string) {
   return ["unzip", "-Z1", archivePath]
 }
 
-export function buildBootstrapArchiveExtractCommand(
-  archivePath: string,
-  targetDirectory: string,
-) {
-  return ["unzip", "-oq", archivePath, "-d", targetDirectory]
-}
-
 async function defaultListArchiveEntries(archivePath: string) {
   const command = buildBootstrapArchiveEntriesListCommand(archivePath)
   const result = await execFile(command[0]!, command.slice(1), {
@@ -216,30 +208,27 @@ async function defaultListArchiveEntries(archivePath: string) {
     .filter(Boolean)
 }
 
-async function defaultExtractArchiveToDirectory(
+async function* defaultIterateArchiveEntries(
   archivePath: string,
-  targetDirectory: string,
-) {
-  await fs.rm(targetDirectory, { recursive: true, force: true })
-  await fs.mkdir(targetDirectory, { recursive: true })
+): AsyncGenerator<BootstrapArchiveEntry> {
+  // yauzl-promise does not currently ship TypeScript declarations.
+  // @ts-expect-error third-party package has no bundled types
+  const yauzl = await import("yauzl-promise")
+  const zip = await yauzl.open(archivePath)
 
-  const command = buildBootstrapArchiveExtractCommand(archivePath, targetDirectory)
-  await execFile(command[0]!, command.slice(1), {
-    maxBuffer: UNZIP_MAX_BUFFER_BYTES,
-  })
-}
-
-async function defaultListExtractedEntries(targetDirectory: string) {
-  const entries = await fs.readdir(targetDirectory, { withFileTypes: true })
-
-  return entries.filter((entry) => entry.isFile()).map((entry) => entry.name)
-}
-
-async function defaultReadExtractedEntryText(
-  targetDirectory: string,
-  entryName: string,
-) {
-  return fs.readFile(path.join(targetDirectory, entryName), "utf8")
+  try {
+    for await (const entry of zip as AsyncIterable<{
+      filename: string
+      openReadStream: () => Promise<NodeJS.ReadableStream>
+    }>) {
+      yield {
+        entryName: entry.filename,
+        readText: async () => readStreamText(await entry.openReadStream()),
+      }
+    }
+  } finally {
+    await zip.close()
+  }
 }
 
 export async function syncOsvEcosystem({
@@ -284,9 +273,9 @@ export async function syncOsvEcosystem({
         rawHash: sha256(rawText),
       })
 
-      await upsertRecord(db, normalized)
+      const result = await upsertRecord(db, normalized)
       await deleteCachedOsvFile(filePath)
-      recordsImported += 1
+      recordsImported += result.skipped ? 0 : 1
       lastProcessedModifiedAt =
         !lastProcessedModifiedAt ||
         row.modifiedAt.getTime() > lastProcessedModifiedAt.getTime()
@@ -327,9 +316,7 @@ export async function bootstrapOsvEcosystem({
   now = () => new Date(),
   fetchBytes,
   downloadArchiveToCache: downloadArchive = downloadOsvArchiveToCache,
-  extractArchiveToDirectory = defaultExtractArchiveToDirectory,
-  listExtractedEntries = defaultListExtractedEntries,
-  readExtractedEntryText = defaultReadExtractedEntryText,
+  iterateArchiveEntries = defaultIterateArchiveEntries,
   deleteCachedFile = deleteCachedOsvFile,
   upsertNormalizedOsvRecord: upsertRecord = upsertNormalizedOsvRecord,
   upsertSecuritySyncState: upsertSyncState = upsertSecuritySyncState,
@@ -349,11 +336,6 @@ export async function bootstrapOsvEcosystem({
     url: buildOsvBootstrapArchiveUrl(ecosystem),
     ...(fetchBytes ? { fetchBytes } : {}),
   })
-  const extractedDirectory = buildOsvBootstrapPath({
-    repoRoot,
-    ecosystem,
-    fileName: "all-extracted",
-  })
 
   let recordsSeen = 0
   let recordsImported = 0
@@ -361,40 +343,30 @@ export async function bootstrapOsvEcosystem({
   let lastProcessedModifiedAt: Date | null = null
 
   try {
-    await extractArchiveToDirectory(archivePath, extractedDirectory)
-    const entryNames = await listExtractedEntries(extractedDirectory)
-    const jsonEntries = entryNames
-      .map((entryName) => ({
-        entryName,
-        externalId: parseBootstrapEntryId(entryName),
-      }))
-      .filter(
-        (
-          entry,
-        ): entry is {
-          entryName: string
-          externalId: string
-        } => Boolean(entry.externalId),
-      )
-      .slice(0, limit && limit > 0 ? limit : undefined)
+    for await (const entry of await iterateArchiveEntries(archivePath)) {
+      const externalId = parseBootstrapEntryId(entry.entryName)
 
-    recordsSeen = jsonEntries.length
+      if (!externalId) {
+        continue
+      }
 
-    for (const entry of jsonEntries) {
+      if (limit && limit > 0 && recordsSeen >= limit) {
+        break
+      }
+
+      recordsSeen += 1
+
       try {
-        const rawText = await readExtractedEntryText(
-          extractedDirectory,
-          entry.entryName,
-        )
+        const rawText = await entry.readText()
         const vulnerability = JSON.parse(rawText)
-        const sourceUrl = buildOsvVulnerabilityUrl(ecosystem, entry.externalId)
+        const sourceUrl = buildOsvVulnerabilityUrl(ecosystem, externalId)
         const normalized = normalizeOsvRecord(vulnerability, {
           sourceUrl,
           rawHash: sha256(rawText),
         })
 
-        await upsertRecord(db, normalized)
-        recordsImported += 1
+        const result = await upsertRecord(db, normalized)
+        recordsImported += result.skipped ? 0 : 1
         if (
           normalized.advisory.modifiedAt &&
           (!lastProcessedModifiedAt ||
@@ -409,7 +381,6 @@ export async function bootstrapOsvEcosystem({
     }
   } finally {
     await deleteCachedFile(archivePath)
-    await deleteCachedFile(extractedDirectory)
   }
 
   await upsertSyncState(db, packageEcosystem, {
