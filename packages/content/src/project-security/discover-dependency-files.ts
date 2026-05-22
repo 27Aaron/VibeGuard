@@ -17,7 +17,32 @@ const IGNORED_DIRS = new Set([
   "build",
   "coverage",
   ".turbo",
+  ".vscode",
+  ".idea",
+  "vendor",
 ])
+
+const DEFAULT_MAX_DISCOVERY_DEPTH = 10
+const DEFAULT_MAX_DISCOVERY_FILES = 2000
+
+function normalizeInt(value: string | undefined, fallback: number, minimum = 1) {
+  const parsed = Number.parseInt(value ?? "", 10)
+
+  if (!Number.isFinite(parsed) || parsed < minimum) {
+    return fallback
+  }
+
+  return parsed
+}
+
+const MAX_DISCOVERY_DEPTH = normalizeInt(
+  process.env.VIBEGUARD_PROJECT_SECURITY_MAX_DISCOVERY_DEPTH,
+  DEFAULT_MAX_DISCOVERY_DEPTH,
+)
+const MAX_DISCOVERY_FILES = normalizeInt(
+  process.env.VIBEGUARD_PROJECT_SECURITY_MAX_DISCOVERY_FILES,
+  DEFAULT_MAX_DISCOVERY_FILES,
+)
 
 const FILE_RULES = [
   {
@@ -103,6 +128,8 @@ export async function discoverDependencyFiles(
   const rootDir = path.resolve(input.rootDir)
   const files: DetectedDependencyFile[] = []
   const warnings: string[] = []
+  let discoveredLimitReached = false
+  let depthLimitReached = false
 
   function isWithinRoot(absolutePath: string) {
     const relativePath = path.relative(rootDir, path.resolve(absolutePath))
@@ -114,10 +141,37 @@ export async function discoverDependencyFiles(
     )
   }
 
-  async function walk(currentDir: string) {
-    const entries = await fs.readdir(currentDir, { withFileTypes: true })
+  async function walk(currentDir: string, depth = 0) {
+    if (discoveredLimitReached) {
+      return
+    }
+
+    if (depth > MAX_DISCOVERY_DEPTH) {
+      depthLimitReached = true
+      return
+    }
+
+    let entries: fs.Dirent[]
+    try {
+      entries = await fs.readdir(currentDir, { withFileTypes: true })
+    } catch (error) {
+      if (path.resolve(currentDir) === rootDir) {
+        throw error
+      }
+
+      warnings.push(
+        `Failed to scan directory ${path.relative(rootDir, currentDir) || "."}: ${
+          error instanceof Error ? error.message : "unknown error"
+        }`,
+      )
+      return
+    }
 
     for (const entry of entries) {
+      if (discoveredLimitReached || depth > MAX_DISCOVERY_DEPTH) {
+        return
+      }
+
       const absolutePath = path.join(currentDir, entry.name)
 
       if (entry.isSymbolicLink() || !isWithinRoot(absolutePath)) {
@@ -129,7 +183,12 @@ export async function discoverDependencyFiles(
           continue
         }
 
-        await walk(absolutePath)
+        await walk(absolutePath, depth + 1)
+
+        if (discoveredLimitReached) {
+          return
+        }
+
         continue
       }
 
@@ -145,10 +204,24 @@ export async function discoverDependencyFiles(
         confidence: rule.confidence,
         note: `${rule.kind} discovered during recursive scan`,
       })
+
+      if (files.length >= MAX_DISCOVERY_FILES) {
+        discoveredLimitReached = true
+        warnings.push(
+          `Dependency file discovery stopped at ${MAX_DISCOVERY_FILES} files. Set VIBEGUARD_PROJECT_SECURITY_MAX_DISCOVERY_FILES to a larger value if needed.`,
+        )
+        return
+      }
     }
   }
 
   await walk(input.rootDir)
+
+  if (depthLimitReached) {
+    warnings.push(
+      `Dependency scan stopped at depth ${MAX_DISCOVERY_DEPTH}. Set VIBEGUARD_PROJECT_SECURITY_MAX_DISCOVERY_DEPTH to a larger value if needed.`,
+    )
+  }
 
   files.sort((left, right) => left.path.localeCompare(right.path))
 

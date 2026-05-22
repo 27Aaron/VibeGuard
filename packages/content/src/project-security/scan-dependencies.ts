@@ -12,6 +12,23 @@ import type {
   ScanDependenciesResult,
 } from "./types"
 
+const DEFAULT_MAX_DEPENDENCY_FILE_BYTES = 2 * 1024 * 1024
+
+function normalizeInt(value: string | undefined, fallback: number, minimum = 1) {
+  const parsed = Number.parseInt(value ?? "", 10)
+
+  if (!Number.isFinite(parsed) || parsed < minimum) {
+    return fallback
+  }
+
+  return parsed
+}
+
+const MAX_DEPENDENCY_FILE_BYTES = normalizeInt(
+  process.env.VIBEGUARD_PROJECT_SECURITY_MAX_DEPENDENCY_FILE_BYTES,
+  DEFAULT_MAX_DEPENDENCY_FILE_BYTES,
+)
+
 function shouldSkipManifest(
   file: DetectedDependencyFile,
   successfulLockfiles: Set<string>,
@@ -66,6 +83,15 @@ async function parseDependencyFile(
   file: DetectedDependencyFile,
 ) {
   const absolutePath = path.join(input.rootDir, file.path)
+
+  const stats = await fs.stat(absolutePath)
+
+  if (stats.size > MAX_DEPENDENCY_FILE_BYTES) {
+    throw new Error(
+      `file is too large (${stats.size} bytes, max ${MAX_DEPENDENCY_FILE_BYTES})`,
+    )
+  }
+
   const content = await fs.readFile(absolutePath, "utf8")
 
   if (file.ecosystem === "npm") {
