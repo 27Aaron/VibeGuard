@@ -281,10 +281,7 @@ export async function syncOsvEcosystem({
       const vulnerability = JSON.parse(rawText)
       const normalized = normalizeOsvRecord(vulnerability, {
         sourceUrl,
-        dumpEcosystems: [ecosystem],
         rawHash: sha256(rawText),
-        rawSizeBytes: Buffer.byteLength(rawText),
-        syncedAt,
       })
 
       await upsertRecord(db, normalized)
@@ -393,21 +390,18 @@ export async function bootstrapOsvEcosystem({
         const sourceUrl = buildOsvVulnerabilityUrl(ecosystem, entry.externalId)
         const normalized = normalizeOsvRecord(vulnerability, {
           sourceUrl,
-          dumpEcosystems: [ecosystem],
           rawHash: sha256(rawText),
-          rawSizeBytes: Buffer.byteLength(rawText),
-          syncedAt,
         })
 
         await upsertRecord(db, normalized)
         recordsImported += 1
         if (
-          normalized.sourceRecord.modifiedAt &&
+          normalized.advisory.modifiedAt &&
           (!lastProcessedModifiedAt ||
-            normalized.sourceRecord.modifiedAt.getTime() >
+            normalized.advisory.modifiedAt.getTime() >
               lastProcessedModifiedAt.getTime())
         ) {
-          lastProcessedModifiedAt = normalized.sourceRecord.modifiedAt
+          lastProcessedModifiedAt = normalized.advisory.modifiedAt
         }
       } catch {
         recordsFailed += 1

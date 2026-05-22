@@ -7,7 +7,7 @@ import {
 } from "../packages/content/src/osv/normalize"
 
 describe("normalizeOsvRecord", () => {
-  it("extracts source metadata without retaining raw JSON", () => {
+  it("extracts the compact advisory shape without retaining raw JSON", () => {
     const result = normalizeOsvRecord(
       {
         schema_version: "1.7.5",
@@ -30,24 +30,20 @@ describe("normalizeOsvRecord", () => {
       {
         sourceUrl:
           "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
-        dumpEcosystems: ["npm"],
         rawHash: "sha256:test",
-        rawSizeBytes: 1499,
-        syncedAt: new Date("2026-05-22T00:00:00Z"),
       },
     )
 
-    expect(result.sourceRecord).toMatchObject({
+    expect(result.advisory).toMatchObject({
       source: "osv",
       externalId: "MAL-2026-4230",
       sourceUrl:
         "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
-      schemaVersion: "1.7.5",
       rawHash: "sha256:test",
-      rawSizeBytes: 1499,
-      parseStatus: "parsed",
+      publishedAt: new Date("2026-05-21T21:15:38Z"),
+      modifiedAt: new Date("2026-05-21T23:01:37.118Z"),
     })
-    expect(result.sourceRecord).not.toHaveProperty("rawJson")
+    expect(result.advisory).not.toHaveProperty("rawJson")
     expect(result.advisory.riskType).toBe("malicious-package")
     expect(result.affectedPackages[0]).toMatchObject({
       ecosystem: "npm",
@@ -98,10 +94,7 @@ describe("normalizeOsvRecord", () => {
       {
         sourceUrl:
           "https://storage.googleapis.com/osv-vulnerabilities/Go/GHSA-94jr-7pqp-xhcq.json",
-        dumpEcosystems: ["Go"],
         rawHash: "sha256:test",
-        rawSizeBytes: 9705,
-        syncedAt: new Date("2026-05-22T00:00:00Z"),
       },
     )
 

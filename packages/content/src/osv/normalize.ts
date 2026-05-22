@@ -1,12 +1,9 @@
 import {
   SecurityPackageEcosystem,
-  SecurityParseStatus,
   SecurityRiskType,
   type SecurityPackageEcosystem as SecurityPackageEcosystemValue,
   type SecurityRiskType as SecurityRiskTypeValue,
 } from "@vibeguard/shared"
-
-import type { OsvDumpEcosystem } from "./cache"
 
 type OsvSeverity = {
   type?: string
@@ -52,31 +49,14 @@ export type OsvVulnerability = {
 
 type NormalizeOsvRecordOptions = {
   sourceUrl: string
-  dumpEcosystems: OsvDumpEcosystem[]
   rawHash?: string
-  rawSizeBytes?: number
-  syncedAt?: Date
-}
-
-export type NormalizedOsvSourceRecord = {
-  source: "osv"
-  externalId: string
-  sourceUrl: string
-  sourceEcosystems: OsvDumpEcosystem[]
-  schemaVersion: string | null
-  modifiedAt: Date | null
-  publishedAt: Date | null
-  withdrawnAt: Date | null
-  rawHash: string | null
-  rawSizeBytes: number | null
-  syncedAt: Date
-  parseStatus: typeof SecurityParseStatus.PARSED
-  parseError: null
 }
 
 export type NormalizedOsvAdvisory = {
   source: "osv"
   externalId: string
+  sourceUrl: string
+  rawHash: string | null
   riskType: SecurityRiskTypeValue
   summary: string
   details: string | null
@@ -99,7 +79,6 @@ export type NormalizedOsvAffectedPackage = {
 }
 
 export type NormalizedOsvRecord = {
-  sourceRecord: NormalizedOsvSourceRecord
   advisory: NormalizedOsvAdvisory
   affectedPackages: NormalizedOsvAffectedPackage[]
 }
@@ -252,24 +231,11 @@ export function normalizeOsvRecord(
   }
 
   return {
-    sourceRecord: {
-      source: "osv",
-      externalId: vulnerability.id,
-      sourceUrl: options.sourceUrl,
-      sourceEcosystems: options.dumpEcosystems,
-      schemaVersion: vulnerability.schema_version ?? null,
-      modifiedAt: parseDate(vulnerability.modified),
-      publishedAt: parseDate(vulnerability.published),
-      withdrawnAt: parseDate(vulnerability.withdrawn),
-      rawHash: options.rawHash ?? null,
-      rawSizeBytes: options.rawSizeBytes ?? null,
-      syncedAt: options.syncedAt ?? new Date(),
-      parseStatus: SecurityParseStatus.PARSED,
-      parseError: null,
-    },
     advisory: {
       source: "osv",
       externalId: vulnerability.id,
+      sourceUrl: options.sourceUrl,
+      rawHash: options.rawHash ?? null,
       riskType: inferRiskType(vulnerability),
       summary: vulnerability.summary ?? "",
       details: vulnerability.details ?? null,

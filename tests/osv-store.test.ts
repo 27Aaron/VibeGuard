@@ -1,35 +1,20 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { SecurityParseStatus, SecuritySyncStatus } from "@vibeguard/shared"
+import { SecuritySyncStatus } from "@vibeguard/shared"
 
 import {
   buildSecurityAdvisoryInsert,
   buildSecurityAffectedPackageInsert,
-  buildSecuritySourceRecordInsert,
   buildSecuritySyncStateUpdate,
   upsertNormalizedOsvRecord,
 } from "../packages/content/src/osv/store"
 
-const sourceRecord = {
+const advisory = {
   source: "osv" as const,
   externalId: "MAL-2026-4230",
   sourceUrl:
     "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
-  sourceEcosystems: ["npm"] as const,
-  schemaVersion: "1.7.5",
-  modifiedAt: new Date("2026-05-21T23:01:37Z"),
-  publishedAt: new Date("2026-05-21T21:15:38Z"),
-  withdrawnAt: null,
   rawHash: "sha256:test",
-  rawSizeBytes: 1499,
-  syncedAt: new Date("2026-05-22T00:00:00Z"),
-  parseStatus: SecurityParseStatus.PARSED,
-  parseError: null,
-}
-
-const advisory = {
-  source: "osv" as const,
-  externalId: "MAL-2026-4230",
   riskType: "malicious-package" as const,
   summary: "Malicious code in cryptoco-auth (npm)",
   details: "The package shipped malicious install behavior.",
@@ -52,22 +37,12 @@ const affectedPackage = {
 }
 
 describe("OSV store payload builders", () => {
-  it("builds a source record insert without raw JSON", () => {
-    const result = buildSecuritySourceRecordInsert(sourceRecord)
-
-    expect(result).toMatchObject({
+  it("builds an advisory insert with only the product-facing OSV fields", () => {
+    expect(buildSecurityAdvisoryInsert(advisory)).toMatchObject({
       externalId: "MAL-2026-4230",
-      parseStatus: "parsed",
+      sourceUrl:
+        "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
       rawHash: "sha256:test",
-      rawSizeBytes: 1499,
-    })
-    expect(result).not.toHaveProperty("rawJson")
-  })
-
-  it("builds an advisory insert linked to the source record", () => {
-    expect(buildSecurityAdvisoryInsert(advisory, "source-record-1")).toMatchObject({
-      sourceRecordId: "source-record-1",
-      externalId: "MAL-2026-4230",
       riskType: "malicious-package",
       summary: "Malicious code in cryptoco-auth (npm)",
     })
@@ -120,17 +95,20 @@ describe("OSV store payload builders", () => {
 })
 
 describe("upsertNormalizedOsvRecord", () => {
-  it("upserts source, advisory, and refreshed affected packages", async () => {
+  it("upserts advisory and refreshed affected packages", async () => {
     const calls: string[] = []
     const deleteWhere = vi.fn().mockResolvedValue(undefined)
     const db = {
+      query: {
+        securityAdvisories: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+      },
       insert: vi.fn((table) => ({
         values: vi.fn((values) => ({
           onConflictDoUpdate: vi.fn(() => ({
             returning: vi.fn().mockResolvedValue([
-              table === "source"
-                ? { id: "source-record-1", ...values }
-                : { id: "advisory-1", ...values },
+              { id: "advisory-1", ...values },
             ]),
           })),
           onConflictDoNothing: vi.fn(() => ({
@@ -147,13 +125,11 @@ describe("upsertNormalizedOsvRecord", () => {
     const result = await upsertNormalizedOsvRecord(
       db,
       {
-        sourceRecord,
         advisory,
         affectedPackages: [affectedPackage],
       },
       {
         tables: {
-          securitySourceRecords: "source",
           securityAdvisories: "advisory",
           securityAffectedPackages: "affected",
         } as never,
@@ -161,10 +137,38 @@ describe("upsertNormalizedOsvRecord", () => {
     )
 
     expect(result).toEqual({
-      sourceRecordId: "source-record-1",
       advisoryId: "advisory-1",
       affectedPackageCount: 1,
+      skipped: false,
     })
     expect(calls).toEqual(["delete-affected"])
+  })
+
+  it("skips affected package rewrites when the advisory hash is unchanged", async () => {
+    const db = {
+      query: {
+        securityAdvisories: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: "advisory-1",
+            rawHash: "sha256:test",
+          }),
+        },
+      },
+      insert: vi.fn(),
+      delete: vi.fn(),
+    } as never
+
+    const result = await upsertNormalizedOsvRecord(db, {
+      advisory,
+      affectedPackages: [affectedPackage],
+    })
+
+    expect(result).toEqual({
+      advisoryId: "advisory-1",
+      affectedPackageCount: 1,
+      skipped: true,
+    })
+    expect(db.insert).not.toHaveBeenCalled()
+    expect(db.delete).not.toHaveBeenCalled()
   })
 })

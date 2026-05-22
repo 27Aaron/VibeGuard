@@ -21,7 +21,6 @@ import {
   JOB_STATUS_VALUES,
   JOB_TYPE_VALUES,
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
-  SECURITY_PARSE_STATUS_VALUES,
   SECURITY_RISK_TYPE_VALUES,
   SECURITY_SYNC_STATUS_VALUES,
 } from "@vibeguard/shared";
@@ -34,7 +33,6 @@ export const jobTypeValues = JOB_TYPE_VALUES;
 export const jobPipelineStageValues = JOB_PIPELINE_STAGE_VALUES;
 export const securityPackageEcosystemValues = SECURITY_PACKAGE_ECOSYSTEM_VALUES;
 export const securitySyncStatusValues = SECURITY_SYNC_STATUS_VALUES;
-export const securityParseStatusValues = SECURITY_PARSE_STATUS_VALUES;
 export const securityRiskTypeValues = SECURITY_RISK_TYPE_VALUES;
 
 export const articleStatusEnum = pgEnum(
@@ -59,11 +57,6 @@ export const securityPackageEcosystemEnum = pgEnum(
 export const securitySyncStatusEnum = pgEnum(
   "security_sync_status",
   securitySyncStatusValues,
-);
-
-export const securityParseStatusEnum = pgEnum(
-  "security_parse_status",
-  securityParseStatusValues,
 );
 
 export const securityRiskTypeEnum = pgEnum(
@@ -253,57 +246,14 @@ export const securitySyncState = pgTable(
   ],
 );
 
-export const securitySourceRecords = pgTable(
-  "security_source_records",
+export const securityAdvisories = pgTable(
+  "security_advisories",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     source: varchar("source", { length: 32 }).notNull().default("osv"),
     externalId: varchar("external_id", { length: 160 }).notNull(),
     sourceUrl: text("source_url").notNull(),
-    sourceEcosystems: jsonb("source_ecosystems")
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'::jsonb`),
-    schemaVersion: varchar("schema_version", { length: 32 }),
-    modifiedAt: timestamp("modified_at", { withTimezone: true }),
-    publishedAt: timestamp("published_at", { withTimezone: true }),
-    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     rawHash: varchar("raw_hash", { length: 128 }),
-    rawSizeBytes: integer("raw_size_bytes"),
-    syncedAt: timestamp("synced_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    parseStatus: securityParseStatusEnum("parse_status")
-      .notNull()
-      .default("pending"),
-    parseError: text("parse_error"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdateFn(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex("security_source_records_source_external_unique").on(
-      table.source,
-      table.externalId,
-    ),
-    index("security_source_records_modified_at_idx").on(table.modifiedAt),
-    index("security_source_records_parse_status_idx").on(table.parseStatus),
-  ],
-);
-
-export const securityAdvisories = pgTable(
-  "security_advisories",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    sourceRecordId: uuid("source_record_id").references(
-      () => securitySourceRecords.id,
-    ),
-    source: varchar("source", { length: 32 }).notNull().default("osv"),
-    externalId: varchar("external_id", { length: 160 }).notNull(),
     riskType: securityRiskTypeEnum("risk_type").notNull().default("unknown"),
     summary: text("summary").notNull().default(""),
     details: text("details"),
@@ -388,14 +338,12 @@ export const schema = {
   jobPipelineStageEnum,
   securityPackageEcosystemEnum,
   securitySyncStatusEnum,
-  securityParseStatusEnum,
   securityRiskTypeEnum,
   feeds,
   articles,
   processingJobs,
   llmSettings,
   securitySyncState,
-  securitySourceRecords,
   securityAdvisories,
   securityAffectedPackages,
 } as const;

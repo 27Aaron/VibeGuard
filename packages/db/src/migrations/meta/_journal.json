@@ -71,6 +71,13 @@
       "when": 1779408156566,
       "tag": "0009_hesitant_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779430246689,
+      "tag": "0010_compact_security_osv_fields",
+      "breakpoints": true
     }
   ]
 }

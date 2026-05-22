@@ -5,7 +5,6 @@ import {
   schema,
   securityAdvisories,
   securityAffectedPackages,
-  securitySourceRecords,
   securitySyncState,
 } from "@vibeguard/db"
 import {
@@ -18,13 +17,11 @@ import type {
   NormalizedOsvAdvisory,
   NormalizedOsvAffectedPackage,
   NormalizedOsvRecord,
-  NormalizedOsvSourceRecord,
 } from "./normalize"
 
 type ContentDb = NodePgDatabase<typeof schema>
 
 type StoreTables = {
-  securitySourceRecords: typeof securitySourceRecords
   securityAdvisories: typeof securityAdvisories
   securityAffectedPackages: typeof securityAffectedPackages
   securitySyncState: typeof securitySyncState
@@ -44,34 +41,12 @@ export type SecuritySyncStateUpdateInput = {
   recordsFailed?: number
 }
 
-export function buildSecuritySourceRecordInsert(
-  sourceRecord: NormalizedOsvSourceRecord,
-) {
+export function buildSecurityAdvisoryInsert(advisory: NormalizedOsvAdvisory) {
   return {
-    source: sourceRecord.source,
-    externalId: sourceRecord.externalId,
-    sourceUrl: sourceRecord.sourceUrl,
-    sourceEcosystems: [...sourceRecord.sourceEcosystems],
-    schemaVersion: sourceRecord.schemaVersion,
-    modifiedAt: sourceRecord.modifiedAt,
-    publishedAt: sourceRecord.publishedAt,
-    withdrawnAt: sourceRecord.withdrawnAt,
-    rawHash: sourceRecord.rawHash,
-    rawSizeBytes: sourceRecord.rawSizeBytes,
-    syncedAt: sourceRecord.syncedAt,
-    parseStatus: sourceRecord.parseStatus,
-    parseError: sourceRecord.parseError,
-  }
-}
-
-export function buildSecurityAdvisoryInsert(
-  advisory: NormalizedOsvAdvisory,
-  sourceRecordId: string,
-) {
-  return {
-    sourceRecordId,
     source: advisory.source,
     externalId: advisory.externalId,
+    sourceUrl: advisory.sourceUrl,
+    rawHash: advisory.rawHash,
     riskType: advisory.riskType,
     summary: advisory.summary,
     details: advisory.details,
@@ -129,32 +104,37 @@ export async function upsertNormalizedOsvRecord(
   normalized: NormalizedOsvRecord,
   options: UpsertOptions = {},
 ) {
-  const sourceRecordsTable =
-    options.tables?.securitySourceRecords ?? securitySourceRecords
   const advisoriesTable =
     options.tables?.securityAdvisories ?? securityAdvisories
   const affectedPackagesTable =
     options.tables?.securityAffectedPackages ?? securityAffectedPackages
 
-  const sourceInsert = buildSecuritySourceRecordInsert(normalized.sourceRecord)
-  const insertedSourceRecords = await db
-    .insert(sourceRecordsTable)
-    .values(sourceInsert)
-    .onConflictDoUpdate({
-      target: [sourceRecordsTable.source, sourceRecordsTable.externalId],
-      set: sourceInsert,
-    })
-    .returning()
-  const sourceRecordId = insertedSourceRecords[0]?.id
+  const existingAdvisory = await db.query.securityAdvisories.findFirst({
+    where: (table, { and, eq: whereEq }) =>
+      and(
+        whereEq(table.source, normalized.advisory.source),
+        whereEq(table.externalId, normalized.advisory.externalId),
+      ),
+    columns: {
+      id: true,
+      rawHash: true,
+    },
+  })
 
-  if (!sourceRecordId) {
-    throw new Error(`Unable to upsert OSV source record: ${sourceInsert.externalId}`)
+  if (
+    existingAdvisory?.id &&
+    existingAdvisory.rawHash &&
+    normalized.advisory.rawHash &&
+    existingAdvisory.rawHash === normalized.advisory.rawHash
+  ) {
+    return {
+      advisoryId: existingAdvisory.id,
+      affectedPackageCount: normalized.affectedPackages.length,
+      skipped: true,
+    }
   }
 
-  const advisoryInsert = buildSecurityAdvisoryInsert(
-    normalized.advisory,
-    sourceRecordId,
-  )
+  const advisoryInsert = buildSecurityAdvisoryInsert(normalized.advisory)
   const insertedAdvisories = await db
     .insert(advisoriesTable)
     .values(advisoryInsert)
@@ -186,9 +166,9 @@ export async function upsertNormalizedOsvRecord(
   }
 
   return {
-    sourceRecordId,
     advisoryId,
     affectedPackageCount: normalized.affectedPackages.length,
+    skipped: false,
   }
 }
 
