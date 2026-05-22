@@ -38,7 +38,7 @@ const ecosystemMatchers: Array<{
   },
   {
     ecosystem: ArticleEcosystem.GO,
-    patterns: [/\bgolang\b/i, /\bgo module\b/i, /\bgo package\b/i, /\bgo\b/i],
+    patterns: [/\bgolang\b/i, /\bgo module\b/i, /\bgo package\b/i],
   },
   {
     ecosystem: ArticleEcosystem["CRATES-IO"],
