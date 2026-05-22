@@ -259,6 +259,63 @@ describe("bootstrapOsvEcosystem", () => {
     expect(summary.recordsImported).toBe(0)
     expect(summary.recordsFailed).toBe(0)
   })
+
+  it("flushes bootstrap entries in batches before writing to the database", async () => {
+    const repoRoot = fs.mkdtempSync(path.join("/tmp", "vibeguard-osv-bootstrap-"))
+    const upsertNormalizedOsvRecordsBatch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        importedCount: 2,
+        skippedCount: 0,
+        results: [],
+      })
+      .mockResolvedValueOnce({
+        importedCount: 1,
+        skippedCount: 0,
+        results: [],
+      })
+
+    const summary = await bootstrapOsvEcosystem({
+      db: {} as never,
+      ecosystem: "npm",
+      repoRoot,
+      batchSize: 2,
+      now: () => new Date("2026-05-22T08:00:00Z"),
+      downloadArchiveToCache: vi.fn().mockResolvedValue(
+        path.join(repoRoot, "data", "osv-bootstrap", "npm", "all.zip"),
+      ),
+      iterateArchiveEntries: async function* () {
+        for (const id of [
+          "MAL-2026-4230",
+          "MAL-2026-4231",
+          "MAL-2026-4232",
+        ]) {
+          yield {
+            entryName: `${id}.json`,
+            readText: async () =>
+              JSON.stringify({
+                schema_version: "1.7.5",
+                id,
+                published: "2026-05-21T21:15:38Z",
+                modified: "2026-05-21T23:01:37.118219322Z",
+                summary: "Malicious code in cryptoco-auth (npm)",
+                affected: [],
+              }),
+          }
+        }
+      },
+      deleteCachedFile: vi.fn().mockResolvedValue(undefined),
+      upsertNormalizedOsvRecordsBatch,
+      upsertSecuritySyncState: vi.fn().mockResolvedValue(undefined),
+    })
+
+    expect(upsertNormalizedOsvRecordsBatch).toHaveBeenCalledTimes(2)
+    expect(upsertNormalizedOsvRecordsBatch.mock.calls[0]?.[1]).toHaveLength(2)
+    expect(upsertNormalizedOsvRecordsBatch.mock.calls[1]?.[1]).toHaveLength(1)
+    expect(summary.recordsSeen).toBe(3)
+    expect(summary.recordsImported).toBe(3)
+    expect(summary.recordsFailed).toBe(0)
+  })
 })
 
 describe("bootstrapAllOsvEcosystems", () => {

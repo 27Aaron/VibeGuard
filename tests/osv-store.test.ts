@@ -7,6 +7,7 @@ import {
   buildSecurityAffectedPackageInsert,
   buildSecuritySyncStateUpdate,
   upsertNormalizedOsvRecord,
+  upsertNormalizedOsvRecordsBatch,
 } from "../packages/content/src/osv/store"
 
 const advisory = {
@@ -99,16 +100,16 @@ describe("upsertNormalizedOsvRecord", () => {
     const calls: string[] = []
     const deleteWhere = vi.fn().mockResolvedValue(undefined)
     const db = {
-      query: {
-        securityAdvisories: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      },
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([]),
+        })),
+      })),
       insert: vi.fn((table) => ({
         values: vi.fn((values) => ({
           onConflictDoUpdate: vi.fn(() => ({
             returning: vi.fn().mockResolvedValue([
-              { id: "advisory-1", ...values },
+              { id: "advisory-1", externalId: "MAL-2026-4230" },
             ]),
           })),
           onConflictDoNothing: vi.fn(() => ({
@@ -146,14 +147,17 @@ describe("upsertNormalizedOsvRecord", () => {
 
   it("skips affected package rewrites when the advisory hash is unchanged", async () => {
     const db = {
-      query: {
-        securityAdvisories: {
-          findFirst: vi.fn().mockResolvedValue({
-            id: "advisory-1",
-            rawHash: "sha256:test",
-          }),
-        },
-      },
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-1",
+              externalId: "MAL-2026-4230",
+              rawHash: "sha256:test",
+            },
+          ]),
+        })),
+      })),
       insert: vi.fn(),
       delete: vi.fn(),
     } as never
@@ -170,5 +174,137 @@ describe("upsertNormalizedOsvRecord", () => {
     })
     expect(db.insert).not.toHaveBeenCalled()
     expect(db.delete).not.toHaveBeenCalled()
+  })
+})
+
+describe("upsertNormalizedOsvRecordsBatch", () => {
+  it("batch-loads existing hashes, skips unchanged advisories, and rewrites only changed rows", async () => {
+    const advisoryValuesCalls: unknown[] = []
+    const affectedValuesCalls: unknown[] = []
+    const deleteWhere = vi.fn().mockResolvedValue(undefined)
+    const advisoryReturning = [
+      {
+        id: "advisory-changed",
+        source: "osv",
+        externalId: "GHSA-changed",
+        rawHash: "sha256:new",
+      },
+      {
+        id: "advisory-new",
+        source: "osv",
+        externalId: "GHSA-new",
+        rawHash: "sha256:new-new",
+      },
+    ]
+    const db = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-changed",
+              externalId: "GHSA-changed",
+              rawHash: "sha256:old",
+            },
+            {
+              id: "advisory-unchanged",
+              externalId: "GHSA-unchanged",
+              rawHash: "sha256:same",
+            },
+          ]),
+        })),
+      })),
+      insert: vi.fn((table) => ({
+        values: vi.fn((values) => {
+          if (table === "advisory") {
+            advisoryValuesCalls.push(values)
+            return {
+              onConflictDoUpdate: vi.fn(() => ({
+                returning: vi.fn().mockResolvedValue(advisoryReturning),
+              })),
+            }
+          }
+
+          affectedValuesCalls.push(values)
+          return {
+            onConflictDoNothing: vi.fn(() => ({
+              returning: vi.fn().mockResolvedValue(values),
+            })),
+          }
+        }),
+      })),
+      delete: vi.fn(() => ({
+        where: deleteWhere,
+      })),
+    } as never
+
+    const changedRecord = {
+      advisory: {
+        ...advisory,
+        externalId: "GHSA-changed",
+        rawHash: "sha256:new",
+      },
+      affectedPackages: [affectedPackage],
+    }
+    const unchangedRecord = {
+      advisory: {
+        ...advisory,
+        externalId: "GHSA-unchanged",
+        rawHash: "sha256:same",
+      },
+      affectedPackages: [affectedPackage],
+    }
+    const newRecord = {
+      advisory: {
+        ...advisory,
+        externalId: "GHSA-new",
+        rawHash: "sha256:new-new",
+      },
+      affectedPackages: [
+        {
+          ...affectedPackage,
+          packageName: "boxlite",
+          packageKey: "boxlite",
+          purl: "pkg:pypi/boxlite",
+          ecosystem: "pypi" as const,
+        },
+      ],
+    }
+
+    const result = await upsertNormalizedOsvRecordsBatch(
+      db,
+      [changedRecord, unchangedRecord, newRecord],
+      {
+        tables: {
+          securityAdvisories: "advisory",
+          securityAffectedPackages: "affected",
+        } as never,
+      },
+    )
+
+    expect(result.importedCount).toBe(2)
+    expect(result.skippedCount).toBe(1)
+    expect(result.results).toEqual([
+      {
+        advisoryId: "advisory-changed",
+        affectedPackageCount: 1,
+        skipped: false,
+      },
+      {
+        advisoryId: "advisory-unchanged",
+        affectedPackageCount: 1,
+        skipped: true,
+      },
+      {
+        advisoryId: "advisory-new",
+        affectedPackageCount: 1,
+        skipped: false,
+      },
+    ])
+    expect(db.select).toHaveBeenCalledTimes(1)
+    expect(advisoryValuesCalls).toHaveLength(1)
+    expect(advisoryValuesCalls[0]).toHaveLength(2)
+    expect(deleteWhere).toHaveBeenCalledTimes(1)
+    expect(affectedValuesCalls).toHaveLength(1)
+    expect(affectedValuesCalls[0]).toHaveLength(2)
   })
 })

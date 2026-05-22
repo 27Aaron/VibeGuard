@@ -27,6 +27,7 @@ import {
 import { normalizeOsvRecord } from "./normalize"
 import {
   upsertNormalizedOsvRecord,
+  upsertNormalizedOsvRecordsBatch,
   upsertSecuritySyncState,
   type SecuritySyncStateUpdateInput,
 } from "./store"
@@ -48,6 +49,7 @@ type ExecFile = (
 
 const execFile = promisify(execFileCallback)
 const UNZIP_MAX_BUFFER_BYTES = 64 * 1024 * 1024
+const DEFAULT_BOOTSTRAP_BATCH_SIZE = 200
 
 type SyncOsvEcosystemInput = {
   db: ContentDb
@@ -74,6 +76,7 @@ type BootstrapOsvEcosystemInput = {
   ecosystem: OsvDumpEcosystem
   repoRoot?: string
   limit?: number
+  batchSize?: number
   now?: () => Date
   fetchBytes?: FetchBytes
   downloadArchiveToCache?: typeof downloadOsvArchiveToCache
@@ -82,6 +85,7 @@ type BootstrapOsvEcosystemInput = {
   ) => Promise<AsyncIterable<BootstrapArchiveEntry>> | AsyncIterable<BootstrapArchiveEntry>
   deleteCachedFile?: typeof deleteCachedOsvFile
   upsertNormalizedOsvRecord?: typeof upsertNormalizedOsvRecord
+  upsertNormalizedOsvRecordsBatch?: typeof upsertNormalizedOsvRecordsBatch
   upsertSecuritySyncState?: (
     db: ContentDb,
     ecosystem: SecurityPackageEcosystem,
@@ -313,12 +317,14 @@ export async function bootstrapOsvEcosystem({
   ecosystem,
   repoRoot,
   limit,
+  batchSize = DEFAULT_BOOTSTRAP_BATCH_SIZE,
   now = () => new Date(),
   fetchBytes,
   downloadArchiveToCache: downloadArchive = downloadOsvArchiveToCache,
   iterateArchiveEntries = defaultIterateArchiveEntries,
   deleteCachedFile = deleteCachedOsvFile,
   upsertNormalizedOsvRecord: upsertRecord = upsertNormalizedOsvRecord,
+  upsertNormalizedOsvRecordsBatch: upsertRecordsBatch = upsertNormalizedOsvRecordsBatch,
   upsertSecuritySyncState: upsertSyncState = upsertSecuritySyncState,
 }: BootstrapOsvEcosystemInput): Promise<SyncOsvEcosystemSummary> {
   const syncedAt = now()
@@ -341,6 +347,32 @@ export async function bootstrapOsvEcosystem({
   let recordsImported = 0
   let recordsFailed = 0
   let lastProcessedModifiedAt: Date | null = null
+  let pendingRecords = [] as Array<ReturnType<typeof normalizeOsvRecord>>
+  const effectiveBatchSize = Math.max(1, Math.floor(batchSize))
+
+  async function flushPendingRecords() {
+    if (pendingRecords.length === 0) {
+      return
+    }
+
+    const batch = pendingRecords
+    pendingRecords = []
+
+    try {
+      const result = await upsertRecordsBatch(db, batch)
+      recordsImported += result.importedCount
+      return
+    } catch {
+      for (const record of batch) {
+        try {
+          const result = await upsertRecord(db, record)
+          recordsImported += result.skipped ? 0 : 1
+        } catch {
+          recordsFailed += 1
+        }
+      }
+    }
+  }
 
   try {
     for await (const entry of await iterateArchiveEntries(archivePath)) {
@@ -365,8 +397,7 @@ export async function bootstrapOsvEcosystem({
           rawHash: sha256(rawText),
         })
 
-        const result = await upsertRecord(db, normalized)
-        recordsImported += result.skipped ? 0 : 1
+        pendingRecords.push(normalized)
         if (
           normalized.advisory.modifiedAt &&
           (!lastProcessedModifiedAt ||
@@ -375,10 +406,15 @@ export async function bootstrapOsvEcosystem({
         ) {
           lastProcessedModifiedAt = normalized.advisory.modifiedAt
         }
+        if (pendingRecords.length >= effectiveBatchSize) {
+          await flushPendingRecords()
+        }
       } catch {
         recordsFailed += 1
       }
     }
+
+    await flushPendingRecords()
   } finally {
     await deleteCachedFile(archivePath)
   }

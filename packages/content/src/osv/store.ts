@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
 import {
@@ -29,6 +29,32 @@ type StoreTables = {
 
 type UpsertOptions = {
   tables?: Partial<StoreTables>
+}
+
+const advisoryConflictUpdateSet = {
+  sourceUrl: sql.raw("excluded.source_url"),
+  rawHash: sql.raw("excluded.raw_hash"),
+  riskType: sql.raw("excluded.risk_type"),
+  summary: sql.raw("excluded.summary"),
+  details: sql.raw("excluded.details"),
+  aliases: sql.raw("excluded.aliases"),
+  severity: sql.raw("excluded.severity"),
+  publishedAt: sql.raw("excluded.published_at"),
+  modifiedAt: sql.raw("excluded.modified_at"),
+  withdrawnAt: sql.raw("excluded.withdrawn_at"),
+  references: sql.raw("excluded.references"),
+}
+
+export type UpsertNormalizedOsvRecordResult = {
+  advisoryId: string
+  affectedPackageCount: number
+  skipped: boolean
+}
+
+export type UpsertNormalizedOsvRecordsBatchResult = {
+  importedCount: number
+  skippedCount: number
+  results: UpsertNormalizedOsvRecordResult[]
 }
 
 export type SecuritySyncStateUpdateInput = {
@@ -103,72 +129,179 @@ export async function upsertNormalizedOsvRecord(
   db: ContentDb,
   normalized: NormalizedOsvRecord,
   options: UpsertOptions = {},
-) {
+) : Promise<UpsertNormalizedOsvRecordResult> {
+  const result = await upsertNormalizedOsvRecordsBatch(
+    db,
+    [normalized],
+    options,
+  )
+
+  const firstResult = result.results[0]
+
+  if (!firstResult) {
+    throw new Error(
+      `Unable to upsert OSV advisory: ${normalized.advisory.externalId}`,
+    )
+  }
+
+  return firstResult
+}
+
+export async function upsertNormalizedOsvRecordsBatch(
+  db: ContentDb,
+  normalizedRecords: NormalizedOsvRecord[],
+  options: UpsertOptions = {},
+): Promise<UpsertNormalizedOsvRecordsBatchResult> {
+  if (normalizedRecords.length === 0) {
+    return {
+      importedCount: 0,
+      skippedCount: 0,
+      results: [],
+    }
+  }
+
   const advisoriesTable =
     options.tables?.securityAdvisories ?? securityAdvisories
   const affectedPackagesTable =
     options.tables?.securityAffectedPackages ?? securityAffectedPackages
 
-  const existingAdvisory = await db.query.securityAdvisories.findFirst({
-    where: (table, { and, eq: whereEq }) =>
+  const externalIds = Array.from(
+    new Set(normalizedRecords.map((record) => record.advisory.externalId)),
+  )
+  const source = normalizedRecords[0]!.advisory.source
+  const existingAdvisories = await db
+    .select({
+      id: advisoriesTable.id,
+      externalId: advisoriesTable.externalId,
+      rawHash: advisoriesTable.rawHash,
+    })
+    .from(advisoriesTable)
+    .where(
       and(
-        whereEq(table.source, normalized.advisory.source),
-        whereEq(table.externalId, normalized.advisory.externalId),
+        eq(advisoriesTable.source, source),
+        inArray(advisoriesTable.externalId, externalIds),
       ),
-    columns: {
-      id: true,
-      rawHash: true,
-    },
-  })
+    )
 
-  if (
-    existingAdvisory?.id &&
-    existingAdvisory.rawHash &&
-    normalized.advisory.rawHash &&
-    existingAdvisory.rawHash === normalized.advisory.rawHash
-  ) {
+  const existingByExternalId = new Map(
+    existingAdvisories.map((advisory) => [advisory.externalId, advisory]),
+  )
+  const resultsByExternalId = new Map<string, UpsertNormalizedOsvRecordResult>()
+  const recordsToWrite: NormalizedOsvRecord[] = []
+  let skippedCount = 0
+
+  for (const record of normalizedRecords) {
+    const existing = existingByExternalId.get(record.advisory.externalId)
+
+    if (
+      existing?.id &&
+      existing.rawHash &&
+      record.advisory.rawHash &&
+      existing.rawHash === record.advisory.rawHash
+    ) {
+      skippedCount += 1
+      resultsByExternalId.set(record.advisory.externalId, {
+        advisoryId: existing.id,
+        affectedPackageCount: record.affectedPackages.length,
+        skipped: true,
+      })
+      continue
+    }
+
+    recordsToWrite.push(record)
+  }
+
+  if (recordsToWrite.length === 0) {
     return {
-      advisoryId: existingAdvisory.id,
-      affectedPackageCount: normalized.affectedPackages.length,
-      skipped: true,
+      importedCount: 0,
+      skippedCount,
+      results: normalizedRecords.map((record) => {
+        const result = resultsByExternalId.get(record.advisory.externalId)
+
+        if (!result) {
+          throw new Error(
+            `Missing skipped advisory result: ${record.advisory.externalId}`,
+          )
+        }
+
+        return result
+      }),
     }
   }
 
-  const advisoryInsert = buildSecurityAdvisoryInsert(normalized.advisory)
-  const insertedAdvisories = await db
+  const advisoryInsertValues = recordsToWrite.map((record) =>
+    buildSecurityAdvisoryInsert(record.advisory),
+  )
+  const upsertedAdvisories = await db
     .insert(advisoriesTable)
-    .values(advisoryInsert)
+    .values(advisoryInsertValues)
     .onConflictDoUpdate({
       target: [advisoriesTable.source, advisoriesTable.externalId],
-      set: advisoryInsert,
+      set: advisoryConflictUpdateSet,
     })
-    .returning()
-  const advisoryId = insertedAdvisories[0]?.id
+    .returning({
+      id: advisoriesTable.id,
+      externalId: advisoriesTable.externalId,
+    })
 
-  if (!advisoryId) {
-    throw new Error(`Unable to upsert OSV advisory: ${advisoryInsert.externalId}`)
+  const advisoryIdByExternalId = new Map(
+    upsertedAdvisories.map((advisory) => [advisory.externalId, advisory.id]),
+  )
+  const advisoryIdsToRewrite: string[] = []
+  const affectedPackageInsertValues: Array<
+    ReturnType<typeof buildSecurityAffectedPackageInsert>
+  > = []
+
+  for (const record of recordsToWrite) {
+    const advisoryId = advisoryIdByExternalId.get(record.advisory.externalId)
+
+    if (!advisoryId) {
+      throw new Error(
+        `Unable to upsert OSV advisory: ${record.advisory.externalId}`,
+      )
+    }
+
+    advisoryIdsToRewrite.push(advisoryId)
+    resultsByExternalId.set(record.advisory.externalId, {
+      advisoryId,
+      affectedPackageCount: record.affectedPackages.length,
+      skipped: false,
+    })
+    affectedPackageInsertValues.push(
+      ...record.affectedPackages.map((affectedPackage) =>
+        buildSecurityAffectedPackageInsert(affectedPackage, advisoryId),
+      ),
+    )
   }
 
-  await db
-    .delete(affectedPackagesTable)
-    .where(eq(affectedPackagesTable.advisoryId, advisoryId))
+  if (advisoryIdsToRewrite.length > 0) {
+    await db
+      .delete(affectedPackagesTable)
+      .where(inArray(affectedPackagesTable.advisoryId, advisoryIdsToRewrite))
+  }
 
-  if (normalized.affectedPackages.length > 0) {
+  if (affectedPackageInsertValues.length > 0) {
     await db
       .insert(affectedPackagesTable)
-      .values(
-        normalized.affectedPackages.map((affectedPackage) =>
-          buildSecurityAffectedPackageInsert(affectedPackage, advisoryId),
-        ),
-      )
+      .values(affectedPackageInsertValues)
       .onConflictDoNothing()
       .returning()
   }
 
   return {
-    advisoryId,
-    affectedPackageCount: normalized.affectedPackages.length,
-    skipped: false,
+    importedCount: recordsToWrite.length,
+    skippedCount,
+    results: normalizedRecords.map((record) => {
+      const result = resultsByExternalId.get(record.advisory.externalId)
+
+      if (!result) {
+        throw new Error(
+          `Missing advisory upsert result: ${record.advisory.externalId}`,
+        )
+      }
+
+      return result
+    }),
   }
 }
 
