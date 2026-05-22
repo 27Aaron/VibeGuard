@@ -2,9 +2,7 @@ openapi: 3.1.0
 info:
   title: VibeGuard Public API
   version: 1.0.0
-  description: |
-    VibeGuard 供应链安全情报公开 API。
-    所有接口无需认证，浏览器直接访问即可。
+  description: VibeGuard 供应链安全情报公开 API，无需认证。
   contact:
     name: VibeGuard
     url: https://github.com/27Aaron/VibeGuard
@@ -16,90 +14,71 @@ servers:
 paths:
   /api/articles:
     get:
-      operationId: listArticles
       summary: 查询文章列表
-      description: 支持关键词搜索、标签筛选、来源过滤、生态系统与风险类别筛选、分页。
       tags: [Articles]
       parameters:
         - name: lang
           in: query
-          schema:
-            type: string
-            enum: [zh, en]
-            default: zh
-          description: 返回内容的语言。zh 返回中文，en 返回英文。
-        - name: source
-          in: query
-          schema:
-            type: string
-          description: 按内容来源名称精确筛选。
+          schema: { type: string, enum: [zh, en], default: zh }
+          description: 返回内容语言。
         - name: q
           in: query
-          schema:
-            type: string
-          description: 全文搜索关键词，匹配标题、摘要、来源名和标签。
-        - name: ecosystem
-          in: query
-          schema:
-            type: string
-            enum: [npm, pypi, maven, go, crates-io, github-actions, docker, multi]
-          description: 按包管理生态系统筛选。
-        - name: riskCategory
-          in: query
-          schema:
-            type: string
-            enum: [vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk]
-          description: 按风险类别筛选。
+          schema: { type: string }
+          description: 全文搜索关键词。
         - name: tag
           in: query
-          schema:
-            type: string
-          description: 按标签筛选（小写，JSON 包含匹配）。
+          schema: { type: string }
+          description: 按标签筛选。
+        - name: source
+          in: query
+          schema: { type: string }
+          description: 按来源筛选。
+        - name: ecosystem
+          in: query
+          schema: { type: string, enum: [npm, pypi, maven, go, crates-io, github-actions, docker, multi] }
+        - name: riskCategory
+          in: query
+          schema: { type: string, enum: [vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk] }
         - name: limit
           in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-          description: 每页返回数量。
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
         - name: page
           in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 10000
-            default: 1
-          description: 页码，从 1 开始。
+          schema: { type: integer, minimum: 1, default: 1 }
       responses:
         "200":
           description: 文章列表
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ArticleListResponse"
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      lang: { type: string }
+                      limit: { type: integer }
+                      count: { type: integer }
+                      page: { type: integer }
+                      totalCount: { type: integer }
+                      totalPages: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Article"
 
   /api/articles/{articleId}:
     get:
-      operationId: getArticle
-      summary: 获取单篇文章详情
-      description: 根据文章 ID 获取完整详情，包含 Markdown 正文。
+      summary: 获取文章详情
       tags: [Articles]
       parameters:
         - name: articleId
           in: path
           required: true
-          schema:
-            type: string
-            format: uuid
-          description: 文章 UUID。
+          schema: { type: string, format: uuid }
         - name: lang
           in: query
-          schema:
-            type: string
-            enum: [zh, en]
-            default: zh
-          description: 返回内容的语言。
+          schema: { type: string, enum: [zh, en], default: zh }
       responses:
         "200":
           description: 文章详情
@@ -108,21 +87,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/ArticleDetail"
         "404":
-          description: 文章未找到
+          description: 未找到
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                type: object
+                properties:
+                  error: { type: string }
 
   /api/security/check/overview:
     get:
-      operationId: securityOverview
       summary: 漏洞统计概览
-      description: 返回本地 OSV 数据库各生态系统的受影响包数量统计。
       tags: [Security]
       responses:
         "200":
-          description: 统计概览
+          description: 各生态系统受影响包数量
           content:
             application/json:
               schema:
@@ -131,328 +110,102 @@ paths:
                   totals:
                     type: object
                     properties:
-                      npm:
-                        type: integer
-                      pypi:
-                        type: integer
-                      go:
-                        type: integer
-                      crates-io:
-                        type: integer
-                    required: [npm, pypi, go, crates-io]
-                required: [totals]
+                      npm: { type: integer }
+                      pypi: { type: integer }
+                      go: { type: integer }
+                      crates-io: { type: integer }
 
   /api/security/check/packages:
     post:
-      operationId: checkPackages
       summary: 批量检查包漏洞
-      description: 检查指定依赖包是否存在已知安全漏洞。支持 npm、pypi、go、crates-io 生态，单次最多 100 个包。
       tags: [Security]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PackageCheckRequest"
+              type: object
+              properties:
+                packages:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    properties:
+                      ecosystem: { type: string, enum: [npm, pypi, go, crates-io] }
+                      name: { type: string }
+                      version: { type: string, nullable: true }
+                    required: [ecosystem, name]
+              required: [packages]
       responses:
         "200":
           description: 检查结果
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PackageCheckResponse"
+                type: object
+                properties:
+                  findings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        affected: { type: boolean }
+                        matchSummary: { type: string }
+                        package:
+                          type: object
+                          properties:
+                            ecosystem: { type: string }
+                            name: { type: string }
+                            version: { type: string, nullable: true }
+                        advisory:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            riskType: { type: string, enum: [vulnerability, malicious-package] }
+                            summary: { type: string }
+                            aliases: { type: array, items: { type: string } }
+                            severity: { type: array, items: { type: object } }
+                            references: { type: array, items: { type: object } }
+                        affectedPackage:
+                          type: object
+                          properties:
+                            affectedVersions: { type: array, items: { type: string } }
+                            fixedVersions: { type: array, items: { type: string } }
         "400":
-          description: 请求参数错误
+          description: 参数错误
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  message: { type: string }
 
 components:
   schemas:
-    ArticleEcosystem:
-      type: string
-      enum: [npm, pypi, maven, go, crates-io, github-actions, docker, multi]
-
-    ArticleRiskCategory:
-      type: string
-      enum: [vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk]
-
-    SecurityPackageEcosystem:
-      type: string
-      enum: [npm, pypi, go, crates-io]
-
-    ArticleListItem:
+    Article:
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-        title:
-          type: string
-          description: 本地化标题
-        summary:
-          type: string
-          description: 本地化摘要
-        url:
-          type: string
-          format: uri
-        sourceName:
-          type: string
-        ecosystem:
-          $ref: "#/components/schemas/ArticleEcosystem"
-        riskCategory:
-          $ref: "#/components/schemas/ArticleRiskCategory"
-        tags:
-          type: array
-          items:
-            type: string
-        publishedAt:
-          type: string
-          format: date-time
-        publishedAtDisplay:
-          type: string
-          description: "格式: YYYY-MM-DD HH:mm (上海时区)"
-        updatedAt:
-          type: string
-          format: date-time
-        updatedAtDisplay:
-          type: string
-        locale:
-          type: string
-          enum: [zh, en]
-      required: [id, title, summary, url, sourceName, ecosystem, riskCategory, tags, publishedAt, publishedAtDisplay, updatedAt, updatedAtDisplay, locale]
+        id: { type: string, format: uuid }
+        title: { type: string }
+        summary: { type: string }
+        url: { type: string, format: uri }
+        sourceName: { type: string }
+        ecosystem: { type: string }
+        riskCategory: { type: string }
+        tags: { type: array, items: { type: string } }
+        publishedAt: { type: string, format: date-time }
+        publishedAtDisplay: { type: string }
+        updatedAt: { type: string, format: date-time }
+        updatedAtDisplay: { type: string }
+        locale: { type: string, enum: [zh, en] }
 
     ArticleDetail:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        title:
-          type: string
-        summary:
-          type: string
-        content:
-          type: string
-          description: Markdown 格式正文
-        url:
-          type: string
-          format: uri
-        canonicalUrl:
-          type: string
-          nullable: true
-        sourceName:
-          type: string
-        ecosystem:
-          $ref: "#/components/schemas/ArticleEcosystem"
-        riskCategory:
-          $ref: "#/components/schemas/ArticleRiskCategory"
-        tags:
-          type: array
-          items:
-            type: string
-        publishedAt:
-          type: string
-          format: date-time
-        publishedAtDisplay:
-          type: string
-        updatedAt:
-          type: string
-          format: date-time
-        updatedAtDisplay:
-          type: string
-        locale:
-          type: string
-          enum: [zh, en]
-      required: [id, title, summary, content, url, sourceName, ecosystem, riskCategory, tags, publishedAt, publishedAtDisplay, updatedAt, updatedAtDisplay, locale]
-
-    ArticleListMeta:
-      type: object
-      properties:
-        lang:
-          type: string
-          enum: [zh, en]
-        source:
-          type: string
-          nullable: true
-        query:
-          type: string
-          nullable: true
-        ecosystem:
-          type: string
-          nullable: true
-        riskCategory:
-          type: string
-          nullable: true
-        tag:
-          type: string
-          nullable: true
-        limit:
-          type: integer
-        count:
-          type: integer
-          description: 当前页实际返回数量
-        page:
-          type: integer
-        pageSize:
-          type: integer
-        totalCount:
-          type: integer
-        totalPages:
-          type: integer
-      required: [lang, limit, count, page, pageSize, totalCount, totalPages]
-
-    ArticleListResponse:
-      type: object
-      properties:
-        meta:
-          $ref: "#/components/schemas/ArticleListMeta"
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/ArticleListItem"
-      required: [meta, items]
-
-    PackageCoordinate:
-      type: object
-      properties:
-        ecosystem:
-          $ref: "#/components/schemas/SecurityPackageEcosystem"
-        name:
-          type: string
-          minLength: 1
-        version:
-          type: string
-          nullable: true
-      required: [ecosystem, name]
-
-    PackageCheckRequest:
-      type: object
-      properties:
-        packages:
-          type: array
-          items:
-            $ref: "#/components/schemas/PackageCoordinate"
-          minItems: 1
-          maxItems: 100
-      required: [packages]
-
-    AdvisorySeverity:
-      type: object
-      properties:
-        type:
-          type: string
-        score:
-          type: string
-
-    AdvisoryReference:
-      type: object
-      properties:
-        type:
-          type: string
-        url:
-          type: string
-          format: uri
-
-    Advisory:
-      type: object
-      properties:
-        id:
-          type: string
-          description: 外部公告 ID，如 GHSA-xxx 或 OSV-xxx
-        source:
-          type: string
-          default: osv
-        riskType:
-          type: string
-          enum: [vulnerability, malicious-package]
-        summary:
-          type: string
-        details:
-          type: string
-          nullable: true
-        aliases:
-          type: array
-          items:
-            type: string
-        severity:
-          type: array
-          items:
-            $ref: "#/components/schemas/AdvisorySeverity"
-        references:
-          type: array
-          items:
-            $ref: "#/components/schemas/AdvisoryReference"
-        modifiedAt:
-          type: string
-          format: date-time
-          nullable: true
-      required: [id, source, riskType, summary, aliases, severity, references]
-
-    AffectedPackage:
-      type: object
-      properties:
-        affectedVersions:
-          type: array
-          items:
-            type: string
-        ranges:
-          type: array
-          items:
-            type: object
-            properties:
-              type:
-                type: string
-              events:
-                type: array
-                items:
-                  type: object
-        fixedVersions:
-          type: array
-          items:
-            type: string
-      required: [affectedVersions, ranges, fixedVersions]
-
-    Finding:
-      type: object
-      properties:
-        affected:
-          type: boolean
-        matchSummary:
-          type: string
-        package:
-          type: object
+      allOf:
+        - $ref: "#/components/schemas/Article"
+        - type: object
           properties:
-            ecosystem:
-              $ref: "#/components/schemas/SecurityPackageEcosystem"
-            name:
-              type: string
-            version:
-              type: string
-              nullable: true
-          required: [ecosystem, name]
-        advisory:
-          $ref: "#/components/schemas/Advisory"
-        affectedPackage:
-          $ref: "#/components/schemas/AffectedPackage"
-      required: [affected, matchSummary, package, advisory, affectedPackage]
-
-    PackageCheckResponse:
-      type: object
-      properties:
-        findings:
-          type: array
-          items:
-            $ref: "#/components/schemas/Finding"
-      required: [findings]
-
-    ErrorResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          enum: [false]
-        message:
-          type: string
-      required: [ok, message]
+            content: { type: string, description: Markdown 正文 }
+            canonicalUrl: { type: string, nullable: true }
