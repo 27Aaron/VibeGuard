@@ -183,7 +183,7 @@ export async function downloadOsvArchiveToCache({
   fetchBytes = defaultFetchBytes,
 }: DownloadOsvArchiveToCacheInput) {
   const target = buildOsvBootstrapPath({ repoRoot, env, ecosystem, fileName })
-  const bytes = fetchBytes ? await fetchBytes(url) : await defaultFetchBytes(url)
+  const bytes = await fetchBytes(url)
 
   await fs.mkdir(path.dirname(target), { recursive: true })
   await fs.writeFile(target, bytes)
