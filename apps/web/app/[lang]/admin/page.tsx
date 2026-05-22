@@ -221,14 +221,14 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(320px,1fr)_minmax(0,1.4fr)]">
+      <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <Card>
           <CardHeader>
             <CardTitle>{copy.operationsTitle}</CardTitle>
             <CardDescription>{copy.operationsBody}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
               <OsvSyncButton lang={lang} />
             </div>
