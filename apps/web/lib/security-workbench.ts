@@ -159,7 +159,6 @@ function isSecurityCheckPayload(value: unknown): value is SecurityCheckPayload {
     typeof candidate.meta.source === "string" &&
     (typeof candidate.meta.lastSyncedAt === "string" || candidate.meta.lastSyncedAt === null) &&
     typeof candidate.meta.stale === "boolean" &&
-    (typeof candidate.meta.warning === "string" || candidate.meta.warning === null || candidate.meta.warning === undefined) &&
     Array.isArray(candidate.findings) &&
     candidate.findings.every(isSecurityFinding)
   )
