@@ -1,3 +1,5 @@
+import { isIP } from "node:net"
+
 export const ADMIN_SESSION_COOKIE = "admin_session"
 export const ADMIN_SESSION_MAX_AGE_SECONDS = 60 * 60 * 12
 export const LOGIN_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000
@@ -188,9 +190,29 @@ function constantTimeEqual(left: string, right: string) {
 }
 
 export function resolveLoginRateLimitKey(headers: Headers) {
-  const forwardedFor = headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  const trustProxyHeaders = process.env.VIBEGUARD_TRUST_PROXY_HEADERS?.toLowerCase()
+  if (trustProxyHeaders !== "1" && trustProxyHeaders !== "true") {
+    return "local"
+  }
 
-  return forwardedFor || headers.get("x-real-ip")?.trim() || "local"
+  const candidateHeaders = [
+    headers.get("x-forwarded-for"),
+    headers.get("x-real-ip"),
+    headers.get("cf-connecting-ip"),
+    headers.get("true-client-ip"),
+  ]
+
+  for (const headerValue of candidateHeaders) {
+    const candidate = headerValue?.split(",")[0]?.trim()
+
+    if (!candidate || isIP(candidate) < 1) {
+      continue
+    }
+
+    return candidate
+  }
+
+  return "local"
 }
 
 export function isLoginRateLimited(key: string, now = Date.now()) {
