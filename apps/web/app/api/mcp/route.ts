@@ -9,7 +9,6 @@ export const dynamic = "force-dynamic"
 type SessionContext = {
   server: ReturnType<typeof createMcpServer>
   transport: WebStandardStreamableHTTPServerTransport
-  createdAt: number
   lastActivityAt: number
 }
 
@@ -131,7 +130,9 @@ function leastRecentlyUsedSessionIds(limit: number) {
   const entries = [...transports.entries()]
   entries.sort((left, right) => left[1].lastActivityAt - right[1].lastActivityAt)
 
-  return entries.slice(0, limit).map(([sessionId]) => sessionId)
+  return entries
+    .slice(Math.max(0, entries.length - limit))
+    .map(([sessionId]) => sessionId)
 }
 
 async function enforceSessionLimits() {
@@ -144,9 +145,9 @@ async function enforceSessionLimits() {
   }
 
   const targetSize = Math.max(0, maxSessions - 1)
-  const idsToRetain = leastRecentlyUsedSessionIds(targetSize)
+  const idsToRetain = new Set(leastRecentlyUsedSessionIds(targetSize))
   const idsToEvict = [...transports.keys()].filter(
-    (sessionId) => !idsToRetain.includes(sessionId),
+    (sessionId) => !idsToRetain.has(sessionId),
   )
 
   await Promise.all(idsToEvict.map(closeSession))
@@ -179,7 +180,6 @@ async function createSessionContext(baseUrl: string) {
       transports.set(sessionId, {
         server,
         transport,
-        createdAt: nowMs(),
         lastActivityAt: nowMs(),
       })
     },
