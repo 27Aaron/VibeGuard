@@ -10,6 +10,7 @@ coverage/
 dist/
 out/
 *.tsbuildinfo
+next-env.d.ts
 
 # Dependencies and package-manager state
 .npm/
