@@ -14,7 +14,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { getUiText, type AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
-type PublicSurface = "rss" | "check" | "api"
+type PublicSurface = "rss" | "check" | "api" | "mcp"
 
 const futureSurfaceLinks: Array<{
   label: string
@@ -22,7 +22,7 @@ const futureSurfaceLinks: Array<{
   surface?: PublicSurface
 }> = [
   { label: "API", icon: FileJson, surface: "api" },
-  { label: "MCP", icon: Braces },
+  { label: "MCP", icon: Braces, surface: "mcp" },
   { label: "RSS", icon: Rss, surface: "rss" },
   { label: "Skill", icon: ShieldCheck },
   { label: "Check", icon: Search, surface: "check" },
@@ -93,7 +93,9 @@ export function PublicHeader({
                     ? `/${currentLang}/check`
                     : item.label === "API"
                       ? `/${currentLang}/api`
-                      : undefined
+                      : item.label === "MCP"
+                        ? `/${currentLang}/mcp`
+                        : undefined
               const label = item.label === "Check" ? copy.publicCheckNav : item.label
 
               if (href) {
@@ -101,7 +103,7 @@ export function PublicHeader({
                   <Link
                     key={item.label}
                     href={href}
-                    prefetch={item.label === "API" ? false : undefined}
+                    prefetch={item.label === "API" || item.label === "MCP" ? false : undefined}
                     className={surfaceClassName}
                   >
                     <span className={contentClassName}>
