@@ -64,7 +64,7 @@ export async function createChatCompletionTextWithRetry(input: {
         break
       }
 
-      await wait(retryDelayMs * attempt)
+      await wait(retryDelayMs * Math.pow(2, attempt - 1))
     }
   }
 
