@@ -1,12 +1,12 @@
 "use client"
 
-import { type FormEvent, useEffect, useRef, useState } from "react"
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react"
 
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   type SecurityPackageEcosystem,
 } from "@vibeguard/shared"
-import { ChevronDown, ChevronRight, Search } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react"
 
 import {
   MarkdownRenderer,
@@ -15,9 +15,10 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { getAdminSelectClassName, getAdminSubtlePanelClassName } from "@/lib/admin-layout"
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
 import { getUiText } from "@/lib/i18n"
+import type { SecurityOverviewTotals } from "@/lib/security-overview"
 import {
   buildSecurityCheckRequestBody,
   formatAffectedRanges,
@@ -31,6 +32,7 @@ import { cn } from "@/lib/utils"
 
 type PackageCheckWorkbenchProps = {
   lang: AppLang
+  initialOverviewTotals: SecurityOverviewTotals
 }
 
 type PackageCheckWorkbenchResult = ReturnType<typeof buildSecurityWorkbenchResultState>
@@ -42,6 +44,12 @@ type ExpandableMarkdownBlockProps = {
   expandLabel: string
   collapseLabel: string
 }
+
+type SubmittedQuery = {
+  version: string | null
+}
+
+const findingsPerPage = 3
 
 function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
   switch (ecosystem) {
@@ -188,14 +196,77 @@ function ExpandableMarkdownBlock({
   )
 }
 
-export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
+export function PackageCheckWorkbench({
+  lang,
+  initialOverviewTotals,
+}: PackageCheckWorkbenchProps) {
   const copy = getUiText(lang)
   const [ecosystem, setEcosystem] = useState<SecurityPackageEcosystem>("npm")
   const [packageName, setPackageName] = useState("")
   const [version, setVersion] = useState("")
+  const [selectOpen, setSelectOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [submittedQuery, setSubmittedQuery] = useState<SubmittedQuery | null>(null)
+  const selectRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!selectOpen) {
+      return
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!selectRef.current?.contains(event.target as Node)) {
+        setSelectOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSelectOpen(false)
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown)
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown)
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [selectOpen])
+
+  const searchMode: "match" | "hit" = submittedQuery?.version ? "hit" : "match"
+  const hitCount = useMemo(
+    () => result?.findings.filter((finding) => finding.affected).length ?? 0,
+    [result],
+  )
+  const matchedCount = result?.findings.length ?? 0
+  const pageCount = result ? Math.max(1, Math.ceil(result.findings.length / findingsPerPage)) : 1
+  const pageStart = (currentPage - 1) * findingsPerPage
+  const pageEnd = pageStart + findingsPerPage
+  const pagedFindings = result ? result.findings.slice(pageStart, pageEnd) : []
+  const overviewBadge = copy.publicCheckOverviewBadge(
+    ecosystemLabel(ecosystem),
+    initialOverviewTotals[ecosystem] ?? 0,
+  )
+  const resultBadge = result
+    ? searchMode === "hit"
+      ? copy.publicCheckHitCountBadge(hitCount)
+      : copy.publicCheckMatchCountBadge(matchedCount)
+    : null
+
+  function resetSearchState(nextEcosystem: SecurityPackageEcosystem) {
+    setEcosystem(nextEcosystem)
+    setPackageName("")
+    setVersion("")
+    setError(null)
+    setResult(null)
+    setCurrentPage(1)
+    setSubmittedQuery(null)
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -203,8 +274,10 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
     setPending(true)
     setError(null)
     setResult(null)
+    setCurrentPage(1)
 
     try {
+      const normalizedVersion = version.trim() || null
       const payload = await parseCheckResponse(
         await fetch("/api/security/check/packages", {
           method: "POST",
@@ -222,8 +295,10 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
       )
 
       setResult(buildSecurityWorkbenchResultState(payload))
+      setSubmittedQuery({ version: normalizedVersion })
     } catch (submitError) {
       setResult(null)
+      setSubmittedQuery(null)
       setError(
         submitError instanceof Error
           ? submitError.message
@@ -240,26 +315,70 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
     <div className="space-y-5">
       <div className="rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
         <form action="#" className="flex flex-col gap-3" onSubmit={handleSubmit}>
-          <p className="px-1 text-sm leading-6 text-zinc-600 dark:text-stone-300">
-            {copy.publicCheckSearchHint}
-          </p>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <p className="px-1 text-sm leading-6 text-zinc-600 dark:text-stone-300">
+              {copy.publicCheckSearchHint}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-stone-400">
+              <Badge variant="outline" className="h-7 px-3">
+                {overviewBadge}
+              </Badge>
+              {resultBadge ? (
+                <Badge variant="outline" className="h-7 px-3">
+                  {resultBadge}
+                </Badge>
+              ) : null}
+            </div>
+          </div>
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-            <label htmlFor="security-ecosystem" className="sr-only">
-              {lang === "zh" ? "生态" : "Ecosystem"}
-            </label>
-            <select
-              id="security-ecosystem"
-              className={cn(getAdminSelectClassName(), "h-11 min-w-[150px] rounded-full lg:w-[170px]")}
-              value={ecosystem}
-              onChange={(event) => setEcosystem(event.target.value as SecurityPackageEcosystem)}
-              disabled={pending}
-            >
-              {SECURITY_PACKAGE_ECOSYSTEM_VALUES.map((option) => (
-                <option key={option} value={option}>
-                  {ecosystemLabel(option)}
-                </option>
-              ))}
-            </select>
+            <div ref={selectRef} className="relative lg:w-[208px]">
+              <label htmlFor="security-ecosystem-trigger" className="sr-only">
+                {lang === "zh" ? "生态" : "Ecosystem"}
+              </label>
+              <button
+                id="security-ecosystem-trigger"
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={selectOpen}
+                className="flex h-11 w-full items-center justify-between rounded-full border border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 outline-none transition-colors hover:border-black/10 focus-visible:border-emerald-700/30 focus-visible:ring-2 focus-visible:ring-emerald-700/10 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:hover:border-white/15 dark:focus-visible:border-emerald-200/30 dark:focus-visible:ring-emerald-200/10"
+                onClick={() => setSelectOpen((current) => !current)}
+                disabled={pending}
+              >
+                <span>{ecosystemLabel(ecosystem)}</span>
+                <ChevronDown className="size-4 text-zinc-500 dark:text-stone-400" />
+              </button>
+              {selectOpen ? (
+                <div
+                  role="listbox"
+                  className="absolute left-0 top-[calc(100%+0.45rem)] z-20 flex w-full flex-col rounded-[1.1rem] border border-black/8 bg-[#fcfcfa] p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-[#1b2028]"
+                >
+                  {SECURITY_PACKAGE_ECOSYSTEM_VALUES.map((option) => {
+                    const active = option === ecosystem
+
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        className={cn(
+                          "flex w-full items-center rounded-[0.85rem] px-3 py-2 text-left text-sm transition-colors",
+                          active
+                            ? "bg-black/[0.045] text-zinc-950 dark:bg-white/[0.08] dark:text-stone-50"
+                            : "text-zinc-700 hover:bg-black/[0.03] dark:text-stone-200 dark:hover:bg-white/[0.05]",
+                        )}
+                        onClick={() => {
+                          resetSearchState(option)
+                          setSelectOpen(false)
+                        }}
+                      >
+                        {ecosystemLabel(option)}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
             <label htmlFor="security-package-name" className="sr-only">
               {copy.publicCheckPackageName}
             </label>
@@ -327,7 +446,7 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
         </section>
       ) : (
         <section className="space-y-3">
-          {result.findings.map((finding, index) => {
+          {pagedFindings.map((finding, index) => {
             const formattedRanges = formatAffectedRanges(
               finding.affectedPackage.ranges,
             )
@@ -448,6 +567,35 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
               </article>
             )
           })}
+          {pageCount > 1 ? (
+            <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-zinc-500 dark:text-stone-400">
+              <span>{copy.publicCheckPageStatus(currentPage, pageCount)}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-9 rounded-full"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                aria-label={copy.pagePrev}
+                title={copy.pagePrev}
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-9 rounded-full"
+                disabled={currentPage === pageCount}
+                onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+                aria-label={copy.pageNext}
+                title={copy.pageNext}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          ) : null}
         </section>
       ) : null}
     </div>

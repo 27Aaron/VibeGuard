@@ -188,3 +188,43 @@ describe("POST /api/security/check/packages", () => {
     })
   })
 })
+
+describe("GET /api/security/check/overview", () => {
+  it("returns per-ecosystem totals for the public package-check surface", async () => {
+    vi.resetModules()
+    const groupBy = vi.fn().mockResolvedValue([
+      { ecosystem: "npm", count: 49313 },
+      { ecosystem: "pypi", count: 8123 },
+      { ecosystem: "go", count: 2455 },
+      { ecosystem: "crates-io", count: 3659 },
+    ])
+    const from = vi.fn(() => ({ groupBy }))
+    const select = vi.fn(() => ({ from }))
+    const getDb = vi.fn(() => ({ select }))
+
+    vi.doMock("@vibeguard/db", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@vibeguard/db")>()),
+      getDb,
+    }))
+
+    const { GET } = await import(
+      "../apps/web/app/api/security/check/overview/route"
+    )
+    const response = await GET(
+      new Request("http://vibeguard.test/api/security/check/overview"),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      totals: {
+        npm: 49313,
+        pypi: 8123,
+        go: 2455,
+        "crates-io": 3659,
+      },
+    })
+    expect(getDb).toHaveBeenCalledTimes(1)
+    expect(select).toHaveBeenCalledTimes(1)
+    expect(groupBy).toHaveBeenCalledTimes(1)
+  })
+})
