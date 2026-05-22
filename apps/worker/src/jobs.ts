@@ -5,6 +5,15 @@ import { JobPipelineStage, JobStatus, JobType } from "@vibeguard/shared";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 type ContentDb = NodePgDatabase<typeof schema>;
+const CLAIM_RETRY_MAX_ATTEMPTS = 6;
+const CLAIM_RETRY_BASE_DELAY_MS = 25;
+const CLAIM_RETRY_MAX_DELAY_MS = 250;
+
+function waitMs(durationMs: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, durationMs);
+  });
+}
 
 export type BuildExtractJobInsertInput = {
   articleId: string;
@@ -157,6 +166,9 @@ export async function claimNextQueuedJob(
     });
   }
 
+  let attempts = 0;
+  let delayMs = CLAIM_RETRY_BASE_DELAY_MS;
+
   while (true) {
     const job = await db.query.processingJobs.findFirst({
       where: (table, { and: whereAnd, eq: whereEq, lte: whereLte }) =>
@@ -193,6 +205,14 @@ export async function claimNextQueuedJob(
     if (claimed[0]) {
       return claimed[0];
     }
+
+    attempts += 1;
+    if (attempts >= CLAIM_RETRY_MAX_ATTEMPTS) {
+      return null;
+    }
+
+    await waitMs(delayMs);
+    delayMs = Math.min(delayMs * 2, CLAIM_RETRY_MAX_DELAY_MS);
   }
 }
 
