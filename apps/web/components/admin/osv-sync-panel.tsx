@@ -141,28 +141,23 @@ export function OsvSyncPanel({ lang }: { lang: AppLang }) {
   }
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="grid grid-cols-2 gap-2">
       {ecosystems.map((eco) => (
         <div
           key={eco.ecosystem}
-          className="flex items-center justify-between gap-3 rounded-[0.85rem] border border-black/5 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]"
+          className="flex items-center justify-between gap-3 rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none"
         >
           <div className="flex items-center gap-2">
-            <Database className="size-3.5 text-zinc-400 dark:text-stone-500" />
-            <span className="text-sm font-medium text-zinc-950 dark:text-stone-100">
+            <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1.5 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
+              <Database className="size-3.5" />
+            </span>
+            <span className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
               {ecosystemLabel(eco.ecosystem)}
             </span>
             {statusBadge(eco.status, lang)}
           </div>
-          <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-stone-400">
-            <span>
-              {lang === "zh" ? "已导入" : "Imported"} {eco.recordsImported}
-            </span>
-            {eco.lastSuccessAt ? (
-              <span className="hidden sm:inline">
-                {formatDateTimeInShanghai(eco.lastSuccessAt, { lang })}
-              </span>
-            ) : null}
+          <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-stone-400">
+            <span>{eco.recordsImported}</span>
           </div>
         </div>
       ))}

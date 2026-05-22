@@ -30,8 +30,6 @@ describe("admin OSV sync panel", () => {
 
     expect(component).toContain("ecosystemLabel")
     expect(component).toContain("statusBadge")
-    expect(component).toContain("已导入")
-    expect(component).toContain("Imported")
     expect(component).toContain("暂无同步记录")
     expect(component).toContain("No sync records yet")
   })
