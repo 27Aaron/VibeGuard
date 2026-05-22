@@ -3,6 +3,8 @@ import {
   type ChatCompletionsClient,
 } from "./chat";
 
+import { stripJsonFence } from "./utils";
+
 export type RelevanceResult = {
   relevant: boolean;
   reason: string;
@@ -12,14 +14,6 @@ const DEFAULT_RELEVANCE_PROMPT =
   "判断以下文章是否与软件供应链安全、开源安全、依赖安全、恶意包、漏洞利用等相关。只输出 JSON：{\"relevant\": true/false, \"reason\": \"简短理由\"}";
 
 const MAX_SOURCE_LENGTH = 4000;
-
-function stripJsonFence(value: string) {
-  return value
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-}
 
 function parseRelevanceResponse(value: string): RelevanceResult | null {
   const stripped = stripJsonFence(value);

@@ -3,6 +3,8 @@ import {
   type ChatCompletionsClient,
 } from "./chat";
 
+import { stripJsonFence } from "./utils";
+
 export const DEFAULT_TAG_PROMPT = `你是一个供应链安全文章的短标签提取器。
 
 你的任务是为文章生成适合在首页卡片上展示的短 tag。
@@ -125,14 +127,6 @@ export function normalizeGeneratedTags(values: unknown) {
   }
 
   return Array.from(tags);
-}
-
-function stripJsonFence(value: string) {
-  return value
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
 }
 
 export function extractGeneratedTags(value: string) {
