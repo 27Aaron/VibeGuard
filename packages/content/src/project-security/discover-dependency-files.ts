@@ -7,6 +7,7 @@ import type {
   DiscoverDependencyFilesInput,
   DiscoverDependencyFilesResult,
 } from "./types"
+import { normalizeInt } from "../shared/normalize"
 
 const IGNORED_DIRS = new Set([
   ".git",
@@ -24,16 +25,6 @@ const IGNORED_DIRS = new Set([
 
 const DEFAULT_MAX_DISCOVERY_DEPTH = 10
 const DEFAULT_MAX_DISCOVERY_FILES = 2000
-
-function normalizeInt(value: string | undefined, fallback: number, minimum = 1) {
-  const parsed = Number.parseInt(value ?? "", 10)
-
-  if (!Number.isFinite(parsed) || parsed < minimum) {
-    return fallback
-  }
-
-  return parsed
-}
 
 const MAX_DISCOVERY_DEPTH = normalizeInt(
   process.env.VIBEGUARD_PROJECT_SECURITY_MAX_DISCOVERY_DEPTH,

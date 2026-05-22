@@ -11,18 +11,9 @@ import type {
   ScanDependenciesInput,
   ScanDependenciesResult,
 } from "./types"
+import { normalizeInt } from "../shared/normalize"
 
 const DEFAULT_MAX_DEPENDENCY_FILE_BYTES = 2 * 1024 * 1024
-
-function normalizeInt(value: string | undefined, fallback: number, minimum = 1) {
-  const parsed = Number.parseInt(value ?? "", 10)
-
-  if (!Number.isFinite(parsed) || parsed < minimum) {
-    return fallback
-  }
-
-  return parsed
-}
 
 const MAX_DEPENDENCY_FILE_BYTES = normalizeInt(
   process.env.VIBEGUARD_PROJECT_SECURITY_MAX_DEPENDENCY_FILE_BYTES,
