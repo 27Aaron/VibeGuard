@@ -173,36 +173,6 @@ export default async function ApiPage({ params: routeParams }: ApiPageProps) {
                     : "Check packages for known vulnerabilities. Requires JSON body."}
                 />
               </div>
-
-              {/* RSS */}
-              <div className="flex flex-col gap-4">
-                <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-stone-100">
-                  <Rss className="size-4 text-emerald-700 dark:text-emerald-300" />
-                  RSS
-                </h2>
-
-                <EndpointCard
-                  method="GET"
-                  path="/zh/feed.xml"
-                  description={lang === "zh"
-                    ? "中文 RSS 订阅源。"
-                    : "Chinese RSS feed."}
-                  examples={[
-                    { label: "/zh/feed.xml", href: "/zh/feed.xml" },
-                  ]}
-                />
-
-                <EndpointCard
-                  method="GET"
-                  path="/en/feed.xml"
-                  description={lang === "zh"
-                    ? "英文 RSS 订阅源。"
-                    : "English RSS feed."}
-                  examples={[
-                    { label: "/en/feed.xml", href: "/en/feed.xml" },
-                  ]}
-                />
-              </div>
             </div>
           </div>
         </section>
