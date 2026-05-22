@@ -1,4 +1,4 @@
-function wrapSourceText(systemPrompt: string, sourceText: string) {
+export function wrapSourceText(systemPrompt: string, sourceText: string) {
   return `${systemPrompt}\n\n--- SOURCE START ---\n${sourceText}\n--- SOURCE END ---`;
 }
 

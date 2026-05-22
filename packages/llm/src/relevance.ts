@@ -4,6 +4,7 @@ import {
 } from "./chat";
 
 import { stripJsonFence } from "./utils";
+import { wrapSourceText } from "./prompts";
 
 export type RelevanceResult = {
   relevant: boolean;
@@ -46,7 +47,7 @@ function buildRelevancePrompt(input: {
   const prompt = resolveRelevancePrompt(input.systemPrompt);
   const truncated = input.sourceText.slice(0, MAX_SOURCE_LENGTH);
 
-  return `${prompt}\n\n--- SOURCE START ---\n${truncated}\n--- SOURCE END ---`;
+  return wrapSourceText(prompt, truncated);
 }
 
 export function resolveRelevancePrompt(value: string | null | undefined) {
