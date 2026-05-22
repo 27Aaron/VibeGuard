@@ -7,7 +7,7 @@ info:
     所有接口无需认证，浏览器直接访问即可。
   contact:
     name: VibeGuard
-    url: https://github.com/anthropics/vibeguard
+    url: https://github.com/27Aaron/VibeGuard
 
 servers:
   - url: /
@@ -28,13 +28,6 @@ paths:
             enum: [zh, en]
             default: zh
           description: 返回内容的语言。zh 返回中文，en 返回英文。
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [pending, processing, ready, failed, filtered]
-            default: ready
-          description: 按文章状态筛选。
         - name: source
           in: query
           schema:
@@ -49,13 +42,13 @@ paths:
           in: query
           schema:
             type: string
-            enum: [unknown, npm, pypi, maven, go, crates-io, github-actions, docker, multi]
+            enum: [npm, pypi, maven, go, crates-io, github-actions, docker, multi]
           description: 按包管理生态系统筛选。
         - name: riskCategory
           in: query
           schema:
             type: string
-            enum: [unknown, vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk]
+            enum: [vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk]
           description: 按风险类别筛选。
         - name: tag
           in: query
@@ -175,87 +168,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /api/proxy:
-    get:
-      operationId: proxyImage
-      summary: 图片代理
-      description: 安全图片代理，避免 CORS 和混合内容问题。屏蔽内网地址，限制 5MB。
-      tags: [Utility]
-      parameters:
-        - name: url
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uri
-          description: 目标图片 URL。
-      responses:
-        "200":
-          description: 图片二进制流
-          content:
-            image/*:
-              schema:
-                type: string
-                format: binary
-        "400":
-          description: 参数错误（缺少 url、无效 URL、内网地址等）
-          content:
-            text/plain:
-              schema:
-                type: string
-        "413":
-          description: 图片超过 5MB 限制
-          content:
-            text/plain:
-              schema:
-                type: string
-        "415":
-          description: 非图片类型
-          content:
-            text/plain:
-              schema:
-                type: string
-        "502":
-          description: 上游请求失败
-          content:
-            text/plain:
-              schema:
-                type: string
-
 components:
   schemas:
-    ArticleStatus:
-      type: string
-      enum: [pending, processing, ready, failed, filtered]
-
     ArticleEcosystem:
       type: string
-      enum: [unknown, npm, pypi, maven, go, crates-io, github-actions, docker, multi]
+      enum: [npm, pypi, maven, go, crates-io, github-actions, docker, multi]
 
     ArticleRiskCategory:
       type: string
-      enum: [unknown, vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk]
+      enum: [vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk]
 
     SecurityPackageEcosystem:
       type: string
       enum: [npm, pypi, go, crates-io]
-
-    SecurityRiskType:
-      type: string
-      enum: [unknown, vulnerability, malicious-package]
-
-    SecurityPackageMatchConfidence:
-      type: string
-      enum: [high, medium, low, none]
-
-    SecurityPackageMatchReason:
-      type: string
-      enum:
-        - explicit_affected_version
-        - version_in_ecosystem_range
-        - version_outside_ecosystem_range
-        - range_present_but_inconclusive
-        - package_match_without_version
 
     ArticleListItem:
       type: object
@@ -282,8 +207,6 @@ components:
           type: array
           items:
             type: string
-        status:
-          $ref: "#/components/schemas/ArticleStatus"
         publishedAt:
           type: string
           format: date-time
@@ -298,7 +221,7 @@ components:
         locale:
           type: string
           enum: [zh, en]
-      required: [id, title, summary, url, sourceName, ecosystem, riskCategory, tags, status, publishedAt, publishedAtDisplay, updatedAt, updatedAtDisplay, locale]
+      required: [id, title, summary, url, sourceName, ecosystem, riskCategory, tags, publishedAt, publishedAtDisplay, updatedAt, updatedAtDisplay, locale]
 
     ArticleDetail:
       type: object
@@ -329,8 +252,6 @@ components:
           type: array
           items:
             type: string
-        status:
-          $ref: "#/components/schemas/ArticleStatus"
         publishedAt:
           type: string
           format: date-time
@@ -344,7 +265,7 @@ components:
         locale:
           type: string
           enum: [zh, en]
-      required: [id, title, summary, content, url, sourceName, ecosystem, riskCategory, tags, status, publishedAt, publishedAtDisplay, updatedAt, updatedAtDisplay, locale]
+      required: [id, title, summary, content, url, sourceName, ecosystem, riskCategory, tags, publishedAt, publishedAtDisplay, updatedAt, updatedAtDisplay, locale]
 
     ArticleListMeta:
       type: object
@@ -352,8 +273,6 @@ components:
         lang:
           type: string
           enum: [zh, en]
-        status:
-          $ref: "#/components/schemas/ArticleStatus"
         source:
           type: string
           nullable: true
@@ -382,7 +301,7 @@ components:
           type: integer
         totalPages:
           type: integer
-      required: [lang, status, limit, count, page, pageSize, totalCount, totalPages]
+      required: [lang, limit, count, page, pageSize, totalCount, totalPages]
 
     ArticleListResponse:
       type: object
@@ -446,7 +365,8 @@ components:
           type: string
           default: osv
         riskType:
-          $ref: "#/components/schemas/SecurityRiskType"
+          type: string
+          enum: [vulnerability, malicious-package]
         summary:
           type: string
         details:
@@ -499,10 +419,6 @@ components:
       properties:
         affected:
           type: boolean
-        confidence:
-          $ref: "#/components/schemas/SecurityPackageMatchConfidence"
-        matchReason:
-          $ref: "#/components/schemas/SecurityPackageMatchReason"
         matchSummary:
           type: string
         package:
@@ -515,42 +431,21 @@ components:
             version:
               type: string
               nullable: true
-            purl:
-              type: string
-              nullable: true
           required: [ecosystem, name]
         advisory:
           $ref: "#/components/schemas/Advisory"
         affectedPackage:
           $ref: "#/components/schemas/AffectedPackage"
-      required: [affected, confidence, matchReason, matchSummary, package, advisory, affectedPackage]
-
-    PackageCheckMeta:
-      type: object
-      properties:
-        source:
-          type: string
-          default: local-osv-mirror
-        lastSyncedAt:
-          type: string
-          format: date-time
-          nullable: true
-        stale:
-          type: boolean
-        warning:
-          type: string
-          nullable: true
+      required: [affected, matchSummary, package, advisory, affectedPackage]
 
     PackageCheckResponse:
       type: object
       properties:
-        meta:
-          $ref: "#/components/schemas/PackageCheckMeta"
         findings:
           type: array
           items:
             $ref: "#/components/schemas/Finding"
-      required: [meta, findings]
+      required: [findings]
 
     ErrorResponse:
       type: object
