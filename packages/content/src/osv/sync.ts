@@ -2,7 +2,6 @@ import crypto from "node:crypto"
 import { execFile as execFileCallback } from "node:child_process"
 import fs from "node:fs/promises"
 import path from "node:path"
-import { text as readStreamText } from "node:stream/consumers"
 import { promisify } from "node:util"
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
@@ -35,7 +34,7 @@ import {
 
 type ContentDb = NodePgDatabase<typeof schema>
 
-type FetchText = (url: string) => Promise<string>
+type FetchText = (url: string, maxBytes?: number) => Promise<string>
 type FetchBytes = (url: string) => Promise<Uint8Array>
 type ExecFile = (
   file: string,
@@ -51,6 +50,18 @@ type ExecFile = (
 const execFile = promisify(execFileCallback)
 const UNZIP_MAX_BUFFER_BYTES = 64 * 1024 * 1024
 const DEFAULT_BOOTSTRAP_BATCH_SIZE = 200
+const DEFAULT_MODIFIED_ID_ROW_LIMIT = 2000
+const DEFAULT_VULNERABILITY_TEXT_BYTES = 2 * 1024 * 1024
+
+function normalizeInt(value: string | undefined, fallback: number, minimum = 1) {
+  const parsed = Number.parseInt(value ?? "", 10)
+
+  if (!Number.isFinite(parsed) || parsed < minimum) {
+    return fallback
+  }
+
+  return parsed
+}
 
 type SyncOsvEcosystemInput = {
   db: ContentDb
@@ -121,6 +132,16 @@ export type ModifiedIdRow = {
   externalId: string
 }
 
+const MAX_MODIFIED_ID_ROW_LIMIT = normalizeInt(
+  process.env.VIBEGUARD_OSV_MODIFIED_ID_ROW_LIMIT,
+  DEFAULT_MODIFIED_ID_ROW_LIMIT,
+)
+
+const MAX_VULNERABILITY_TEXT_BYTES = normalizeInt(
+  process.env.VIBEGUARD_OSV_VULNERABILITY_TEXT_BYTES,
+  DEFAULT_VULNERABILITY_TEXT_BYTES,
+)
+
 type BootstrapArchiveEntry = {
   entryName: string
   readText: () => Promise<string>
@@ -164,14 +185,68 @@ function toSecurityPackageEcosystem(
   return ecosystem
 }
 
-async function defaultFetchText(url: string) {
+async function readResponseText(
+  response: Response,
+  url: string,
+  maxBytes: number,
+) {
+  const contentLength = Number.parseInt(
+    response.headers.get("content-length") ?? "",
+    10,
+  )
+
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new Error(
+      `Response body for ${url} is too large (${contentLength} bytes, max ${maxBytes})`,
+    )
+  }
+
+  if (!response.body) {
+    const text = await response.text()
+
+    if (Buffer.byteLength(text, "utf8") > maxBytes) {
+      throw new Error(
+        `Response body for ${url} is too large (${Buffer.byteLength(text, "utf8")} bytes, max ${maxBytes})`,
+      )
+    }
+
+    return text
+  }
+
+  const reader = response.body.getReader()
+  const chunks: Buffer[] = []
+  let total = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+
+    if (done) {
+      break
+    }
+
+    total += value.byteLength
+
+    if (total > maxBytes) {
+      await reader.cancel()
+      throw new Error(
+        `Response body for ${url} is too large (${total} bytes, max ${maxBytes})`,
+      )
+    }
+
+    chunks.push(Buffer.from(value))
+  }
+
+  return Buffer.concat(chunks, total).toString("utf8")
+}
+
+async function defaultFetchText(url: string, maxBytes = MAX_VULNERABILITY_TEXT_BYTES) {
   const response = await fetch(url)
 
   if (!response.ok) {
     throw new Error(`Failed to download OSV file: ${response.status} ${url}`)
   }
 
-  return response.text()
+  return readResponseText(response, url, maxBytes)
 }
 
 export function buildModifiedIdCsvUrl(ecosystem: OsvDumpEcosystem) {
@@ -224,6 +299,35 @@ export function parseModifiedIdCsv(
   return rows
 }
 
+function ensureTextSizeLimit(text: string, label: string, maxBytes: number) {
+  const byteLength = Buffer.byteLength(text, "utf8")
+
+  if (byteLength > maxBytes) {
+    throw new Error(`${label} payload too large (${byteLength} bytes, max ${maxBytes})`)
+  }
+}
+
+async function readLimitedStreamText(
+  stream: NodeJS.ReadableStream,
+  maxBytes: number,
+) {
+  let total = 0
+  const chunks: Buffer[] = []
+
+  for await (const chunk of stream as AsyncIterable<Buffer | Uint8Array>) {
+    const chunkBytes = Buffer.from(chunk).byteLength
+    total += chunkBytes
+
+    if (total > maxBytes) {
+      throw new Error(`OSV archive entry payload too large (${total} bytes, max ${maxBytes})`)
+    }
+
+    chunks.push(Buffer.from(chunk))
+  }
+
+  return Buffer.concat(chunks, total).toString("utf8")
+}
+
 function sha256(text: string) {
   return `sha256:${crypto.createHash("sha256").update(text).digest("hex")}`
 }
@@ -270,7 +374,11 @@ async function* defaultIterateArchiveEntries(
     }>) {
       yield {
         entryName: entry.filename,
-        readText: async () => readStreamText(await entry.openReadStream()),
+        readText: async () =>
+          readLimitedStreamText(
+            await entry.openReadStream(),
+            MAX_VULNERABILITY_TEXT_BYTES,
+          ),
       }
     }
   } finally {
@@ -296,8 +404,17 @@ export async function syncOsvEcosystem({
     now: syncedAt,
   })
 
-  const modifiedCsv = await fetchText(buildModifiedIdCsvUrl(ecosystem))
-  const rows = parseModifiedIdCsv(modifiedCsv, Math.max(0, limit))
+  const modifiedCsv = await fetchText(
+    buildModifiedIdCsvUrl(ecosystem),
+    MAX_VULNERABILITY_TEXT_BYTES,
+  )
+  const effectiveLimit = Math.min(
+    Math.max(0, limit ?? Number.POSITIVE_INFINITY),
+    MAX_MODIFIED_ID_ROW_LIMIT,
+  )
+  const rows = parseModifiedIdCsv(modifiedCsv, Math.max(0, effectiveLimit))
+  const fetchTextForVulnerability = (url: string) =>
+    fetchText(url, MAX_VULNERABILITY_TEXT_BYTES)
   let recordsImported = 0
   let recordsNew = 0
   let recordsChanged = 0
@@ -312,11 +429,16 @@ export async function syncOsvEcosystem({
       ecosystem,
       fileName: `${row.externalId}.json`,
       url: sourceUrl,
-      fetchText,
+      fetchText: fetchTextForVulnerability,
     })
 
     try {
       const rawText = await fs.readFile(filePath, "utf8")
+      ensureTextSizeLimit(
+        rawText,
+        `OSV advisory ${row.externalId}`,
+        MAX_VULNERABILITY_TEXT_BYTES,
+      )
       const vulnerability = JSON.parse(rawText)
       const normalized = normalizeOsvRecord(vulnerability, {
         sourceUrl,
@@ -453,6 +575,11 @@ export async function bootstrapOsvEcosystem({
 
       try {
         const rawText = await entry.readText()
+        ensureTextSizeLimit(
+          rawText,
+          `OSV archive entry ${externalId}`,
+          MAX_VULNERABILITY_TEXT_BYTES,
+        )
         const vulnerability = JSON.parse(rawText)
         const sourceUrl = buildOsvVulnerabilityUrl(ecosystem, externalId)
         const normalized = normalizeOsvRecord(vulnerability, {
