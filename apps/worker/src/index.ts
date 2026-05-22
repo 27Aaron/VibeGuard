@@ -71,6 +71,8 @@ function resolveInt(value: string | undefined, fallback: number) {
 }
 
 const DEFAULT_IDLE_MAX_INTERVAL_MS = 60_000
+const DEFAULT_POLL_INTERVAL_MS = 5_000
+const MIN_POLL_INTERVAL_MS = 250
 
 function computeIdleInterval(baseIntervalMs: number, consecutiveIdleCycles: number) {
   if (consecutiveIdleCycles <= 0) {
@@ -91,15 +93,31 @@ function sleep(durationMs: number) {
   });
 }
 
+function resolvePollInterval(value: number, fallback: number) {
+  const parsed = Number.parseInt(String(value), 10)
+
+  if (!Number.isFinite(parsed) || parsed < MIN_POLL_INTERVAL_MS) {
+    return fallback
+  }
+
+  return parsed
+}
+
 export async function runWorkerLoop({
-  intervalMs = Number(process.env.WORKER_POLL_INTERVAL_MS ?? "5000"),
+  intervalMs = DEFAULT_POLL_INTERVAL_MS,
   logger = console,
   runCycle = runWorkerCycle,
   signal,
   sleep: wait = sleep,
 }: WorkerLoopOptions = {}) {
+  const configuredIntervalMs = resolvePollInterval(intervalMs, DEFAULT_POLL_INTERVAL_MS)
+  const envInterval = process.env.WORKER_POLL_INTERVAL_MS
+  const baseIntervalMs = resolvePollInterval(
+    envInterval === undefined ? configuredIntervalMs : Number(envInterval),
+    configuredIntervalMs,
+  )
   let consecutiveIdleCycles = 0
-  let currentInterval = intervalMs
+  let currentInterval = baseIntervalMs
 
   while (!signal?.aborted) {
     let didPerformWork = false
@@ -122,8 +140,8 @@ export async function runWorkerLoop({
     }
 
     currentInterval = didPerformWork
-      ? intervalMs
-      : computeIdleInterval(intervalMs, consecutiveIdleCycles)
+      ? baseIntervalMs
+      : computeIdleInterval(baseIntervalMs, consecutiveIdleCycles)
 
     if (signal?.aborted) {
       break;
