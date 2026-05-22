@@ -14,7 +14,10 @@ import { PublicHeader } from "@/components/public-header"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { getArticleById } from "@/lib/api-articles"
-import { getPublicArticleSummaryContainerClass } from "@/lib/article-layout"
+import {
+  getPublicArticleSidebarClassName,
+  getPublicArticleSummaryContainerClass,
+} from "@/lib/article-layout"
 import { getInteractiveChipClassName } from "@/lib/interactive-chip"
 import { getUiText, resolveLang } from "@/lib/i18n"
 import {
@@ -149,7 +152,7 @@ export default async function PublicArticlePage({
             </article>
           </div>
 
-          <aside className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-28 lg:self-start">
+          <aside className={getPublicArticleSidebarClassName()}>
             <section className={getSectionOuterClassName()}>
               <div className={getSectionInnerClassName()}>
                 <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-stone-400">

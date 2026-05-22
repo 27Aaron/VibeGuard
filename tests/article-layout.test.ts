@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { getPublicArticleSummaryContainerClass } from "../apps/web/lib/article-layout"
+import {
+  getPublicArticleSidebarClassName,
+  getPublicArticleSummaryContainerClass,
+} from "../apps/web/lib/article-layout"
 import fs from "node:fs"
 
 describe("public article layout helpers", () => {
@@ -8,11 +11,15 @@ describe("public article layout helpers", () => {
     expect(getPublicArticleSummaryContainerClass()).toBe("w-full")
   })
 
+  it("keeps the sticky summary aligned with the left column under the public header", () => {
+    expect(getPublicArticleSidebarClassName()).toBe("flex min-w-0 flex-col gap-5 lg:sticky lg:top-24 lg:self-start")
+  })
+
   it("groups summary, source actions, and tags into a dedicated overview panel before the body", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/articles/[articleId]/page.tsx", "utf8")
 
     expect(page).toContain("lg:grid-cols-[minmax(0,1fr)_390px]")
-    expect(page).toContain("lg:sticky lg:top-28")
+    expect(page).toContain("getPublicArticleSidebarClassName()")
     expect(page).not.toContain("lg:-mt-")
     expect(page).toContain("summaryPanelTitle")
     expect(page).toContain("summaryPanelTags")
