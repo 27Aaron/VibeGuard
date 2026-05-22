@@ -3,7 +3,7 @@ import { isIP } from "node:net"
 
 import { NextRequest, NextResponse } from "next/server"
 
-export const IMAGE_PROXY_MAX_BYTES = 5_000_000
+const IMAGE_PROXY_MAX_BYTES = 5_000_000
 const DEFAULT_IMAGE_PROXY_MAX_REDIRECTS = 3
 const DEFAULT_IMAGE_PROXY_FETCH_TIMEOUT_MS = 10_000
 const DEFAULT_IMAGE_PROXY_DNS_CACHE_SIZE = 128

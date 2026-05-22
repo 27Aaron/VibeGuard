@@ -45,7 +45,7 @@ function parseRelevanceResponse(value: string): RelevanceResult | null {
   return null;
 }
 
-export function buildRelevancePrompt(input: {
+function buildRelevancePrompt(input: {
   systemPrompt: string;
   sourceText: string;
 }) {

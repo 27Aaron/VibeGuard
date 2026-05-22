@@ -78,7 +78,7 @@ function stripThinkingTags(text: string): string {
     .trim()
 }
 
-export function extractChatCompletionText(result: ChatCompletionResult) {
+function extractChatCompletionText(result: ChatCompletionResult) {
   const content = result.choices?.[0]?.message?.content
 
   let text: string

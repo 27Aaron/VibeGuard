@@ -346,19 +346,6 @@ export function buildBootstrapArchiveEntriesListCommand(archivePath: string) {
   return ["unzip", "-Z1", archivePath]
 }
 
-async function defaultListArchiveEntries(archivePath: string) {
-  const safeArchivePath = assertSafeArchivePath(archivePath)
-  const command = buildBootstrapArchiveEntriesListCommand(safeArchivePath)
-  const result = await execFile(command[0]!, command.slice(1), {
-    maxBuffer: UNZIP_MAX_BUFFER_BYTES,
-  })
-
-  return String(result.stdout)
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-}
-
 async function* defaultIterateArchiveEntries(
   archivePath: string,
 ): AsyncGenerator<BootstrapArchiveEntry> {

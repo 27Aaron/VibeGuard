@@ -118,18 +118,6 @@ export const SecuritySyncStatus = securitySyncStatuses.map;
 export type SecuritySyncStatus =
   (typeof SECURITY_SYNC_STATUS_VALUES)[number];
 
-const securityParseStatuses = defineStatuses([
-  "pending",
-  "parsed",
-  "failed",
-  "skipped",
-] as const);
-
-export const SECURITY_PARSE_STATUS_VALUES = securityParseStatuses.values;
-export const SecurityParseStatus = securityParseStatuses.map;
-export type SecurityParseStatus =
-  (typeof SECURITY_PARSE_STATUS_VALUES)[number];
-
 const securityRiskTypes = defineStatuses([
   "unknown",
   "vulnerability",

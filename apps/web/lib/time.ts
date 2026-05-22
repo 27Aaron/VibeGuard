@@ -1,9 +1,5 @@
 const SHANGHAI_TIME_ZONE = "Asia/Shanghai"
 
-function pad(value: number) {
-  return String(value).padStart(2, "0")
-}
-
 function toDate(input: Date | string | null | undefined) {
   if (!input) {
     return null

@@ -22,12 +22,6 @@ export type ArticleRow = {
   updatedAt: string
 }
 
-export type DashboardOverviewCard = {
-  title: string
-  value: string
-  detail: string
-}
-
 export type JobPreviewRow = {
   id: string
   articleTitle: string

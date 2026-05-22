@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 type AdminPageShellProps = {
   title: string
   description: string
-  currentNav: string
   children: ReactNode
   lang: AppLang
 }

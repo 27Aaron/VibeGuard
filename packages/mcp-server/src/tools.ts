@@ -2,12 +2,12 @@ import { z } from "zod"
 
 import type { VibeGuardClient } from "./client"
 
-export type ToolHandler = (
+type ToolHandler = (
   client: VibeGuardClient,
   args: Record<string, unknown>,
 ) => Promise<string>
 
-export interface ToolDefinition {
+interface ToolDefinition {
   name: string
   description: string
   inputSchema: Record<string, z.ZodTypeAny>

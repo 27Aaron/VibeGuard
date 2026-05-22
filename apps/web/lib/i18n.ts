@@ -4,16 +4,6 @@ export function resolveLang(value: string | null | undefined): AppLang {
   return value === "en" ? "en" : "zh"
 }
 
-export function langPrefix(lang: AppLang): string {
-  return `/${lang}`
-}
-
-export function withLangPrefix(path: string, lang: AppLang): string {
-  const prefix = langPrefix(lang)
-  if (path === "/") return prefix
-  return `${prefix}${path}`
-}
-
 export const uiText = {
   zh: {
     languageName: "中文",
