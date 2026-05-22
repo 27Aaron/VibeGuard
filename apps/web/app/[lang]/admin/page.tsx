@@ -228,6 +228,11 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
             <CardDescription>{copy.operationsBody}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3">
+              <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
+              <OsvSyncButton lang={lang} />
+            </div>
+            <Separator />
             <div className="flex flex-col gap-2.5">
               {copy.entries.map((entry) => {
                 const Icon = entry.icon
@@ -259,10 +264,6 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
               })}
             </div>
             <Separator />
-            <div className="grid grid-cols-2 gap-3">
-              <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
-              <OsvSyncButton lang={lang} />
-            </div>
             <OsvSyncPanel lang={lang} />
           </CardContent>
         </Card>
