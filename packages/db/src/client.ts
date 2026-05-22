@@ -43,5 +43,3 @@ export async function closeDb(): Promise<void> {
   pool = undefined;
   database = undefined;
 }
-
-export { schema };
