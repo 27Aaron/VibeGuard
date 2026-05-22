@@ -6,19 +6,14 @@ import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   type SecurityPackageEcosystem,
 } from "@vibeguard/shared"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, Search } from "lucide-react"
 
 import {
   MarkdownRenderer,
   MarkdownSummary,
 } from "@/components/content/markdown-renderer"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getAdminSelectClassName, getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
@@ -242,20 +237,19 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="space-y-5">
-        <div className="rounded-[1.15rem] border border-black/6 bg-[#f6f7f3] px-4 py-3 text-sm text-zinc-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-300 dark:shadow-none">
-          {copy.publicCheckDescription}
-        </div>
-
-        <form className="grid gap-4 lg:grid-cols-[minmax(0,170px)_minmax(0,1.3fr)_minmax(0,220px)_auto]" onSubmit={handleSubmit}>
-          <div className="flex flex-col gap-2.5">
-            <label htmlFor="security-ecosystem" className="text-sm font-medium">
+    <div className="space-y-5">
+      <div className="rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
+        <form action="#" className="flex flex-col gap-3" onSubmit={handleSubmit}>
+          <p className="px-1 text-sm leading-6 text-zinc-600 dark:text-stone-300">
+            {copy.publicCheckSearchHint}
+          </p>
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+            <label htmlFor="security-ecosystem" className="sr-only">
               {lang === "zh" ? "生态" : "Ecosystem"}
             </label>
             <select
               id="security-ecosystem"
-              className={getAdminSelectClassName()}
+              className={cn(getAdminSelectClassName(), "h-11 min-w-[150px] rounded-full lg:w-[170px]")}
               value={ecosystem}
               onChange={(event) => setEcosystem(event.target.value as SecurityPackageEcosystem)}
               disabled={pending}
@@ -266,22 +260,20 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <label htmlFor="security-package-name" className="text-sm font-medium">
+            <label htmlFor="security-package-name" className="sr-only">
               {copy.publicCheckPackageName}
             </label>
             <Input
               id="security-package-name"
+              type="search"
               value={packageName}
               onChange={(event) => setPackageName(event.target.value)}
               placeholder={ecosystem === "npm" ? "@scope/package" : "package-name"}
+              className="h-11 min-w-0 flex-1 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
               disabled={pending}
               required
             />
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <label htmlFor="security-package-version" className="text-sm font-medium">
+            <label htmlFor="security-package-version" className="sr-only">
               {copy.publicCheckVersion}
             </label>
             <Input
@@ -289,61 +281,62 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
               value={version}
               onChange={(event) => setVersion(event.target.value)}
               placeholder="1.0.0"
+              className="h-11 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 lg:w-[180px] dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
               disabled={pending}
             />
-            <p className="text-xs leading-5 text-zinc-500 dark:text-stone-400">
-              {copy.publicCheckVersionHint}
-            </p>
-          </div>
-          <div className="flex items-end">
             <Button
               type="submit"
+              aria-label={pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit}
+              title={pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit}
               disabled={pending || !packageName.trim()}
-              className="h-10 w-full rounded-full px-5 lg:w-auto"
+              className={cn(
+                buttonVariants({ size: "icon", variant: "outline" }),
+                "size-11 shrink-0 rounded-full border-emerald-900/12 bg-[#e9f2ec] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#dcebe2] hover:text-emerald-950 dark:border-emerald-200/14 dark:bg-emerald-300/10 dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.24)] dark:hover:bg-emerald-300/14 dark:hover:text-emerald-50",
+              )}
             >
-              {pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit}
+              <Search className="size-4" />
+              <span className="sr-only">
+                {pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit}
+              </span>
             </Button>
           </div>
         </form>
+      </div>
 
-        {error ? (
-          <div
-            className="rounded-[1.15rem] border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:bg-destructive/10 dark:shadow-none"
-            aria-live="polite"
-          >
-            {error}
-          </div>
-        ) : null}
+      {error ? (
+        <div
+          className="rounded-[1.15rem] border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:bg-destructive/10 dark:shadow-none"
+          aria-live="polite"
+        >
+          {error}
+        </div>
+      ) : null}
 
-        {result?.warning ? (
-          <div
-            className="rounded-[1.15rem] border border-black/8 bg-white/75 px-4 py-3 text-sm text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:text-stone-200 dark:shadow-none"
-            aria-live="polite"
-          >
-            {result.warning}
-          </div>
-        ) : null}
+      {result?.warning ? (
+        <div
+          className="rounded-[1.15rem] border border-black/8 bg-white/75 px-4 py-3 text-sm text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:text-stone-200 dark:shadow-none"
+          aria-live="polite"
+        >
+          {result.warning}
+        </div>
+      ) : null}
 
-        {!result ? (
-          <section className={cn("text-sm text-zinc-600 dark:text-stone-300", getAdminSubtlePanelClassName())}>
-            <p>{copy.publicCheckEmpty}</p>
-          </section>
-        ) : result.empty ? (
-          <section className={cn("space-y-2", getAdminSubtlePanelClassName())}>
-            <p className="text-sm text-zinc-700 dark:text-stone-200">{copy.publicCheckNoFindings}</p>
-          </section>
-        ) : (
-          <section className="space-y-3">
-            {result.findings.map((finding, index) => {
-              const formattedRanges = formatAffectedRanges(
-                finding.affectedPackage.ranges,
-              )
+      {result ? result.empty ? (
+        <section className={cn("space-y-2", getAdminSubtlePanelClassName())}>
+          <p className="text-sm text-zinc-700 dark:text-stone-200">{copy.publicCheckNoFindings}</p>
+        </section>
+      ) : (
+        <section className="space-y-3">
+          {result.findings.map((finding, index) => {
+            const formattedRanges = formatAffectedRanges(
+              finding.affectedPackage.ranges,
+            )
 
-              return (
-                <article
-                  key={`${finding.advisory.id}-${finding.package.name}-${index}`}
-                  className={cn("space-y-3", getAdminSubtlePanelClassName())}
-                >
+            return (
+              <article
+                key={`${finding.advisory.id}-${finding.package.name}-${index}`}
+                className={cn("space-y-3", getAdminSubtlePanelClassName())}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
@@ -452,15 +445,11 @@ export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
                     </ul>
                   </div>
                 ) : null}
-                </article>
-              )
-            })}
-          </section>
-        )}
-      </CardContent>
-      <CardFooter className="justify-end text-xs text-zinc-500 dark:text-stone-400">
-        <span>{copy.publicCheckFootnote}</span>
-      </CardFooter>
-    </Card>
+              </article>
+            )
+          })}
+        </section>
+      ) : null}
+    </div>
   )
 }
