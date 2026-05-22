@@ -26,6 +26,7 @@ import {
   type FormActionResult,
 } from "@/lib/action-result"
 import { getAdminSelectClassName, getAdminSubtlePanelClassName } from "@/lib/admin-layout"
+import { deleteLlmSettingsAction } from "@/lib/actions/settings"
 import type { AppLang } from "@/lib/i18n"
 import { resolveLang } from "@/lib/i18n"
 import { mergeModelOptions } from "@/lib/provider-models"
@@ -450,14 +451,21 @@ export function LlmSettingsForm({
               </div>
               <FeedbackMessage state={state} />
             </CardContent>
-            <CardFooter className="justify-end">
+            <CardFooter className="justify-between">
+              {provider.id ? (
+                <button
+                  type="submit"
+                  formAction={deleteLlmSettingsAction}
+                  className="text-sm text-destructive hover:underline"
+                >
+                  {resolvedLang === "zh" ? "删除配置" : "Delete profile"}
+                </button>
+              ) : (
+                <span />
+              )}
               <SubmitButton
-                idleLabel={resolvedLang === "zh" ? "保存模型服务配置" : "Save model profile"}
-                pendingLabel={
-                  resolvedLang === "zh"
-                    ? "保存模型服务配置中..."
-                    : "Saving model profile..."
-                }
+                idleLabel={resolvedLang === "zh" ? "保存" : "Save"}
+                pendingLabel={resolvedLang === "zh" ? "保存中..." : "Saving..."}
               />
             </CardFooter>
           </Card>

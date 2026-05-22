@@ -199,6 +199,37 @@ export async function activateLlmSettingsAction(formData: FormData) {
   )
 }
 
+export async function deleteLlmSettingsAction(formData: FormData) {
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
+  const profileId = String(formData.get("id") ?? "").trim()
+
+  if (!profileId) {
+    redirect(buildSettingsRedirect(lang === "zh" ? "缺少配置 ID。" : "Missing profile ID.", "error", undefined, lang))
+  }
+
+  const db = getDb()
+  const row = await db.query.llmSettings.findFirst({
+    where: eq(llmSettings.id, profileId),
+  })
+
+  if (!row) {
+    redirect(buildSettingsRedirect(lang === "zh" ? "未找到该配置。" : "Profile not found.", "error", undefined, lang))
+  }
+
+  await db.delete(llmSettings).where(eq(llmSettings.id, row.id))
+
+  revalidateLocalizedPaths("/admin/settings")
+
+  redirect(
+    buildSettingsRedirect(
+      lang === "zh" ? `${row.name} 已删除。` : `${row.name} deleted.`,
+      "success",
+      undefined,
+      lang,
+    ),
+  )
+}
+
 export async function testLlmSettingsAction(formData: FormData) {
   const lang = resolveLang(String(formData.get("lang") ?? "zh"))
   const profileId = String(formData.get("id") ?? "").trim()
