@@ -27,11 +27,11 @@ import {
 } from "@/lib/security-workbench"
 import { cn } from "@/lib/utils"
 
-type SecurityWorkbenchProps = {
+type PackageCheckWorkbenchProps = {
   lang: AppLang
 }
 
-type SecurityWorkbenchResult = ReturnType<typeof buildSecurityWorkbenchResultState>
+type PackageCheckWorkbenchResult = ReturnType<typeof buildSecurityWorkbenchResultState>
 
 function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
   switch (ecosystem) {
@@ -92,14 +92,14 @@ async function parseCheckResponse(response: Response) {
   return parseSecurityCheckPayload(payload)
 }
 
-export function SecurityWorkbench({ lang }: SecurityWorkbenchProps) {
+export function PackageCheckWorkbench({ lang }: PackageCheckWorkbenchProps) {
   const copy = getUiText(lang)
   const [ecosystem, setEcosystem] = useState<SecurityPackageEcosystem>("npm")
   const [packageName, setPackageName] = useState("")
   const [version, setVersion] = useState("")
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<SecurityWorkbenchResult | null>(null)
+  const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(null)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -132,7 +132,7 @@ export function SecurityWorkbench({ lang }: SecurityWorkbenchProps) {
         submitError instanceof Error
           ? submitError.message
           : lang === "zh"
-            ? "检查失败，请稍后再试。"
+            ? "查询失败，请稍后再试。"
             : "The check failed. Please try again.",
       )
     } finally {
@@ -164,7 +164,7 @@ export function SecurityWorkbench({ lang }: SecurityWorkbenchProps) {
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="security-package-name" className="text-sm font-medium">
-              {copy.adminSecurityPackageName}
+              {copy.publicCheckPackageName}
             </label>
             <Input
               id="security-package-name"
@@ -177,7 +177,7 @@ export function SecurityWorkbench({ lang }: SecurityWorkbenchProps) {
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="security-package-version" className="text-sm font-medium">
-              {copy.adminSecurityVersion}
+              {copy.publicCheckVersion}
             </label>
             <Input
               id="security-package-version"
@@ -189,7 +189,7 @@ export function SecurityWorkbench({ lang }: SecurityWorkbenchProps) {
           </div>
           <div className="flex items-end">
             <Button type="submit" disabled={pending || !packageName.trim()} className="w-full lg:w-auto">
-              {pending ? copy.adminSecurityChecking : copy.adminSecurityCheck}
+              {pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit}
             </Button>
           </div>
         </form>
@@ -214,11 +214,11 @@ export function SecurityWorkbench({ lang }: SecurityWorkbenchProps) {
 
         {!result ? (
           <section className={cn("text-sm text-zinc-600 dark:text-stone-300", getAdminSubtlePanelClassName())}>
-            <p>{copy.adminSecurityEmpty}</p>
+            <p>{copy.publicCheckEmpty}</p>
           </section>
         ) : result.empty ? (
           <section className={cn("space-y-2", getAdminSubtlePanelClassName())}>
-            <p className="text-sm text-zinc-700 dark:text-stone-200">{copy.adminSecurityNoFindings}</p>
+            <p className="text-sm text-zinc-700 dark:text-stone-200">{copy.publicCheckNoFindings}</p>
           </section>
         ) : (
           <section className="space-y-3">
@@ -282,7 +282,7 @@ export function SecurityWorkbench({ lang }: SecurityWorkbenchProps) {
         )}
       </CardContent>
       <CardFooter className="justify-end text-xs text-zinc-500 dark:text-stone-400">
-        <span>{lang === "zh" ? "仅检查本地 OSV 镜像结果" : "Checks only the local OSV mirror"}</span>
+        <span>{copy.publicCheckFootnote}</span>
       </CardFooter>
     </Card>
   )

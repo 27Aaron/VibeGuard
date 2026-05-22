@@ -3,7 +3,7 @@ import fs from "node:fs"
 import { describe, expect, it } from "vitest"
 
 describe("public homepage card layout", () => {
-  it("adds a soft status bar with future API, Skill, MCP, and RSS entry points", () => {
+  it("adds a soft status bar with API, Skill, MCP, RSS, and Check entry points", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8")
     const publicHeader = fs.readFileSync("apps/web/components/public-header.tsx", "utf8")
 
@@ -17,20 +17,22 @@ describe("public homepage card layout", () => {
     expect(publicHeader).toContain("Skill")
     expect(publicHeader).toContain("MCP")
     expect(publicHeader).toContain("RSS")
+    expect(publicHeader).toContain("Check")
     expect(publicHeader).toContain("backdrop-blur-2xl")
     expect(publicHeader).toContain("md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]")
     expect(publicHeader).toContain("md:justify-self-center")
     expect(publicHeader.indexOf('{ label: "API"')).toBeLessThan(publicHeader.indexOf('{ label: "MCP"'))
     expect(publicHeader.indexOf('{ label: "MCP"')).toBeLessThan(publicHeader.indexOf('{ label: "RSS"'))
     expect(publicHeader.indexOf('{ label: "RSS"')).toBeLessThan(publicHeader.indexOf('{ label: "Skill"'))
+    expect(publicHeader.indexOf('{ label: "Skill"')).toBeLessThan(publicHeader.indexOf('{ label: "Check"'))
     expect(publicHeader).toContain("inline-flex h-8 min-w-0 items-center rounded-full border border-black/8 bg-[#eef2f7] p-[2px]")
     expect(publicHeader).toContain("inline-flex h-[26px] items-center gap-1.5 rounded-full border border-black/8 bg-white px-2.5")
     expect(publicHeader).toContain("dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100")
-    expect(publicHeader).toContain("item.active &&")
+    expect(publicHeader).toContain("const active = item.surface === currentSurface")
     expect(publicHeader).toContain("border-emerald-900/18 bg-[#dfe9e2] text-emerald-950")
     expect(publicHeader).toContain("dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100")
     expect(publicHeader).toContain("border-emerald-900/12 bg-[#f7fbf8] text-emerald-950")
-    expect(publicHeader).toContain("item.active && \"text-emerald-800 dark:text-emerald-300\"")
+    expect(publicHeader).toContain("active && \"text-emerald-800 dark:text-emerald-300\"")
     expect(publicHeader).not.toContain("flex h-[26px] w-[26px] items-center justify-center")
     expect(publicHeader).not.toContain('sm:inline dark:text-emerald-700')
     expect(publicHeader).not.toContain('sm:inline dark:text-zinc-500')
