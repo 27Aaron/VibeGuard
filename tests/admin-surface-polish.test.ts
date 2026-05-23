@@ -10,14 +10,12 @@ describe("admin surface polish", () => {
     expect(file).toContain("当前还没有配置任何来源")
   })
 
-  it("treats saved settings profiles like a configuration center with summary copy", () => {
-    const file = fs.readFileSync("apps/web/components/admin/settings-profile-list.tsx", "utf8")
+  it("uses a profile dropdown selector in the settings form", () => {
+    const file = fs.readFileSync("apps/web/components/admin/llm-settings-form.tsx", "utf8")
 
-    expect(file).toContain("savedCountLabel")
-    expect(file).toContain("当前生效模型")
+    expect(file).toContain("profiles.map")
+    expect(file).toContain("当前生效")
     expect(file).toContain("新建配置")
-    expect(file).toContain("配置列表")
-    expect(file).toContain("h-fit")
   })
 
   it("groups feed actions into a compact operation cluster with icon affordances", () => {
@@ -29,10 +27,11 @@ describe("admin surface polish", () => {
     expect(file).toContain("Trash2")
   })
 
-  it("lets the settings form title follow the saved profile name instead of a hard-coded provider label", () => {
+  it("uses model config and pipeline section titles in the settings form", () => {
     const file = fs.readFileSync("apps/web/components/admin/llm-settings-form.tsx", "utf8")
 
-    expect(file).toContain("providerCardTitle")
-    expect(file).toContain("provider.settingsName.trim() || provider.providerName")
+    expect(file).toContain("模型配置")
+    expect(file).toContain("处理链路")
+    expect(file).toContain("selectedProfileId")
   })
 })

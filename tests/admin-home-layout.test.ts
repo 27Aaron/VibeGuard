@@ -66,9 +66,11 @@ describe("admin home layout", () => {
     expect(page).not.toContain('CardHeader className="px-5"')
   })
 
-  it("keeps the settings page columns top-aligned so the profile rail does not stretch into empty space", () => {
+  it("uses a single-column layout for the settings form", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/admin/settings/page.tsx", "utf8")
 
-    expect(page).toContain("grid items-start gap-6")
+    expect(page).not.toContain("grid items-start gap-6")
+    expect(page).toContain("LlmSettingsForm")
+    expect(page).toContain("profiles={profiles}")
   })
 })

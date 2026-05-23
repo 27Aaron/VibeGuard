@@ -146,17 +146,11 @@ describe("admin settings helpers", () => {
   })
 
   describe("success message resolution", () => {
-    it("returns the pipeline copy for pipeline form submissions", () => {
-      expect(resolveSettingsSuccessMessage("pipeline")).toBe(
-        "处理链路提示词已保存。",
+    it("returns a unified success message", () => {
+      expect(resolveSettingsSuccessMessage()).toBe(
+        "配置已保存。",
       )
     })
-
-    it("defaults to the provider copy for other form submissions", () => {
-      expect(resolveSettingsSuccessMessage("provider")).toBe(
-        "模型服务配置已保存。",
-      )
-      expect(resolveSettingsSuccessMessage("")).toBe("模型服务配置已保存。")
     })
   })
 
