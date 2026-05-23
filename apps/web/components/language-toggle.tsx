@@ -1,25 +1,33 @@
 "use client"
 
 import { startTransition, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Languages } from "lucide-react"
 
 import type { AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 type LanguageToggleProps = {
-  href: string
   currentLang: AppLang
   className?: string
 }
 
 export function LanguageToggle({
-  href,
   currentLang,
   className,
 }: LanguageToggleProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const nextLang = currentLang === "zh" ? "en" : "zh"
   const nextLabel = currentLang === "zh" ? "切换到英文" : "Switch to Chinese"
+
+  const segments = pathname.split("/")
+  segments[1] = nextLang
+  const nextPath = segments.join("/")
+  const href = searchParams.toString()
+    ? `${nextPath}?${searchParams.toString()}`
+    : nextPath
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault()

@@ -30,14 +30,12 @@ const futureSurfaceLinks: Array<{
 
 type PublicHeaderProps = {
   homeHref: string
-  nextLangHref: string
   currentLang: AppLang
   currentSurface?: PublicSurface
 }
 
 export function PublicHeader({
   homeHref,
-  nextLangHref,
   currentLang,
   currentSurface,
 }: PublicHeaderProps) {
@@ -136,7 +134,6 @@ export function PublicHeader({
           <div className="flex items-center justify-end gap-1.5 md:justify-self-end">
             <ThemeToggle />
             <LanguageToggle
-              href={nextLangHref}
               currentLang={currentLang}
             />
           </div>

@@ -9,10 +9,9 @@ import type { AppLang } from "@/lib/i18n"
 
 type AdminHeaderProps = {
   lang: AppLang
-  nextLangHref: string
 }
 
-export function AdminHeader({ lang, nextLangHref }: AdminHeaderProps) {
+export function AdminHeader({ lang }: AdminHeaderProps) {
   return (
     <header className="sticky top-3 z-40">
       <div className="w-full min-w-0 rounded-[2rem] border border-black/5 bg-white/45 p-1.5 shadow-[0_20px_55px_-34px_rgba(10,10,10,0.45),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-2xl md:rounded-full dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_22px_60px_-36px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -39,7 +38,7 @@ export function AdminHeader({ lang, nextLangHref }: AdminHeaderProps) {
 
           <div className="flex items-center justify-end gap-1.5 md:justify-self-end">
             <ThemeToggle />
-            <LanguageToggle href={nextLangHref} currentLang={lang} />
+            <LanguageToggle currentLang={lang} />
             <form action={logoutAction}>
               <input type="hidden" name="lang" value={lang} />
               <button

@@ -41,7 +41,6 @@ type RssPageProps = {
 export default async function RssPage({ params: routeParams }: RssPageProps) {
   const { lang: rawLang } = await routeParams
   const lang = resolveLang(rawLang)
-  const nextLang = lang === "zh" ? "en" : "zh"
 
   const zhFeedUrl = "/zh/feed.xml"
   const enFeedUrl = "/en/feed.xml"
@@ -53,7 +52,6 @@ export default async function RssPage({ params: routeParams }: RssPageProps) {
       <div className={getShellClassName()}>
         <PublicHeader
           homeHref={`/${lang}`}
-          nextLangHref={`/${nextLang}/rss`}
           currentLang={lang}
           currentSurface="rss"
         />

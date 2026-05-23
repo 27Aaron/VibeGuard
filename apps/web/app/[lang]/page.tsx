@@ -87,7 +87,6 @@ export default async function PublicHomePage({ params: routeParams, searchParams
   const hasPreviousPage = currentPage > 1
   const hasNextPage = currentPage < totalPages
   const hasActiveFilters = Boolean(query || tag)
-  const nextLang = lang === "zh" ? "en" : "zh"
   const tagFilterModel = buildPublicTagFilterModel(tagCounts, tag, 12)
 
   function buildListHref(next: {
@@ -140,7 +139,6 @@ export default async function PublicHomePage({ params: routeParams, searchParams
       <div className={getShellClassName()}>
         <PublicHeader
           homeHref={`/${lang}`}
-          nextLangHref={buildListHref({ lang: nextLang, page: requestedPage })}
           currentLang={lang}
         />
 

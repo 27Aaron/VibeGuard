@@ -20,7 +20,6 @@ type CheckPageProps = {
 export default async function CheckPage({ params: routeParams }: CheckPageProps) {
   const { lang: rawLang } = await routeParams
   const lang = resolveLang(rawLang)
-  const nextLang = lang === "zh" ? "en" : "zh"
   const [overviewTotals, lastSyncTime] = await Promise.all([
     getSecurityOverviewTotals(getDb()),
     getLastSyncTime(getDb()),
@@ -33,7 +32,6 @@ export default async function CheckPage({ params: routeParams }: CheckPageProps)
       <div className={getShellClassName()}>
         <PublicHeader
           homeHref={`/${lang}`}
-          nextLangHref={`/${nextLang}/check`}
           currentLang={lang}
           currentSurface="check"
         />

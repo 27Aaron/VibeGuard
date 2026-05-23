@@ -67,7 +67,6 @@ const features = [
 export default async function SkillPage({ params: routeParams }: SkillPageProps) {
   const { lang: rawLang } = await routeParams
   const lang = resolveLang(rawLang)
-  const nextLang = lang === "zh" ? "en" : "zh"
 
   return (
     <main className={getBackgroundClassName()}>
@@ -76,7 +75,6 @@ export default async function SkillPage({ params: routeParams }: SkillPageProps)
       <div className={getShellClassName()}>
         <PublicHeader
           homeHref={`/${lang}`}
-          nextLangHref={`/${nextLang}/skill`}
           currentLang={lang}
           currentSurface="skill"
         />

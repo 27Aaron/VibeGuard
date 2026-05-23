@@ -24,8 +24,6 @@ type AdminLayoutProps = {
 export default async function AdminLayout({ children, params }: AdminLayoutProps) {
   const { lang: rawLang } = await params
   const lang = resolveLang(rawLang)
-  const nextLang = lang === "zh" ? "en" : "zh"
-  const nextLangHref = `/${nextLang}/admin`
 
   return (
     <main className={getAdminBackgroundClassName()}>
@@ -33,7 +31,6 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
       <div className={getAdminShellClassName()}>
         <AdminHeader
           lang={lang}
-          nextLangHref={nextLangHref}
         />
         {children}
       </div>

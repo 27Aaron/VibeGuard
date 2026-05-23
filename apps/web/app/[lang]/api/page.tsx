@@ -42,8 +42,6 @@ type ApiPageProps = {
 export default async function ApiPage({ params: routeParams }: ApiPageProps) {
   const { lang: rawLang } = await routeParams
   const lang = resolveLang(rawLang)
-  const nextLang = lang === "zh" ? "en" : "zh"
-
   return (
     <main className={getBackgroundClassName()}>
       <div className={getBackdropClassName()} />
@@ -51,7 +49,6 @@ export default async function ApiPage({ params: routeParams }: ApiPageProps) {
       <div className={getShellClassName()}>
         <PublicHeader
           homeHref={`/${lang}`}
-          nextLangHref={`/${nextLang}/api`}
           currentLang={lang}
           currentSurface="api"
         />

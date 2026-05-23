@@ -73,7 +73,6 @@ const tools = [
 export default async function McpPage({ params: routeParams }: McpPageProps) {
   const { lang: rawLang } = await routeParams
   const lang = resolveLang(rawLang)
-  const nextLang = lang === "zh" ? "en" : "zh"
   const mcpUrl = await getMcpEndpoint()
 
   return (
@@ -83,7 +82,6 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
       <div className={getShellClassName()}>
         <PublicHeader
           homeHref={`/${lang}`}
-          nextLangHref={`/${nextLang}/mcp`}
           currentLang={lang}
           currentSurface="mcp"
         />

@@ -78,7 +78,6 @@ export default async function PublicArticlePage({
 
   const resolvedArticle = article
   const articleLang = resolveLang(resolvedArticle.locale)
-  const nextLang = articleLang === "zh" ? "en" : "zh"
 
   const backParams = new URLSearchParams()
   if (q) {
@@ -91,12 +90,6 @@ export default async function PublicArticlePage({
     backParams.set("page", page)
   }
 
-  function buildArticleHref(nextLang: "zh" | "en") {
-    const nextParams = new URLSearchParams(backParams)
-    const serialized = nextParams.toString()
-    return serialized ? `/${nextLang}/articles/${resolvedArticle.id}?${serialized}` : `/${nextLang}/articles/${resolvedArticle.id}`
-  }
-
   return (
     <main className={getBackgroundClassName()}>
       <div className={getBackdropClassName()} />
@@ -104,7 +97,6 @@ export default async function PublicArticlePage({
       <div className={getShellClassName()}>
         <PublicHeader
           homeHref={backParams.toString() ? `/${resolvedArticle.locale}?${backParams.toString()}` : `/${resolvedArticle.locale}`}
-          nextLangHref={buildArticleHref(nextLang)}
           currentLang={articleLang}
         />
 
