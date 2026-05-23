@@ -75,6 +75,56 @@ describe("security workbench persisted state", () => {
     ).toEqual(persistedState)
   })
 
+  it("drops stale persisted result payloads that predate risk enrichment", () => {
+    clearPersistedSecurityWorkbenchState(createMemoryStorage())
+    const storage = createMemoryStorage(
+      JSON.stringify({
+        ...persistedState,
+        result: {
+          empty: false,
+          stale: false,
+          source: "local-osv-mirror",
+          lastSyncedAt: "2026-05-23T00:53:00.000Z",
+          findings: [
+            {
+              affected: true,
+              confidence: "high",
+              matchReason: "version_in_ecosystem_range",
+              matchSummary: "axios@0.21.1 falls inside an affected range.",
+              package: {
+                ecosystem: "npm",
+                name: "axios",
+                version: "0.21.1",
+                purl: "pkg:npm/axios",
+              },
+              advisory: {
+                id: "GHSA-example",
+                source: "osv",
+                riskType: "vulnerability",
+                summary: "Old cached payload",
+                details: null,
+                aliases: [],
+                severity: [],
+                references: [],
+                modifiedAt: null,
+              },
+              affectedPackage: {
+                affectedVersions: [],
+                ranges: [],
+                fixedVersions: [],
+              },
+            },
+          ],
+        },
+      }),
+    )
+
+    expect(loadPersistedSecurityWorkbenchState(storage)).toEqual({
+      ...persistedState,
+      result: null,
+    })
+  })
+
   it("clears both session storage and the in-memory fallback", () => {
     const storage = createMemoryStorage()
     savePersistedSecurityWorkbenchState(persistedState, storage)

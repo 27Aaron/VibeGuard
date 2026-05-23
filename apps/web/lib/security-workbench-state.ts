@@ -3,7 +3,10 @@ import {
   type SecurityPackageEcosystem,
 } from "@vibeguard/shared"
 
-import type { buildSecurityWorkbenchResultState } from "./security-workbench"
+import {
+  isSecurityWorkbenchResultState,
+  type buildSecurityWorkbenchResultState,
+} from "./security-workbench"
 
 export const SECURITY_WORKBENCH_STATE_STORAGE_KEY = "vibeguard-check-state"
 
@@ -59,7 +62,7 @@ function normalizeSubmittedQuery(
 }
 
 function normalizeResult(value: unknown): SecurityWorkbenchResultState | null {
-  return isRecord(value) ? (value as SecurityWorkbenchResultState) : null
+  return isSecurityWorkbenchResultState(value) ? value : null
 }
 
 function normalizePersistedState(

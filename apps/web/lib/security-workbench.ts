@@ -337,3 +337,17 @@ export function buildSecurityWorkbenchResultState(payload: SecurityCheckPayload)
     findings: payload.findings,
   }
 }
+
+export function isSecurityWorkbenchResultState(
+  value: unknown,
+): value is ReturnType<typeof buildSecurityWorkbenchResultState> {
+  return (
+    isRecord(value) &&
+    typeof value.empty === "boolean" &&
+    typeof value.stale === "boolean" &&
+    typeof value.source === "string" &&
+    (typeof value.lastSyncedAt === "string" || value.lastSyncedAt === null) &&
+    Array.isArray(value.findings) &&
+    value.findings.every(isSecurityFinding)
+  )
+}
