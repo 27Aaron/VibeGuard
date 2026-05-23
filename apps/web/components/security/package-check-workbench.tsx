@@ -179,7 +179,7 @@ function cvssLevelBadgeClassName(level: CvssLevel) {
   }
 }
 
-function cveBadgeClassName() {
+function fixedVersionBadgeClassName() {
   return "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200"
 }
 
@@ -193,8 +193,8 @@ function findingMetricBadges(finding: SecurityFinding) {
       ? {
           key: "cve",
           label: primaryCve,
-          variant: "outline" as const,
-          className: cveBadgeClassName(),
+          variant: "secondary" as const,
+          className: "",
         }
       : null,
     enrichment?.bestCvssScore
@@ -685,7 +685,11 @@ export function PackageCheckWorkbench({
                 {lang === "zh" ? "建议升级" : "Upgrade to"}
               </span>
               {resultSummary.recommendedFixedVersions.map((fixedVersion) => (
-                <Badge key={fixedVersion} variant="secondary">
+                <Badge
+                  key={fixedVersion}
+                  variant="secondary"
+                  className={fixedVersionBadgeClassName()}
+                >
                   {fixedVersion}
                 </Badge>
               ))}
@@ -804,7 +808,11 @@ export function PackageCheckWorkbench({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {finding.affectedPackage.fixedVersions.map((fixedVersion: string) => (
-                        <Badge key={fixedVersion} variant="secondary">
+                        <Badge
+                          key={fixedVersion}
+                          variant="secondary"
+                          className={fixedVersionBadgeClassName()}
+                        >
                           {fixedVersion}
                         </Badge>
                       ))}
