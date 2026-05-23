@@ -30,7 +30,7 @@ export async function fetchFeed(feedUrl: string): Promise<ParsedFeed> {
 
     const contentLength = Number(response.headers.get("content-length") ?? "0");
 
-    if (contentLength > DEFAULT_MAX_BYTES) {
+    if (Number.isFinite(contentLength) && contentLength > DEFAULT_MAX_BYTES) {
       throw new Error("Feed response is too large.");
     }
 

@@ -21,6 +21,10 @@ export type InsertFeedItemResult = {
   created: boolean;
 };
 
+export function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 export function buildArticleInsert({
   feedId,
   sourceName,
@@ -28,16 +32,18 @@ export function buildArticleInsert({
   fetchedAt = new Date(),
 }: ToArticleInsertInput) {
   const normalized = normalizeFeedItem(item, fetchedAt);
+  const rawContent = typeof item.content === "string" ? item.content : undefined;
+  const summaryText =
+    typeof item.contentSnippet === "string"
+      ? item.contentSnippet
+      : rawContent
+        ? stripHtmlTags(rawContent)
+        : undefined;
   const classification = classifySecurityContent({
     sourceName,
     url: normalized.url,
     title: normalized.titleEn,
-    summary:
-      typeof item.contentSnippet === "string"
-        ? item.contentSnippet
-        : typeof item.content === "string"
-          ? item.content
-          : undefined,
+    summary: summaryText,
     categories: item.categories,
   })
 

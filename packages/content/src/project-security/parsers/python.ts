@@ -90,25 +90,26 @@ function buildDeclaredPythonDependency(
   }
 }
 
-function parsePyprojectArrayEntries(content: string, key: string) {
+export function parsePyprojectArrayEntries(content: string, key: string) {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   const singleLineMatch = content.match(
-    new RegExp(`^\\s*${key}\\s*=\\s*\\[(.*)\\]\\s*$`, "m"),
+    new RegExp(`^\\s*${escapedKey}\\s*=\\s*\\[([^\\]]*)\\]\\s*$`, "m"),
   )
   if (singleLineMatch?.[1]) {
-    return [...singleLineMatch[1].matchAll(/"([^"]+)"/g)]
-      .map((match) => match[1])
+    return [...singleLineMatch[1].matchAll(/"([^"]+)"|'([^']+)'/g)]
+      .map((match) => match[1] ?? match[2])
       .filter((entry): entry is string => Boolean(entry))
   }
 
   const blockMatch = content.match(
-    new RegExp(`^\\s*${key}\\s*=\\s*\\[(.*?)^\\s*\\]\\s*$`, "ms"),
+    new RegExp(`^\\s*${escapedKey}\\s*=\\s*\\[([\\s\\S]*?)^\\s*\\]\\s*$`, "m"),
   )
   if (!blockMatch?.[1]) {
     return []
   }
 
-  return [...blockMatch[1].matchAll(/"([^"]+)"/g)]
-    .map((match) => match[1])
+  return [...blockMatch[1].matchAll(/"([^"]+)"|'([^']+)'/g)]
+    .map((match) => match[1] ?? match[2])
     .filter((entry): entry is string => Boolean(entry))
 }
 

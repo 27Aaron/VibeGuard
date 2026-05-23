@@ -47,10 +47,11 @@ const DEFAULT_REPO_ROOT = path.resolve(
   "../../../../",
 )
 
-function assertSafeFileName(fileName: string) {
+export function assertSafeFileName(fileName: string) {
   if (
     fileName.includes("/") ||
     fileName.includes("\\") ||
+    fileName.includes("\0") ||
     fileName === "." ||
     fileName === ".."
   ) {
@@ -215,5 +216,5 @@ export async function downloadOsvArchiveToCache({
 }
 
 export async function deleteCachedOsvFile(filePath: string) {
-  await fs.rm(filePath, { recursive: true, force: true })
+  await fs.unlink(filePath)
 }

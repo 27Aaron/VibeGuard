@@ -432,6 +432,14 @@ export async function syncOsvEcosystem({
         MAX_VULNERABILITY_TEXT_BYTES,
       )
       const vulnerability = JSON.parse(rawText)
+      if (
+        typeof vulnerability !== "object" ||
+        vulnerability === null ||
+        Array.isArray(vulnerability)
+      ) {
+        throw new Error(`Invalid OSV record: expected an object, got ${typeof vulnerability}`)
+      }
+
       const normalized = normalizeOsvRecord(vulnerability, {
         sourceUrl,
         rawHash: sha256(rawText),
@@ -450,13 +458,22 @@ export async function syncOsvEcosystem({
           : lastProcessedModifiedAt
     } catch (error) {
       recordsFailed += 1
-      await deleteCachedOsvFile(filePath)
+      await deleteCachedOsvFile(filePath).catch(() => {})
       console.error(`[osv/sync] Failed to process ${row.externalId}:`, error)
+      continue
     }
   }
 
+  const hasPartialSuccess = recordsImported > 0 || recordsSkipped > 0
+  const syncStatus =
+    recordsFailed === 0
+      ? SecuritySyncStatus.SUCCESS
+      : hasPartialSuccess
+        ? SecuritySyncStatus.SUCCESS
+        : SecuritySyncStatus.FAILED
+
   await upsertSyncState(db, packageEcosystem, {
-    status: recordsFailed > 0 ? SecuritySyncStatus.FAILED : SecuritySyncStatus.SUCCESS,
+    status: syncStatus,
     now: syncedAt,
     lastProcessedModifiedAt,
     lastError: recordsFailed > 0 ? `${recordsFailed} OSV records failed to sync.` : null,

@@ -30,9 +30,17 @@ type PackageManifestData = {
 
 type DirectDependenciesByContext = Map<string, Set<string>>
 
-function extractNodePackageName(packagePath: string) {
+export function extractNodePackageName(packagePath: string) {
   const segments = packagePath.split("node_modules/")
-  return segments[segments.length - 1] ?? packagePath
+  const lastSegment = segments[segments.length - 1] ?? packagePath
+
+  // Scoped packages: @scope/pkg -> extract from node_modules/@scope/pkg
+  const parts = lastSegment.split("/")
+  if (parts.length >= 2 && parts[0]?.startsWith("@")) {
+    return `${parts[0]}/${parts[1]}`
+  }
+
+  return parts[0] ?? lastSegment
 }
 
 function isInstalledNodePackagePath(packagePath: string) {

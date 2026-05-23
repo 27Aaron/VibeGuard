@@ -83,8 +83,12 @@ export type NormalizedOsvRecord = {
   affectedPackages: NormalizedOsvAffectedPackage[]
 }
 
-function parseDate(value: string | undefined) {
+export function parseDate(value: string | undefined) {
   if (!value) {
+    return null
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/.test(value)) {
     return null
   }
 

@@ -40,17 +40,58 @@ function trimVersion(value?: string | null) {
   return trimmed ? trimmed : null
 }
 
-function parseSimpleNumericVersion(raw: string): ComparableVersion | null {
-  if (!/^\d+(?:\.\d+)*$/.test(raw)) {
+type PreReleaseTag = "dev" | "alpha" | "a" | "beta" | "b" | "rc" | "final" | null
+
+const PRE_RELEASE_ORDER: Record<string, number> = {
+  dev: 0,
+  alpha: 1,
+  a: 1,
+  beta: 2,
+  b: 2,
+  rc: 3,
+  final: 4,
+}
+
+function parsePreReleaseTag(tag: string): { type: PreReleaseTag; number: number } | null {
+  const match = tag.match(/^(dev|alpha|a|beta|b|rc|final)\.?(\d*)$/i)
+  if (!match) {
     return null
   }
 
-  const parts = raw.split(".").map((part) => Number(part))
+  return {
+    type: match[1].toLowerCase() as PreReleaseTag,
+    number: match[2] ? Number(match[2]) : 0,
+  }
+}
+
+export function parseSimpleNumericVersion(raw: string): ComparableVersion | null {
+  const preReleaseMatch = raw.match(/^(.+?)(?:[-_.]|(?=[a-zA-Z]))(dev|alpha|a|beta|b|rc|final)\.?(\d*)(?:[-_.].*)?$/i)
+  const numericPart = preReleaseMatch?.[1] ?? raw
+  const preReleaseTag = preReleaseMatch?.[2] ?? null
+  const preReleaseNum = preReleaseMatch?.[3] ? Number(preReleaseMatch[3]) : 0
+
+  if (!/^\d+(?:\.\d+)*$/.test(numericPart)) {
+    return null
+  }
+
+  const parts = numericPart.split(".").map((part) => Number(part))
+  const tagOrder = preReleaseTag
+    ? (PRE_RELEASE_ORDER[preReleaseTag.toLowerCase()] ?? 0)
+    : Infinity
 
   return {
     raw,
     compareTo(other) {
-      const otherParts = other.raw.split(".").map((part) => Number(part))
+      const otherPreReleaseMatch = other.raw.match(/^(.+?)(?:[-_.]|(?=[a-zA-Z]))(dev|alpha|a|beta|b|rc|final)\.?(\d*)(?:[-_.].*)?$/i)
+      const otherNumericPart = otherPreReleaseMatch?.[1] ?? other.raw
+      const otherPreReleaseTag = otherPreReleaseMatch?.[2] ?? null
+      const otherPreReleaseNum = otherPreReleaseMatch?.[3] ? Number(otherPreReleaseMatch[3]) : 0
+
+      if (!/^\d+(?:\.\d+)*$/.test(otherNumericPart)) {
+        return 1
+      }
+
+      const otherParts = otherNumericPart.split(".").map((part) => Number(part))
       const length = Math.max(parts.length, otherParts.length)
 
       for (let index = 0; index < length; index += 1) {
@@ -60,6 +101,18 @@ function parseSimpleNumericVersion(raw: string): ComparableVersion | null {
         if (left !== right) {
           return left < right ? -1 : 1
         }
+      }
+
+      const otherTagOrder = otherPreReleaseTag
+        ? (PRE_RELEASE_ORDER[otherPreReleaseTag.toLowerCase()] ?? 0)
+        : Infinity
+
+      if (tagOrder !== otherTagOrder) {
+        return tagOrder < otherTagOrder ? -1 : 1
+      }
+
+      if (preReleaseNum !== otherPreReleaseNum) {
+        return preReleaseNum < otherPreReleaseNum ? -1 : 1
       }
 
       return 0
