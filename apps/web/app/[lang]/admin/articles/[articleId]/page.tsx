@@ -36,6 +36,14 @@ import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
+function getRelevanceFilterReason(rawMeta: unknown): string | null {
+  if (!rawMeta || typeof rawMeta !== "object") return null
+  const filter = (rawMeta as Record<string, unknown>).relevanceFilter
+  if (!filter || typeof filter !== "object") return null
+  const reason = (filter as Record<string, unknown>).reason
+  return typeof reason === "string" && reason ? reason : null
+}
+
 type ArticleDetailPageProps = {
   params: Promise<{ lang: string; articleId: string }>
   searchParams: Promise<{ status?: string; message?: string }>
@@ -223,6 +231,17 @@ export default async function ArticleDetailPage({
                   {article.sourceName}
                 </Badge>
               </div>
+              {article.status === "filtered" &&
+                getRelevanceFilterReason(article.rawMeta) && (
+                  <div className="rounded-[1.15rem] border border-orange-200/60 bg-orange-50/80 px-4 py-3 dark:border-orange-700/40 dark:bg-orange-950/20">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-orange-600 dark:text-orange-400">
+                      {resolvedLang === "zh" ? "过滤原因" : "Filter reason"}
+                    </p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-orange-800 dark:text-orange-200">
+                      {getRelevanceFilterReason(article.rawMeta)}
+                    </p>
+                  </div>
+                )}
               <CardTitle className="max-w-5xl text-2xl leading-tight md:text-3xl">
                 {localized.title}
               </CardTitle>
