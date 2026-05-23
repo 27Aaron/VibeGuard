@@ -287,9 +287,6 @@ export function LlmSettingsForm({
             {resolvedLang === "zh" ? "＋ 新建配置" : "＋ New profile"}
           </option>
         </select>
-        <p className="text-sm text-muted-foreground">
-          {model} · {baseUrl.replace(/^https?:\/\//, "").split("/")[0]}
-        </p>
         <div className="ml-auto flex items-center gap-2">
           {isActive ? (
             <Badge
@@ -394,30 +391,29 @@ export function LlmSettingsForm({
                     <label htmlFor="model" className="text-sm font-medium">
                       {resolvedLang === "zh" ? "默认模型" : "Default model"}
                     </label>
-                    <div className="flex items-center gap-2">
-                      {mergedModelOptions.length > 0 ? (
-                        <select
-                          id="model"
-                          name="model"
-                          value={model}
-                          onChange={(event) => setModel(event.target.value)}
-                          className={cn(getAdminSelectClassName(), "flex-1")}
-                        >
-                          {mergedModelOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <Input
-                          id="model"
-                          name="model"
-                          value={model}
-                          onChange={(event) => setModel(event.target.value)}
-                          className="flex-1"
-                        />
-                      )}
+                    {mergedModelOptions.length > 0 ? (
+                      <select
+                        id="model"
+                        name="model"
+                        value={model}
+                        onChange={(event) => setModel(event.target.value)}
+                        className={getAdminSelectClassName()}
+                      >
+                        {mergedModelOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Input
+                        id="model"
+                        name="model"
+                        value={model}
+                        onChange={(event) => setModel(event.target.value)}
+                      />
+                    )}
+                    <div className="flex items-center gap-3">
                       <Button
                         type="button"
                         variant="outline"
@@ -433,10 +429,10 @@ export function LlmSettingsForm({
                             ? "获取模型"
                             : "Fetch models"}
                       </Button>
+                      {modelFeedback ? (
+                        <p className="text-sm text-muted-foreground">{modelFeedback}</p>
+                      ) : null}
                     </div>
-                    {modelFeedback ? (
-                      <p className="text-sm text-muted-foreground">{modelFeedback}</p>
-                    ) : null}
                   </div>
                 </div>
               </CardContent>
