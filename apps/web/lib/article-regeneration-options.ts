@@ -78,43 +78,43 @@ function getRegenerationOptionLabel(
   if (lang === "zh") {
     switch (target) {
       case "fetch-source":
-        return "重抓原文"
+        return "原文抓取"
       case "extract-content":
-        return "重提取正文"
+        return "正文提取"
       case "classify-relevance":
-        return "重判断相关性"
+        return "相关性判断"
       case "title-zh":
-        return "重生成中文标题"
+        return "标题翻译"
       case "content-zh":
-        return "重生成中文正文"
+        return "正文翻译"
       case "summary-en":
-        return "重生成英文摘要"
+        return "英文摘要"
       case "summary-zh":
-        return "重生成中文摘要"
+        return "中文摘要"
       case "tags":
       default:
-        return "重新生成标签"
+        return "处理标签"
     }
   }
 
   switch (target) {
     case "fetch-source":
-      return "Re-fetch source"
+      return "Fetch source"
     case "extract-content":
-      return "Re-extract content"
+      return "Extract content"
     case "classify-relevance":
-      return "Re-classify relevance"
+      return "Classify relevance"
     case "title-zh":
-      return "Regenerate Chinese title"
+      return "Translate title"
     case "content-zh":
-      return "Regenerate Chinese body"
+      return "Translate body"
     case "summary-en":
-      return "Regenerate English summary"
+      return "English summary"
     case "summary-zh":
-      return "Regenerate Chinese summary"
+      return "Chinese summary"
     case "tags":
     default:
-      return "Regenerate tags"
+      return "Generate tags"
   }
 }
 
