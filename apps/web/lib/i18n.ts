@@ -81,7 +81,7 @@ export const uiText = {
     publicCheckDetailsToggle: "展开详细说明",
     publicCheckDetailsCollapse: "收起详细说明",
     publicCheckAffectedVersionsLabel: "受影响版本",
-    publicCheckAffectedRangesLabel: "受影响范围",
+    publicCheckAffectedRangesLabel: "影响范围",
     adminRunWorker: "抓取来源",
     adminRunWorkerPending: "抓取中...",
     adminRunWorkerHint:

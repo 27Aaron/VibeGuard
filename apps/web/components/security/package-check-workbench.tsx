@@ -23,11 +23,10 @@ import {
   buildSecurityCheckRequestBody,
   buildSecurityResultSummary,
   formatAffectedRanges,
-  formatSecurityMatchReason,
   getSecurityFindingLatestUpdatedAt,
+  getSecurityFindingTone,
   parseSecurityCheckPayload,
   buildSecurityWorkbenchResultState,
-  getSecurityFindingTone,
   type SecurityFinding,
 } from "@/lib/security-workbench"
 import {
@@ -73,6 +72,18 @@ function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
   }
 }
 
+function riskLevelLabel(level: SecurityFinding["risk"]["level"], lang: AppLang) {
+  return lang === "zh"
+    ? {
+        critical: "严重",
+        high: "高危",
+        medium: "中危",
+        low: "低危",
+        unknown: "未知",
+      }[level]
+    : level.toUpperCase()
+}
+
 function toneBadgeVariant(finding: SecurityFinding) {
   switch (getSecurityFindingTone(finding)) {
     case "hit":
@@ -99,66 +110,6 @@ function toneLabel(finding: SecurityFinding, lang: AppLang) {
   }
 }
 
-function riskLabel(finding: SecurityFinding, lang: AppLang) {
-  return `${riskLevelLabel(finding.risk.level, lang)} · ${finding.risk.score}`
-}
-
-function riskLevelLabel(level: SecurityFinding["risk"]["level"], lang: AppLang) {
-  return lang === "zh"
-    ? {
-        critical: "严重",
-        high: "高危",
-        medium: "中危",
-        low: "低危",
-        unknown: "未知",
-      }[level]
-    : level.toUpperCase()
-}
-
-function riskBadgeClassName(finding: SecurityFinding) {
-  switch (finding.risk.level) {
-    case "critical":
-      return "border-red-500/30 bg-red-50 text-red-700 dark:border-red-300/20 dark:bg-red-400/10 dark:text-red-200"
-    case "high":
-      return "border-orange-500/30 bg-orange-50 text-orange-700 dark:border-orange-300/20 dark:bg-orange-400/10 dark:text-orange-200"
-    case "medium":
-      return "border-amber-500/30 bg-amber-50 text-amber-700 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-200"
-    case "low":
-      return "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-400/10 dark:text-emerald-200"
-    default:
-      return "text-zinc-500 dark:text-stone-400"
-  }
-}
-
-function signalLabel(signal: string, lang: AppLang) {
-  const zh: Record<string, string> = {
-    affected_version_match: "版本命中",
-    package_match_without_version: "仅包名匹配",
-    cisa_kev: "KEV 在野利用",
-    ransomware_campaign: "勒索使用",
-    epss_high_percentile: "EPSS 高分位",
-    epss_elevated_percentile: "EPSS 较高",
-    cvss_critical: "CVSS 严重",
-    cvss_high: "CVSS 高危",
-    no_fixed_version: "暂无修复版",
-    fixed_version_available: "已有修复版",
-  }
-  const en: Record<string, string> = {
-    affected_version_match: "Version match",
-    package_match_without_version: "Package match",
-    cisa_kev: "CISA KEV",
-    ransomware_campaign: "Ransomware",
-    epss_high_percentile: "High EPSS",
-    epss_elevated_percentile: "Elevated EPSS",
-    cvss_critical: "Critical CVSS",
-    cvss_high: "High CVSS",
-    no_fixed_version: "No fix",
-    fixed_version_available: "Fix available",
-  }
-
-  return (lang === "zh" ? zh : en)[signal] ?? signal
-}
-
 function formatPercent(value: string | number | null | undefined) {
   if (!value) return null
   const parsed = typeof value === "number" ? value : Number.parseFloat(value)
@@ -171,6 +122,48 @@ function formatFindingTime(value: string | null | undefined, lang: AppLang) {
 
 function primaryCveLabel(finding: SecurityFinding) {
   return finding.cveEnrichments[0]?.cveId ?? finding.advisory.aliases.find((alias) => alias.startsWith("CVE-")) ?? null
+}
+
+function cvssSeverityLabel(severity: string | null | undefined, lang: AppLang) {
+  if (!severity) return null
+
+  const normalized = severity.toLowerCase()
+
+  if (lang === "zh") {
+    return {
+      critical: "严重",
+      high: "高危",
+      medium: "中危",
+      low: "低危",
+      none: "无",
+    }[normalized] ?? severity
+  }
+
+  return severity.toUpperCase()
+}
+
+function findingMetricBadges(finding: SecurityFinding, lang: AppLang) {
+  const primaryCve = primaryCveLabel(finding)
+  const primaryCveEnrichment =
+    finding.cveEnrichments.find((cve) => cve.cveId === primaryCve) ??
+    finding.cveEnrichments[0]
+  const cvssSeverity = cvssSeverityLabel(primaryCveEnrichment?.bestCvssSeverity, lang)
+  const epssPercentile = formatPercent(primaryCveEnrichment?.epssPercentile)
+
+  return [
+    primaryCve ? { key: "cve", label: primaryCve, variant: "outline" as const } : null,
+    cvssSeverity ? { key: "cvss-severity", label: cvssSeverity, variant: "outline" as const } : null,
+    primaryCveEnrichment?.bestCvssScore
+      ? {
+          key: "cvss-score",
+          label: `CVSS ${primaryCveEnrichment.bestCvssScore}`,
+          variant: "secondary" as const,
+        }
+      : null,
+    epssPercentile
+      ? { key: "epss", label: `EPSS ${epssPercentile}`, variant: "secondary" as const }
+      : null,
+  ].filter((badge): badge is NonNullable<typeof badge> => Boolean(badge))
 }
 
 function referenceLabel(
@@ -690,88 +683,55 @@ export function PackageCheckWorkbench({
             const latestUpdatedAt = getSecurityFindingLatestUpdatedAt(finding)
             const publishedAt = formatFindingTime(finding.advisory.publishedAt, lang)
             const updatedAt = formatFindingTime(latestUpdatedAt, lang)
-            const primaryCve = primaryCveLabel(finding)
+            const findingMetaParts = [
+              finding.advisory.id,
+              publishedAt ? `${lang === "zh" ? "发布" : "Published"} ${publishedAt}` : null,
+              updatedAt ? `${lang === "zh" ? "更新" : "Updated"} ${updatedAt}` : null,
+            ].filter((part): part is string => Boolean(part))
+            const metricBadges = findingMetricBadges(finding, lang)
+            const tone = toneLabel(finding, lang)
+            const affectedRangeLabels =
+              formattedRanges.length > 0
+                ? formattedRanges
+                : finding.affectedPackage.affectedVersions
 
             return (
               <article
                 key={`${finding.advisory.id}-${finding.package.name}-${index}`}
-                className={cn("space-y-3", getAdminSubtlePanelClassName())}
+                className={cn("space-y-4", getAdminSubtlePanelClassName())}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
-                      {finding.advisory.id}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
+                      {findingMetaParts.join(" · ")}
                     </p>
-                    <p className="text-sm font-medium text-zinc-950 dark:text-stone-50">
-                      {finding.advisory.summary || finding.matchSummary}
-                    </p>
-                    <p className="text-xs leading-5 text-zinc-500 dark:text-stone-400">
-                      {formatSecurityMatchReason(finding.matchReason, finding.confidence, lang)}
-                      {updatedAt ? ` · ${lang === "zh" ? "更新" : "Updated"} ${updatedAt}` : ""}
-                      {publishedAt ? ` · ${lang === "zh" ? "发布" : "Published"} ${publishedAt}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className={cn("h-7 px-2.5", riskBadgeClassName(finding))}>
-                      {riskLabel(finding, lang)}
+                    <Badge
+                      variant={toneBadgeVariant(finding)}
+                      className="h-7 shrink-0 px-2.5"
+                    >
+                      {tone}
                     </Badge>
-                    <Badge variant={toneBadgeVariant(finding)}>{toneLabel(finding, lang)}</Badge>
                   </div>
-                </div>
-
-                <div className="space-y-2 border-l border-black/10 pl-4 dark:border-white/15">
-                  <div className="flex flex-wrap gap-2">
-                    {finding.risk.signals.map((signal) => (
-                      <Badge key={signal} variant="outline">
-                        {signalLabel(signal, lang)}
-                      </Badge>
-                    ))}
-                    {primaryCve ? (
-                      <Badge variant="outline">{primaryCve}</Badge>
-                    ) : null}
-                  </div>
-                  {finding.cveEnrichments.length > 0 ? (
-                    <div className="grid gap-x-4 gap-y-2 text-xs text-zinc-600 sm:grid-cols-2 dark:text-stone-300">
-                      {finding.cveEnrichments.map((cve) => (
-                        <div key={cve.cveId} className="space-y-1">
-                          <p className="font-medium text-zinc-900 dark:text-stone-100">{cve.cveId}</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {cve.bestCvssScore ? (
-                              <Badge variant="secondary">CVSS {cve.bestCvssScore}</Badge>
-                            ) : null}
-                            {formatPercent(cve.epssPercentile) ? (
-                              <Badge variant="secondary">EPSS {formatPercent(cve.epssPercentile)}</Badge>
-                            ) : null}
-                            {cve.kevListed ? (
-                              <Badge variant="destructive">KEV</Badge>
-                            ) : null}
-                          </div>
-                          <p className="text-[11px] leading-4 text-zinc-500 dark:text-stone-500">
-                            {formatFindingTime(cve.nvdModifiedAt, lang)
-                              ? `${lang === "zh" ? "NVD 更新" : "NVD updated"} ${formatFindingTime(cve.nvdModifiedAt, lang)}`
-                              : formatFindingTime(cve.nvdPublishedAt, lang)
-                                ? `${lang === "zh" ? "NVD 发布" : "NVD published"} ${formatFindingTime(cve.nvdPublishedAt, lang)}`
-                                : ""}
-                          </p>
-                        </div>
+                  <MarkdownSummary
+                    content={finding.advisory.summary || finding.matchSummary}
+                    variant="public"
+                    lang={lang}
+                    className="text-sm font-medium leading-6 text-zinc-950 dark:text-stone-50 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit"
+                  />
+                  {metricBadges.length > 0 ? (
+                    <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 text-xs">
+                      {metricBadges.map((badge) => (
+                        <Badge
+                          key={badge.key}
+                          variant={badge.variant}
+                          className="h-7 shrink-0 whitespace-nowrap px-2.5"
+                        >
+                          {badge.label}
+                        </Badge>
                       ))}
                     </div>
                   ) : null}
                 </div>
-
-                {finding.advisory.summary ? (
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {copy.publicCheckSummaryLabel}
-                    </p>
-                    <MarkdownSummary
-                      content={finding.advisory.summary}
-                      variant="public"
-                      lang={lang}
-                      className="text-sm leading-6 text-zinc-700 dark:text-stone-200 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit"
-                    />
-                  </div>
-                ) : null}
 
                 {finding.advisory.details ? (
                   <div>
@@ -785,28 +745,13 @@ export function PackageCheckWorkbench({
                   </div>
                 ) : null}
 
-                {finding.affectedPackage.affectedVersions.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {copy.publicCheckAffectedVersionsLabel}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {finding.affectedPackage.affectedVersions.map((affectedVersion: string, affectedVersionIndex: number) => (
-                        <Badge key={`${affectedVersion}-${affectedVersionIndex}`} variant="outline">
-                          {affectedVersion}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {formattedRanges.length > 0 ? (
+                {affectedRangeLabels.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
                       {copy.publicCheckAffectedRangesLabel}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {formattedRanges.map((rangeLabel, rangeIndex) => (
+                      {affectedRangeLabels.map((rangeLabel, rangeIndex) => (
                         <Badge key={`${rangeLabel}-${rangeIndex}`} variant="outline">
                           {rangeLabel}
                         </Badge>
@@ -818,7 +763,7 @@ export function PackageCheckWorkbench({
                 {finding.affectedPackage.fixedVersions.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {lang === "zh" ? "已知修复版本" : "Known fixed versions"}
+                      {lang === "zh" ? "修复版本" : "Fixed versions"}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {finding.affectedPackage.fixedVersions.map((fixedVersion: string) => (
@@ -831,11 +776,11 @@ export function PackageCheckWorkbench({
                 ) : null}
 
                 {finding.advisory.references.length > 0 ? (
-                  <details className="group space-y-2">
-                    <summary className="cursor-pointer list-none text-xs font-medium text-zinc-800 transition-colors hover:text-zinc-950 dark:text-stone-100 dark:hover:text-stone-50">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
                       {lang === "zh" ? "参考链接" : "References"} · {finding.advisory.references.length}
-                    </summary>
-                    <ul className="flex flex-wrap gap-2 pt-1 text-xs">
+                    </p>
+                    <ul className="flex flex-wrap gap-2 text-xs">
                       {finding.advisory.references.map((reference: SecurityFinding["advisory"]["references"][number], referenceIndex: number) => (
                         <li key={`${reference.url}-${referenceIndex}`}>
                           <a
@@ -851,7 +796,7 @@ export function PackageCheckWorkbench({
                         </li>
                       ))}
                     </ul>
-                  </details>
+                  </div>
                 ) : null}
               </article>
             )
