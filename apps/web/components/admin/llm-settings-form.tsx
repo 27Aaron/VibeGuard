@@ -301,11 +301,13 @@ export function LlmSettingsForm({
   useEffect(() => {
     dispatch({ type: "SYNC_PROVIDER", provider, pipeline })
   }, [
+    provider,
     provider.id,
     provider.settingsName,
     provider.baseUrl,
     provider.model,
     provider.isActive,
+    pipeline,
     pipeline.translationTitlePrompt,
     pipeline.translationContentPrompt,
     pipeline.summaryPromptEn,

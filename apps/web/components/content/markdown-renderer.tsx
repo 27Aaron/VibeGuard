@@ -416,7 +416,7 @@ export function MarkdownRenderer({
                 </figure>
               )
             },
-          }), [palette, lang, sourceUrl, copiedCodeBlock, resolvedTheme])}
+          }), [palette, lang, sourceUrl, copiedCodeBlock, resolvedTheme, text.copiedCode, text.copyCode])}
         >
           {normalizeMarkdownEmphasis(content)}
         </ReactMarkdown>

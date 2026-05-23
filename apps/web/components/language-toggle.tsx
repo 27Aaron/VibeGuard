@@ -1,12 +1,6 @@
 "use client"
 
-import { startTransition, useCallback } from "react"
-
-declare global {
-  interface Document {
-    startViewTransition?: (callback: () => void) => { finished: Promise<void> }
-  }
-}
+import { startTransition, useCallback, type MouseEvent } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Languages } from "lucide-react"
 
@@ -35,7 +29,7 @@ export function LanguageToggle({
     ? `${nextPath}?${searchParams.toString()}`
     : nextPath
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
+  const handleClick = useCallback((e: MouseEvent) => {
     e.preventDefault()
     if (document.startViewTransition) {
       document.startViewTransition(() => {
