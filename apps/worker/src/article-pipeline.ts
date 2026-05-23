@@ -18,7 +18,7 @@ import {
   summarizeText,
   translateText,
 } from "@vibeguard/llm"
-import { ArticleStatus, JobPipelineStage, JobType } from "@vibeguard/shared"
+import { ArticleEcosystem, ArticleRiskCategory, ArticleStatus, JobPipelineStage, JobType } from "@vibeguard/shared"
 
 type ArticleRecord = typeof articles.$inferSelect
 type LlmSettingsRecord = typeof llmSettings.$inferSelect
@@ -61,8 +61,8 @@ export type ProcessArticleJobDependencies = {
       summaryZh: string
       contentMdEn: string
       contentMdZh: string
-      ecosystem: string
-      riskCategory: string
+      ecosystem: ArticleEcosystem
+      riskCategory: ArticleRiskCategory
       tags: string[]
       contentHash: string
       rawMeta: Record<string, unknown>
