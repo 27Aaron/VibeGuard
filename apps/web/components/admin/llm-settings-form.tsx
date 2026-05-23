@@ -20,6 +20,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -496,30 +507,46 @@ export function LlmSettingsForm({
                       </Button>
                     ) : null}
                     {provider.id && profiles.length > 1 ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isActionPending}
-                        onClick={() => {
-                          const confirmed = window.confirm(
-                            resolvedLang === "zh"
-                              ? `确定要删除配置「${provider.settingsName}」吗？`
-                              : `Delete profile "${provider.settingsName}"?`,
-                          )
-                          if (!confirmed) return
-                          startActionTransition(async () => {
-                            const fd = new FormData()
-                            fd.set("id", provider.id)
-                            fd.set("lang", String(lang))
-                            await deleteLlmSettingsAction(fd)
-                            router.refresh()
-                          })
-                        }}
-                      >
-                        <Trash2 className="mr-1.5 size-3.5" />
-                        {resolvedLang === "zh" ? "删除" : "Delete"}
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger
+                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-input bg-background px-3 text-sm font-medium whitespace-nowrap hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                          disabled={isActionPending}
+                        >
+                          <Trash2 className="size-3.5" />
+                          {resolvedLang === "zh" ? "删除" : "Delete"}
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {resolvedLang === "zh" ? "删除确认" : "Confirm deletion"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {resolvedLang === "zh"
+                                ? `确定要删除配置「${provider.settingsName}」吗？此操作不可撤销。`
+                                : `Delete profile "${provider.settingsName}"? This action cannot be undone.`}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              {resolvedLang === "zh" ? "取消" : "Cancel"}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              variant="destructive"
+                              onClick={() => {
+                                startActionTransition(async () => {
+                                  const fd = new FormData()
+                                  fd.set("id", provider.id)
+                                  fd.set("lang", String(lang))
+                                  await deleteLlmSettingsAction(fd)
+                                  router.refresh()
+                                })
+                              }}
+                            >
+                              {resolvedLang === "zh" ? "删除" : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     ) : null}
                   </div>
                 </div>
