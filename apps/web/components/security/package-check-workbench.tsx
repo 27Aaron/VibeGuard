@@ -6,7 +6,7 @@ import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   type SecurityPackageEcosystem,
 } from "@vibeguard/shared"
-import { ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Search } from "lucide-react"
 
 import {
   MarkdownRenderer,
@@ -21,7 +21,10 @@ import { getUiText } from "@/lib/i18n"
 import type { SecurityOverviewTotals } from "@/lib/security-overview"
 import {
   buildSecurityCheckRequestBody,
+  buildSecurityResultSummary,
   formatAffectedRanges,
+  formatSecurityMatchReason,
+  getSecurityFindingLatestUpdatedAt,
   parseSecurityCheckPayload,
   buildSecurityWorkbenchResultState,
   getSecurityFindingTone,
@@ -97,19 +100,19 @@ function toneLabel(finding: SecurityFinding, lang: AppLang) {
 }
 
 function riskLabel(finding: SecurityFinding, lang: AppLang) {
-  const level = finding.risk.level
-  const label =
-    lang === "zh"
-      ? {
-          critical: "严重",
-          high: "高危",
-          medium: "中危",
-          low: "低危",
-          unknown: "未知",
-        }[level]
-      : level.toUpperCase()
+  return `${riskLevelLabel(finding.risk.level, lang)} · ${finding.risk.score}`
+}
 
-  return `${label} · ${finding.risk.score}`
+function riskLevelLabel(level: SecurityFinding["risk"]["level"], lang: AppLang) {
+  return lang === "zh"
+    ? {
+        critical: "严重",
+        high: "高危",
+        medium: "中危",
+        low: "低危",
+        unknown: "未知",
+      }[level]
+    : level.toUpperCase()
 }
 
 function riskBadgeClassName(finding: SecurityFinding) {
@@ -160,6 +163,48 @@ function formatPercent(value: string | number | null | undefined) {
   if (!value) return null
   const parsed = typeof value === "number" ? value : Number.parseFloat(value)
   return Number.isFinite(parsed) ? `${Math.round(parsed * 100)}%` : null
+}
+
+function formatFindingTime(value: string | null | undefined, lang: AppLang) {
+  return value ? formatDateTimeInShanghai(value, { lang }) : null
+}
+
+function primaryCveLabel(finding: SecurityFinding) {
+  return finding.cveEnrichments[0]?.cveId ?? finding.advisory.aliases.find((alias) => alias.startsWith("CVE-")) ?? null
+}
+
+function referenceLabel(
+  reference: SecurityFinding["advisory"]["references"][number],
+  lang: AppLang,
+) {
+  const type = reference.type?.toUpperCase()
+  let url: URL | null = null
+
+  try {
+    url = new URL(reference.url)
+  } catch {
+    return type || reference.url
+  }
+
+  const path = url.pathname
+
+  if (url.hostname === "nvd.nist.gov") return "NVD"
+  if (url.hostname === "github.com" && path.includes("/security/advisories/")) {
+    return "GitHub Advisory"
+  }
+  if (url.hostname === "github.com" && path.includes("/pull/")) {
+    return lang === "zh" ? "修复 PR" : "Fix PR"
+  }
+  if (url.hostname === "github.com" && path.includes("/commit/")) {
+    return lang === "zh" ? "修复 Commit" : "Fix commit"
+  }
+  if (url.hostname === "github.com" && path.includes("/releases/tag/")) {
+    return lang === "zh" ? "版本发布" : "Release"
+  }
+  if (type === "PACKAGE") return lang === "zh" ? "项目主页" : "Package"
+  if (type === "ADVISORY") return lang === "zh" ? "公告" : "Advisory"
+
+  return url.hostname.replace(/^www\./, "")
 }
 
 async function parseCheckResponse(response: Response) {
@@ -375,6 +420,9 @@ export function PackageCheckWorkbench({
   const pageStart = (currentPage - 1) * findingsPerPage
   const pageEnd = pageStart + findingsPerPage
   const pagedFindings = result ? result.findings.slice(pageStart, pageEnd) : []
+  const resultSummary = result && !result.empty
+    ? buildSecurityResultSummary(result.findings)
+    : null
   const overviewBadge = copy.publicCheckOverviewBadge(
     ecosystemLabel(ecosystem),
     initialOverviewTotals[ecosystem] ?? 0,
@@ -573,6 +621,62 @@ export function PackageCheckWorkbench({
         </div>
       ) : null}
 
+      {resultSummary ? (
+        <section className={cn("space-y-3", getAdminSubtlePanelClassName())}>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
+                {lang === "zh" ? "查询结论" : "Check summary"}
+              </p>
+              <p className="text-base font-medium text-zinc-950 dark:text-stone-50">
+                {packageName.trim()}
+                {submittedQuery?.version ? `@${submittedQuery.version}` : ""}{" "}
+                {lang === "zh"
+                  ? `命中 ${resultSummary.affectedCount} 个已知风险`
+                  : `matched ${resultSummary.affectedCount} known risks`}
+              </p>
+              {resultSummary.latestUpdatedAt ? (
+                <p className="text-xs text-zinc-500 dark:text-stone-400">
+                  {lang === "zh" ? "最近漏洞更新" : "Latest vulnerability update"}{" "}
+                  {formatDateTimeInShanghai(resultSummary.latestUpdatedAt, { lang })}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="h-7 px-2.5">
+                {lang === "zh" ? "最高风险" : "Highest risk"} ·{" "}
+                {riskLevelLabel(resultSummary.highestRisk.level, lang)} {resultSummary.highestRisk.score}
+              </Badge>
+              {resultSummary.highestCvssScore ? (
+                <Badge variant="outline" className="h-7 px-2.5">
+                  CVSS {resultSummary.highestCvssScore}
+                </Badge>
+              ) : null}
+              <Badge variant="outline" className="h-7 px-2.5">
+                {lang === "zh" ? "按更新时间排序" : "Sorted by update time"}
+              </Badge>
+            </div>
+          </div>
+          {resultSummary.recommendedFixedVersions.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 border-l border-emerald-600/25 pl-4 dark:border-emerald-300/25">
+              <span className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                {lang === "zh" ? "建议升级" : "Upgrade to"}
+              </span>
+              {resultSummary.recommendedFixedVersions.slice(0, 6).map((fixedVersion) => (
+                <Badge key={fixedVersion} variant="secondary">
+                  {fixedVersion}
+                </Badge>
+              ))}
+              {resultSummary.recommendedFixedVersions.length > 6 ? (
+                <span className="text-xs text-zinc-500 dark:text-stone-400">
+                  +{resultSummary.recommendedFixedVersions.length - 6}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       {result ? result.empty ? (
         <section className={cn("space-y-2", getAdminSubtlePanelClassName())}>
           <p className="text-sm text-zinc-700 dark:text-stone-200">{copy.publicCheckNoFindings}</p>
@@ -583,6 +687,10 @@ export function PackageCheckWorkbench({
             const formattedRanges = formatAffectedRanges(
               finding.affectedPackage.ranges,
             )
+            const latestUpdatedAt = getSecurityFindingLatestUpdatedAt(finding)
+            const publishedAt = formatFindingTime(finding.advisory.publishedAt, lang)
+            const updatedAt = formatFindingTime(latestUpdatedAt, lang)
+            const primaryCve = primaryCveLabel(finding)
 
             return (
               <article
@@ -592,13 +700,15 @@ export function PackageCheckWorkbench({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
-                      {copy.publicCheckResultLabel}
+                      {finding.advisory.id}
                     </p>
                     <p className="text-sm font-medium text-zinc-950 dark:text-stone-50">
-                      {finding.matchSummary}
+                      {finding.advisory.summary || finding.matchSummary}
                     </p>
-                    <p className="text-xs text-zinc-500 dark:text-stone-400">
-                      {finding.matchReason} · {finding.confidence}
+                    <p className="text-xs leading-5 text-zinc-500 dark:text-stone-400">
+                      {formatSecurityMatchReason(finding.matchReason, finding.confidence, lang)}
+                      {updatedAt ? ` · ${lang === "zh" ? "更新" : "Updated"} ${updatedAt}` : ""}
+                      {publishedAt ? ` · ${lang === "zh" ? "发布" : "Published"} ${publishedAt}` : ""}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -616,6 +726,9 @@ export function PackageCheckWorkbench({
                         {signalLabel(signal, lang)}
                       </Badge>
                     ))}
+                    {primaryCve ? (
+                      <Badge variant="outline">{primaryCve}</Badge>
+                    ) : null}
                   </div>
                   {finding.cveEnrichments.length > 0 ? (
                     <div className="grid gap-x-4 gap-y-2 text-xs text-zinc-600 sm:grid-cols-2 dark:text-stone-300">
@@ -633,6 +746,13 @@ export function PackageCheckWorkbench({
                               <Badge variant="destructive">KEV</Badge>
                             ) : null}
                           </div>
+                          <p className="text-[11px] leading-4 text-zinc-500 dark:text-stone-500">
+                            {formatFindingTime(cve.nvdModifiedAt, lang)
+                              ? `${lang === "zh" ? "NVD 更新" : "NVD updated"} ${formatFindingTime(cve.nvdModifiedAt, lang)}`
+                              : formatFindingTime(cve.nvdPublishedAt, lang)
+                                ? `${lang === "zh" ? "NVD 发布" : "NVD published"} ${formatFindingTime(cve.nvdPublishedAt, lang)}`
+                                : ""}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -711,26 +831,27 @@ export function PackageCheckWorkbench({
                 ) : null}
 
                 {finding.advisory.references.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {lang === "zh" ? "参考链接" : "References"}
-                    </p>
-                    <ul className="space-y-1 text-xs text-zinc-500 dark:text-stone-400">
+                  <details className="group space-y-2">
+                    <summary className="cursor-pointer list-none text-xs font-medium text-zinc-800 transition-colors hover:text-zinc-950 dark:text-stone-100 dark:hover:text-stone-50">
+                      {lang === "zh" ? "参考链接" : "References"} · {finding.advisory.references.length}
+                    </summary>
+                    <ul className="flex flex-wrap gap-2 pt-1 text-xs">
                       {finding.advisory.references.map((reference: SecurityFinding["advisory"]["references"][number], referenceIndex: number) => (
-                        <li key={`${reference.url}-${referenceIndex}`} className="break-all">
+                        <li key={`${reference.url}-${referenceIndex}`}>
                           <a
                             href={reference.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="underline decoration-zinc-300 underline-offset-2 transition-colors hover:text-zinc-950 dark:decoration-white/20 dark:hover:text-stone-50"
+                            title={reference.url}
+                            className="inline-flex h-7 items-center gap-1 rounded-full border border-black/6 px-2.5 text-zinc-600 transition-colors hover:border-black/12 hover:text-zinc-950 dark:border-white/10 dark:text-stone-300 dark:hover:border-white/20 dark:hover:text-stone-50"
                           >
-                            {reference.type ? `${reference.type}: ` : ""}
-                            {reference.url}
+                            {referenceLabel(reference, lang)}
+                            <ExternalLink className="size-3" />
                           </a>
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </details>
                 ) : null}
               </article>
             )
