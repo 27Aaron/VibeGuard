@@ -88,6 +88,18 @@ export type PackageFinding = {
   affectedPackage: { fixedVersions: string[] }
   affected: boolean
   matchSummary?: string
+  risk?: {
+    level: string
+    score: number
+    signals: string[]
+  }
+  cveEnrichments?: Array<{
+    cveId: string
+    bestCvssScore: string | null
+    bestCvssSeverity: string | null
+    epssPercentile: string | null
+    kevListed: boolean
+  }>
 }
 
 export type SecurityOverviewTotals = {

@@ -173,6 +173,27 @@ paths:
                           properties:
                             affectedVersions: { type: array, items: { type: string } }
                             fixedVersions: { type: array, items: { type: string } }
+                        risk:
+                          type: object
+                          properties:
+                            level: { type: string, enum: [critical, high, medium, low, unknown] }
+                            score: { type: number }
+                            signals: { type: array, items: { type: string } }
+                        cveEnrichments:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              cveId: { type: string }
+                              title: { type: string, nullable: true }
+                              description: { type: string, nullable: true }
+                              bestCvssScore: { type: string, nullable: true }
+                              bestCvssSeverity: { type: string, nullable: true }
+                              epss: { type: string, nullable: true }
+                              epssPercentile: { type: string, nullable: true }
+                              kevListed: { type: boolean }
+                              kevKnownRansomwareCampaignUse: { type: string, nullable: true }
+                              cweIds: { type: array, items: { type: string } }
         "400":
           description: 参数错误
           content:

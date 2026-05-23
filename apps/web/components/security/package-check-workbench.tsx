@@ -96,6 +96,72 @@ function toneLabel(finding: SecurityFinding, lang: AppLang) {
   }
 }
 
+function riskLabel(finding: SecurityFinding, lang: AppLang) {
+  const level = finding.risk.level
+  const label =
+    lang === "zh"
+      ? {
+          critical: "严重",
+          high: "高危",
+          medium: "中危",
+          low: "低危",
+          unknown: "未知",
+        }[level]
+      : level.toUpperCase()
+
+  return `${label} · ${finding.risk.score}`
+}
+
+function riskBadgeClassName(finding: SecurityFinding) {
+  switch (finding.risk.level) {
+    case "critical":
+      return "border-red-500/30 bg-red-50 text-red-700 dark:border-red-300/20 dark:bg-red-400/10 dark:text-red-200"
+    case "high":
+      return "border-orange-500/30 bg-orange-50 text-orange-700 dark:border-orange-300/20 dark:bg-orange-400/10 dark:text-orange-200"
+    case "medium":
+      return "border-amber-500/30 bg-amber-50 text-amber-700 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-200"
+    case "low":
+      return "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-400/10 dark:text-emerald-200"
+    default:
+      return "text-zinc-500 dark:text-stone-400"
+  }
+}
+
+function signalLabel(signal: string, lang: AppLang) {
+  const zh: Record<string, string> = {
+    affected_version_match: "版本命中",
+    package_match_without_version: "仅包名匹配",
+    cisa_kev: "KEV 在野利用",
+    ransomware_campaign: "勒索使用",
+    epss_high_percentile: "EPSS 高分位",
+    epss_elevated_percentile: "EPSS 较高",
+    cvss_critical: "CVSS 严重",
+    cvss_high: "CVSS 高危",
+    no_fixed_version: "暂无修复版",
+    fixed_version_available: "已有修复版",
+  }
+  const en: Record<string, string> = {
+    affected_version_match: "Version match",
+    package_match_without_version: "Package match",
+    cisa_kev: "CISA KEV",
+    ransomware_campaign: "Ransomware",
+    epss_high_percentile: "High EPSS",
+    epss_elevated_percentile: "Elevated EPSS",
+    cvss_critical: "Critical CVSS",
+    cvss_high: "High CVSS",
+    no_fixed_version: "No fix",
+    fixed_version_available: "Fix available",
+  }
+
+  return (lang === "zh" ? zh : en)[signal] ?? signal
+}
+
+function formatPercent(value: string | number | null | undefined) {
+  if (!value) return null
+  const parsed = typeof value === "number" ? value : Number.parseFloat(value)
+  return Number.isFinite(parsed) ? `${Math.round(parsed * 100)}%` : null
+}
+
 async function parseCheckResponse(response: Response) {
   const payload = await response.json().catch(() => null) as
     | { message?: string }
@@ -535,7 +601,42 @@ export function PackageCheckWorkbench({
                       {finding.matchReason} · {finding.confidence}
                     </p>
                   </div>
-                  <Badge variant={toneBadgeVariant(finding)}>{toneLabel(finding, lang)}</Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className={cn("h-7 px-2.5", riskBadgeClassName(finding))}>
+                      {riskLabel(finding, lang)}
+                    </Badge>
+                    <Badge variant={toneBadgeVariant(finding)}>{toneLabel(finding, lang)}</Badge>
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-l border-black/10 pl-4 dark:border-white/15">
+                  <div className="flex flex-wrap gap-2">
+                    {finding.risk.signals.map((signal) => (
+                      <Badge key={signal} variant="outline">
+                        {signalLabel(signal, lang)}
+                      </Badge>
+                    ))}
+                  </div>
+                  {finding.cveEnrichments.length > 0 ? (
+                    <div className="grid gap-x-4 gap-y-2 text-xs text-zinc-600 sm:grid-cols-2 dark:text-stone-300">
+                      {finding.cveEnrichments.map((cve) => (
+                        <div key={cve.cveId} className="space-y-1">
+                          <p className="font-medium text-zinc-900 dark:text-stone-100">{cve.cveId}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {cve.bestCvssScore ? (
+                              <Badge variant="secondary">CVSS {cve.bestCvssScore}</Badge>
+                            ) : null}
+                            {formatPercent(cve.epssPercentile) ? (
+                              <Badge variant="secondary">EPSS {formatPercent(cve.epssPercentile)}</Badge>
+                            ) : null}
+                            {cve.kevListed ? (
+                              <Badge variant="destructive">KEV</Badge>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
                 {finding.advisory.summary ? (

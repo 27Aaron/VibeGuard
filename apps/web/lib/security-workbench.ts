@@ -87,6 +87,65 @@ function isRangeEntry(value: unknown) {
   )
 }
 
+function isRiskEntry(value: unknown) {
+  return (
+    isRecord(value) &&
+    (value.level === "critical" ||
+      value.level === "high" ||
+      value.level === "medium" ||
+      value.level === "low" ||
+      value.level === "unknown") &&
+    typeof value.score === "number" &&
+    Number.isFinite(value.score) &&
+    value.score >= 0 &&
+    value.score <= 100 &&
+    Array.isArray(value.signals) &&
+    value.signals.every((signal) => typeof signal === "string")
+  )
+}
+
+function isCvssMetricEntry(value: unknown) {
+  return (
+    isRecord(value) &&
+    (typeof value.source === "string" || value.source === undefined) &&
+    (typeof value.version === "string" || value.version === undefined) &&
+    (typeof value.vector === "string" || value.vector === undefined) &&
+    (typeof value.baseScore === "string" || value.baseScore === undefined) &&
+    (typeof value.baseSeverity === "string" || value.baseSeverity === undefined) &&
+    (typeof value.exploitabilityScore === "string" || value.exploitabilityScore === undefined) &&
+    (typeof value.impactScore === "string" || value.impactScore === undefined)
+  )
+}
+
+function isCveEnrichmentEntry(value: unknown) {
+  return (
+    isRecord(value) &&
+    typeof value.cveId === "string" &&
+    (typeof value.title === "string" || value.title === null) &&
+    (typeof value.description === "string" || value.description === null) &&
+    Array.isArray(value.cvssMetrics) &&
+    value.cvssMetrics.every(isCvssMetricEntry) &&
+    (typeof value.bestCvssScore === "string" || value.bestCvssScore === null) &&
+    (typeof value.bestCvssSeverity === "string" || value.bestCvssSeverity === null) &&
+    isStringArray(value.cweIds) &&
+    (typeof value.epss === "string" || value.epss === null) &&
+    (typeof value.epssPercentile === "string" || value.epssPercentile === null) &&
+    (typeof value.epssScoreDate === "string" || value.epssScoreDate === null) &&
+    (typeof value.epssModelVersion === "string" || value.epssModelVersion === null) &&
+    typeof value.kevListed === "boolean" &&
+    (typeof value.kevDateAdded === "string" || value.kevDateAdded === null) &&
+    (typeof value.kevDueDate === "string" || value.kevDueDate === null) &&
+    (typeof value.kevKnownRansomwareCampaignUse === "string" ||
+      value.kevKnownRansomwareCampaignUse === null) &&
+    (typeof value.kevRequiredAction === "string" || value.kevRequiredAction === null) &&
+    (typeof value.kevVendorProject === "string" || value.kevVendorProject === null) &&
+    (typeof value.kevProduct === "string" || value.kevProduct === null) &&
+    (typeof value.kevNotes === "string" || value.kevNotes === null) &&
+    (typeof value.nvdPublishedAt === "string" || value.nvdPublishedAt === null) &&
+    (typeof value.nvdModifiedAt === "string" || value.nvdModifiedAt === null)
+  )
+}
+
 function isSecurityFinding(value: unknown): value is SecurityFinding {
   if (!isRecord(value)) {
     return false
@@ -118,7 +177,10 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
     isStringArray(value.affectedPackage.affectedVersions) &&
     Array.isArray(value.affectedPackage.ranges) &&
     value.affectedPackage.ranges.every(isRangeEntry) &&
-    isStringArray(value.affectedPackage.fixedVersions)
+    isStringArray(value.affectedPackage.fixedVersions) &&
+    Array.isArray(value.cveEnrichments) &&
+    value.cveEnrichments.every(isCveEnrichmentEntry) &&
+    isRiskEntry(value.risk)
 
   if (!structurallyValid) {
     return false

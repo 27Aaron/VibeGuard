@@ -108,10 +108,18 @@ export const tools: ToolDefinition[] = [
         const fixed = f.affectedPackage.fixedVersions.length > 0
           ? `修复版本: ${f.affectedPackage.fixedVersions.join(", ")}`
           : "暂无修复版本"
+        const risk = f.risk
+          ? `风险: ${f.risk.level} (${f.risk.score})`
+          : ""
+        const cves = f.cveEnrichments?.length
+          ? `CVE: ${f.cveEnrichments.map((cve) => cve.cveId).join(", ")}`
+          : ""
 
         return [
           `${i + 1}. **${pkg.ecosystem}/${pkg.name}${pkg.version ? "@" + pkg.version : ""}** — ${f.affected ? "受影响" : "可能受影响"}`,
           `   公告: ${adv.id} (${adv.riskType})`,
+          risk ? `   ${risk}` : "",
+          cves ? `   ${cves}` : "",
           `   摘要: ${adv.summary}`,
           `   ${fixed}`,
           f.matchSummary ? `   匹配: ${f.matchSummary}` : "",
