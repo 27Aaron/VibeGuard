@@ -210,7 +210,7 @@ async function processExtractJob(input: {
         client: input.client,
         model: input.activeSettings.model,
         systemPrompt: input.activeSettings.relevancePrompt,
-        sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
+        sourceText: `${extracted.title}\n\n${extracted.contentMd.slice(0, 4000)}`,
       }),
       input.dependencies,
       { articleId: input.article.id, taskType: "classify_relevance", model: input.activeSettings.model },

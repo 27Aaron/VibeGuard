@@ -89,8 +89,7 @@ export async function reprocessArticleAction(formData: FormData) {
 
           const result = await regenerateArticleTarget({
             article,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extract-content 分支不使用 settings
-            settings: activeSettings as any,
+            settings: activeSettings!,
             target,
           }, {
             ...defaultDependencies,
@@ -192,6 +191,8 @@ function buildSuccessMessage(target: ArticleRegenerationTarget, lang: "zh" | "en
         return "已重新提取正文。"
       case "classify-relevance":
         return "已重新判断相关性。"
+      case "skip-relevance":
+        return "已跳过相关性判断。"
       case "title-zh":
         return "已重新生成中文标题。"
       case "content-zh":
@@ -212,6 +213,8 @@ function buildSuccessMessage(target: ArticleRegenerationTarget, lang: "zh" | "en
       return "Content has been re-extracted."
     case "classify-relevance":
       return "Relevance has been re-classified."
+    case "skip-relevance":
+      return "Relevance has been skipped."
     case "title-zh":
       return "The Chinese title has been regenerated."
     case "content-zh":
