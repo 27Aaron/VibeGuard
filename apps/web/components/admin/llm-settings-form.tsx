@@ -36,7 +36,7 @@ import {
 import type { AppLang } from "@/lib/i18n"
 import { resolveLang } from "@/lib/i18n"
 import { mergeModelOptions } from "@/lib/provider-models"
-import { PROVIDER_PRESETS } from "@/lib/provider-presets"
+import { PROVIDER_PRESETS, resolvePresetLabel } from "@/lib/provider-presets"
 import { cn } from "@/lib/utils"
 
 function FeedbackMessage({ state }: { state: FormActionResult }) {
@@ -205,7 +205,7 @@ export function LlmSettingsForm({
       const preset = PROVIDER_PRESETS[presetIndex]
       setSelectedPresetIndex(presetIndex)
       setBaseUrl(preset.baseUrl)
-      setSettingsName(preset.label)
+      setSettingsName(preset.name)
       setNameManuallyEdited(false)
     }
   }, [presetIndex])
@@ -492,7 +492,7 @@ export function LlmSettingsForm({
                       }
                       setSelectedPresetIndex(idx)
                       setBaseUrl(preset.baseUrl)
-                      if (!nameManuallyEdited) setSettingsName(preset.label)
+                      if (!nameManuallyEdited) setSettingsName(preset.name)
                     }}
                   >
                     <option value="">
@@ -500,7 +500,7 @@ export function LlmSettingsForm({
                     </option>
                     {PROVIDER_PRESETS.map((preset, idx) => (
                       <option key={`${idx}-${preset.baseUrl}`} value={preset.baseUrl}>
-                        {preset.label}
+                        {resolvePresetLabel(preset, resolvedLang)}
                       </option>
                     ))}
                   </select>
