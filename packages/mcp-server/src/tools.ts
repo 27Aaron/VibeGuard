@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+import { MCP_CHECK_ECOSYSTEMS, MCP_ECOSYSTEMS, MCP_RISK_CATEGORIES } from "@vibeguard/shared"
 import type { VibeGuardClient } from "./client"
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -10,21 +11,17 @@ function assertUuid(value: string, label = "id"): void {
   }
 }
 
-type ToolHandler = (
+type ToolHandler<T extends Record<string, z.ZodTypeAny> = Record<string, z.ZodTypeAny>> = (
   client: VibeGuardClient,
-  args: Record<string, unknown>,
+  args: z.infer<z.ZodObject<T>>,
 ) => Promise<string>
 
-interface ToolDefinition {
+interface ToolDefinition<T extends Record<string, z.ZodTypeAny> = Record<string, z.ZodTypeAny>> {
   name: string
   description: string
-  inputSchema: Record<string, z.ZodTypeAny>
-  handler: ToolHandler
+  inputSchema: T
+  handler: ToolHandler<T>
 }
-
-const ecosystems = ["npm", "pypi", "maven", "go", "crates-io", "github-actions", "docker", "multi"] as const
-const riskCategories = ["vulnerability", "exploit-activity", "malicious-package", "supply-chain-attack", "dependency-risk"] as const
-const checkEcosystems = ["npm", "pypi", "go", "crates-io"] as const
 
 export const tools: ToolDefinition[] = [
   {
@@ -33,8 +30,8 @@ export const tools: ToolDefinition[] = [
     inputSchema: {
       q: z.string().optional().describe("全文搜索关键词"),
       tag: z.string().optional().describe("按标签筛选，如 cve、npm、supply-chain"),
-      ecosystem: z.enum(ecosystems).optional().describe("按生态系统筛选"),
-      riskCategory: z.enum(riskCategories).optional().describe("按风险类别筛选"),
+      ecosystem: z.enum(MCP_ECOSYSTEMS).optional().describe("按生态系统筛选"),
+      riskCategory: z.enum(MCP_RISK_CATEGORIES).optional().describe("按风险类别筛选"),
       limit: z.number().min(1).max(100).optional().describe("返回数量，默认 10，最大 100"),
       lang: z.enum(["zh", "en"]).optional().describe("语言 (zh/en)，默认 zh"),
     },
@@ -92,7 +89,7 @@ export const tools: ToolDefinition[] = [
     description: "批量检查依赖包是否存在已知安全漏洞。支持 npm、pypi、go、crates-io 生态。",
     inputSchema: {
       packages: z.array(z.object({
-        ecosystem: z.enum(checkEcosystems).describe("包所在生态系统"),
+        ecosystem: z.enum(MCP_CHECK_ECOSYSTEMS).describe("包所在生态系统"),
         name: z.string().describe("包名"),
         version: z.string().optional().describe("版本号（可选，不传则查所有版本）"),
       })).min(1).max(100).describe("要检查的包列表"),

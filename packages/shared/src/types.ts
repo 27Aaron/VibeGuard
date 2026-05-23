@@ -19,9 +19,19 @@ const articleStatuses = defineStatuses([
   "ready",
   "failed",
   "filtered",
-] as const);
+]);
 
 export const ARTICLE_STATUS_VALUES = articleStatuses.values;
+/**
+ * Runtime map: `ArticleStatus.READY` → `"ready"` (uppercase key → lowercase value).
+ *
+ * Note: `ArticleStatus` is both a **const value** (the map object) and a **type**
+ * (the union `"pending" | "processing" | ...`).  This is intentional — the type
+ * represents the valid status strings, while the const provides a safe runtime
+ * lookup so consumers never hard-code raw strings.  TypeScript merges the two
+ * declarations via declaration merging, so importing `ArticleStatus` gives
+ * access to both the type and the runtime object.
+ */
 export const ArticleStatus = articleStatuses.map;
 export type ArticleStatus = (typeof ARTICLE_STATUS_VALUES)[number];
 
@@ -30,7 +40,7 @@ const jobStatuses = defineStatuses([
   "running",
   "succeeded",
   "failed",
-] as const);
+]);
 
 export const JOB_STATUS_VALUES = jobStatuses.values;
 export const JobStatus = jobStatuses.map;
@@ -40,7 +50,7 @@ const jobTypes = defineStatuses([
   "extract",
   "translate",
   "summarize",
-] as const);
+]);
 
 export const JOB_TYPE_VALUES = jobTypes.values;
 export const JobType = jobTypes.map;
@@ -57,7 +67,7 @@ const jobPipelineStages = defineStatuses([
   "summarize_zh",
   "generate_tags",
   "completed",
-] as const);
+]);
 
 export const JOB_PIPELINE_STAGE_VALUES = jobPipelineStages.values;
 export const JobPipelineStage = jobPipelineStages.map;
@@ -73,7 +83,7 @@ const articleEcosystems = defineStatuses([
   "github-actions",
   "docker",
   "multi",
-] as const);
+]);
 
 export const ARTICLE_ECOSYSTEM_VALUES = articleEcosystems.values;
 export const ArticleEcosystem = articleEcosystems.map;
@@ -86,7 +96,7 @@ const articleRiskCategories = defineStatuses([
   "malicious-package",
   "supply-chain-attack",
   "dependency-risk",
-] as const);
+]);
 
 export const ARTICLE_RISK_CATEGORY_VALUES = articleRiskCategories.values;
 export const ArticleRiskCategory = articleRiskCategories.map;
@@ -98,7 +108,7 @@ const securityPackageEcosystems = defineStatuses([
   "pypi",
   "go",
   "crates-io",
-] as const);
+]);
 
 export const SECURITY_PACKAGE_ECOSYSTEM_VALUES =
   securityPackageEcosystems.values;
@@ -111,7 +121,7 @@ const securitySyncStatuses = defineStatuses([
   "running",
   "success",
   "failed",
-] as const);
+]);
 
 export const SECURITY_SYNC_STATUS_VALUES = securitySyncStatuses.values;
 export const SecuritySyncStatus = securitySyncStatuses.map;
@@ -122,7 +132,7 @@ const securityRiskTypes = defineStatuses([
   "unknown",
   "vulnerability",
   "malicious-package",
-] as const);
+]);
 
 export const SECURITY_RISK_TYPE_VALUES = securityRiskTypes.values;
 export const SecurityRiskType = securityRiskTypes.map;
@@ -133,10 +143,18 @@ const securityPackageMatchConfidences = defineStatuses([
   "medium",
   "low",
   "none",
-] as const);
+]);
 
 export const SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES =
   securityPackageMatchConfidences.values;
+/**
+ * Confidence levels for package-to-advisory matching.
+ *
+ * - `"high"` / `"medium"` / `"low"` — a match was found with the given confidence.
+ * - `"none"` — **no match was found at all**.  This means the package was not
+ *   determined to be affected or unaffected; the advisory data was insufficient
+ *   to make any determination.  It does *not* mean the package is explicitly safe.
+ */
 export const SecurityPackageMatchConfidence =
   securityPackageMatchConfidences.map;
 export type SecurityPackageMatchConfidence =
@@ -148,7 +166,7 @@ const securityPackageMatchReasons = defineStatuses([
   "version_outside_ecosystem_range",
   "range_present_but_inconclusive",
   "package_match_without_version",
-] as const);
+]);
 
 export const SECURITY_PACKAGE_MATCH_REASON_VALUES =
   securityPackageMatchReasons.values;

@@ -30,7 +30,7 @@ function validateApiUrl(raw: string): string {
   return raw.replace(/\/$/, "")
 }
 
-type ArticleListItem = {
+export type ArticleListItem = {
   id: string
   title: string
   summary: string
@@ -47,7 +47,7 @@ type ArticleListItem = {
   locale: string
 }
 
-type ArticleListMeta = {
+export type ArticleListMeta = {
   lang: string
   status: string
   source: string | null
@@ -63,7 +63,7 @@ type ArticleListMeta = {
   totalPages: number
 }
 
-type ArticleDetail = {
+export type ArticleDetail = {
   id: string
   title: string
   summary: string
@@ -82,7 +82,7 @@ type ArticleDetail = {
   locale: string
 }
 
-type PackageFinding = {
+export type PackageFinding = {
   package: { ecosystem: string; name: string; version?: string }
   advisory: { id: string; riskType: string; summary: string }
   affectedPackage: { fixedVersions: string[] }
@@ -90,7 +90,7 @@ type PackageFinding = {
   matchSummary?: string
 }
 
-type SecurityOverviewTotals = {
+export type SecurityOverviewTotals = {
   npm: number
   pypi: number
   go: number

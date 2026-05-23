@@ -1,4 +1,4 @@
-import fs from "node:fs"
+import fs from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -8,17 +8,17 @@ import { z } from "zod"
 import type { VibeGuardClient } from "./client"
 import { tools } from "./tools"
 
-function readPackageVersion(): string {
+async function readPackageVersion(): Promise<string> {
   try {
     const here = dirname(fileURLToPath(import.meta.url))
-    const raw = fs.readFileSync(join(here, "..", "package.json"), "utf8")
+    const raw = await fs.readFile(join(here, "..", "package.json"), "utf8")
     return JSON.parse(raw).version ?? "0.0.0"
   } catch {
     return "0.0.0"
   }
 }
 
-const version = readPackageVersion()
+const version = await readPackageVersion()
 
 export function createMcpServer(client: VibeGuardClient) {
   const server = new McpServer({
@@ -37,18 +37,18 @@ export function createMcpServer(client: VibeGuardClient) {
           const parsed = schema.safeParse(args)
           if (!parsed.success) {
             return {
-              content: [{ type: "text" as const, text: `参数错误: ${parsed.error.message}` }],
+              content: [{ type: "text", text: `参数错误: ${parsed.error.message}` }],
               isError: true,
             }
           }
           const result = await tool.handler(client, parsed.data)
-          return { content: [{ type: "text" as const, text: result }] }
+          return { content: [{ type: "text", text: result }] }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
           console.error("[MCP tool error]", tool.name, message)
 
           return {
-            content: [{ type: "text" as const, text: "内部错误，请稍后重试" }],
+            content: [{ type: "text", text: "内部错误，请稍后重试" }],
             isError: true,
           }
         }

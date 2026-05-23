@@ -5,7 +5,12 @@ export function normalizeInt(value: string | undefined, fallback: number, minimu
     safeFallback = maximum
   }
 
-  const parsed = Number.parseInt(value ?? "", 10)
+  // Early return for empty / falsy inputs — avoids passing "" to parseInt
+  if (!value) {
+    return safeFallback
+  }
+
+  const parsed = Number.parseInt(value, 10)
 
   if (!Number.isFinite(parsed) || parsed < minimum) {
     return safeFallback
