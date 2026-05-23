@@ -165,6 +165,12 @@ describe("POST /api/security/check/packages", () => {
             ranges: [],
             fixedVersions: [],
           },
+          cveEnrichments: [],
+          risk: {
+            level: "medium",
+            score: 48,
+            signals: ["affected_version_match", "no_fixed_version"],
+          },
         },
       ],
     })

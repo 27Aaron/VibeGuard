@@ -203,6 +203,122 @@ describe("checkPackagesAgainstLocalDb", () => {
     })
   })
 
+  it("enriches advisory CVE aliases with local KEV, EPSS, NVD, and risk signals", async () => {
+    const db = {
+      query: {
+        securitySyncState: {
+          findFirst: vi.fn().mockResolvedValue({
+            lastSuccessAt: new Date("2026-05-22T07:00:00Z"),
+          }),
+        },
+        securityAffectedPackages: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "affected-1",
+              advisoryId: "advisory-1",
+              ecosystem: "npm",
+              packageName: "axios",
+              packageKey: "axios",
+              purl: "pkg:npm/axios",
+              affectedVersions: [],
+              ranges: [
+                {
+                  type: "SEMVER",
+                  events: [{ introduced: "1.0.0" }, { fixed: "1.12.0" }],
+                },
+              ],
+              fixedVersions: ["1.12.0"],
+            },
+          ]),
+        },
+        securityAdvisories: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-1",
+              source: "osv",
+              externalId: "GHSA-axios",
+              riskType: "vulnerability",
+              summary: "Axios vulnerability",
+              details: null,
+              aliases: ["GHSA-axios", "CVE-2026-42044"],
+              severity: [],
+              references: [],
+              withdrawnAt: null,
+              modifiedAt: new Date("2026-05-21T23:01:37Z"),
+            },
+          ]),
+        },
+        securityCveEnrichments: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              cveId: "CVE-2026-42044",
+              title: "Axios vulnerability",
+              description: "Axios allows a crafted input issue.",
+              cvssMetrics: [
+                {
+                  source: "nvd",
+                  version: "3.1",
+                  vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                  baseScore: "9.8",
+                  baseSeverity: "CRITICAL",
+                },
+              ],
+              bestCvssScore: "9.8",
+              bestCvssSeverity: "CRITICAL",
+              cweIds: ["CWE-79"],
+              epss: "0.42",
+              epssPercentile: "0.97",
+              epssScoreDate: new Date("2026-05-23T12:55:00Z"),
+              epssModelVersion: "v2025.03.14",
+              kevListed: true,
+              kevDateAdded: new Date("2026-05-22T00:00:00Z"),
+              kevDueDate: new Date("2026-06-12T00:00:00Z"),
+              kevKnownRansomwareCampaignUse: "Unknown",
+              kevRequiredAction: "Apply mitigations.",
+              kevVendorProject: "Axios",
+              kevProduct: "axios",
+              nvdPublishedAt: new Date("2026-05-22T18:00:11Z"),
+              nvdModifiedAt: new Date("2026-05-23T08:00:01Z"),
+              updatedAt: new Date("2026-05-23T13:00:00Z"),
+            },
+          ]),
+        },
+      },
+    } as never
+
+    const result = await checkPackagesAgainstLocalDb(db, {
+      packages: [{ ecosystem: "npm", name: "axios", version: "1.6.0" }],
+    })
+
+    expect(result.findings).toHaveLength(1)
+    expect(result.findings[0]).toMatchObject({
+      advisory: {
+        aliases: ["GHSA-axios", "CVE-2026-42044"],
+      },
+      cveEnrichments: [
+        {
+          cveId: "CVE-2026-42044",
+          bestCvssScore: "9.8",
+          bestCvssSeverity: "CRITICAL",
+          epss: "0.42",
+          epssPercentile: "0.97",
+          kevListed: true,
+        },
+      ],
+      risk: {
+        level: "critical",
+        score: 100,
+        signals: expect.arrayContaining([
+          "affected_version_match",
+          "cisa_kev",
+          "epss_high_percentile",
+          "cvss_critical",
+        ]),
+      },
+    })
+    expect(db.query.securityCveEnrichments.findMany).toHaveBeenCalledTimes(1)
+  })
+
   it("skips withdrawn advisories even when the version matches", async () => {
     const db = {
       query: {

@@ -111,10 +111,17 @@ function resolveOsvSyncInterval(env = process.env) {
 export async function runOsvSyncCycle(logger: WorkerLogger = console) {
   try {
     const { syncAllOsvEcosystems } = await import("@vibeguard/content/osv/sync")
+    const { syncAllSecurityEnrichmentSources } = await import("@vibeguard/content/security/enrichment")
     const results = await syncAllOsvEcosystems({ db: getDb() })
     for (const result of results) {
       logger.log(
         `osv sync ${result.ecosystem}: imported=${result.recordsImported} new=${result.recordsNew} changed=${result.recordsChanged} failed=${result.recordsFailed}`,
+      )
+    }
+    const enrichmentResults = await syncAllSecurityEnrichmentSources(getDb())
+    for (const result of enrichmentResults) {
+      logger.log(
+        `security enrichment sync ${result.source}/${result.scope}: imported=${result.recordsImported} failed=${result.recordsFailed}`,
       )
     }
     return results
@@ -243,7 +250,7 @@ export async function main() {
   }
 }
 
-if (isDirectExecution()) {
+if (isDirectExecution(import.meta.url)) {
   main().catch((error) => {
     console.error(error);
     process.exit(1);

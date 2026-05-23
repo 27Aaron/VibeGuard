@@ -9,7 +9,6 @@ import {
 } from "@vibeguard/db"
 import {
   SecuritySyncStatus,
-  type SecurityPackageEcosystem,
   type SecuritySyncStatus as SecuritySyncStatusValue,
 } from "@vibeguard/shared"
 
@@ -76,9 +75,11 @@ export type UpsertNormalizedOsvRecordsBatchResult = {
 }
 
 export type SecuritySyncStateUpdateInput = {
+  source?: string
   status: SecuritySyncStatusValue
   now: Date
   lastProcessedModifiedAt?: Date | null
+  cursorJson?: Record<string, unknown> | null
   lastError?: string | null
   recordsSeen?: number
   recordsImported?: number
@@ -123,6 +124,7 @@ export function buildSecuritySyncStateUpdate({
   status,
   now,
   lastProcessedModifiedAt,
+  cursorJson,
   lastError,
   recordsSeen = 0,
   recordsImported = 0,
@@ -134,6 +136,7 @@ export function buildSecuritySyncStateUpdate({
   return {
     status,
     lastProcessedModifiedAt: lastProcessedModifiedAt ?? undefined,
+    cursorJson: cursorJson ?? undefined,
     lastStartedAt: status === SecuritySyncStatus.RUNNING ? now : undefined,
     lastSuccessAt: status === SecuritySyncStatus.SUCCESS ? now : undefined,
     lastError: status === SecuritySyncStatus.FAILED ? (lastError ?? "") : null,
@@ -355,14 +358,14 @@ export async function upsertNormalizedOsvRecordsBatch(
 
 export async function upsertSecuritySyncState(
   db: ContentDb,
-  ecosystem: SecurityPackageEcosystem,
+  scope: string,
   input: SecuritySyncStateUpdateInput,
   options: UpsertOptions = {},
 ) {
   const syncStateTable = options.tables?.securitySyncState ?? securitySyncState
   const values = {
-    source: "osv",
-    ecosystem,
+    source: input.source ?? "osv",
+    scope,
     ...buildSecuritySyncStateUpdate(input),
   }
 
@@ -370,7 +373,7 @@ export async function upsertSecuritySyncState(
     .insert(syncStateTable)
     .values(values)
     .onConflictDoUpdate({
-      target: [syncStateTable.source, syncStateTable.ecosystem],
+      target: [syncStateTable.source, syncStateTable.scope],
       set: values,
     })
     .returning()

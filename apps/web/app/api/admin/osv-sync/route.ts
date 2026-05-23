@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm"
 
 import { getDb, securitySyncState } from "@vibeguard/db"
 
@@ -15,11 +15,12 @@ export async function GET() {
   const db = getDb()
 
   const rows = await db.query.securitySyncState.findMany({
+    where: eq(securitySyncState.source, "osv"),
     orderBy: [desc(securitySyncState.lastSuccessAt)],
   })
 
   const ecosystems = rows.map((row) => ({
-    ecosystem: row.ecosystem,
+    ecosystem: row.scope,
     status: row.status,
     lastSuccessAt: row.lastSuccessAt?.toISOString() ?? null,
     lastError: row.lastError ?? null,

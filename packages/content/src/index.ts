@@ -8,6 +8,8 @@ export * from "./osv/cache";
 export * from "./osv/normalize";
 export * from "./osv/query";
 export * from "./osv/store";
+export * from "./security/enrichment";
+export * from "./security/risk";
 export * from "./project-security/types";
 export * from "./project-security/discover-dependency-files";
 export * from "./project-security/scan-dependencies";

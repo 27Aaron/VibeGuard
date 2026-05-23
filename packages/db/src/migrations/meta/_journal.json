@@ -99,6 +99,13 @@
       "when": 1779541814297,
       "tag": "0013_lethal_malice",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779546614620,
+      "tag": "0014_security_v2_compact_enrichments",
+      "breakpoints": true
     }
   ]
 }

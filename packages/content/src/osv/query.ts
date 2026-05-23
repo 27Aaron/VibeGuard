@@ -5,6 +5,7 @@ import {
   schema,
   securityAdvisories,
   securityAffectedPackages,
+  securityCveEnrichments,
   securitySyncState,
 } from "@vibeguard/db"
 import type {
@@ -14,8 +15,38 @@ import type {
 } from "@vibeguard/shared"
 
 import { evaluateAffectedPackageVersion } from "./version-match"
+import {
+  calculateSecurityFindingRisk,
+  extractCveAliases,
+  type SecurityCveRiskInput,
+} from "../security/risk"
 
 type ContentDb = NodePgDatabase<typeof schema>
+
+type SecurityCveEnrichmentResult = SecurityCveRiskInput & {
+  title: string | null
+  description: string | null
+  cvssMetrics: Array<{
+    source?: string
+    version?: string
+    vector?: string
+    baseScore?: string
+    baseSeverity?: string
+    exploitabilityScore?: string
+    impactScore?: string
+  }>
+  cweIds: string[]
+  epssScoreDate: string | null
+  epssModelVersion: string | null
+  kevDateAdded: string | null
+  kevDueDate: string | null
+  kevRequiredAction: string | null
+  kevVendorProject: string | null
+  kevProduct: string | null
+  kevNotes: string | null
+  nvdPublishedAt: string | null
+  nvdModifiedAt: string | null
+}
 
 export type PackageCheckInput = {
   ecosystem: SecurityPackageEcosystem
@@ -91,6 +122,38 @@ function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
       return "crates.io"
     default:
       return ecosystem
+  }
+}
+
+function dateToIso(value: Date | string | null | undefined) {
+  if (!value) return null
+  if (typeof value === "string") return value
+  return value.toISOString()
+}
+
+function formatCveEnrichment(row: typeof securityCveEnrichments.$inferSelect): SecurityCveEnrichmentResult {
+  return {
+    cveId: row.cveId,
+    title: row.title,
+    description: row.description,
+    cvssMetrics: row.cvssMetrics,
+    bestCvssScore: row.bestCvssScore,
+    bestCvssSeverity: row.bestCvssSeverity,
+    cweIds: row.cweIds,
+    epss: row.epss,
+    epssPercentile: row.epssPercentile,
+    epssScoreDate: dateToIso(row.epssScoreDate),
+    epssModelVersion: row.epssModelVersion,
+    kevListed: row.kevListed,
+    kevDateAdded: dateToIso(row.kevDateAdded),
+    kevDueDate: dateToIso(row.kevDueDate),
+    kevKnownRansomwareCampaignUse: row.kevKnownRansomwareCampaignUse,
+    kevRequiredAction: row.kevRequiredAction,
+    kevVendorProject: row.kevVendorProject,
+    kevProduct: row.kevProduct,
+    kevNotes: row.kevNotes,
+    nvdPublishedAt: dateToIso(row.nvdPublishedAt),
+    nvdModifiedAt: dateToIso(row.nvdModifiedAt),
   }
 }
 
@@ -196,6 +259,25 @@ export async function checkPackagesAgainstLocalDb(
     where: inArray(securityAdvisories.id, advisoryIds),
   })
   const advisoryById = new Map(allAdvisories.map((a) => [a.id, a]))
+  const cveIds = Array.from(
+    new Set(allAdvisories.flatMap((advisory) => extractCveAliases(advisory.aliases))),
+  )
+  const cveEnrichmentQuery = (
+    db.query as typeof db.query & {
+      securityCveEnrichments?: {
+        findMany: typeof db.query.securityCveEnrichments.findMany
+      }
+    }
+  ).securityCveEnrichments
+  const allCveEnrichments =
+    cveIds.length > 0 && cveEnrichmentQuery
+      ? await cveEnrichmentQuery.findMany({
+          where: inArray(securityCveEnrichments.cveId, cveIds),
+        })
+      : []
+  const enrichmentByCve = new Map(
+    allCveEnrichments.map((row) => [row.cveId, formatCveEnrichment(row)]),
+  )
 
   // Batch step 3: join in memory
   const findings = []
@@ -222,6 +304,18 @@ export async function checkPackagesAgainstLocalDb(
       if (!match.affected && match.matchReason !== "package_match_without_version") {
         continue
       }
+
+      const advisoryCveIds = extractCveAliases(advisory.aliases)
+      const cveEnrichments = advisoryCveIds.flatMap((cveId) => {
+        const enrichment = enrichmentByCve.get(cveId)
+        return enrichment ? [enrichment] : []
+      })
+      const risk = calculateSecurityFindingRisk({
+        affected: match.affected,
+        confidence: match.confidence,
+        fixedVersions: affectedPackage.fixedVersions,
+        cveEnrichments,
+      })
 
       findings.push({
         affected: match.affected,
@@ -257,6 +351,8 @@ export async function checkPackagesAgainstLocalDb(
           ranges: affectedPackage.ranges,
           fixedVersions: affectedPackage.fixedVersions,
         },
+        cveEnrichments,
+        risk,
       })
     }
   }

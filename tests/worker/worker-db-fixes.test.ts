@@ -141,7 +141,7 @@ describe("I18 — Shared isDirectExecution helper", () => {
 
   it("run-utils.ts uses pathToFileURL for the check", () => {
     expect(runUtilsSource).toMatch(/pathToFileURL/)
-    expect(runUtilsSource).toMatch(/import\.meta\.url/)
+    expect(runUtilsSource).toMatch(/moduleUrl/)
   })
 
   it("index.ts imports isDirectExecution from run-utils", () => {
@@ -169,8 +169,8 @@ describe("I18 — Shared isDirectExecution helper", () => {
     )
   })
 
-  it("both files call isDirectExecution() as a function", () => {
-    expect(indexSource).toMatch(/isDirectExecution\(\)/)
-    expect(syncOsvSource).toMatch(/isDirectExecution\(\)/)
+  it("both files pass their module URL to isDirectExecution", () => {
+    expect(indexSource).toMatch(/isDirectExecution\(import\.meta\.url\)/)
+    expect(syncOsvSource).toMatch(/isDirectExecution\(import\.meta\.url\)/)
   })
 })

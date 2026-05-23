@@ -4,6 +4,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -261,11 +262,15 @@ export const securitySyncState = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     source: varchar("source", { length: 32 }).notNull().default("osv"),
-    ecosystem: securityPackageEcosystemEnum("ecosystem").notNull(),
+    scope: varchar("scope", { length: 64 }).notNull().default("global"),
     status: securitySyncStatusEnum("status").notNull().default("idle"),
     lastProcessedModifiedAt: timestamp("last_processed_modified_at", {
       withTimezone: true,
     }),
+    cursorJson: jsonb("cursor_json")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     lastStartedAt: timestamp("last_started_at", { withTimezone: true }),
     lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
     lastError: text("last_error"),
@@ -281,9 +286,9 @@ export const securitySyncState = pgTable(
       .$onUpdateFn(() => new Date()),
   },
   (table) => [
-    uniqueIndex("security_sync_state_source_ecosystem_unique").on(
+    uniqueIndex("security_sync_state_source_scope_unique").on(
       table.source,
-      table.ecosystem,
+      table.scope,
     ),
     index("security_sync_state_status_idx").on(table.status),
   ],
@@ -381,6 +386,68 @@ export const securityAffectedPackages = pgTable(
   ],
 );
 
+export const securityCveEnrichments = pgTable(
+  "security_cve_enrichments",
+  {
+    cveId: varchar("cve_id", { length: 32 }).primaryKey(),
+    title: text("title"),
+    description: text("description"),
+    cvssMetrics: jsonb("cvss_metrics")
+      .$type<
+        Array<{
+          source?: string;
+          version?: string;
+          vector?: string;
+          baseScore?: string;
+          baseSeverity?: string;
+          exploitabilityScore?: string;
+          impactScore?: string;
+        }>
+      >()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    bestCvssScore: numeric("best_cvss_score", { precision: 3, scale: 1 }),
+    bestCvssSeverity: varchar("best_cvss_severity", { length: 16 }),
+    cweIds: jsonb("cwe_ids")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    epss: numeric("epss", { precision: 6, scale: 5 }),
+    epssPercentile: numeric("epss_percentile", { precision: 6, scale: 5 }),
+    epssScoreDate: timestamp("epss_score_date", { withTimezone: true }),
+    epssModelVersion: varchar("epss_model_version", { length: 40 }),
+    kevListed: boolean("kev_listed").notNull().default(false),
+    kevDateAdded: timestamp("kev_date_added", { withTimezone: true }),
+    kevDueDate: timestamp("kev_due_date", { withTimezone: true }),
+    kevKnownRansomwareCampaignUse: varchar(
+      "kev_known_ransomware_campaign_use",
+      { length: 32 },
+    ),
+    kevRequiredAction: text("kev_required_action"),
+    kevVendorProject: text("kev_vendor_project"),
+    kevProduct: text("kev_product"),
+    kevNotes: text("kev_notes"),
+    nvdPublishedAt: timestamp("nvd_published_at", { withTimezone: true }),
+    nvdModifiedAt: timestamp("nvd_modified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [
+    index("security_cve_enrichments_kev_listed_idx").on(table.kevListed),
+    index("security_cve_enrichments_best_cvss_score_idx").on(
+      table.bestCvssScore,
+    ),
+    index("security_cve_enrichments_epss_percentile_idx").on(
+      table.epssPercentile,
+    ),
+  ],
+);
+
 export const schema = {
   articleStatusEnum,
   articleEcosystemEnum,
@@ -399,4 +466,5 @@ export const schema = {
   securitySyncState,
   securityAdvisories,
   securityAffectedPackages,
+  securityCveEnrichments,
 } as const;

@@ -7,7 +7,6 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 import { schema } from "@vibeguard/db"
 import {
   SecuritySyncStatus,
-  type SecurityPackageEcosystem,
 } from "@vibeguard/shared"
 
 import {
@@ -51,7 +50,7 @@ type SyncOsvEcosystemInput = {
   upsertNormalizedOsvRecord?: typeof upsertNormalizedOsvRecord
   upsertSecuritySyncState?: (
     db: ContentDb,
-    ecosystem: SecurityPackageEcosystem,
+    scope: string,
     input: SecuritySyncStateUpdateInput,
   ) => Promise<void>
 }
@@ -78,7 +77,7 @@ type BootstrapOsvEcosystemInput = {
   upsertNormalizedOsvRecordsBatch?: typeof upsertNormalizedOsvRecordsBatch
   upsertSecuritySyncState?: (
     db: ContentDb,
-    ecosystem: SecurityPackageEcosystem,
+    scope: string,
     input: SecuritySyncStateUpdateInput,
   ) => Promise<void>
 }
@@ -166,7 +165,7 @@ function assertSafeArchivePath(archivePath: string) {
 
 function toSecurityPackageEcosystem(
   ecosystem: OsvDumpEcosystem,
-): SecurityPackageEcosystem {
+) {
   if (ecosystem === "PyPI") {
     return "pypi"
   }

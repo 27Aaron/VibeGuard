@@ -4,6 +4,10 @@ import {
   type SyncOsvEcosystemSummary,
   syncAllOsvEcosystems,
 } from "@vibeguard/content/osv/sync"
+import {
+  syncAllSecurityEnrichmentSources,
+  type SecurityEnrichmentSyncSummary,
+} from "@vibeguard/content/security/enrichment"
 
 import { isDirectExecution } from "./run-utils"
 
@@ -86,6 +90,15 @@ export function formatSyncSummaryLine(
   ].join(" ")
 }
 
+export function formatEnrichmentSyncSummaryLine(result: SecurityEnrichmentSyncSummary) {
+  return [
+    `security enrichment ${result.source}/${result.scope}`,
+    `seen=${result.recordsSeen}`,
+    `imported=${result.recordsImported}`,
+    `failed=${result.recordsFailed}`,
+  ].join(" ")
+}
+
 export async function main(argv = process.argv.slice(2)) {
   const { mode, limit, concurrency } = parseArgs(argv)
 
@@ -105,12 +118,17 @@ export async function main(argv = process.argv.slice(2)) {
     for (const result of results) {
       console.log(formatSyncSummaryLine(mode, result))
     }
+
+    const enrichmentResults = await syncAllSecurityEnrichmentSources(getDb())
+    for (const result of enrichmentResults) {
+      console.log(formatEnrichmentSyncSummaryLine(result))
+    }
   } finally {
     await closeDb()
   }
 }
 
-if (isDirectExecution()) {
+if (isDirectExecution(import.meta.url)) {
   main().catch((error) => {
     console.error(error)
     process.exit(1)
