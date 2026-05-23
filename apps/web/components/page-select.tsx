@@ -32,6 +32,7 @@ export function PageSelect({
     if (query) params.set("q", query)
     if (tag) params.set("tag", tag)
     if (clamped !== 1) params.set("page", String(clamped))
+    window.scrollTo(0, 0)
     router.push(`/${lang}?${params.toString()}`)
   }
 

@@ -26,7 +26,9 @@ export function CustomSelect({
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
   const [dropUp, setDropUp] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
   const ref = useRef<HTMLDivElement>(null)
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   const selected = options.find((o) => o.value === value)
 
@@ -39,20 +41,57 @@ export function CustomSelect({
   }, [open])
 
   useEffect(() => {
+    if (!open) {
+      setActiveIndex(-1)
+      return
+    }
+    // Set initial active index to current selection
+    const idx = options.findIndex((o) => o.value === value)
+    setActiveIndex(idx >= 0 ? idx : 0)
+  }, [open, options, value])
+
+  useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false)
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false)
+        return
+      }
+      if (e.key === "Tab") {
+        // Basic focus trap: close dropdown on Tab so focus returns naturally
+        setOpen(false)
+        return
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault()
+        setActiveIndex((prev) => (prev < options.length - 1 ? prev + 1 : prev))
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault()
+        setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev))
+      } else if (e.key === "Enter") {
+        e.preventDefault()
+        if (activeIndex >= 0 && activeIndex < options.length) {
+          onChange(options[activeIndex].value)
+          setOpen(false)
+        }
+      }
     }
     document.addEventListener("mousedown", handleClickOutside)
-    document.addEventListener("keydown", handleEscape)
+    document.addEventListener("keydown", handleKeyDown)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
-      document.removeEventListener("keydown", handleEscape)
+      document.removeEventListener("keydown", handleKeyDown)
     }
-  }, [open])
+  }, [open, options, activeIndex, onChange])
+
+  // Scroll active option into view
+  useEffect(() => {
+    if (!open || activeIndex < 0) return
+    optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" })
+  }, [open, activeIndex])
 
   return (
     <div ref={ref} className={cn("relative", className)}>
@@ -60,6 +99,7 @@ export function CustomSelect({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-activedescendant={open && activeIndex >= 0 ? `select-option-${activeIndex}` : undefined}
         className="flex h-11 w-full items-center justify-between rounded-full border border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 outline-none transition-colors hover:border-black/10 focus-visible:border-emerald-700/30 focus-visible:ring-2 focus-visible:ring-emerald-700/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:hover:border-white/15 dark:focus-visible:border-emerald-200/30 dark:focus-visible:ring-emerald-200/10"
         onClick={() => setOpen((v) => !v)}
         disabled={disabled}
@@ -77,11 +117,14 @@ export function CustomSelect({
               : "top-[calc(100%+0.45rem)]",
           )}
         >
-          {options.map((option) => {
+          {options.map((option, idx) => {
             const active = option.value === value
+            const isHighlighted = idx === activeIndex
             return (
               <button
                 key={option.value}
+                ref={(el) => { optionRefs.current[idx] = el }}
+                id={`select-option-${idx}`}
                 type="button"
                 role="option"
                 aria-selected={active}
@@ -89,12 +132,15 @@ export function CustomSelect({
                   "flex w-full items-center rounded-[0.85rem] px-3 py-2 text-left text-sm transition-colors",
                   active
                     ? "bg-black/[0.045] text-zinc-950 dark:bg-white/[0.08] dark:text-stone-50"
-                    : "text-zinc-700 hover:bg-black/[0.03] dark:text-stone-200 dark:hover:bg-white/[0.05]",
+                    : isHighlighted
+                      ? "bg-black/[0.03] text-zinc-950 dark:bg-white/[0.05] dark:text-stone-50"
+                      : "text-zinc-700 hover:bg-black/[0.03] dark:text-stone-200 dark:hover:bg-white/[0.05]",
                 )}
                 onClick={() => {
                   onChange(option.value)
                   setOpen(false)
                 }}
+                onMouseEnter={() => setActiveIndex(idx)}
               >
                 {option.label}
               </button>

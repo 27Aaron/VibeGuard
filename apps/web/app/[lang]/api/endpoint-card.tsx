@@ -3,6 +3,7 @@
 import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
+import type { AppLang } from "@/lib/i18n"
 
 export type ParamDef = {
   key: string
@@ -22,7 +23,7 @@ export function EndpointCard({
   path: string
   description: string
   params?: ParamDef[]
-  lang: string
+  lang: AppLang
 }) {
   const [expanded, setExpanded] = useState<string | null>(null)
 

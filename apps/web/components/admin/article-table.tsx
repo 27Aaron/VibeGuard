@@ -24,6 +24,7 @@ function statusLabel(status: ArticleRow["status"], lang: AppLang) {
     case "filtered":
       return lang === "zh" ? "已过滤" : "Filtered"
     default:
+      console.warn(`Unknown article status: ${status}`)
       return lang === "zh" ? "待处理" : "Pending"
   }
 }

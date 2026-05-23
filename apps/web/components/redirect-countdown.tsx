@@ -30,7 +30,7 @@ export function RedirectCountdown({ lang }: RedirectCountdownProps) {
         clearInterval(timer)
         window.location.replace(`/${lang}`)
       }
-    }, 200)
+    }, 1000)
 
     return () => clearInterval(timer)
   }, [lang])

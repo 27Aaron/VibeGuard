@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Search, X } from "lucide-react"
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
@@ -17,6 +17,10 @@ export function ArticleSearchForm({ lang, defaultValue }: ArticleSearchFormProps
   const searchParams = useSearchParams()
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState(defaultValue)
+
+  useEffect(() => {
+    setValue(defaultValue)
+  }, [defaultValue])
 
   const updateSearch = useCallback((q: string) => {
     const params = new URLSearchParams(searchParams.toString())

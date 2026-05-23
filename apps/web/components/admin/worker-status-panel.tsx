@@ -106,7 +106,7 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
 
   useEffect(() => {
     fetchStatus()
-    timerRef.current = setInterval(fetchStatus, 1000)
+    timerRef.current = setInterval(fetchStatus, 5000)
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }

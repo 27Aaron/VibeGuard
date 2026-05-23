@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
 import { Check, Copy, Expand } from "lucide-react"
 import ReactMarkdown from "react-markdown"
@@ -204,7 +204,7 @@ export function MarkdownRenderer({
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           skipHtml
-          components={{
+          components={useMemo(() => ({
             h1: ({ children }) => (
               <h1 className={cn("mt-8 mb-4 text-3xl font-semibold leading-tight first:mt-0", palette.heading)}>
                 {children}
@@ -395,7 +395,7 @@ export function MarkdownRenderer({
                 </figure>
               )
             },
-          }}
+          }), [palette, lang, sourceUrl, copiedCodeBlock, resolvedTheme])}
         >
           {normalizeMarkdownEmphasis(content)}
         </ReactMarkdown>

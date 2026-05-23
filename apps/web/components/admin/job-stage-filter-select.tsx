@@ -27,7 +27,10 @@ export function JobStageFilterSelect({
       className={getAdminFilterSelectClassName()}
       value={stage}
       onChange={(event) => {
-        const nextStage = event.target.value as JobStageFilter
+        const raw = event.target.value
+        const nextStage = ADMIN_JOB_STAGE_FILTERS.includes(raw as JobStageFilter)
+          ? (raw as JobStageFilter)
+          : ("all" as JobStageFilter)
         const params = new URLSearchParams({
           lang,
           page: "1",

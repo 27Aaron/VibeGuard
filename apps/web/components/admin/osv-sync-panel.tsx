@@ -61,7 +61,7 @@ function statusBadge(status: string, lang: AppLang) {
   }
 }
 
-export function OsvSyncButton({ lang }: { lang: AppLang }) {
+export function OsvSyncButton({ lang, onSyncComplete }: { lang: AppLang; onSyncComplete?: () => void }) {
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -80,6 +80,7 @@ export function OsvSyncButton({ lang }: { lang: AppLang }) {
       setError(err instanceof Error ? err.message : "Request failed")
     } finally {
       setSyncing(false)
+      onSyncComplete?.()
     }
   }
 
@@ -101,9 +102,9 @@ export function OsvSyncButton({ lang }: { lang: AppLang }) {
         <RefreshCw className={syncing ? "size-4 animate-spin" : "size-4"} />
       </Button>
       {error ? (
-        <p className="text-xs text-destructive">{error}</p>
+        <p className="text-xs text-destructive" aria-live="polite">{error}</p>
       ) : (
-        <p className="text-xs text-muted-foreground" aria-live="polite">
+        <p className="text-xs text-muted-foreground">
           {syncing
             ? (lang === "zh" ? "正在同步漏洞数据库…" : "Syncing vulnerability database…")
             : (lang === "zh" ? "手动同步 OSV 漏洞库到本地。" : "Manually sync the OSV vulnerability database.")}
@@ -134,33 +135,39 @@ export function OsvSyncPanel({ lang }: { lang: AppLang }) {
 
   if (ecosystems.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {lang === "zh" ? "暂无同步记录，首次同步后将显示状态。" : "No sync records yet. Status will appear after the first sync."}
-      </p>
+      <div className="flex flex-col gap-4">
+        <OsvSyncButton lang={lang} onSyncComplete={fetchStatus} />
+        <p className="text-sm text-muted-foreground">
+          {lang === "zh" ? "暂无同步记录，首次同步后将显示状态。" : "No sync records yet. Status will appear after the first sync."}
+        </p>
+      </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {ecosystems.map((eco) => (
-        <div
-          key={eco.ecosystem}
-          className="flex items-center justify-between gap-3 rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none"
-        >
-          <div className="flex items-center gap-2">
-            <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1.5 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
-              <Database className="size-3.5" />
-            </span>
-            <span className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
-              {ecosystemLabel(eco.ecosystem)}
-            </span>
-            {statusBadge(eco.status, lang)}
+    <div className="flex flex-col gap-4">
+      <OsvSyncButton lang={lang} onSyncComplete={fetchStatus} />
+      <div className="grid grid-cols-2 gap-2">
+        {ecosystems.map((eco) => (
+          <div
+            key={eco.ecosystem}
+            className="flex items-center justify-between gap-3 rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none"
+          >
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1.5 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
+                <Database className="size-3.5" />
+              </span>
+              <span className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
+                {ecosystemLabel(eco.ecosystem)}
+              </span>
+              {statusBadge(eco.status, lang)}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-stone-400">
+              <span>{eco.recordsImported}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-stone-400">
-            <span>{eco.recordsImported}</span>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }

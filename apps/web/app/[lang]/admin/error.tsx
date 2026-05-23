@@ -18,7 +18,7 @@ export default function AdminError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  const lang = (useParams().lang as AppLang) || "en"
+  const lang = (useParams().lang as AppLang) || "zh"
 
   useEffect(() => {
     console.error(error)

@@ -1,6 +1,12 @@
 "use client"
 
 import { startTransition, useCallback } from "react"
+
+declare global {
+  interface Document {
+    startViewTransition?: (callback: () => void) => { finished: Promise<void> }
+  }
+}
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Languages } from "lucide-react"
 

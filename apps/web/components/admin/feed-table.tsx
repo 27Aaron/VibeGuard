@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import {
   ExternalLink,
@@ -29,6 +31,20 @@ import {
 import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
 import type { AppLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
+import { useFormStatus } from "react-dom"
+
+function FeedActionButton({
+  children,
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  const { pending } = useFormStatus()
+  return (
+    <Button {...props} disabled={pending}>
+      {pending ? <RefreshCw className="size-3.5 animate-spin" /> : null}
+      {children}
+    </Button>
+  )
+}
 
 export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) {
   const copy =
@@ -135,7 +151,7 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
                   <form action={fetchFeedNowAction}>
                     <input type="hidden" name="id" value={feed.id} />
                     <input type="hidden" name="lang" value={lang} />
-                    <Button
+                    <FeedActionButton
                       type="submit"
                       size="sm"
                       variant="outline"
@@ -144,12 +160,12 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
                     >
                       <RefreshCw className="size-3.5" />
                       {lang === "zh" ? "立即抓取" : "Fetch now"}
-                    </Button>
+                    </FeedActionButton>
                   </form>
                   <form action={toggleFeedAction}>
                     <input type="hidden" name="id" value={feed.id} />
                     <input type="hidden" name="lang" value={lang} />
-                    <Button
+                    <FeedActionButton
                       type="submit"
                       size="sm"
                       variant="outline"
@@ -167,20 +183,21 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
                         : lang === "zh"
                           ? "启用"
                           : "Enable"}
-                    </Button>
+                    </FeedActionButton>
                   </form>
                   <form action={deleteFeedAction} onSubmit={(e) => { if (!confirm(lang === "zh" ? "确认删除此数据源？此操作不可撤销。" : "Delete this source? This cannot be undone.")) { e.preventDefault(); } }}>
                     <input type="hidden" name="id" value={feed.id} />
                     <input type="hidden" name="lang" value={lang} />
-                    <Button
+                    <FeedActionButton
                       type="submit"
                       size="sm"
                       variant="destructive"
+                      aria-label={lang === "zh" ? `删除 ${feed.name}` : `Delete ${feed.name}`}
                       className="inline-flex items-center gap-1.5"
                     >
                       <Trash2 className="size-3.5" />
                       {lang === "zh" ? "删除" : "Delete"}
-                    </Button>
+                    </FeedActionButton>
                   </form>
                 </div>
               </TableCell>

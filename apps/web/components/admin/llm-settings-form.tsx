@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react"
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { useFormStatus } from "react-dom"
 import { useRouter } from "next/navigation"
 import { Check, ChevronDown, ChevronRight, PlusCircle, Trash2 } from "lucide-react"
@@ -243,7 +243,14 @@ export function LlmSettingsForm({
     pipeline.relevancePrompt,
   ])
 
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   async function loadProviderModels() {
+    // Cancel any in-flight request before starting a new one
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     setIsLoadingModels(true)
     setModelFeedback("")
 
@@ -252,6 +259,7 @@ export function LlmSettingsForm({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ profileId: provider.id, baseUrl, apiKey, lang }),
+        signal: controller.signal,
       })
       const payload = (await response.json()) as {
         ok: boolean
@@ -281,6 +289,8 @@ export function LlmSettingsForm({
           : `Loaded ${nextOptions.length} models.`,
       )
     } catch (error) {
+      // Ignore aborted requests silently
+      if (error instanceof DOMException && error.name === "AbortError") return
       setModelFeedback(
         error instanceof Error
           ? error.message
@@ -289,7 +299,9 @@ export function LlmSettingsForm({
             : "Failed to load models.",
       )
     } finally {
-      setIsLoadingModels(false)
+      if (!controller.signal.aborted) {
+        setIsLoadingModels(false)
+      }
     }
   }
 
@@ -433,7 +445,9 @@ export function LlmSettingsForm({
                           })
                         }}
                       >
-                        {resolvedLang === "zh" ? "测试连接" : "Test"}
+                        {isActionPending
+                          ? (resolvedLang === "zh" ? "测试中..." : "Testing...")
+                          : (resolvedLang === "zh" ? "测试连接" : "Test")}
                       </Button>
                     ) : null}
                     {provider.id && profiles.length > 1 ? (
@@ -592,7 +606,7 @@ export function LlmSettingsForm({
                   ) : null}
                 </div>
                 <div className={cn("flex items-center justify-between gap-4 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none")}>
-                  <div className="flex flex-col gap-1">
+                  <label htmlFor="is-active-checkbox" className="flex flex-col gap-1">
                     <p className="text-sm font-medium">
                       {resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
                     </p>
@@ -601,8 +615,9 @@ export function LlmSettingsForm({
                         ? "Worker 会优先读取这套配置来执行处理任务。"
                         : "The worker will prefer this profile when processing article jobs."}
                     </p>
-                  </div>
+                  </label>
                   <input
+                    id="is-active-checkbox"
                     type="checkbox"
                     name="isActive"
                     checked={isActive}
