@@ -1,4 +1,4 @@
-import { desc, gte, sql } from "drizzle-orm"
+import { desc, sql } from "drizzle-orm"
 
 import { getDb, llmUsageLogs, schema } from "@vibeguard/db"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
@@ -43,16 +43,16 @@ async function getDailyTrend(db: ContentDb, days: number = 30) {
 
   return db
     .select({
-      date: sql<string>`DATE(${llmUsageLogs.createdAt})::text`,
+      date: sql<string>`(${llmUsageLogs.createdAt})::date::text`,
       promptTokens: sql<number>`COALESCE(SUM(${llmUsageLogs.promptTokens}), 0)`,
       completionTokens: sql<number>`COALESCE(SUM(${llmUsageLogs.completionTokens}), 0)`,
       cachedTokens: sql<number>`COALESCE(SUM(${llmUsageLogs.cachedTokens}), 0)`,
       calls: sql<number>`COUNT(*)::int`,
     })
     .from(llmUsageLogs)
-    .where(gte(llmUsageLogs.createdAt, since))
-    .groupBy(sql`DATE(${llmUsageLogs.createdAt})`)
-    .orderBy(sql`DATE(${llmUsageLogs.createdAt})`)
+    .where(sql`${llmUsageLogs.createdAt} >= ${since.toISOString()}`)
+    .groupBy(sql`(${llmUsageLogs.createdAt})::date`)
+    .orderBy(sql`(${llmUsageLogs.createdAt})::date`)
 }
 
 const TASK_TYPE_LABELS: Record<string, Record<string, string>> = {
