@@ -365,39 +365,64 @@ export default async function ArticleDetailPage({
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2.5 px-4 pb-4">
-              {regenerationOptions.map((option) => {
+              {regenerationOptions
+                .filter((opt) => opt.target !== "skip-relevance")
+                .map((option) => {
                 const Icon = getRegenerationIcon(option.target)
+                const skipOption = option.target === "classify-relevance"
+                  ? regenerationOptions.find((o) => o.target === "skip-relevance")
+                  : null
 
                 return (
-                  <form
+                  <div
                     key={option.target}
-                    action={reprocessArticleAction}
                     className="rounded-[1.15rem] border border-black/5 bg-white/58 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none"
                   >
-                    <input type="hidden" name="id" value={article.id} />
-                    <input type="hidden" name="lang" value={resolvedLang} />
-                    <input type="hidden" name="target" value={option.target} />
                     <div className="flex items-start gap-3">
                       <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-black/6 bg-[#f7fbf8] text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
                         <Icon className="size-3.5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <button
-                          type="submit"
-                          disabled={option.disabled}
-                          className={cn(
-                            buttonVariants({ size: "sm", variant: "outline" }),
-                            "h-8 rounded-full border-black/8 bg-[#eef2f7] px-3 text-[0.78rem] font-semibold text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#e7ecf4] hover:text-zinc-950 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white",
+                        <div className="flex flex-wrap items-center gap-2">
+                          <form action={reprocessArticleAction}>
+                            <input type="hidden" name="id" value={article.id} />
+                            <input type="hidden" name="lang" value={resolvedLang} />
+                            <input type="hidden" name="target" value={option.target} />
+                            <button
+                              type="submit"
+                              disabled={option.disabled}
+                              className={cn(
+                                buttonVariants({ size: "sm", variant: "outline" }),
+                                "h-8 rounded-full border-black/8 bg-[#eef2f7] px-3 text-[0.78rem] font-semibold text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#e7ecf4] hover:text-zinc-950 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white",
+                              )}
+                            >
+                              {option.label}
+                            </button>
+                          </form>
+                          {skipOption && (
+                            <form action={reprocessArticleAction}>
+                              <input type="hidden" name="id" value={article.id} />
+                              <input type="hidden" name="lang" value={resolvedLang} />
+                              <input type="hidden" name="target" value="skip-relevance" />
+                              <button
+                                type="submit"
+                                disabled={skipOption.disabled}
+                                className={cn(
+                                  buttonVariants({ size: "sm", variant: "outline" }),
+                                  "h-8 rounded-full border-orange-200/60 bg-orange-50/80 px-3 text-[0.78rem] font-semibold text-orange-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-orange-100 hover:text-orange-900 dark:border-orange-700/40 dark:bg-orange-950/30 dark:text-orange-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-orange-900/40 dark:hover:text-orange-200",
+                                )}
+                              >
+                                {skipOption.label}
+                              </button>
+                            </form>
                           )}
-                        >
-                          {option.label}
-                        </button>
+                        </div>
                         <p className="mt-2 text-xs leading-5 text-zinc-500 dark:text-stone-400">
                           {option.disabledReason ?? option.description}
                         </p>
                       </div>
                     </div>
-                  </form>
+                  </div>
                 )
               })}
             </CardContent>
