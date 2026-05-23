@@ -275,78 +275,6 @@ export function LlmSettingsForm({
 
   return (
     <div key={provider.id || "new-provider"} className="flex flex-col gap-6">
-      {/* Profile selector */}
-      <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={selectedProfileId ?? ""}
-          onChange={(event) => {
-            const value = event.target.value
-            if (value === "new") {
-              router.push(`/${lang}/admin/settings?profile=new`)
-            } else if (value) {
-              router.push(`/${lang}/admin/settings?profile=${value}`)
-            }
-          }}
-          className={cn(getAdminSelectClassName(), "min-w-[180px]")}
-        >
-          {profiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>
-              {profile.name}
-            </option>
-          ))}
-          <option value="new">
-            {resolvedLang === "zh" ? "＋ 新建配置" : "＋ New profile"}
-          </option>
-        </select>
-        <div className="ml-auto flex items-center gap-2">
-          {isActive ? (
-            <Badge
-              variant="outline"
-              className="border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
-            >
-              <Check className="mr-1 size-3" />
-              {resolvedLang === "zh" ? "当前生效" : "Active"}
-            </Badge>
-          ) : (
-            <form action={activateLlmSettingsAction}>
-              <input type="hidden" name="id" value={provider.id} />
-              <input type="hidden" name="lang" value={lang} />
-              <Button type="submit" variant="outline" size="sm">
-                {resolvedLang === "zh" ? "设为生效" : "Activate"}
-              </Button>
-            </form>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/${lang}/admin/settings?profile=new`)}
-          >
-            <PlusCircle className="mr-1.5 size-3.5" />
-            {resolvedLang === "zh" ? "新建" : "New"}
-          </Button>
-          {provider.id ? (
-            <form action={testLlmSettingsAction}>
-              <input type="hidden" name="id" value={provider.id} />
-              <input type="hidden" name="lang" value={lang} />
-              <Button type="submit" variant="outline" size="sm">
-                {resolvedLang === "zh" ? "测试连接" : "Test"}
-              </Button>
-            </form>
-          ) : null}
-          {provider.id && profiles.length > 1 ? (
-            <form action={deleteLlmSettingsAction}>
-              <input type="hidden" name="id" value={provider.id} />
-              <input type="hidden" name="lang" value={lang} />
-              <Button type="submit" variant="outline" size="sm">
-                <Trash2 className="mr-1.5 size-3.5" />
-                {resolvedLang === "zh" ? "删除" : "Delete"}
-              </Button>
-            </form>
-          ) : null}
-        </div>
-      </div>
-
       <form action={formAction}>
         <input type="hidden" name="lang" value={lang} />
         <input type="hidden" name="id" value={provider.id} />
@@ -375,6 +303,76 @@ export function LlmSettingsForm({
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <select
+                    value={selectedProfileId ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      if (value === "new") {
+                        router.push(`/${lang}/admin/settings?profile=new`)
+                      } else if (value) {
+                        router.push(`/${lang}/admin/settings?profile=${value}`)
+                      }
+                    }}
+                    className={cn(getAdminSelectClassName(), "min-w-[180px]")}
+                  >
+                    {profiles.map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.name}
+                      </option>
+                    ))}
+                    <option value="new">
+                      {resolvedLang === "zh" ? "＋ 新建配置" : "＋ New profile"}
+                    </option>
+                  </select>
+                  <div className="ml-auto flex items-center gap-2">
+                    {isActive ? (
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
+                      >
+                        <Check className="mr-1 size-3" />
+                        {resolvedLang === "zh" ? "当前生效" : "Active"}
+                      </Badge>
+                    ) : (
+                      <form action={activateLlmSettingsAction}>
+                        <input type="hidden" name="id" value={provider.id} />
+                        <input type="hidden" name="lang" value={lang} />
+                        <Button type="submit" variant="outline" size="sm">
+                          {resolvedLang === "zh" ? "设为生效" : "Activate"}
+                        </Button>
+                      </form>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/${lang}/admin/settings?profile=new`)}
+                    >
+                      <PlusCircle className="mr-1.5 size-3.5" />
+                      {resolvedLang === "zh" ? "新建" : "New"}
+                    </Button>
+                    {provider.id ? (
+                      <form action={testLlmSettingsAction}>
+                        <input type="hidden" name="id" value={provider.id} />
+                        <input type="hidden" name="lang" value={lang} />
+                        <Button type="submit" variant="outline" size="sm">
+                          {resolvedLang === "zh" ? "测试连接" : "Test"}
+                        </Button>
+                      </form>
+                    ) : null}
+                    {provider.id && profiles.length > 1 ? (
+                      <form action={deleteLlmSettingsAction}>
+                        <input type="hidden" name="id" value={provider.id} />
+                        <input type="hidden" name="lang" value={lang} />
+                        <Button type="submit" variant="outline" size="sm">
+                          <Trash2 className="mr-1.5 size-3.5" />
+                          {resolvedLang === "zh" ? "删除" : "Delete"}
+                        </Button>
+                      </form>
+                    ) : null}
+                  </div>
+                </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="settings-name" className="text-sm font-medium">
                     {resolvedLang === "zh" ? "配置名称" : "Profile name"}
