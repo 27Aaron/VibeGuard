@@ -52,7 +52,6 @@ export async function saveLlmSettingsAction(
 ) {
   try {
     const lang = resolveLang(String(formData.get("lang") ?? "zh"))
-    const formKind = String(formData.get("formKind") ?? "provider").trim()
     const id = String(formData.get("id") ?? "").trim()
     const name = String(formData.get("name") ?? "default-openai").trim()
     const baseUrl = String(formData.get("baseUrl") ?? "").trim()
@@ -145,13 +144,10 @@ export async function saveLlmSettingsAction(
 
     revalidateLocalizedPaths("/admin/settings")
 
-    const successMessage = resolveSettingsSuccessMessage(formKind)
     return successResult(
       lang === "zh"
-        ? successMessage
-        : formKind === "pipeline"
-          ? "Processing prompts saved."
-          : "Model service profile saved.",
+        ? resolveSettingsSuccessMessage()
+        : "Settings saved.",
     )
   } catch (error) {
     const lang = resolveLang(String(formData.get("lang") ?? "zh"))

@@ -37,8 +37,6 @@ export function resolveStoredApiKey(input: {
   throw new Error("新建模型配置时必须填写 API Key。")
 }
 
-export function resolveSettingsSuccessMessage(formKind: string) {
-  return formKind === "pipeline"
-    ? "处理链路提示词已保存。"
-    : "模型服务配置已保存。"
+export function resolveSettingsSuccessMessage() {
+  return "配置已保存。"
 }
