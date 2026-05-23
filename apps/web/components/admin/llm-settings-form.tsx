@@ -307,7 +307,6 @@ export function LlmSettingsForm({
       <form action={formAction}>
         <input type="hidden" name="lang" value={lang} />
         <input type="hidden" name="id" value={provider.id} />
-        <input type="hidden" name="isActive" value={isActive ? "on" : ""} />
 
         <Tabs defaultValue="provider">
           <div className="flex items-center gap-3">
@@ -478,7 +477,7 @@ export function LlmSettingsForm({
                     {resolvedLang === "zh" ? "服务商预设" : "Provider preset"}
                   </label>
                   <CustomSelect
-                    value={selectedPresetIndex >= 0 ? PROVIDER_PRESETS[selectedPresetIndex].baseUrl : ""}
+                    value={selectedPresetIndex >= 0 && selectedPresetIndex < PROVIDER_PRESETS.length ? PROVIDER_PRESETS[selectedPresetIndex].baseUrl : ""}
                     onChange={(val) => {
                       const idx = PROVIDER_PRESETS.findIndex((p) => p.baseUrl === val)
                       if (idx < 0) return

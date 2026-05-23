@@ -169,7 +169,7 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
                           : "Enable"}
                     </Button>
                   </form>
-                  <form action={deleteFeedAction}>
+                  <form action={deleteFeedAction} onSubmit={(e) => { if (!confirm(lang === "zh" ? "确认删除此数据源？此操作不可撤销。" : "Delete this source? This cannot be undone.")) { e.preventDefault(); } }}>
                     <input type="hidden" name="id" value={feed.id} />
                     <input type="hidden" name="lang" value={lang} />
                     <Button

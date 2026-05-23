@@ -292,7 +292,11 @@ export function MarkdownRenderer({
               const copied = copiedCodeBlock === codeKey
 
               const handleCopy = async () => {
-                await navigator.clipboard.writeText(code)
+                try {
+                  await navigator.clipboard.writeText(code)
+                } catch {
+                  return
+                }
                 setCopiedCodeBlock(codeKey)
 
                 if (copiedCodeTimerRef.current) {

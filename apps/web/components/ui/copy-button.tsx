@@ -15,7 +15,11 @@ export function CopyButton({
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(text)
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      return
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
