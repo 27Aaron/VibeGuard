@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import {
   IDLE_FORM_ACTION_RESULT,
@@ -334,179 +335,181 @@ export function LlmSettingsForm({
         <input type="hidden" name="id" value={provider.id} />
         <input type="hidden" name="isActive" value={isActive ? "on" : ""} />
 
-        {/* Model config */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
+        <Tabs defaultValue="provider">
+          <TabsList>
+            <TabsTrigger value="provider">
               {resolvedLang === "zh" ? "模型配置" : "Model config"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <label htmlFor="settings-name" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "配置名称" : "Profile name"}
-                </label>
-                <Input
-                  id="settings-name"
-                  name="name"
-                  value={settingsName}
-                  onChange={(event) => setSettingsName(event.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="base-url" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "服务地址" : "Endpoint"}
-                </label>
-                <Input
-                  id="base-url"
-                  name="baseUrl"
-                  value={baseUrl}
-                  onChange={(event) => setBaseUrl(event.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="api-key" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "API 密钥" : "API key"}
-                </label>
-                <Input
-                  id="api-key"
-                  name="apiKey"
-                  type="password"
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  placeholder={
-                    provider.hasStoredApiKey
-                      ? resolvedLang === "zh"
-                        ? "密钥已保存，输入新密钥可轮换"
-                        : "Key stored. Enter a new key to rotate."
-                      : "sk-..."
-                  }
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="model" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "默认模型" : "Default model"}
-                </label>
-                <div className="flex items-center gap-2">
-                  {mergedModelOptions.length > 0 ? (
-                    <select
-                      id="model"
-                      name="model"
-                      value={model}
-                      onChange={(event) => setModel(event.target.value)}
-                      className={cn(getAdminSelectClassName(), "flex-1")}
-                    >
-                      {mergedModelOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <Input
-                      id="model"
-                      name="model"
-                      value={model}
-                      onChange={(event) => setModel(event.target.value)}
-                      className="flex-1"
-                    />
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={loadProviderModels}
-                    disabled={isLoadingModels}
-                  >
-                    {isLoadingModels
-                      ? resolvedLang === "zh"
-                        ? "获取中..."
-                        : "Loading..."
-                      : resolvedLang === "zh"
-                        ? "获取模型"
-                        : "Fetch models"}
-                  </Button>
-                </div>
-                {modelFeedback ? (
-                  <p className="text-sm text-muted-foreground">{modelFeedback}</p>
-                ) : null}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pipeline prompts */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>
+            </TabsTrigger>
+            <TabsTrigger value="pipeline">
               {resolvedLang === "zh" ? "处理链路" : "Pipeline"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 md:grid-cols-2">
-              <CollapsiblePromptField
-                id="relevance-prompt"
-                name="relevancePrompt"
-                label={resolvedLang === "zh" ? "相关性判断" : "Classify relevance"}
-                value={relevancePrompt}
-                onChange={setRelevancePrompt}
-                lang={resolvedLang}
-              />
-              <CollapsiblePromptField
-                id="title-prompt"
-                name="translateTitlePrompt"
-                label={resolvedLang === "zh" ? "标题翻译" : "Translate title"}
-                value={translationTitlePrompt}
-                onChange={setTranslationTitlePrompt}
-                lang={resolvedLang}
-              />
-              <CollapsiblePromptField
-                id="content-prompt"
-                name="translateContentPrompt"
-                label={resolvedLang === "zh" ? "正文翻译" : "Translate body"}
-                value={translationContentPrompt}
-                onChange={setTranslationContentPrompt}
-                lang={resolvedLang}
-              />
-              <CollapsiblePromptField
-                id="summary-prompt-en"
-                name="summaryPromptEn"
-                label={resolvedLang === "zh" ? "英文摘要" : "English summary"}
-                value={summaryPromptEn}
-                onChange={setSummaryPromptEn}
-                lang={resolvedLang}
-              />
-              <CollapsiblePromptField
-                id="summary-prompt-zh"
-                name="summaryPromptZh"
-                label={resolvedLang === "zh" ? "中文摘要" : "Chinese summary"}
-                value={summaryPromptZh}
-                onChange={setSummaryPromptZh}
-                lang={resolvedLang}
-              />
-              <CollapsiblePromptField
-                id="tag-prompt"
-                name="tagPrompt"
-                label={resolvedLang === "zh" ? "标签提取" : "Generate tags"}
-                value={tagPrompt}
-                onChange={setTagPrompt}
-                lang={resolvedLang}
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex-col gap-3">
-            <FeedbackMessage state={state} />
-            <div className="ml-auto">
-              <SubmitButton
-                idleLabel={resolvedLang === "zh" ? "保存配置" : "Save"}
-                pendingLabel={
-                  resolvedLang === "zh" ? "保存中..." : "Saving..."
-                }
-              />
-            </div>
-          </CardFooter>
-        </Card>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="provider">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="settings-name" className="text-sm font-medium">
+                      {resolvedLang === "zh" ? "配置名称" : "Profile name"}
+                    </label>
+                    <Input
+                      id="settings-name"
+                      name="name"
+                      value={settingsName}
+                      onChange={(event) => setSettingsName(event.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="base-url" className="text-sm font-medium">
+                      {resolvedLang === "zh" ? "服务地址" : "Endpoint"}
+                    </label>
+                    <Input
+                      id="base-url"
+                      name="baseUrl"
+                      value={baseUrl}
+                      onChange={(event) => setBaseUrl(event.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="api-key" className="text-sm font-medium">
+                      {resolvedLang === "zh" ? "API 密钥" : "API key"}
+                    </label>
+                    <Input
+                      id="api-key"
+                      name="apiKey"
+                      type="password"
+                      value={apiKey}
+                      onChange={(event) => setApiKey(event.target.value)}
+                      placeholder={
+                        provider.hasStoredApiKey
+                          ? resolvedLang === "zh"
+                            ? "密钥已保存，输入新密钥可轮换"
+                            : "Key stored. Enter a new key to rotate."
+                          : "sk-..."
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="model" className="text-sm font-medium">
+                      {resolvedLang === "zh" ? "默认模型" : "Default model"}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {mergedModelOptions.length > 0 ? (
+                        <select
+                          id="model"
+                          name="model"
+                          value={model}
+                          onChange={(event) => setModel(event.target.value)}
+                          className={cn(getAdminSelectClassName(), "flex-1")}
+                        >
+                          {mergedModelOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input
+                          id="model"
+                          name="model"
+                          value={model}
+                          onChange={(event) => setModel(event.target.value)}
+                          className="flex-1"
+                        />
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={loadProviderModels}
+                        disabled={isLoadingModels}
+                      >
+                        {isLoadingModels
+                          ? resolvedLang === "zh"
+                            ? "获取中..."
+                            : "Loading..."
+                          : resolvedLang === "zh"
+                            ? "获取模型"
+                            : "Fetch models"}
+                      </Button>
+                    </div>
+                    {modelFeedback ? (
+                      <p className="text-sm text-muted-foreground">{modelFeedback}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pipeline">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <CollapsiblePromptField
+                    id="relevance-prompt"
+                    name="relevancePrompt"
+                    label={resolvedLang === "zh" ? "相关性判断" : "Classify relevance"}
+                    value={relevancePrompt}
+                    onChange={setRelevancePrompt}
+                    lang={resolvedLang}
+                  />
+                  <CollapsiblePromptField
+                    id="title-prompt"
+                    name="translateTitlePrompt"
+                    label={resolvedLang === "zh" ? "标题翻译" : "Translate title"}
+                    value={translationTitlePrompt}
+                    onChange={setTranslationTitlePrompt}
+                    lang={resolvedLang}
+                  />
+                  <CollapsiblePromptField
+                    id="content-prompt"
+                    name="translateContentPrompt"
+                    label={resolvedLang === "zh" ? "正文翻译" : "Translate body"}
+                    value={translationContentPrompt}
+                    onChange={setTranslationContentPrompt}
+                    lang={resolvedLang}
+                  />
+                  <CollapsiblePromptField
+                    id="summary-prompt-en"
+                    name="summaryPromptEn"
+                    label={resolvedLang === "zh" ? "英文摘要" : "English summary"}
+                    value={summaryPromptEn}
+                    onChange={setSummaryPromptEn}
+                    lang={resolvedLang}
+                  />
+                  <CollapsiblePromptField
+                    id="summary-prompt-zh"
+                    name="summaryPromptZh"
+                    label={resolvedLang === "zh" ? "中文摘要" : "Chinese summary"}
+                    value={summaryPromptZh}
+                    onChange={setSummaryPromptZh}
+                    lang={resolvedLang}
+                  />
+                  <CollapsiblePromptField
+                    id="tag-prompt"
+                    name="tagPrompt"
+                    label={resolvedLang === "zh" ? "标签提取" : "Generate tags"}
+                    value={tagPrompt}
+                    onChange={setTagPrompt}
+                    lang={resolvedLang}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <div className="mt-4 flex items-center gap-3">
+          <FeedbackMessage state={state} />
+          <div className="ml-auto">
+            <SubmitButton
+              idleLabel={resolvedLang === "zh" ? "保存配置" : "Save"}
+              pendingLabel={resolvedLang === "zh" ? "保存中..." : "Saving..."}
+            />
+          </div>
+        </div>
       </form>
     </div>
   )
