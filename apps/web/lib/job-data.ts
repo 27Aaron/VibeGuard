@@ -15,22 +15,22 @@ function formatDateTime(value: Date | null | undefined, lang: AppLang = "zh", fa
 
 export async function getDashboardOverview(lang: AppLang = "zh") {
   const db = getDb()
-  const [feedCountRow] = await db.select({ count: sql<number>`count(*)` }).from(feeds)
-  const [articleCountRow] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(articles)
-  const [queuedJobsRow] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(processingJobs)
-    .where(sql`${processingJobs.status} in ('queued', 'running')`)
-  const activeSettings = await db.query.llmSettings.findFirst({
-    where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
-  })
+  const [feedCountRow, articleCountRow, queuedJobsRow, activeSettings] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(feeds),
+    db.select({ count: sql<number>`count(*)` }).from(articles),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(processingJobs)
+      .where(sql`${processingJobs.status} in ('queued', 'running')`),
+    db.query.llmSettings.findFirst({
+      where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
+    }),
+  ])
 
   return [
     {
       title: lang === "zh" ? "内容来源" : "Sources",
-      value: String(feedCountRow?.count ?? 0),
+      value: String(feedCountRow[0]?.count ?? 0),
       detail:
         lang === "zh"
           ? "已配置并可纳入采集的来源"
@@ -38,7 +38,7 @@ export async function getDashboardOverview(lang: AppLang = "zh") {
     },
     {
       title: lang === "zh" ? "文章入库" : "Stored articles",
-      value: String(articleCountRow?.count ?? 0),
+      value: String(articleCountRow[0]?.count ?? 0),
       detail:
         lang === "zh"
           ? "已经生成记录的文章总数"
@@ -46,7 +46,7 @@ export async function getDashboardOverview(lang: AppLang = "zh") {
     },
     {
       title: lang === "zh" ? "待处理任务" : "Active jobs",
-      value: String(queuedJobsRow?.count ?? 0),
+      value: String(queuedJobsRow[0]?.count ?? 0),
       detail:
         lang === "zh"
           ? "排队中或执行中的处理任务"

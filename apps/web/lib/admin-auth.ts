@@ -22,6 +22,11 @@ const UNSAFE_SESSION_SECRETS = new Set([
 const MAX_TRACKED_LOGIN_KEYS = 2_000
 const MAX_FAILURES_PER_KEY = 32
 const LOGIN_FAIL_MAP_PRUNE_INTERVAL_MS = 15_000
+// NOTE: Rate-limit state lives in process memory. This means:
+// 1. State is lost on process restart (users get a fresh slate).
+// 2. In multi-instance deployments, each instance tracks independently,
+//    so an attacker could make N requests per instance. For production
+//    multi-instance setups, consider moving this to Redis or similar.
 const failedLoginAttempts = new Map<string, number[]>()
 let lastLoginFailureCleanupAt = 0
 
@@ -186,8 +191,11 @@ function constantTimeEqual(left: string, right: string) {
   const maxLength = Math.max(left.length, right.length)
   let diff = left.length ^ right.length
 
+  // Always iterate over the full maxLength to avoid leaking length info.
   for (let index = 0; index < maxLength; index += 1) {
-    diff |= (left.charCodeAt(index) || 0) ^ (right.charCodeAt(index) || 0)
+    const leftCode = index < left.length ? left.charCodeAt(index) : 0
+    const rightCode = index < right.length ? right.charCodeAt(index) : 0
+    diff |= leftCode ^ rightCode
   }
 
   return diff === 0

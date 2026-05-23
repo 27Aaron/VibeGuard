@@ -117,7 +117,16 @@ export async function listArticles(searchParams: URLSearchParams) {
     params.source ? eq(feeds.name, params.source) : undefined,
     params.ecosystem ? eq(articles.ecosystem, params.ecosystem as ArticleEcosystem) : undefined,
     params.riskCategory ? eq(articles.riskCategory, params.riskCategory as ArticleRiskCategory) : undefined,
+    // TODO: A GIN index on the `tags` column (using gin_toast_trgm or jsonb_path_ops)
+    // would significantly speed up the `?` operator query below.
+    // e.g. CREATE INDEX idx_articles_tags_gin ON articles USING gin (tags jsonb_path_ops);
     params.tag ? sql`${articles.tags} ? ${params.tag}` : undefined,
+    // TODO: Leading `%` in ILIKE prevents B-tree index usage, causing full table scans.
+    // Consider enabling the pg_trgm extension and creating a GIN trigram index:
+    //   CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    //   CREATE INDEX idx_articles_title_en_trgm ON articles USING gin (title_en gin_trgm_ops);
+    //   CREATE INDEX idx_articles_title_zh_trgm ON articles USING gin (title_zh gin_trgm_ops);
+    // Then replace ILIKE with `%` wildcards with pg_trgm-powered queries for better performance.
     params.query
       ? or(
           ilike(articles.titleEn, `%${params.query}%`),
@@ -134,40 +143,45 @@ export async function listArticles(searchParams: URLSearchParams) {
       : undefined,
   ].filter(Boolean)
   const where = filters.length > 0 ? and(...filters) : undefined
-  const countRows = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(articles)
-    .innerJoin(feeds, eq(articles.feedId, feeds.id))
-    .where(where)
+
+  // Run count and data queries in parallel. The data query uses the raw page
+  // offset; results are validated against the actual count after both resolve.
+  const preliminaryOffset = (params.page - 1) * params.limit
+  const [countRows, rows] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(articles)
+      .innerJoin(feeds, eq(articles.feedId, feeds.id))
+      .where(where),
+    db
+      .select({
+        id: articles.id,
+        titleEn: articles.titleEn,
+        titleZh: articles.titleZh,
+        summaryEn: articles.summaryEn,
+        summaryZh: articles.summaryZh,
+        contentMdEn: articles.contentMdEn,
+        contentMdZh: articles.contentMdZh,
+        url: articles.url,
+        sourceName: feeds.name,
+        ecosystem: articles.ecosystem,
+        riskCategory: articles.riskCategory,
+        tags: articles.tags,
+        status: articles.status,
+        publishedAt: articles.publishedAt,
+        updatedAt: articles.updatedAt,
+      })
+      .from(articles)
+      .innerJoin(feeds, eq(articles.feedId, feeds.id))
+      .where(where)
+      .orderBy(desc(articles.publishedAt))
+      .limit(params.limit)
+      .offset(preliminaryOffset),
+  ])
 
   const totalCount = Number(countRows[0]?.count ?? 0)
   const totalPages = Math.max(1, Math.ceil(totalCount / params.limit))
   const page = Math.min(params.page, totalPages)
-  const offset = (page - 1) * params.limit
-  const rows = await db
-    .select({
-      id: articles.id,
-      titleEn: articles.titleEn,
-      titleZh: articles.titleZh,
-      summaryEn: articles.summaryEn,
-      summaryZh: articles.summaryZh,
-      contentMdEn: articles.contentMdEn,
-      contentMdZh: articles.contentMdZh,
-      url: articles.url,
-      sourceName: feeds.name,
-      ecosystem: articles.ecosystem,
-      riskCategory: articles.riskCategory,
-      tags: articles.tags,
-      status: articles.status,
-      publishedAt: articles.publishedAt,
-      updatedAt: articles.updatedAt,
-    })
-    .from(articles)
-    .innerJoin(feeds, eq(articles.feedId, feeds.id))
-    .where(where)
-    .orderBy(desc(articles.publishedAt))
-    .limit(params.limit)
-    .offset(offset)
 
   return {
     meta: buildArticleListMeta({

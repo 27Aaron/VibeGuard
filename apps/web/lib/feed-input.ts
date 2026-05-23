@@ -1,4 +1,5 @@
 const MAX_FEED_NAME_LENGTH = 120
+const MAX_POLL_INTERVAL_MINUTES = 1440
 
 export type ParsedFeedInput = {
   name: string
@@ -20,7 +21,7 @@ function coercePollInterval(value: string) {
     return 30
   }
 
-  return parsed
+  return Math.min(parsed, MAX_POLL_INTERVAL_MINUTES)
 }
 
 function parseUrl(value: string, label: string) {

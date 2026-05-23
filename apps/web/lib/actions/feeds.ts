@@ -33,15 +33,16 @@ export async function createFeedAction(
     const payload = parseFeedInput(formData)
 
     const db = getDb()
-    const existingFeed = await db.query.feeds.findFirst({
-      where: eq(feeds.feedUrl, payload.feedUrl),
-    })
 
-    if (existingFeed) {
-      return errorResult(lang === "zh" ? "已存在相同订阅地址的来源。" : "A source with the same feed URL already exists.")
+    try {
+      await db.insert(feeds).values(payload)
+    } catch (error: unknown) {
+      // Handle duplicate feedUrl uniquely — the DB enforces a unique constraint.
+      if (error instanceof Error && (error.message.includes("unique") || error.message.includes("duplicate"))) {
+        return errorResult(lang === "zh" ? "已存在相同订阅地址的来源。" : "A source with the same feed URL already exists.")
+      }
+      throw error
     }
-
-    await db.insert(feeds).values(payload)
 
     revalidateLocalizedPaths("/admin/feeds")
 
@@ -76,6 +77,8 @@ export async function updateFeedAction(
       return errorResult(lang === "zh" ? "未找到该来源。" : "Source not found.")
     }
 
+    // Check for duplicate feedUrl excluding the current feed.
+    // The DB unique constraint also catches races missed by this check.
     const duplicateFeed = await db.query.feeds.findFirst({
       where: eq(feeds.feedUrl, payload.feedUrl),
     })
@@ -84,7 +87,15 @@ export async function updateFeedAction(
       return errorResult(lang === "zh" ? "已存在相同订阅地址的来源。" : "A source with the same feed URL already exists.")
     }
 
-    await db.update(feeds).set(payload).where(eq(feeds.id, feedId))
+    try {
+      await db.update(feeds).set(payload).where(eq(feeds.id, feedId))
+    } catch (error: unknown) {
+      // Handle duplicate feedUrl — the DB unique constraint catches races.
+      if (error instanceof Error && (error.message.includes("unique") || error.message.includes("duplicate"))) {
+        return errorResult(lang === "zh" ? "已存在相同订阅地址的来源。" : "A source with the same feed URL already exists.")
+      }
+      throw error
+    }
 
     revalidateLocalizedPaths("/admin/feeds", "/admin/articles", `/admin/feeds/${feedId}`)
 

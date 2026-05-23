@@ -108,14 +108,26 @@ export async function reprocessArticleAction(formData: FormData) {
 
           const { rawMeta: _, ...patchWithoutRawMeta } = result.patch
 
-          await db
-            .update(articles)
-            .set({
-              ...patchWithoutRawMeta,
-              rawMeta: mergedRawMeta,
-              status: result.nextStatus,
+          // Use a status guard in the UPDATE to close the TOCTOU window:
+          // only apply changes if the article hasn't been modified by a
+          // concurrent request that changed its status in the meantime.
+          await db.transaction(async (tx) => {
+            const current = await tx.query.articles.findFirst({
+              where: eq(articles.id, articleId),
+              columns: { status: true },
             })
-            .where(eq(articles.id, articleId))
+
+            if (current && current.status === article.status) {
+              await tx
+                .update(articles)
+                .set({
+                  ...patchWithoutRawMeta,
+                  rawMeta: mergedRawMeta,
+                  status: result.nextStatus,
+                })
+                .where(eq(articles.id, articleId))
+            }
+          })
 
           redirectMessage = buildSuccessMessage(target, lang)
           redirectStatus = "success"

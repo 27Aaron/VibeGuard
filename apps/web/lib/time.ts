@@ -1,5 +1,29 @@
 const SHANGHAI_TIME_ZONE = "Asia/Shanghai"
 
+// Cache DateTimeFormat instances to avoid creating a new one on every call.
+const shanghaiPartsFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: SHANGHAI_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+})
+
+const rfc822Formatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: SHANGHAI_TIME_ZONE,
+  weekday: "short",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+})
+
 function toDate(input: Date | string | null | undefined) {
   if (!input) {
     return null
@@ -21,19 +45,8 @@ function getShanghaiParts(input: Date | string | null | undefined) {
     return null
   }
 
-  const formatter = new Intl.DateTimeFormat("zh-CN", {
-    timeZone: SHANGHAI_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  })
-
   const lookup = Object.fromEntries(
-    formatter
+    shanghaiPartsFormatter
       .formatToParts(date)
       .filter((part) => part.type !== "literal")
       .map((part) => [part.type, part.value]),
@@ -89,19 +102,8 @@ export function toRfc822InShanghai(input: Date | string | null | undefined) {
     return new Date().toUTCString()
   }
 
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: SHANGHAI_TIME_ZONE,
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  })
   const lookup = Object.fromEntries(
-    formatter
+    rfc822Formatter
       .formatToParts(date)
       .filter((part) => part.type !== "literal")
       .map((part) => [part.type, part.value]),

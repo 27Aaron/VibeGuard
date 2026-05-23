@@ -101,7 +101,10 @@ function toRawMetaRecord(value: unknown): Record<string, unknown> {
 }
 
 function buildContentHash(title: string, content: string) {
-  return createHash("sha256").update(`${title}\n${content}`).digest("hex")
+  // Normalize newlines in title to prevent hash collisions caused by
+  // titles that differ only in embedded newlines vs. separator newlines.
+  const normalizedTitle = title.replace(/[\r\n]+/g, " ")
+  return createHash("sha256").update(`${normalizedTitle}\n${content}`).digest("hex")
 }
 
 const FILTERED_BLOCKED_TARGETS = new Set<ArticleRegenerationTarget>([

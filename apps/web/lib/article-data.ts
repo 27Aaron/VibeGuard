@@ -27,6 +27,9 @@ export async function getArticleRows(input: Partial<AdminArticleListParams> & { 
   const pageSize = input.pageSize ?? DEFAULT_ADMIN_ARTICLE_PAGE_SIZE
   const requestedPage = Math.max(1, Math.floor(input.page ?? 1))
   const search = input.search?.trim()
+  // TODO: Leading `%` in ILIKE prevents B-tree index usage, causing full table scans.
+  // Consider enabling the pg_trgm extension and creating GIN trigram indexes on
+  // title_en and title_zh for better full-text search performance.
   const searchFilter = search
     ? sql`(${articles.titleEn} ILIKE ${`%${search}%`} OR ${articles.titleZh} ILIKE ${`%${search}%`})`
     : undefined

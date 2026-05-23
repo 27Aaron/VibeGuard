@@ -200,9 +200,12 @@ export async function retrySelectedJobsAction(formData: FormData) {
       .map((id) => jobMap.get(id))
       .filter((job): job is NonNullable<typeof job> => Boolean(job))
 
-    await Promise.all(
-      matchedJobs.map((job) => queueJobForManualRun({ db, job })),
-    )
+    // Process sequentially to avoid partial failures in batch retries.
+    // Each job update is independent but sequential processing ensures
+    // predictable error handling and avoids transaction issues.
+    for (const job of matchedJobs) {
+      await queueJobForManualRun({ db, job })
+    }
 
     revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs")
 

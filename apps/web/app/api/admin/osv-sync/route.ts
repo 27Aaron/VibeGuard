@@ -6,6 +6,8 @@ import { requireAdminAuth } from "@/lib/admin-api-auth"
 
 export const dynamic = "force-dynamic"
 
+let osvSyncInProgress = false
+
 export async function GET() {
   const auth = await requireAdminAuth()
   if (!auth.authorized) return auth.response
@@ -32,6 +34,15 @@ export async function POST() {
   const auth = await requireAdminAuth()
   if (!auth.authorized) return auth.response
 
+  if (osvSyncInProgress) {
+    return Response.json(
+      { ok: false, error: "OSV sync is already in progress. Please wait for it to finish." },
+      { status: 409 },
+    )
+  }
+
+  osvSyncInProgress = true
+
   try {
     const { syncAllOsvEcosystems } = await import("@vibeguard/content/osv/sync")
     const results = await syncAllOsvEcosystems({ db: getDb() })
@@ -49,5 +60,7 @@ export async function POST() {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     return Response.json({ ok: false, error: message }, { status: 500 })
+  } finally {
+    osvSyncInProgress = false
   }
 }

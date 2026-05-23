@@ -20,6 +20,12 @@ const MCP_SESSION_TTL_MS = normalizeInt(
 )
 const MCP_API_TOKEN = process.env.VIBEGUARD_MCP_API_TOKEN?.trim()
 
+// NOTE: MCP sessions are stored in process memory. This means:
+// 1. Sessions are lost on process restart — clients must re-initialize.
+// 2. In multi-instance deployments, sessions are not shared across instances,
+//    so a client must be routed to the same instance (e.g. via sticky sessions).
+//    For production multi-instance setups, consider moving session state to
+//    Redis or similar shared store.
 const transports = new Map<string, SessionContext>()
 
 function jsonRpcError(status: number, code: number, message: string) {

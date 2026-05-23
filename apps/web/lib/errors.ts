@@ -90,5 +90,10 @@ export function normalizeUserFacingError(error: unknown, lang: AppLang = "zh") {
       : "An API key is required when creating a new model profile."
   }
 
+  // Avoid leaking internal error details in production.
+  if (process.env.NODE_ENV === "production") {
+    return fallback
+  }
+
   return message
 }

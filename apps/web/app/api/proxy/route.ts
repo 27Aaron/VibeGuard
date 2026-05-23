@@ -372,6 +372,7 @@ export async function GET(request: NextRequest) {
         "Content-Type": contentType,
         "Cache-Control": "public, max-age=86400, s-maxage=86400",
         "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'",
       },
     })
   } catch (error) {

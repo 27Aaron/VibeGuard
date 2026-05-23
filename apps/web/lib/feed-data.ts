@@ -10,7 +10,16 @@ function formatDateTime(value: Date | null | undefined, lang: AppLang = "zh", fa
 export async function getFeedRows(lang: AppLang = "zh") {
   const db = getDb()
   const rows = await db
-    .select()
+    .select({
+      id: feeds.id,
+      name: feeds.name,
+      siteUrl: feeds.siteUrl,
+      feedUrl: feeds.feedUrl,
+      feedType: feeds.feedType,
+      pollIntervalMinutes: feeds.pollIntervalMinutes,
+      enabled: feeds.enabled,
+      lastSuccessAt: feeds.lastSuccessAt,
+    })
     .from(feeds)
     .orderBy(desc(feeds.createdAt))
 
