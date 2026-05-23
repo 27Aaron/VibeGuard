@@ -6,6 +6,7 @@ import {
   Rss,
   Search,
   ShieldCheck,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react"
 
@@ -20,12 +21,13 @@ const futureSurfaceLinks: Array<{
   label: string
   icon: LucideIcon
   surface?: PublicSurface
+  route: string
 }> = [
-  { label: "API", icon: FileJson, surface: "api" },
-  { label: "MCP", icon: Braces, surface: "mcp" },
-  { label: "RSS", icon: Rss, surface: "rss" },
-  { label: "Skill", icon: ShieldCheck, surface: "skill" },
-  { label: "Check", icon: Search, surface: "check" },
+  { label: "API", icon: FileJson, surface: "api", route: "/api" },
+  { label: "MCP", icon: Braces, surface: "mcp", route: "/mcp" },
+  { label: "RSS", icon: Rss, surface: "rss", route: "/rss" },
+  { label: "Skill", icon: Sparkles, surface: "skill", route: "/skill" },
+  { label: "Check", icon: Search, surface: "check", route: "/check" },
 ]
 
 type PublicHeaderProps = {
@@ -84,26 +86,15 @@ export function PublicHeader({
                 active && "text-emerald-800 dark:text-emerald-300",
               )
 
-              const href =
-                item.label === "RSS"
-                  ? `/${currentLang}/rss`
-                  : item.label === "Check"
-                    ? `/${currentLang}/check`
-                    : item.label === "API"
-                      ? `/${currentLang}/api`
-                      : item.label === "MCP"
-                        ? `/${currentLang}/mcp`
-                        : item.label === "Skill"
-                          ? `/${currentLang}/skill`
-                          : undefined
-              const label = item.label === "Check" ? copy.publicCheckNav : item.label
+              const href = item.route ? `/${currentLang}${item.route}` : undefined
+              const label = item.surface === "check" ? copy.publicCheckNav : item.label
 
               if (href) {
                 return (
                   <Link
                     key={item.label}
                     href={href}
-                    prefetch={item.label === "API" || item.label === "MCP" ? false : undefined}
+                    prefetch={item.route === "/api" || item.route === "/mcp" ? false : undefined}
                     className={surfaceClassName}
                   >
                     <span className={contentClassName}>

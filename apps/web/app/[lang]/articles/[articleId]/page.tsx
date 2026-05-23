@@ -1,3 +1,4 @@
+import { cache } from "react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -13,7 +14,7 @@ import { MarkdownRenderer, MarkdownSummary } from "@/components/content/markdown
 import { PublicHeader } from "@/components/public-header"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
-import { getArticleById } from "@/lib/api-articles"
+import { getArticleById as _getArticleById } from "@/lib/api-articles"
 import {
   getPublicArticleSidebarClassName,
   getPublicArticleSummaryContainerClass,
@@ -29,6 +30,8 @@ import {
   getSubtlePanelClassName,
 } from "@/lib/layout-tokens"
 import { cn } from "@/lib/utils"
+
+const getArticleById = cache(_getArticleById)
 
 export const dynamic = "force-dynamic"
 

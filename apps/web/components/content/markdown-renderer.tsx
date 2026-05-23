@@ -353,7 +353,28 @@ export function MarkdownRenderer({
                 </div>
               )
             },
-            pre: ({ children }) => <>{children}</>,
+            pre: ({ children }) => {
+              // Only unwrap <pre> elements that contain a <code> child (fenced code
+              // blocks rendered by react-markdown). Preserve standalone <pre> elements.
+              const hasCodeChild =
+                Array.isArray(children)
+                  ? children.some(
+                      (ch) =>
+                        ch &&
+                        typeof ch === "object" &&
+                        "props" in ch &&
+                        "type" in ch &&
+                        (ch.type === "code" ||
+                          ch.props?.className?.startsWith("language-")),
+                    )
+                  : children != null &&
+                    typeof children === "object" &&
+                    "props" in children &&
+                    (children.type === "code" ||
+                      (children as { props?: { className?: string } }).props?.className?.startsWith("language-"))
+
+              return hasCodeChild ? <>{children}</> : <pre>{children}</pre>
+            },
             img: ({ src, alt }) => {
               const resolvedSrc = resolveMarkdownImageProxyUrl(
                 typeof src === "string" ? src : "",

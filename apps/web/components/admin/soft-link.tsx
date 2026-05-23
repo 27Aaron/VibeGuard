@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import type { ReactNode } from "react"
 
 type SoftLinkProps = {
@@ -11,17 +11,25 @@ type SoftLinkProps = {
 }
 
 export function SoftLink({ href, className, children, disabled }: SoftLinkProps) {
-  const router = useRouter()
+  if (disabled) {
+    return (
+      <span
+        aria-disabled="true"
+        className={className}
+      >
+        {children}
+      </span>
+    )
+  }
 
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-disabled={disabled}
-      onClick={() => router.push(href, { scroll: false })}
+    <Link
+      href={href}
+      scroll={false}
+      prefetch={true}
       className={className}
     >
       {children}
-    </button>
+    </Link>
   )
 }
