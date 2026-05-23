@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -13,6 +13,9 @@ type CustomSelectProps = {
   className?: string
 }
 
+const DROPDOWN_MAX_H = 280
+const DROPDOWN_GAP = 8
+
 export function CustomSelect({
   options,
   value,
@@ -22,9 +25,18 @@ export function CustomSelect({
   className,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
+  const [dropUp, setDropUp] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   const selected = options.find((o) => o.value === value)
+
+  useLayoutEffect(() => {
+    if (!open || !ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    setDropUp(spaceBelow < DROPDOWN_MAX_H + DROPDOWN_GAP && spaceAbove > spaceBelow)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -58,7 +70,12 @@ export function CustomSelect({
       {open ? (
         <div
           role="listbox"
-          className="absolute left-0 top-[calc(100%+0.45rem)] z-20 flex max-h-[280px] w-full flex-col gap-1.5 overflow-y-auto rounded-[1.1rem] border border-black/8 bg-[#fcfcfa] p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-[#1b2028]"
+          className={cn(
+            "absolute left-0 z-20 flex max-h-[280px] w-full flex-col gap-1.5 overflow-y-auto rounded-[1.1rem] border border-black/8 bg-[#fcfcfa] p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-[#1b2028]",
+            dropUp
+              ? "bottom-[calc(100%+0.45rem)]"
+              : "top-[calc(100%+0.45rem)]",
+          )}
         >
           {options.map((option) => {
             const active = option.value === value
