@@ -9,7 +9,7 @@ type ProtectedMarkdownCode = {
   restore(text: string): string;
 };
 
-function protectMarkdownCode(sourceText: string): ProtectedMarkdownCode {
+export function protectMarkdownCode(sourceText: string): ProtectedMarkdownCode {
   const replacements = new Map<string, string>();
   let fencedIndex = 0;
   let inlineIndex = 0;
@@ -31,10 +31,11 @@ function protectMarkdownCode(sourceText: string): ProtectedMarkdownCode {
   return {
     protectedText,
     restore(text: string) {
-      return Array.from(replacements.entries()).reduce(
-        (result, [token, original]) => result.split(token).join(original),
-        text,
-      );
+      let result = text;
+      for (const [token, original] of replacements) {
+        result = result.replaceAll(token, original);
+      }
+      return result;
     },
   };
 }

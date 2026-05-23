@@ -13,7 +13,7 @@ describe("llm prompt builders", () => {
 
     expect(prompt).toContain("Summarize it");
     expect(prompt).toContain("Hello world");
-    expect(prompt).toContain("--- SOURCE START ---");
+    expect(prompt).toContain("SOURCE_BOUNDARY");
   });
 
   it("should include source content in translation prompt", () => {
@@ -21,7 +21,7 @@ describe("llm prompt builders", () => {
 
     expect(prompt).toContain("Translate it");
     expect(prompt).toContain("Hello world");
-    expect(prompt).toContain("--- SOURCE END ---");
+    expect(prompt).toContain("SOURCE_BOUNDARY");
     expect(prompt).toContain("Do not translate or rewrite fenced code blocks");
   });
 });

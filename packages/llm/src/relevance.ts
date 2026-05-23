@@ -16,6 +16,17 @@ const DEFAULT_RELEVANCE_PROMPT =
 
 const MAX_SOURCE_LENGTH = 4000;
 
+function safeSlice(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  let end = maxChars;
+  // Step back to avoid splitting a multi-byte character
+  while (end > 0 && (text.charCodeAt(end) & 0xfc00) === 0xdc00) {
+    end -= 1;
+  }
+  return text.slice(0, end);
+}
+
 function parseRelevanceResponse(value: string): RelevanceResult | null {
   const stripped = stripJsonFence(value);
   const candidates = [
@@ -40,7 +51,7 @@ function buildRelevancePrompt(input: {
   sourceText: string;
 }) {
   const prompt = resolveRelevancePrompt(input.systemPrompt);
-  const truncated = input.sourceText.slice(0, MAX_SOURCE_LENGTH);
+  const truncated = safeSlice(input.sourceText, MAX_SOURCE_LENGTH);
 
   return wrapSourceText(prompt, truncated);
 }

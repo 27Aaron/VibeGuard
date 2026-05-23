@@ -81,7 +81,8 @@ export function decryptSecret(ciphertext: string) {
       ])
 
       return decrypted.toString("utf8")
-    } catch {
+    } catch (error) {
+      console.warn("Decryption failed (scrypt):", error instanceof Error ? error.message : String(error))
       return ""
     }
   }
@@ -110,7 +111,8 @@ export function decryptSecret(ciphertext: string) {
       ])
 
       return decrypted.toString("utf8")
-    } catch {
+    } catch (error) {
+      console.warn("Decryption failed (legacy):", error instanceof Error ? error.message : String(error))
       return ""
     }
   }

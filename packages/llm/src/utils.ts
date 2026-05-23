@@ -1,9 +1,15 @@
 export function stripJsonFence(value: string) {
-  return value
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim()
+  let result = value.trim();
+
+  // Remove all code fences (opening and closing) iteratively
+  while (result.startsWith("```")) {
+    result = result.replace(/^```(?:json)?\s*/i, "");
+  }
+  while (result.endsWith("```")) {
+    result = result.replace(/\s*```$/i, "");
+  }
+
+  return result.trim();
 }
 
 export function tryParseJsonCandidates(candidates: string[]): unknown | null {

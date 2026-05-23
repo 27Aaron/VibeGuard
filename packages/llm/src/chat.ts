@@ -74,7 +74,7 @@ export async function createChatCompletionTextWithRetry(input: {
 function stripThinkingTags(text: string): string {
   return text
     .replace(/<think>[\s\S]*?<\/think>/g, "")
-    .replace(/<think>[\s\S]*$/g, "")
+    .replace(/<think[\s\S]*?(<\/think>|$)/g, "")
     .trim()
 }
 

@@ -148,7 +148,8 @@ export function buildTagExtractionPrompt(input: {
   const prompt = resolveTagPrompt(input.systemPrompt);
 
   if (prompt.includes("{{content}}")) {
-    return prompt.replaceAll("{{content}}", input.sourceText);
+    const escaped = input.sourceText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return prompt.replaceAll("{{content}}", escaped);
   }
 
   return `${prompt}\n\n文章原始正文：\n${input.sourceText}`;

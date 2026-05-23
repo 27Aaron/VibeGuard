@@ -1,5 +1,14 @@
+let delimiterCounter = 0;
+
+function generateUniqueDelimiter(): string {
+  delimiterCounter += 1;
+  const random = Math.random().toString(36).slice(2, 10);
+  return `--- SOURCE_BOUNDARY_${delimiterCounter}_${random} ---`;
+}
+
 export function wrapSourceText(systemPrompt: string, sourceText: string) {
-  return `${systemPrompt}\n\n--- SOURCE START ---\n${sourceText}\n--- SOURCE END ---`;
+  const delim = generateUniqueDelimiter();
+  return `${systemPrompt}\n\n${delim} START\n${sourceText}\n${delim} END`;
 }
 
 const TRANSLATION_GUARDRAIL = [
