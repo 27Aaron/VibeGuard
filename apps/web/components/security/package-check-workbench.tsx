@@ -59,6 +59,8 @@ type SubmittedQuery = NonNullable<PersistedSecurityWorkbenchState["submittedQuer
 
 const findingsPerPage = 3
 
+type CvssLevel = "critical" | "high" | "medium" | "low"
+
 function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
   switch (ecosystem) {
     case "pypi":
@@ -70,18 +72,6 @@ function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
     default:
       return ecosystem
   }
-}
-
-function riskLevelLabel(level: SecurityFinding["risk"]["level"], lang: AppLang) {
-  return lang === "zh"
-    ? {
-        critical: "严重",
-        high: "高危",
-        medium: "中危",
-        low: "低危",
-        unknown: "未知",
-      }[level]
-    : level.toUpperCase()
 }
 
 function toneBadgeVariant(finding: SecurityFinding) {
@@ -116,6 +106,20 @@ function formatPercent(value: string | number | null | undefined) {
   return Number.isFinite(parsed) ? `${Math.round(parsed * 100)}%` : null
 }
 
+function numberFromDecimal(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (typeof value !== "string" || !value.trim()) {
+    return null
+  }
+
+  const parsed = Number.parseFloat(value)
+
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function formatFindingTime(value: string | null | undefined, lang: AppLang) {
   return value ? formatDateTimeInShanghai(value, { lang }) : null
 }
@@ -124,44 +128,90 @@ function primaryCveLabel(finding: SecurityFinding) {
   return finding.cveEnrichments[0]?.cveId ?? finding.advisory.aliases.find((alias) => alias.startsWith("CVE-")) ?? null
 }
 
-function cvssSeverityLabel(severity: string | null | undefined, lang: AppLang) {
-  if (!severity) return null
-
-  const normalized = severity.toLowerCase()
-
-  if (lang === "zh") {
-    return {
-      critical: "严重",
-      high: "高危",
-      medium: "中危",
-      low: "低危",
-      none: "无",
-    }[normalized] ?? severity
-  }
-
-  return severity.toUpperCase()
-}
-
-function findingMetricBadges(finding: SecurityFinding, lang: AppLang) {
+function primaryCveEnrichment(finding: SecurityFinding) {
   const primaryCve = primaryCveLabel(finding)
-  const primaryCveEnrichment =
+
+  return (
     finding.cveEnrichments.find((cve) => cve.cveId === primaryCve) ??
     finding.cveEnrichments[0]
-  const cvssSeverity = cvssSeverityLabel(primaryCveEnrichment?.bestCvssSeverity, lang)
-  const epssPercentile = formatPercent(primaryCveEnrichment?.epssPercentile)
+  )
+}
+
+function cvssLevelFromScore(value: string | number | null | undefined): CvssLevel | null {
+  const score = numberFromDecimal(value)
+
+  if (score === null || score <= 0) return null
+  if (score >= 9) return "critical"
+  if (score >= 7) return "high"
+  if (score >= 4) return "medium"
+
+  return "low"
+}
+
+function cvssLevelLabel(level: CvssLevel, lang: AppLang) {
+  return lang === "zh"
+    ? {
+        critical: "严重",
+        high: "高危",
+        medium: "中危",
+        low: "低危",
+      }[level]
+    : {
+        critical: "CRITICAL",
+        high: "HIGH",
+        medium: "MEDIUM",
+        low: "LOW",
+      }[level]
+}
+
+function cvssLevelBadgeClassName(level: CvssLevel) {
+  switch (level) {
+    case "critical":
+      return "border-red-500/30 bg-red-50 text-red-700 dark:border-red-300/25 dark:bg-red-400/10 dark:text-red-200"
+    case "high":
+      return "border-orange-500/30 bg-orange-50 text-orange-700 dark:border-orange-300/25 dark:bg-orange-400/10 dark:text-orange-200"
+    case "medium":
+      return "border-amber-500/30 bg-amber-50 text-amber-700 dark:border-amber-300/25 dark:bg-amber-400/10 dark:text-amber-200"
+    case "low":
+      return "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200"
+    default:
+      return ""
+  }
+}
+
+function cveBadgeClassName() {
+  return "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200"
+}
+
+function findingMetricBadges(finding: SecurityFinding) {
+  const primaryCve = primaryCveLabel(finding)
+  const enrichment = primaryCveEnrichment(finding)
+  const epssPercentile = formatPercent(enrichment?.epssPercentile)
 
   return [
-    primaryCve ? { key: "cve", label: primaryCve, variant: "outline" as const } : null,
-    cvssSeverity ? { key: "cvss-severity", label: cvssSeverity, variant: "outline" as const } : null,
-    primaryCveEnrichment?.bestCvssScore
+    primaryCve
+      ? {
+          key: "cve",
+          label: primaryCve,
+          variant: "outline" as const,
+          className: cveBadgeClassName(),
+        }
+      : null,
+    enrichment?.bestCvssScore
       ? {
           key: "cvss-score",
-          label: `CVSS ${primaryCveEnrichment.bestCvssScore}`,
+          label: `CVSS ${enrichment.bestCvssScore}`,
           variant: "secondary" as const,
+          className: "",
         }
       : null,
     epssPercentile
-      ? { key: "epss", label: `EPSS ${epssPercentile}`, variant: "secondary" as const }
+      ? {
+          key: "epss",
+          label: `EPSS ${epssPercentile}`,
+          variant: "secondary" as const,
+          className: "",
+        }
       : null,
   ].filter((badge): badge is NonNullable<typeof badge> => Boolean(badge))
 }
@@ -425,6 +475,9 @@ export function PackageCheckWorkbench({
       ? copy.publicCheckHitCountBadge(hitCount)
       : copy.publicCheckMatchCountBadge(matchedCount)
     : null
+  const summaryCvssLevel = resultSummary?.highestCvssScore
+    ? cvssLevelFromScore(resultSummary.highestCvssScore)
+    : null
 
   function resetSearchState(nextEcosystem: SecurityPackageEcosystem) {
     setEcosystem(nextEcosystem)
@@ -636,13 +689,13 @@ export function PackageCheckWorkbench({
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="h-7 px-2.5">
-                {lang === "zh" ? "最高风险" : "Highest risk"} ·{" "}
-                {riskLevelLabel(resultSummary.highestRisk.level, lang)} {resultSummary.highestRisk.score}
-              </Badge>
-              {resultSummary.highestCvssScore ? (
-                <Badge variant="outline" className="h-7 px-2.5">
-                  CVSS {resultSummary.highestCvssScore}
+              {summaryCvssLevel && resultSummary.highestCvssScore ? (
+                <Badge
+                  variant="outline"
+                  className={cn("h-7 px-2.5", cvssLevelBadgeClassName(summaryCvssLevel))}
+                >
+                  {lang === "zh" ? "最高 CVSS" : "Highest CVSS"} ·{" "}
+                  {cvssLevelLabel(summaryCvssLevel, lang)} {resultSummary.highestCvssScore}
                 </Badge>
               ) : null}
               <Badge variant="outline" className="h-7 px-2.5">
@@ -688,8 +741,11 @@ export function PackageCheckWorkbench({
               publishedAt ? `${lang === "zh" ? "发布" : "Published"} ${publishedAt}` : null,
               updatedAt ? `${lang === "zh" ? "更新" : "Updated"} ${updatedAt}` : null,
             ].filter((part): part is string => Boolean(part))
-            const metricBadges = findingMetricBadges(finding, lang)
+            const metricBadges = findingMetricBadges(finding)
             const tone = toneLabel(finding, lang)
+            const cvssLevel = cvssLevelFromScore(
+              primaryCveEnrichment(finding)?.bestCvssScore,
+            )
             const affectedRangeLabels =
               formattedRanges.length > 0
                 ? formattedRanges
@@ -705,12 +761,22 @@ export function PackageCheckWorkbench({
                     <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
                       {findingMetaParts.join(" · ")}
                     </p>
-                    <Badge
-                      variant={toneBadgeVariant(finding)}
-                      className="h-7 shrink-0 px-2.5"
-                    >
-                      {tone}
-                    </Badge>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                      {cvssLevel ? (
+                        <Badge
+                          variant="outline"
+                          className={cn("h-7 px-2.5", cvssLevelBadgeClassName(cvssLevel))}
+                        >
+                          {cvssLevelLabel(cvssLevel, lang)}
+                        </Badge>
+                      ) : null}
+                      <Badge
+                        variant={toneBadgeVariant(finding)}
+                        className="h-7 px-2.5"
+                      >
+                        {tone}
+                      </Badge>
+                    </div>
                   </div>
                   <MarkdownSummary
                     content={finding.advisory.summary || finding.matchSummary}
@@ -724,7 +790,7 @@ export function PackageCheckWorkbench({
                         <Badge
                           key={badge.key}
                           variant={badge.variant}
-                          className="h-7 shrink-0 whitespace-nowrap px-2.5"
+                          className={cn("h-7 shrink-0 whitespace-nowrap px-2.5", badge.className)}
                         >
                           {badge.label}
                         </Badge>
