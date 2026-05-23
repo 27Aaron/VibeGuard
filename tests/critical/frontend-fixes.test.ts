@@ -55,7 +55,7 @@ describe("BUG-05: selectedPresetIndex bounds guard", () => {
 
   it("falls back to empty string for out-of-bounds index", () => {
     const valueLine = LLM_SETTINGS.match(
-      /value=\{selectedPresetIndex.*?\}/s,
+      /value=\{form\.selectedPresetIndex.*?\}/s,
     )
     expect(valueLine).toBeTruthy()
     expect(valueLine![0]).toContain('""')

@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { useActionState, useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react"
 import { useFormStatus } from "react-dom"
 import { useRouter } from "next/navigation"
 import { Check, ChevronDown, ChevronRight, PlusCircle, Trash2 } from "lucide-react"
@@ -17,7 +17,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -38,6 +37,111 @@ import { resolveLang } from "@/lib/i18n"
 import { mergeModelOptions } from "@/lib/provider-models"
 import { PROVIDER_PRESETS, resolvePresetLabel } from "@/lib/provider-presets"
 import { cn } from "@/lib/utils"
+
+// ---------------------------------------------------------------------------
+// Reducer: consolidates 15+ useState into a single state machine
+// ---------------------------------------------------------------------------
+
+interface FormState {
+  settingsName: string
+  baseUrl: string
+  apiKey: string
+  model: string
+  isActive: boolean
+  translationTitlePrompt: string
+  translationContentPrompt: string
+  summaryPromptEn: string
+  summaryPromptZh: string
+  tagPrompt: string
+  relevancePrompt: string
+  modelOptions: string[]
+  isLoadingModels: boolean
+  modelFeedback: string
+  selectedPresetIndex: number
+  nameManuallyEdited: boolean
+}
+
+type FormAction =
+  | { type: "SET_FIELD"; field: keyof FormState; value: string | boolean | number | string[] }
+  | { type: "APPLY_PRESET"; presetIndex: number }
+  | { type: "SYNC_PROVIDER"; provider: ProviderSettings; pipeline: PipelineSettings }
+  | { type: "MODELS_LOADED"; options: string[]; feedback: string }
+  | { type: "MODELS_ERROR"; feedback: string }
+  | { type: "START_LOADING_MODELS" }
+  | { type: "RESET_PIPELINE"; pipeline: PipelineSettings }
+  | { type: "CLEAR_MODEL_LIST" }
+
+function initFormState(provider: ProviderSettings, pipeline: PipelineSettings, presetIndex?: number): FormState {
+  const matchedIdx = provider.baseUrl
+    ? PROVIDER_PRESETS.findIndex((p) => p.baseUrl === provider.baseUrl)
+    : -1
+  return {
+    settingsName: provider.settingsName,
+    baseUrl: provider.baseUrl,
+    apiKey: "",
+    model: provider.model,
+    isActive: provider.isActive,
+    translationTitlePrompt: pipeline.translationTitlePrompt,
+    translationContentPrompt: pipeline.translationContentPrompt,
+    summaryPromptEn: pipeline.summaryPromptEn,
+    summaryPromptZh: pipeline.summaryPromptZh,
+    tagPrompt: pipeline.tagPrompt,
+    relevancePrompt: pipeline.relevancePrompt,
+    modelOptions: provider.model ? [provider.model] : [],
+    isLoadingModels: false,
+    modelFeedback: "",
+    selectedPresetIndex: presetIndex != null && presetIndex >= 0 && presetIndex < PROVIDER_PRESETS.length
+      ? presetIndex
+      : matchedIdx >= 0 ? matchedIdx : PROVIDER_PRESETS.length - 1,
+    nameManuallyEdited: false,
+  }
+}
+
+function formReducer(state: FormState, action: FormAction): FormState {
+  switch (action.type) {
+    case "SET_FIELD":
+      return { ...state, [action.field]: action.value }
+    case "APPLY_PRESET": {
+      const preset = PROVIDER_PRESETS[action.presetIndex]
+      if (!preset) return state
+      return {
+        ...state,
+        selectedPresetIndex: action.presetIndex,
+        baseUrl: preset.baseUrl,
+        settingsName: state.nameManuallyEdited ? state.settingsName : preset.name,
+        nameManuallyEdited: false,
+      }
+    }
+    case "SYNC_PROVIDER":
+      return initFormState(action.provider, action.pipeline)
+    case "MODELS_LOADED": {
+      const nextModel = !state.model && action.options.length > 0 ? action.options[0] : state.model
+      return {
+        ...state,
+        model: nextModel,
+        modelOptions: action.options,
+        isLoadingModels: false,
+        modelFeedback: action.feedback,
+      }
+    }
+    case "MODELS_ERROR":
+      return { ...state, isLoadingModels: false, modelFeedback: action.feedback }
+    case "START_LOADING_MODELS":
+      return { ...state, isLoadingModels: true, modelFeedback: "" }
+    case "RESET_PIPELINE":
+      return {
+        ...state,
+        relevancePrompt: action.pipeline.relevancePrompt,
+        translationTitlePrompt: action.pipeline.translationTitlePrompt,
+        translationContentPrompt: action.pipeline.translationContentPrompt,
+        summaryPromptEn: action.pipeline.summaryPromptEn,
+        summaryPromptZh: action.pipeline.summaryPromptZh,
+        tagPrompt: action.pipeline.tagPrompt,
+      }
+    case "CLEAR_MODEL_LIST":
+      return { ...state, modelOptions: [], modelFeedback: "" }
+  }
+}
 
 function FeedbackMessage({ state }: { state: FormActionResult }) {
   if (state.status === "idle") {
@@ -164,71 +268,23 @@ export function LlmSettingsForm({
   const resolvedLang = resolveLang(lang)
   const router = useRouter()
   const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT)
-  const [settingsName, setSettingsName] = useState(provider.settingsName)
-  const [baseUrl, setBaseUrl] = useState(provider.baseUrl)
-  const [apiKey, setApiKey] = useState("")
-  const [model, setModel] = useState(provider.model)
-  const [isActive, setIsActive] = useState(provider.isActive)
-  const [translationTitlePrompt, setTranslationTitlePrompt] = useState(
-    pipeline.translationTitlePrompt,
-  )
-  const [translationContentPrompt, setTranslationContentPrompt] = useState(
-    pipeline.translationContentPrompt,
-  )
-  const [summaryPromptEn, setSummaryPromptEn] = useState(pipeline.summaryPromptEn)
-  const [summaryPromptZh, setSummaryPromptZh] = useState(pipeline.summaryPromptZh)
-  const [tagPrompt, setTagPrompt] = useState(pipeline.tagPrompt)
-  const [relevancePrompt, setRelevancePrompt] = useState(pipeline.relevancePrompt)
-  const [modelOptions, setModelOptions] = useState(
-    provider.model ? [provider.model] : [],
-  )
-  const [isLoadingModels, setIsLoadingModels] = useState(false)
-  const [modelFeedback, setModelFeedback] = useState("")
+  const [form, dispatch] = useReducer(formReducer, { provider, pipeline, presetIndex }, ({ provider: p, pipeline: pl, presetIndex: pi }) => initFormState(p, pl, pi))
   const [isActionPending, startActionTransition] = useTransition()
-  const [selectedPresetIndex, setSelectedPresetIndex] = useState(
-    presetIndex != null && presetIndex >= 0 && presetIndex < PROVIDER_PRESETS.length
-      ? presetIndex
-      : -1,
-  )
-  const [nameManuallyEdited, setNameManuallyEdited] = useState(false)
   const mergedModelOptions = useMemo(
-    () => mergeModelOptions(model, modelOptions),
-    [model, modelOptions],
+    () => mergeModelOptions(form.model, form.modelOptions),
+    [form.model, form.modelOptions],
   )
 
+  // Sync from preset query param (new profile from preset link)
   useEffect(() => {
-    if (
-      presetIndex != null &&
-      presetIndex >= 0 &&
-      presetIndex < PROVIDER_PRESETS.length
-    ) {
-      const preset = PROVIDER_PRESETS[presetIndex]
-      setSelectedPresetIndex(presetIndex)
-      setBaseUrl(preset.baseUrl)
-      setSettingsName(preset.name)
-      setNameManuallyEdited(false)
+    if (presetIndex != null && presetIndex >= 0 && presetIndex < PROVIDER_PRESETS.length) {
+      dispatch({ type: "APPLY_PRESET", presetIndex })
     }
   }, [presetIndex])
 
+  // Sync from server data (provider/pipeline changed)
   useEffect(() => {
-    setSettingsName(provider.settingsName)
-    setBaseUrl(provider.baseUrl)
-    setApiKey("")
-    setModel(provider.model)
-    setIsActive(provider.isActive)
-    setTranslationTitlePrompt(pipeline.translationTitlePrompt)
-    setTranslationContentPrompt(pipeline.translationContentPrompt)
-    setSummaryPromptEn(pipeline.summaryPromptEn)
-    setSummaryPromptZh(pipeline.summaryPromptZh)
-    setTagPrompt(pipeline.tagPrompt)
-    setRelevancePrompt(pipeline.relevancePrompt)
-    setModelOptions(provider.model ? [provider.model] : [])
-    setModelFeedback("")
-    setNameManuallyEdited(false)
-    const matchedIdx = provider.baseUrl
-      ? PROVIDER_PRESETS.findIndex((p) => p.baseUrl === provider.baseUrl)
-      : -1
-    setSelectedPresetIndex(matchedIdx >= 0 ? matchedIdx : PROVIDER_PRESETS.length - 1)
+    dispatch({ type: "SYNC_PROVIDER", provider, pipeline })
   }, [
     provider.id,
     provider.settingsName,
@@ -246,19 +302,17 @@ export function LlmSettingsForm({
   const abortControllerRef = useRef<AbortController | null>(null)
 
   async function loadProviderModels() {
-    // Cancel any in-flight request before starting a new one
     abortControllerRef.current?.abort()
     const controller = new AbortController()
     abortControllerRef.current = controller
 
-    setIsLoadingModels(true)
-    setModelFeedback("")
+    dispatch({ type: "START_LOADING_MODELS" })
 
     try {
       const response = await fetch("/api/admin/provider-models", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ profileId: provider.id, baseUrl, apiKey, lang }),
+        body: JSON.stringify({ profileId: provider.id, baseUrl: form.baseUrl, apiKey: form.apiKey, lang }),
         signal: controller.signal,
       })
       const payload = (await response.json()) as {
@@ -276,42 +330,29 @@ export function LlmSettingsForm({
         )
       }
 
-      const nextOptions = mergeModelOptions(model, payload.models ?? [])
-      setModelOptions(nextOptions)
-
-      if (!model && nextOptions.length > 0) {
-        setModel(nextOptions[0])
-      }
-
-      setModelFeedback(
-        resolvedLang === "zh"
+      const nextOptions = mergeModelOptions(form.model, payload.models ?? [])
+      dispatch({
+        type: "MODELS_LOADED",
+        options: nextOptions,
+        feedback: resolvedLang === "zh"
           ? `已获取 ${nextOptions.length} 个模型。`
           : `Loaded ${nextOptions.length} models.`,
-      )
+      })
     } catch (error) {
-      // Ignore aborted requests silently
       if (error instanceof DOMException && error.name === "AbortError") return
-      setModelFeedback(
-        error instanceof Error
+      dispatch({
+        type: "MODELS_ERROR",
+        feedback: error instanceof Error
           ? error.message
           : resolvedLang === "zh"
             ? "获取模型失败。"
             : "Failed to load models.",
-      )
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsLoadingModels(false)
-      }
+      })
     }
   }
 
   function resetPipelineDraft() {
-    setRelevancePrompt(pipeline.relevancePrompt)
-    setTranslationTitlePrompt(pipeline.translationTitlePrompt)
-    setTranslationContentPrompt(pipeline.translationContentPrompt)
-    setSummaryPromptEn(pipeline.summaryPromptEn)
-    setSummaryPromptZh(pipeline.summaryPromptZh)
-    setTagPrompt(pipeline.tagPrompt)
+    dispatch({ type: "RESET_PIPELINE", pipeline })
   }
 
   return (
@@ -394,7 +435,7 @@ export function LlmSettingsForm({
                     ]}
                   />
                   <div className="ml-auto flex items-center gap-2">
-                    {isActive ? (
+                    {form.isActive ? (
                       <Badge
                         variant="outline"
                         className="border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
@@ -479,10 +520,10 @@ export function LlmSettingsForm({
                   <Input
                     id="settings-name"
                     name="name"
-                    value={settingsName}
+                    value={form.settingsName}
                     onChange={(event) => {
-                      setSettingsName(event.target.value)
-                      setNameManuallyEdited(true)
+                      dispatch({ type: "SET_FIELD", field: "settingsName", value: event.target.value })
+                      dispatch({ type: "SET_FIELD", field: "nameManuallyEdited", value: true })
                     }}
                   />
                 </div>
@@ -491,7 +532,7 @@ export function LlmSettingsForm({
                     {resolvedLang === "zh" ? "服务商预设" : "Provider preset"}
                   </label>
                   <CustomSelect
-                    value={selectedPresetIndex >= 0 && selectedPresetIndex < PROVIDER_PRESETS.length ? PROVIDER_PRESETS[selectedPresetIndex].baseUrl : ""}
+                    value={form.selectedPresetIndex >= 0 && form.selectedPresetIndex < PROVIDER_PRESETS.length ? PROVIDER_PRESETS[form.selectedPresetIndex].baseUrl : ""}
                     onChange={(val) => {
                       const idx = PROVIDER_PRESETS.findIndex((p) => p.baseUrl === val)
                       if (idx < 0) return
@@ -501,9 +542,7 @@ export function LlmSettingsForm({
                         router.push(`/${lang}/admin/settings?profile=new&preset=${idx}`)
                         return
                       }
-                      setSelectedPresetIndex(idx)
-                      setBaseUrl(preset.baseUrl)
-                      if (!nameManuallyEdited) setSettingsName(preset.name)
+                      dispatch({ type: "APPLY_PRESET", presetIndex: idx })
                     }}
                     placeholder={resolvedLang === "zh" ? "选择预设以自动填充..." : "Select a preset to auto-fill..."}
                     options={PROVIDER_PRESETS.map((preset) => ({
@@ -519,8 +558,8 @@ export function LlmSettingsForm({
                   <Input
                     id="base-url"
                     name="baseUrl"
-                    value={baseUrl}
-                    onChange={(event) => setBaseUrl(event.target.value)}
+                    value={form.baseUrl}
+                    onChange={(event) => dispatch({ type: "SET_FIELD", field: "baseUrl", value: event.target.value })}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -531,8 +570,8 @@ export function LlmSettingsForm({
                     id="api-key"
                     name="apiKey"
                     type="password"
-                    value={apiKey}
-                    onChange={(event) => setApiKey(event.target.value)}
+                    value={form.apiKey}
+                    onChange={(event) => dispatch({ type: "SET_FIELD", field: "apiKey", value: event.target.value })}
                     placeholder={
                       provider.hasStoredApiKey
                         ? "● ● ● ● ● ● ● ● ● ● ● ●"
@@ -553,10 +592,10 @@ export function LlmSettingsForm({
                   </label>
                   {mergedModelOptions.length > 0 ? (
                     <>
-                      <input type="hidden" name="model" value={model} />
+                      <input type="hidden" name="model" value={form.model} />
                       <CustomSelect
-                        value={model}
-                        onChange={(val) => setModel(val)}
+                        value={form.model}
+                        onChange={(val) => dispatch({ type: "SET_FIELD", field: "model", value: val })}
                         options={mergedModelOptions.map((option) => ({
                           value: option,
                           label: option,
@@ -567,8 +606,8 @@ export function LlmSettingsForm({
                     <Input
                       id="model"
                       name="model"
-                      value={model}
-                      onChange={(event) => setModel(event.target.value)}
+                      value={form.model}
+                      onChange={(event) => dispatch({ type: "SET_FIELD", field: "model", value: event.target.value })}
                     />
                   )}
                   <div className="flex flex-wrap items-center gap-2">
@@ -576,9 +615,9 @@ export function LlmSettingsForm({
                       type="button"
                       variant="outline"
                       onClick={loadProviderModels}
-                      disabled={isLoadingModels}
+                      disabled={form.isLoadingModels}
                     >
-                      {isLoadingModels
+                      {form.isLoadingModels
                         ? resolvedLang === "zh"
                           ? "获取模型中..."
                           : "Loading models..."
@@ -592,17 +631,14 @@ export function LlmSettingsForm({
                         variant="ghost"
                         size="sm"
                         className="text-xs text-muted-foreground"
-                        onClick={() => {
-                          setModelOptions([])
-                          setModelFeedback("")
-                        }}
+                        onClick={() => dispatch({ type: "CLEAR_MODEL_LIST" })}
                       >
                         {resolvedLang === "zh" ? "清除列表" : "Clear list"}
                       </Button>
                     ) : null}
                   </div>
-                  {modelFeedback ? (
-                    <p className="text-sm text-muted-foreground">{modelFeedback}</p>
+                  {form.modelFeedback ? (
+                    <p className="text-sm text-muted-foreground">{form.modelFeedback}</p>
                   ) : null}
                 </div>
                 <div className={cn("flex items-center justify-between gap-4 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none")}>
@@ -620,8 +656,8 @@ export function LlmSettingsForm({
                     id="is-active-checkbox"
                     type="checkbox"
                     name="isActive"
-                    checked={isActive}
-                    onChange={(event) => setIsActive(event.target.checked)}
+                    checked={form.isActive}
+                    onChange={(event) => dispatch({ type: "SET_FIELD", field: "isActive", value: event.target.checked })}
                     aria-label={resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
                   />
                 </div>
@@ -637,48 +673,48 @@ export function LlmSettingsForm({
                     id="relevance-prompt"
                     name="relevancePrompt"
                     label={resolvedLang === "zh" ? "相关性判断" : "Classify relevance"}
-                    value={relevancePrompt}
-                    onChange={setRelevancePrompt}
+                    value={form.relevancePrompt}
+                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "relevancePrompt", value: v })}
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="title-prompt"
                     name="translateTitlePrompt"
                     label={resolvedLang === "zh" ? "标题翻译" : "Translate title"}
-                    value={translationTitlePrompt}
-                    onChange={setTranslationTitlePrompt}
+                    value={form.translationTitlePrompt}
+                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "translationTitlePrompt", value: v })}
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="content-prompt"
                     name="translateContentPrompt"
                     label={resolvedLang === "zh" ? "正文翻译" : "Translate body"}
-                    value={translationContentPrompt}
-                    onChange={setTranslationContentPrompt}
+                    value={form.translationContentPrompt}
+                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "translationContentPrompt", value: v })}
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="summary-prompt-en"
                     name="summaryPromptEn"
                     label={resolvedLang === "zh" ? "英文摘要" : "English summary"}
-                    value={summaryPromptEn}
-                    onChange={setSummaryPromptEn}
+                    value={form.summaryPromptEn}
+                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "summaryPromptEn", value: v })}
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="summary-prompt-zh"
                     name="summaryPromptZh"
                     label={resolvedLang === "zh" ? "中文摘要" : "Chinese summary"}
-                    value={summaryPromptZh}
-                    onChange={setSummaryPromptZh}
+                    value={form.summaryPromptZh}
+                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "summaryPromptZh", value: v })}
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="tag-prompt"
                     name="tagPrompt"
                     label={resolvedLang === "zh" ? "标签提取" : "Generate tags"}
-                    value={tagPrompt}
-                    onChange={setTagPrompt}
+                    value={form.tagPrompt}
+                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "tagPrompt", value: v })}
                     lang={resolvedLang}
                   />
                 </div>
