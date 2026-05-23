@@ -105,7 +105,6 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
           ? "按内容链路查看处理状态，定位每篇文章卡在了哪个步骤。"
           : "Review content pipelines and pinpoint which step each article is blocked on."
       }
-      currentNav="/admin/jobs"
       lang={lang}
     >
       {params.message ? (

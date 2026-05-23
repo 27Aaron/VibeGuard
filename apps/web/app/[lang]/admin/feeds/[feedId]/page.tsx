@@ -38,7 +38,6 @@ export default async function EditFeedPage({ params, searchParams }: EditFeedPag
           ? "在后台内直接调整来源信息、抓取频率和启停状态。"
           : "Adjust source details, polling cadence, and enabled state directly from the admin UI."
       }
-      currentNav="/admin/feeds"
       lang={resolvedLang}
     >
       <div

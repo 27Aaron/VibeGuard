@@ -36,7 +36,6 @@ export default async function SettingsPage({ params: routeParams, searchParams }
           ? "配置模型服务、默认模型和内容处理链路的提示词。"
           : "Configure model services, default models, and processing prompts."
       }
-      currentNav="/admin/settings"
       lang={lang}
     >
       {showBanner ? (

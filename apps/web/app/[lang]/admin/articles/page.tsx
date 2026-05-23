@@ -71,7 +71,6 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
           ? "查看文章提取、翻译、摘要等后续处理状态。"
           : "Review article extraction, translation, summary, and downstream processing status."
       }
-      currentNav="/admin/articles"
       lang={lang}
     >
       <Card>

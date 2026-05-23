@@ -12,6 +12,15 @@ function formatDateTime(value: Date | null | undefined, lang: "zh" | "en" = "zh"
   return formatDateTimeInShanghai(value, { lang, fallback })
 }
 
+function getArticleListTitle(
+  article: { titleEn: string; titleZh: string | null },
+  lang: AppLang,
+) {
+  return lang === "zh"
+    ? article.titleZh || article.titleEn || "未命名文章"
+    : article.titleEn || article.titleZh || "Untitled article"
+}
+
 export async function getArticleRows(input: Partial<AdminArticleListParams> & { lang?: AppLang } = {}) {
   const db = getDb()
   const lang = input.lang ?? "zh"
@@ -45,7 +54,7 @@ export async function getArticleRows(input: Partial<AdminArticleListParams> & { 
   return {
     rows: rows.map((article) => ({
       id: article.id,
-      title: lang === "zh" ? (article.titleZh || article.titleEn) : (article.titleEn || article.titleZh),
+      title: getArticleListTitle(article, lang),
       titleEn: article.titleEn,
       titleZh: article.titleZh,
       summary: lang === "zh"

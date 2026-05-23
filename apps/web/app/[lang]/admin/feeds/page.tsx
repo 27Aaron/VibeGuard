@@ -37,7 +37,6 @@ export default async function FeedsPage({ params: routeParams, searchParams }: F
           ? "管理内容来源的可用状态、抓取频率和即时抓取入口。"
           : "Manage source availability, polling cadence, and instant fetch actions."
       }
-      currentNav="/admin/feeds"
       lang={lang}
     >
       {showBanner ? (

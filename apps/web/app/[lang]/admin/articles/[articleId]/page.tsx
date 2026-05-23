@@ -155,7 +155,6 @@ export default async function ArticleDetailPage({
           ? "查看已保存的双语内容和当前处理结果。"
           : "Review the saved bilingual content and the current processing outcome."
       }
-      currentNav="/admin/articles"
       lang={resolvedLang}
     >
       <SearchToast status={status} message={message} />

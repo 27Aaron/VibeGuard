@@ -164,7 +164,6 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
     <AdminPageShell
       title={copy.title}
       description={copy.description}
-      currentNav="/admin"
       lang={lang}
     >
       {runSummary ? (
