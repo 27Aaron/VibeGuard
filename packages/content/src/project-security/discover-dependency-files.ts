@@ -1,4 +1,5 @@
 import fs from "node:fs/promises"
+import type { Dirent } from "node:fs"
 import path from "node:path"
 
 import type {
@@ -142,7 +143,7 @@ export async function discoverDependencyFiles(
       return
     }
 
-    let entries: fs.Dirent[]
+    let entries: Dirent[]
     try {
       entries = await fs.readdir(currentDir, { withFileTypes: true })
     } catch (error) {
