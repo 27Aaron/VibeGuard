@@ -114,9 +114,6 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
 
   if (!status) return null
 
-  const isActive = status.totalCount > 0
-  if (!isActive) return null
-
   return (
     <section className="flex flex-col gap-3">
       {/* 切换标签 */}

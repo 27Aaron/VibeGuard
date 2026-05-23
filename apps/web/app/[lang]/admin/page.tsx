@@ -256,11 +256,11 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>{copy.queueTitle}</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+          <CardContent className="flex flex-1 flex-col justify-between gap-4">
             <WorkerStatusPanel lang={lang} />
             <Link
               href={buildAdminHref(lang, "jobs")}
