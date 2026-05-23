@@ -1,6 +1,5 @@
 import { AdminPageShell } from "@/components/admin/admin-page-shell"
 import { LlmSettingsForm } from "@/components/admin/llm-settings-form"
-import { SettingsProfileList } from "@/components/admin/settings-profile-list"
 import { getLlmSettingsDetail, getLlmSettingsRows } from "@/lib/admin-data"
 import { saveLlmSettingsAction } from "@/lib/actions/settings"
 import { resolveLang } from "@/lib/i18n"
@@ -33,8 +32,8 @@ export default async function SettingsPage({ params: routeParams, searchParams }
       title={lang === "zh" ? "设置" : "Settings"}
       description={
         lang === "zh"
-          ? "配置模型服务、默认模型和内容处理链路的提示词。"
-          : "Configure model services, default models, and processing prompts."
+          ? "配置模型服务和内容处理链路的提示词。"
+          : "Configure model services and processing prompts."
       }
       lang={lang}
     >
@@ -49,34 +48,29 @@ export default async function SettingsPage({ params: routeParams, searchParams }
           {params.message}
         </div>
       ) : null}
-      <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.86fr)_minmax(0,1.64fr)]">
-        <SettingsProfileList
-          profiles={profiles}
-          selectedProfileId={selectedProfileId}
-          lang={lang}
-        />
-        <LlmSettingsForm
-          provider={{
-            id: settings.id,
-            providerName: settings.providerName,
-            settingsName: settings.settingsName,
-            baseUrl: settings.baseUrl,
-            hasStoredApiKey: settings.hasStoredApiKey,
-            model: settings.model,
-            isActive: settings.isActive,
-          }}
-          pipeline={{
-            relevancePrompt: settings.relevancePrompt,
-            translationTitlePrompt: settings.translationTitlePrompt,
-            translationContentPrompt: settings.translationContentPrompt,
-            summaryPromptEn: settings.summaryPromptEn,
-            summaryPromptZh: settings.summaryPromptZh,
-            tagPrompt: settings.tagPrompt,
-          }}
-          lang={lang}
-          action={saveLlmSettingsAction}
-        />
-      </section>
+      <LlmSettingsForm
+        profiles={profiles}
+        selectedProfileId={selectedProfileId}
+        provider={{
+          id: settings.id,
+          providerName: settings.providerName,
+          settingsName: settings.settingsName,
+          baseUrl: settings.baseUrl,
+          hasStoredApiKey: settings.hasStoredApiKey,
+          model: settings.model,
+          isActive: settings.isActive,
+        }}
+        pipeline={{
+          relevancePrompt: settings.relevancePrompt,
+          translationTitlePrompt: settings.translationTitlePrompt,
+          translationContentPrompt: settings.translationContentPrompt,
+          summaryPromptEn: settings.summaryPromptEn,
+          summaryPromptZh: settings.summaryPromptZh,
+          tagPrompt: settings.tagPrompt,
+        }}
+        lang={lang}
+        action={saveLlmSettingsAction}
+      />
     </AdminPageShell>
   )
 }
