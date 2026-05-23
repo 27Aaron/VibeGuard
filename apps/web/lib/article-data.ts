@@ -21,14 +21,19 @@ function getArticleListTitle(
     : article.titleEn || article.titleZh || "Untitled article"
 }
 
-export async function getArticleRows(input: Partial<AdminArticleListParams> & { lang?: AppLang } = {}) {
+export async function getArticleRows(input: Partial<AdminArticleListParams> & { lang?: AppLang; search?: string } = {}) {
   const db = getDb()
   const lang = input.lang ?? "zh"
   const pageSize = input.pageSize ?? DEFAULT_ADMIN_ARTICLE_PAGE_SIZE
   const requestedPage = Math.max(1, Math.floor(input.page ?? 1))
+  const search = input.search?.trim()
+  const searchFilter = search
+    ? sql`(${articles.titleEn} ILIKE ${`%${search}%`} OR ${articles.titleZh} ILIKE ${`%${search}%`})`
+    : undefined
   const [countRow] = await db
     .select({ count: sql<number>`count(*)` })
     .from(articles)
+    .where(searchFilter)
   const totalCount = Number(countRow?.count ?? 0)
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
   const page = Math.min(requestedPage, totalPages)
@@ -47,6 +52,7 @@ export async function getArticleRows(input: Partial<AdminArticleListParams> & { 
     })
     .from(articles)
     .innerJoin(feeds, eq(articles.feedId, feeds.id))
+    .where(searchFilter)
     .orderBy(desc(articles.publishedAt))
     .limit(pageSize)
     .offset(offset)

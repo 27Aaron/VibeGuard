@@ -1,7 +1,9 @@
 import Link from "next/link"
+import { Suspense } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell"
+import { ArticleSearchForm } from "@/components/admin/article-search-form"
 import { SoftLink } from "@/components/admin/soft-link"
 import { ArticleTable } from "@/components/admin/article-table"
 import {
@@ -28,6 +30,7 @@ type ArticlesPageProps = {
   searchParams?: Promise<{
     page?: string
     pageSize?: string
+    q?: string
   }>
 }
 
@@ -35,11 +38,13 @@ function buildArticlesHref(input: {
   lang: AppLang
   page: number
   pageSize: number
+  q?: string
 }) {
   const params = new URLSearchParams({
     page: String(input.page),
     pageSize: String(input.pageSize),
   })
+  if (input.q) params.set("q", input.q)
 
   return `/${input.lang}/admin/articles?${params.toString()}`
 }
@@ -48,11 +53,13 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
   const { lang: rawLang } = await routeParams
   const params = (await searchParams) ?? {}
   const lang = resolveLang(rawLang)
+  const searchQuery = params.q ?? ""
   const paginationParams = parseAdminArticleListParams(params)
   const { rows: articles, pagination } = await getArticleRows({
     page: paginationParams.page,
     pageSize: paginationParams.pageSize,
     lang,
+    search: searchQuery,
   })
   const rangeText =
     lang === "zh"
@@ -83,6 +90,9 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-4">
+          <Suspense>
+            <ArticleSearchForm lang={lang} defaultValue={searchQuery} />
+          </Suspense>
           <div className={cn("mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", getAdminSubtlePanelClassName())}>
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
@@ -102,7 +112,7 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
                 {ADMIN_ARTICLE_PAGE_SIZE_OPTIONS.map((option) => (
                   <SoftLink
                     key={option}
-                    href={buildArticlesHref({ lang, page: 1, pageSize: option })}
+                    href={buildArticlesHref({ lang, page: 1, pageSize: option, q: searchQuery })}
                     className={cn(
                       buttonVariants({
                         size: "xs",
@@ -127,6 +137,7 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
                   lang,
                   page: previousPage,
                   pageSize: pagination.pageSize,
+                  q: searchQuery,
                 })}
                 disabled={!hasPreviousPage}
                 className={cn(
@@ -142,6 +153,7 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
                   lang,
                   page: nextPage,
                   pageSize: pagination.pageSize,
+                  q: searchQuery,
                 })}
                 disabled={!hasNextPage}
                 className={cn(
