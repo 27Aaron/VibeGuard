@@ -131,43 +131,43 @@ function getRegenerationOptionDescription(
   if (lang === "zh") {
     switch (target) {
       case "fetch-source":
-        return "重新抓取并运行完整处理流水线，包括提取、翻译、摘要和标签。"
+        return "重新抓取并运行完整流水线。"
       case "extract-content":
-        return "重新从来源抓取 HTML 并提取正文，不影响翻译和摘要。"
+        return "重新从来源抓取并提取正文。"
       case "classify-relevance":
-        return "重新用模型判断文章是否与供应链安全相关。"
+        return "重新判断文章是否与供应链安全相关。"
       case "title-zh":
-        return "基于当前英文标题重新生成中文标题。"
+        return "重新翻译英文标题为中文标题。"
       case "content-zh":
-        return "基于当前英文正文重新生成中文正文。"
+        return "重新翻译英文正文为中文正文。"
       case "summary-en":
-        return "基于当前英文正文重新生成英文摘要。"
+        return "重新从英文正文生成英文摘要。"
       case "summary-zh":
-        return "基于当前中文正文重新生成中文摘要。"
+        return "重新从中文正文生成中文摘要。"
       case "tags":
       default:
-        return "基于当前英文正文重新生成安全标签。"
+        return "重新从英文正文生成安全标签。"
     }
   }
 
   switch (target) {
     case "fetch-source":
-      return "Re-fetch from the source and run the full pipeline: extract, translate, summarize, and tag."
+      return "Re-fetch and run the full pipeline."
     case "extract-content":
-      return "Re-fetch the HTML and extract the body. Does not affect translations or summaries."
+      return "Re-fetch and extract the body from source."
     case "classify-relevance":
-      return "Re-run the model to check if this article is relevant to supply-chain security."
+      return "Re-check if relevant to supply-chain security."
     case "title-zh":
-      return "Regenerate the Chinese title from the current English title."
+      return "Re-translate the English title into Chinese."
     case "content-zh":
-      return "Regenerate the Chinese body from the current English body."
+      return "Re-translate the English body into Chinese."
     case "summary-en":
-      return "Regenerate the English summary from the current English body."
+      return "Re-generate English summary from the English body."
     case "summary-zh":
-      return "Regenerate the Chinese summary from the current Chinese body."
+      return "Re-generate Chinese summary from the Chinese body."
     case "tags":
     default:
-      return "Regenerate security tags from the current English body."
+      return "Re-generate security tags from the English body."
   }
 }
 
