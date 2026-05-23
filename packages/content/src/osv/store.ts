@@ -32,18 +32,20 @@ type UpsertOptions = {
   affectedPackageInsertChunkSize?: number
 }
 
+// EXCLUDED.* references are hardcoded column names (not user input), so they are safe.
+// Using sql`` template tag instead of sql.raw() for consistency with Drizzle conventions.
 const advisoryConflictUpdateSet = {
-  sourceUrl: sql.raw("excluded.source_url"),
-  rawHash: sql.raw("excluded.raw_hash"),
-  riskType: sql.raw("excluded.risk_type"),
-  summary: sql.raw("excluded.summary"),
-  details: sql.raw("excluded.details"),
-  aliases: sql.raw("excluded.aliases"),
-  severity: sql.raw("excluded.severity"),
-  publishedAt: sql.raw("excluded.published_at"),
-  modifiedAt: sql.raw("excluded.modified_at"),
-  withdrawnAt: sql.raw("excluded.withdrawn_at"),
-  references: sql.raw("excluded.references"),
+  sourceUrl: sql`excluded.source_url`,
+  rawHash: sql`excluded.raw_hash`,
+  riskType: sql`excluded.risk_type`,
+  summary: sql`excluded.summary`,
+  details: sql`excluded.details`,
+  aliases: sql`excluded.aliases`,
+  severity: sql`excluded.severity`,
+  publishedAt: sql`excluded.published_at`,
+  modifiedAt: sql`excluded.modified_at`,
+  withdrawnAt: sql`excluded.withdrawn_at`,
+  references: sql`excluded.references`,
 }
 
 const DEFAULT_AFFECTED_PACKAGE_INSERT_CHUNK_SIZE = 1000

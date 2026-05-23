@@ -137,6 +137,8 @@ export function buildOsvBootstrapArchiveUrl(ecosystem: OsvDumpEcosystem) {
   return `${OSV_VULNERABILITIES_BASE_URL}/${encodeURIComponent(ecosystem)}/all.zip`
 }
 
+const MAX_RESPONSE_BYTES = 50 * 1024 * 1024 // 50MB
+
 async function defaultFetchText(url: string) {
   const response = await fetch(url)
 
@@ -144,7 +146,18 @@ async function defaultFetchText(url: string) {
     throw new Error(`Failed to download OSV file: ${response.status} ${url}`)
   }
 
-  return response.text()
+  const contentLength = Number(response.headers.get("content-length") ?? "0")
+  if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+    throw new Error(`Response too large: ${contentLength} bytes exceeds ${MAX_RESPONSE_BYTES} limit`)
+  }
+
+  const text = await response.text()
+  const byteLength = Buffer.byteLength(text, "utf8")
+  if (byteLength > MAX_RESPONSE_BYTES) {
+    throw new Error(`Response too large: ${byteLength} bytes exceeds ${MAX_RESPONSE_BYTES} limit`)
+  }
+
+  return text
 }
 
 async function defaultFetchBytes(url: string) {
@@ -154,7 +167,17 @@ async function defaultFetchBytes(url: string) {
     throw new Error(`Failed to download OSV archive: ${response.status} ${url}`)
   }
 
-  return new Uint8Array(await response.arrayBuffer())
+  const contentLength = Number(response.headers.get("content-length") ?? "0")
+  if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+    throw new Error(`Response too large: ${contentLength} bytes exceeds ${MAX_RESPONSE_BYTES} limit`)
+  }
+
+  const buffer = await response.arrayBuffer()
+  if (buffer.byteLength > MAX_RESPONSE_BYTES) {
+    throw new Error(`Response too large: ${buffer.byteLength} bytes exceeds ${MAX_RESPONSE_BYTES} limit`)
+  }
+
+  return new Uint8Array(buffer)
 }
 
 export async function downloadOsvTextToCache({

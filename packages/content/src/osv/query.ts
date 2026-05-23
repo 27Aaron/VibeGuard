@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm"
+import { desc, eq, inArray } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
 import {
@@ -136,33 +136,85 @@ export async function checkPackagesAgainstLocalDb(
     staleAfterMs: input.staleAfterMs,
     lastSyncedAt: syncState?.lastSuccessAt ?? null,
   })
-  const findings = []
 
-  for (const packageInput of input.packages) {
-    const packageKey = normalizePackageKey(
-      packageInput.ecosystem,
-      packageInput.name,
-    )
-    const affectedPackages = await db.query.securityAffectedPackages.findMany({
-      where: (table, { and, eq: whereEq }) =>
+  if (input.packages.length === 0) {
+    return { meta, findings: [] }
+  }
+
+  // Batch step 1: collect unique (ecosystem, packageKey) pairs
+  const packageLookupKeys = input.packages.map((pkg) => ({
+    ecosystem: pkg.ecosystem,
+    packageKey: normalizePackageKey(pkg.ecosystem, pkg.name),
+    original: pkg,
+  }))
+
+  // Build OR conditions for all packages in one query
+  const ecosystemKeys = new Map<string, Set<string>>()
+  for (const { ecosystem, packageKey } of packageLookupKeys) {
+    const keys = ecosystemKeys.get(ecosystem)
+    if (keys) {
+      keys.add(packageKey)
+    } else {
+      ecosystemKeys.set(ecosystem, new Set([packageKey]))
+    }
+  }
+
+  // Query all affected packages in batches by ecosystem (inArray requires same column)
+  const allAffectedPackages: Array<{
+    id: string
+    ecosystem: string
+    packageName: string
+    packageKey: string
+    purl: string | null
+    affectedVersions: string[]
+    ranges: Array<{ type?: string; events?: Array<Record<string, string>> }>
+    fixedVersions: string[]
+    advisoryId: string
+  }> = []
+
+  for (const [ecosystem, keys] of ecosystemKeys) {
+    const keyArray = Array.from(keys)
+    const rows = await db.query.securityAffectedPackages.findMany({
+      where: (table, { and, eq: whereEq, inArray: whereInArray }) =>
         and(
-          whereEq(table.ecosystem, packageInput.ecosystem),
-          whereEq(table.packageKey, packageKey),
+          whereEq(table.ecosystem, ecosystem),
+          whereInArray(table.packageKey, keyArray),
         ),
     })
+    allAffectedPackages.push(...rows)
+  }
 
-    for (const affectedPackage of affectedPackages) {
-      const advisory = await db.query.securityAdvisories.findFirst({
-        where: eq(securityAdvisories.id, affectedPackage.advisoryId),
-      })
+  if (allAffectedPackages.length === 0) {
+    return { meta, findings: [] }
+  }
+
+  // Batch step 2: query all advisories in one shot
+  const advisoryIds = Array.from(
+    new Set(allAffectedPackages.map((ap) => ap.advisoryId)),
+  )
+  const allAdvisories = await db.query.securityAdvisories.findMany({
+    where: inArray(securityAdvisories.id, advisoryIds),
+  })
+  const advisoryById = new Map(allAdvisories.map((a) => [a.id, a]))
+
+  // Batch step 3: join in memory
+  const findings = []
+
+  for (const { original, packageKey } of packageLookupKeys) {
+    const matchedAffectedPackages = allAffectedPackages.filter(
+      (ap) => ap.ecosystem === original.ecosystem && ap.packageKey === packageKey,
+    )
+
+    for (const affectedPackage of matchedAffectedPackages) {
+      const advisory = advisoryById.get(affectedPackage.advisoryId)
 
       if (!advisory || advisory.withdrawnAt) {
         continue
       }
 
       const match = evaluateAffectedPackageVersion({
-        ecosystem: packageInput.ecosystem,
-        version: packageInput.version,
+        ecosystem: original.ecosystem,
+        version: original.version,
         affectedVersions: affectedPackage.affectedVersions,
         ranges: affectedPackage.ranges,
       })
@@ -179,14 +231,14 @@ export async function checkPackagesAgainstLocalDb(
           affected: match.affected,
           confidence: match.confidence,
           matchReason: match.matchReason,
-          ecosystem: packageInput.ecosystem,
-          name: packageInput.name,
-          version: packageInput.version,
+          ecosystem: original.ecosystem,
+          name: original.name,
+          version: original.version,
         }),
         package: {
-          ecosystem: packageInput.ecosystem,
-          name: packageInput.name,
-          version: packageInput.version ?? null,
+          ecosystem: original.ecosystem,
+          name: original.name,
+          version: original.version ?? null,
           purl: affectedPackage.purl,
         },
         advisory: {
