@@ -1,9 +1,8 @@
-import { pathToFileURL } from "node:url";
-
 import { closeDb, getDb } from "@vibeguard/db";
 
 import { pollActiveFeeds } from "./poll-feeds";
 import { processAvailableQueuedJobs } from "./process-article";
+import { isDirectExecution } from "./run-utils";
 
 export { pollActiveFeeds, pollFeedNow } from "./poll-feeds";
 export {
@@ -74,6 +73,8 @@ const DEFAULT_IDLE_MAX_INTERVAL_MS = 60_000
 const DEFAULT_POLL_INTERVAL_MS = 5_000
 const MIN_POLL_INTERVAL_MS = 250
 
+const MAX_BACKOFF_POWER = 6
+
 function computeIdleInterval(baseIntervalMs: number, consecutiveIdleCycles: number) {
   if (consecutiveIdleCycles <= 0) {
     return baseIntervalMs
@@ -83,7 +84,7 @@ function computeIdleInterval(baseIntervalMs: number, consecutiveIdleCycles: numb
     process.env.WORKER_MAX_IDLE_INTERVAL_MS,
     DEFAULT_IDLE_MAX_INTERVAL_MS,
   )
-  const backoffFactor = 2 ** Math.min(consecutiveIdleCycles, 6)
+  const backoffFactor = 2 ** Math.min(consecutiveIdleCycles, MAX_BACKOFF_POWER)
   return Math.min(baseIntervalMs * backoffFactor, maxIntervalMs)
 }
 
@@ -150,7 +151,11 @@ export async function startOsvSyncScheduler(
 // --- Worker Loop ---
 
 function resolvePollInterval(value: number, fallback: number) {
-  const parsed = Number.parseInt(String(value), 10)
+  // Skip String→parseInt round-trip when already a number (I04)
+  const parsed =
+    typeof value === "number" && Number.isFinite(value)
+      ? value
+      : Number.parseInt(String(value), 10)
 
   if (!Number.isFinite(parsed) || parsed < MIN_POLL_INTERVAL_MS) {
     return fallback
@@ -238,11 +243,7 @@ export async function main() {
   }
 }
 
-const isDirectExecution =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (isDirectExecution) {
+if (isDirectExecution()) {
   main().catch((error) => {
     console.error(error);
     process.exit(1);

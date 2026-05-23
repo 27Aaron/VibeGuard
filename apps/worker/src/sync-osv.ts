@@ -1,11 +1,11 @@
-import { pathToFileURL } from "node:url"
-
 import { closeDb, getDb } from "@vibeguard/db"
 import {
   bootstrapAllOsvEcosystems,
   type SyncOsvEcosystemSummary,
   syncAllOsvEcosystems,
 } from "@vibeguard/content/osv/sync"
+
+import { isDirectExecution } from "./run-utils"
 
 export type OsvSyncMode = "bootstrap" | "incremental"
 
@@ -110,11 +110,7 @@ export async function main(argv = process.argv.slice(2)) {
   }
 }
 
-const isDirectExecution =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-
-if (isDirectExecution) {
+if (isDirectExecution()) {
   main().catch((error) => {
     console.error(error)
     process.exit(1)

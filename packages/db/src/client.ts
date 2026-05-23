@@ -4,6 +4,16 @@ import { Pool } from "pg";
 import { normalizeInt } from "@vibeguard/shared";
 import { schema } from "./schema";
 
+// NOTE(I03): Singleton pattern — getPool()/getDb() lazily create one Pool/Drizzle
+// instance per process. Not thread-safe (not a concern in Node.js single-threaded
+// event loop). However, closeDb() resets the singletons to undefined, allowing
+// re-creation on the next call — callers must ensure no concurrent operations
+// are in-flight when calling closeDb().
+//
+// NOTE(I17): Module-level mutable globals (pool, database) make this module hard
+// to test in isolation — tests share state across runs within the same process.
+// To test properly, use dependency injection at the call site rather than
+// importing getDb/getPool directly in the code under test.
 let pool: Pool | undefined;
 let database: NodePgDatabase<typeof schema> | undefined;
 

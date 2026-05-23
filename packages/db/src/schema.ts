@@ -74,6 +74,10 @@ export const articleRiskCategoryEnum = pgEnum(
   articleRiskCategoryValues,
 );
 
+// OPTIMIZATION(I01): For high-write tables (articles, processing_jobs), consider
+// switching from UUID v4 (defaultRandom) to UUID v7 (time-ordered) to reduce
+// B-tree index fragmentation and improve INSERT performance. This requires a
+// migration and application-level UUID v7 generation, so it is deferred.
 export const feeds = pgTable(
   "feeds",
   {
@@ -95,6 +99,10 @@ export const feeds = pgTable(
       .$onUpdateFn(() => new Date()),
   },
   (table) => [
+    // TODO(I02): Boolean single-column index has very low selectivity (~50% true).
+    // Consider converting to a partial index: `WHERE enabled = true` which would
+    // only index the active feeds and be much smaller. Drizzle supports partial
+    // indexes via `.where()` on the index builder, but this requires a migration.
     index("feeds_enabled_idx").on(table.enabled),
     index("feeds_last_polled_at_idx").on(table.lastPolledAt),
   ],
