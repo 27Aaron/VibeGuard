@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 
 import { processingJobs, schema } from "@vibeguard/db";
 import { JobPipelineStage, JobStatus, JobType } from "@vibeguard/shared";
@@ -320,38 +320,31 @@ export async function resetStaleRunningJobs(
 ) {
   const now = input.now ?? new Date();
   const staleAfterMinutes = input.staleAfterMinutes ?? 3;
-  const staleBefore = new Date(now.getTime() - staleAfterMinutes * 60 * 1000);
-  const runningJobs = await db.query.processingJobs.findMany({
-    where: eq(processingJobs.status, JobStatus.RUNNING),
-  });
-  let resetCount = 0;
-  let failedCount = 0;
+  const staleThreshold = new Date(now.getTime() - staleAfterMinutes * 60 * 1000);
 
-  for (const job of runningJobs) {
-    if (!job.startedAt || job.startedAt > staleBefore) {
-      continue;
-    }
+  const result = await db
+    .update(processingJobs)
+    .set({
+      status: JobStatus.QUEUED,
+      attempt: 0,
+      startedAt: null,
+      pipelineStage: JobPipelineStage.WAITING,
+      lastError: "Reset after stale detection",
+      runAfter: now,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(processingJobs.status, JobStatus.RUNNING),
+        lt(processingJobs.startedAt, staleThreshold),
+      ),
+    )
+    .returning();
 
-    const nextState = buildStaleRunningJobUpdate({
-      attempt: job.attempt,
-      maxAttempts: job.maxAttempts,
-      now,
-    });
-
-    await db
-      .update(processingJobs)
-      .set(nextState)
-      .where(eq(processingJobs.id, job.id));
-
-    if (nextState.status === JobStatus.FAILED) {
-      failedCount += 1;
-    } else {
-      resetCount += 1;
-    }
-  }
+  const resetCount = result.length;
 
   return {
     resetCount,
-    failedCount,
+    failedCount: 0,
   };
 }

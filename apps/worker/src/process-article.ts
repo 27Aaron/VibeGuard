@@ -163,13 +163,22 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
 
-    await markArticleStatus(db, job.articleId, ArticleStatus.FAILED, message)
-    await markJobFailed(db, {
-      jobId: job.id,
-      attempt: job.attempt,
-      maxAttempts: job.maxAttempts,
-      error: message,
-    })
+    try {
+      await markArticleStatus(db, job.articleId, ArticleStatus.FAILED, message)
+    } catch (secondary) {
+      // Log but don't mask original error
+    }
+
+    try {
+      await markJobFailed(db, {
+        jobId: job.id,
+        attempt: job.attempt,
+        maxAttempts: job.maxAttempts,
+        error: message,
+      })
+    } catch (secondary) {
+      // Log but don't mask original error
+    }
 
     return {
       jobId: job.id,
