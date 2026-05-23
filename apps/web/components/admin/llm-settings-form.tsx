@@ -410,29 +410,30 @@ export function LlmSettingsForm({
                     <label htmlFor="model" className="text-sm font-medium">
                       {resolvedLang === "zh" ? "默认模型" : "Default model"}
                     </label>
-                    {mergedModelOptions.length > 0 ? (
-                      <select
-                        id="model"
-                        name="model"
-                        value={model}
-                        onChange={(event) => setModel(event.target.value)}
-                        className={getAdminSelectClassName()}
-                      >
-                        {mergedModelOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <Input
-                        id="model"
-                        name="model"
-                        value={model}
-                        onChange={(event) => setModel(event.target.value)}
-                      />
-                    )}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {mergedModelOptions.length > 0 ? (
+                        <select
+                          id="model"
+                          name="model"
+                          value={model}
+                          onChange={(event) => setModel(event.target.value)}
+                          className={cn(getAdminSelectClassName(), "flex-1")}
+                        >
+                          {mergedModelOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input
+                          id="model"
+                          name="model"
+                          value={model}
+                          onChange={(event) => setModel(event.target.value)}
+                          className="flex-1"
+                        />
+                      )}
                       <Button
                         type="button"
                         variant="outline"
@@ -445,9 +446,25 @@ export function LlmSettingsForm({
                             ? "获取中..."
                             : "Loading..."
                           : resolvedLang === "zh"
-                            ? "获取模型"
-                            : "Fetch models"}
+                            ? "获取模型列表"
+                            : "Load model list"}
                       </Button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {mergedModelOptions.length > 0 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto px-0 text-xs text-muted-foreground"
+                          onClick={() => {
+                            setModelOptions([])
+                            setModelFeedback("")
+                          }}
+                        >
+                          {resolvedLang === "zh" ? "清除列表，手动输入" : "Clear list, type manually"}
+                        </Button>
+                      ) : null}
                       {modelFeedback ? (
                         <p className="text-sm text-muted-foreground">{modelFeedback}</p>
                       ) : null}
