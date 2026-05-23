@@ -369,10 +369,7 @@ export default async function ArticleDetailPage({
                           {option.label}
                         </button>
                         <p className="mt-2 text-xs leading-5 text-zinc-500 dark:text-stone-400">
-                          {option.disabledReason ??
-                            (resolvedLang === "zh"
-                              ? "当前条件已满足，可直接执行。"
-                              : "Ready to run with the current article content.")}
+                          {option.disabledReason ?? option.description}
                         </p>
                       </div>
                     </div>

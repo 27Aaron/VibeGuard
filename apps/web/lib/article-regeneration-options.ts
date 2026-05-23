@@ -13,6 +13,7 @@ type RegenerationOptionArticle = {
 export type ArticleRegenerationOption = {
   target: ArticleRegenerationTarget
   label: string
+  description: string
   disabled: boolean
   disabledReason: string | null
 }
@@ -33,10 +34,14 @@ export function buildArticleRegenerationOptions(
   lang: "zh" | "en",
 ): ArticleRegenerationOption[] {
   return REGENERATION_TARGET_ORDER.map((target) => {
+    const label = getRegenerationOptionLabel(target, lang)
+    const description = getRegenerationOptionDescription(target, lang)
+
     if (target === "fetch-source" || target === "extract-content") {
       return {
         target,
-        label: getRegenerationOptionLabel(target, lang),
+        label,
+        description,
         disabled: false,
         disabledReason: null,
       }
@@ -64,7 +69,8 @@ export function buildArticleRegenerationOptions(
 
     return {
       target,
-      label: getRegenerationOptionLabel(target, lang),
+      label,
+      description,
       disabled: Boolean(disabledReason),
       disabledReason: mapDisabledReason(disabledReason, target, lang),
     }
@@ -115,6 +121,53 @@ function getRegenerationOptionLabel(
     case "tags":
     default:
       return "Generate tags"
+  }
+}
+
+function getRegenerationOptionDescription(
+  target: ArticleRegenerationTarget,
+  lang: "zh" | "en",
+) {
+  if (lang === "zh") {
+    switch (target) {
+      case "fetch-source":
+        return "重新抓取并运行完整处理流水线，包括提取、翻译、摘要和标签。"
+      case "extract-content":
+        return "重新从来源抓取 HTML 并提取正文，不影响翻译和摘要。"
+      case "classify-relevance":
+        return "重新用模型判断文章是否与供应链安全相关。"
+      case "title-zh":
+        return "基于当前英文标题重新生成中文标题。"
+      case "content-zh":
+        return "基于当前英文正文重新生成中文正文。"
+      case "summary-en":
+        return "基于当前英文正文重新生成英文摘要。"
+      case "summary-zh":
+        return "基于当前中文正文重新生成中文摘要。"
+      case "tags":
+      default:
+        return "基于当前英文正文重新生成安全标签。"
+    }
+  }
+
+  switch (target) {
+    case "fetch-source":
+      return "Re-fetch from the source and run the full pipeline: extract, translate, summarize, and tag."
+    case "extract-content":
+      return "Re-fetch the HTML and extract the body. Does not affect translations or summaries."
+    case "classify-relevance":
+      return "Re-run the model to check if this article is relevant to supply-chain security."
+    case "title-zh":
+      return "Regenerate the Chinese title from the current English title."
+    case "content-zh":
+      return "Regenerate the Chinese body from the current English body."
+    case "summary-en":
+      return "Regenerate the English summary from the current English body."
+    case "summary-zh":
+      return "Regenerate the Chinese summary from the current Chinese body."
+    case "tags":
+    default:
+      return "Regenerate security tags from the current English body."
   }
 }
 
