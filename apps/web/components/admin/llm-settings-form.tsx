@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -363,113 +364,143 @@ export function LlmSettingsForm({
 
           <TabsContent value="provider">
             <Card>
-              <CardContent className="pt-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="settings-name" className="text-sm font-medium">
-                      {resolvedLang === "zh" ? "配置名称" : "Profile name"}
-                    </label>
+              <CardHeader>
+                <CardTitle>
+                  {provider.settingsName.trim() || provider.providerName}
+                </CardTitle>
+                <CardDescription>
+                  {resolvedLang === "zh"
+                    ? "维护模型服务凭证、默认模型和启用状态。"
+                    : "Manage model service credentials, the default model, and active state."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="settings-name" className="text-sm font-medium">
+                    {resolvedLang === "zh" ? "配置名称" : "Profile name"}
+                  </label>
+                  <Input
+                    id="settings-name"
+                    name="name"
+                    value={settingsName}
+                    onChange={(event) => setSettingsName(event.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="base-url" className="text-sm font-medium">
+                    {resolvedLang === "zh" ? "服务地址" : "Endpoint"}
+                  </label>
+                  <Input
+                    id="base-url"
+                    name="baseUrl"
+                    value={baseUrl}
+                    onChange={(event) => setBaseUrl(event.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="api-key" className="text-sm font-medium">
+                    {resolvedLang === "zh" ? "API 密钥" : "API key"}
+                  </label>
+                  <Input
+                    id="api-key"
+                    name="apiKey"
+                    type="password"
+                    value={apiKey}
+                    onChange={(event) => setApiKey(event.target.value)}
+                    placeholder={
+                      provider.hasStoredApiKey
+                        ? resolvedLang === "zh"
+                          ? "密钥已安全保存。输入新密钥可完成轮换。"
+                          : "A key is already stored securely. Enter a new key to rotate it."
+                        : "sk-..."
+                    }
+                  />
+                  {provider.hasStoredApiKey ? (
+                    <p className="text-sm text-muted-foreground">
+                      {resolvedLang === "zh"
+                        ? "当前已经保存过密钥。留空即可继续使用现有凭证。"
+                        : "A key is already stored. Leave this empty to keep using the existing credentials."}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="model" className="text-sm font-medium">
+                    {resolvedLang === "zh" ? "默认模型" : "Default model"}
+                  </label>
+                  {mergedModelOptions.length > 0 ? (
+                    <select
+                      id="model"
+                      name="model"
+                      value={model}
+                      onChange={(event) => setModel(event.target.value)}
+                      className={getAdminSelectClassName()}
+                    >
+                      {mergedModelOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
                     <Input
-                      id="settings-name"
-                      name="name"
-                      value={settingsName}
-                      onChange={(event) => setSettingsName(event.target.value)}
+                      id="model"
+                      name="model"
+                      value={model}
+                      onChange={(event) => setModel(event.target.value)}
                     />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="base-url" className="text-sm font-medium">
-                      {resolvedLang === "zh" ? "服务地址" : "Endpoint"}
-                    </label>
-                    <Input
-                      id="base-url"
-                      name="baseUrl"
-                      value={baseUrl}
-                      onChange={(event) => setBaseUrl(event.target.value)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="api-key" className="text-sm font-medium">
-                      {resolvedLang === "zh" ? "API 密钥" : "API key"}
-                    </label>
-                    <Input
-                      id="api-key"
-                      name="apiKey"
-                      type="password"
-                      value={apiKey}
-                      onChange={(event) => setApiKey(event.target.value)}
-                      placeholder={
-                        provider.hasStoredApiKey
-                          ? resolvedLang === "zh"
-                            ? "密钥已保存，输入新密钥可轮换"
-                            : "Key stored. Enter a new key to rotate."
-                          : "sk-..."
-                      }
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="model" className="text-sm font-medium">
-                      {resolvedLang === "zh" ? "默认模型" : "Default model"}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      {mergedModelOptions.length > 0 ? (
-                        <select
-                          id="model"
-                          name="model"
-                          value={model}
-                          onChange={(event) => setModel(event.target.value)}
-                          className={cn(getAdminSelectClassName(), "flex-1")}
-                        >
-                          {mergedModelOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <Input
-                          id="model"
-                          name="model"
-                          value={model}
-                          onChange={(event) => setModel(event.target.value)}
-                          className="flex-1"
-                        />
-                      )}
+                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={loadProviderModels}
+                      disabled={isLoadingModels}
+                    >
+                      {isLoadingModels
+                        ? resolvedLang === "zh"
+                          ? "获取模型中..."
+                          : "Loading models..."
+                        : resolvedLang === "zh"
+                          ? "获取模型列表"
+                          : "Load model list"}
+                    </Button>
+                    {mergedModelOptions.length > 0 ? (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        onClick={loadProviderModels}
-                        disabled={isLoadingModels}
+                        className="text-xs text-muted-foreground"
+                        onClick={() => {
+                          setModelOptions([])
+                          setModelFeedback("")
+                        }}
                       >
-                        {isLoadingModels
-                          ? resolvedLang === "zh"
-                            ? "获取中..."
-                            : "Loading..."
-                          : resolvedLang === "zh"
-                            ? "获取模型列表"
-                            : "Load model list"}
+                        {resolvedLang === "zh" ? "清除列表" : "Clear list"}
                       </Button>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {mergedModelOptions.length > 0 ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto px-0 text-xs text-muted-foreground"
-                          onClick={() => {
-                            setModelOptions([])
-                            setModelFeedback("")
-                          }}
-                        >
-                          {resolvedLang === "zh" ? "清除列表，手动输入" : "Clear list, type manually"}
-                        </Button>
-                      ) : null}
-                      {modelFeedback ? (
-                        <p className="text-sm text-muted-foreground">{modelFeedback}</p>
-                      ) : null}
-                    </div>
+                    ) : null}
                   </div>
+                  {modelFeedback ? (
+                    <p className="text-sm text-muted-foreground">{modelFeedback}</p>
+                  ) : null}
+                </div>
+                <div className={cn("flex items-center justify-between gap-4 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none")}>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">
+                      {resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {resolvedLang === "zh"
+                        ? "Worker 会优先读取这套配置来执行处理任务。"
+                        : "The worker will prefer this profile when processing article jobs."}
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    checked={isActive}
+                    onChange={(event) => setIsActive(event.target.checked)}
+                    aria-label={resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
+                  />
                 </div>
               </CardContent>
             </Card>
