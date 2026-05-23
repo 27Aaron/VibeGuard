@@ -45,9 +45,10 @@ export function createMcpServer(client: VibeGuardClient) {
           return { content: [{ type: "text" as const, text: result }] }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
+          console.error("[MCP tool error]", tool.name, message)
 
           return {
-            content: [{ type: "text" as const, text: `错误: ${message}` }],
+            content: [{ type: "text" as const, text: "内部错误，请稍后重试" }],
             isError: true,
           }
         }

@@ -2,6 +2,14 @@ import { z } from "zod"
 
 import type { VibeGuardClient } from "./client"
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function assertUuid(value: string, label = "id"): void {
+  if (!UUID_RE.test(value)) {
+    throw new Error(`Invalid ${label}: must be a valid UUID`)
+  }
+}
+
 type ToolHandler = (
   client: VibeGuardClient,
   args: Record<string, unknown>,
@@ -59,6 +67,7 @@ export const tools: ToolDefinition[] = [
       lang: z.enum(["zh", "en"]).optional().describe("语言 (zh/en)，默认 zh"),
     },
     async handler(client, args) {
+      assertUuid(args.id as string, "文章 ID")
       const article = await client.getArticle(args.id as string, args.lang as string)
       if (!article) return "未找到该文章。"
 

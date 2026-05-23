@@ -1,5 +1,35 @@
 const DEFAULT_API_URL = "http://127.0.0.1:3000"
 
+const LOCALHOST_PATTERNS = [
+  "127.0.0.1",
+  "localhost",
+  "[::1]",
+  "0.0.0.0",
+]
+
+function isLocalhost(url: URL): boolean {
+  return LOCALHOST_PATTERNS.some(
+    (pattern) => url.hostname === pattern || url.hostname.endsWith(".localhost"),
+  )
+}
+
+function validateApiUrl(raw: string): string {
+  let parsed: URL
+  try {
+    parsed = new URL(raw)
+  } catch {
+    throw new Error(`Invalid VIBEGUARD_API_URL: "${raw}" is not a valid URL`)
+  }
+
+  if (parsed.protocol !== "https:" && !isLocalhost(parsed)) {
+    throw new Error(
+      `VIBEGUARD_API_URL must use HTTPS for non-localhost connections. Got: ${parsed.protocol}//${parsed.hostname}`,
+    )
+  }
+
+  return raw.replace(/\/$/, "")
+}
+
 type ArticleListItem = {
   id: string
   title: string
@@ -71,7 +101,8 @@ export class VibeGuardClient {
   private baseUrl: string
 
   constructor(baseUrl?: string) {
-    this.baseUrl = (baseUrl || process.env.VIBEGUARD_API_URL || DEFAULT_API_URL).replace(/\/$/, "")
+    const raw = baseUrl || process.env.VIBEGUARD_API_URL || DEFAULT_API_URL
+    this.baseUrl = validateApiUrl(raw)
   }
 
   async searchArticles(params: {
