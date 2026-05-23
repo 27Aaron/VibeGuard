@@ -9,6 +9,7 @@ import {
   Languages,
   Link2,
   RefreshCw,
+  ShieldOff,
   Tags,
 } from "lucide-react"
 
@@ -114,6 +115,10 @@ function getRegenerationIcon(target: string) {
 
   if (target === "classify-relevance") {
     return RefreshCw
+  }
+
+  if (target === "skip-relevance") {
+    return ShieldOff
   }
 
   if (target.includes("summary")) {

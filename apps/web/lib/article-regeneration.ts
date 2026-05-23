@@ -20,6 +20,7 @@ export const ARTICLE_REGENERATION_TARGETS = [
   "fetch-source",
   "extract-content",
   "classify-relevance",
+  "skip-relevance",
   "title-zh",
   "content-zh",
   "summary-en",
@@ -124,6 +125,15 @@ export function getRegenerationRequirementError(
     return lang === "zh"
       ? "当前文章已被过滤"
       : "This article has been filtered"
+  }
+
+  if (target === "skip-relevance") {
+    if (article.status !== ArticleStatus.FILTERED) {
+      return lang === "zh"
+        ? "仅已过滤的文章可以跳过相关性判断。"
+        : "Only filtered articles can skip the relevance check."
+    }
+    return null
   }
 
   if (target === "classify-relevance") {
@@ -353,6 +363,19 @@ export async function regenerateArticleTarget(
         nextStatus: ArticleStatus.FILTERED,
       }
     }
+    const rawMeta = toRawMetaRecord(input.article.rawMeta)
+    if (rawMeta.relevanceFilter) {
+      delete rawMeta.relevanceFilter
+    }
+    return {
+      patch: { rawMeta },
+      nextStatus: hasCompleteContent(input.article, {})
+        ? ArticleStatus.READY
+        : input.article.status,
+    }
+  }
+
+  if (input.target === "skip-relevance") {
     const rawMeta = toRawMetaRecord(input.article.rawMeta)
     if (rawMeta.relevanceFilter) {
       delete rawMeta.relevanceFilter

@@ -34,6 +34,12 @@ describe("buildArticleRegenerationOptions", () => {
         disabledReason: "需要先有英文标题和英文正文。",
       }),
       expect.objectContaining({
+        target: "skip-relevance",
+        label: "跳过判断",
+        disabled: true,
+        disabledReason: "仅已过滤的文章可以跳过相关性判断。",
+      }),
+      expect.objectContaining({
         target: "title-zh",
         label: "标题翻译",
         disabled: false,
@@ -93,6 +99,12 @@ describe("buildArticleRegenerationOptions", () => {
         label: "Classify relevance",
         disabled: true,
         disabledReason: "An English title and English body are required first.",
+      }),
+      expect.objectContaining({
+        target: "skip-relevance",
+        label: "Skip filter",
+        disabled: true,
+        disabledReason: "Only filtered articles can skip the relevance check.",
       }),
       expect.objectContaining({
         target: "title-zh",
@@ -170,6 +182,10 @@ describe("buildArticleRegenerationOptions", () => {
       }),
       expect.objectContaining({
         target: "classify-relevance",
+        disabled: false,
+      }),
+      expect.objectContaining({
+        target: "skip-relevance",
         disabled: false,
       }),
       expect.objectContaining({

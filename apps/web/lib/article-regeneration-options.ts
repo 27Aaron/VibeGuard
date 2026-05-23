@@ -24,6 +24,7 @@ const REGENERATION_TARGET_ORDER: ArticleRegenerationTarget[] = [
   "fetch-source",
   "extract-content",
   "classify-relevance",
+  "skip-relevance",
   "title-zh",
   "content-zh",
   "summary-en",
@@ -46,6 +47,21 @@ export function buildArticleRegenerationOptions(
         description,
         disabled: false,
         disabledReason: null,
+      }
+    }
+
+    if (target === "skip-relevance") {
+      const isFiltered = article.status === "filtered"
+      return {
+        target,
+        label,
+        description,
+        disabled: !isFiltered,
+        disabledReason: isFiltered
+          ? null
+          : lang === "zh"
+            ? "仅已过滤的文章可以跳过相关性判断。"
+            : "Only filtered articles can skip the relevance check.",
       }
     }
 
@@ -91,6 +107,8 @@ function getRegenerationOptionLabel(
         return "正文提取"
       case "classify-relevance":
         return "相关性判断"
+      case "skip-relevance":
+        return "跳过判断"
       case "title-zh":
         return "标题翻译"
       case "content-zh":
@@ -112,6 +130,8 @@ function getRegenerationOptionLabel(
       return "Extract content"
     case "classify-relevance":
       return "Classify relevance"
+    case "skip-relevance":
+      return "Skip filter"
     case "title-zh":
       return "Translate title"
     case "content-zh":
@@ -138,6 +158,8 @@ function getRegenerationOptionDescription(
         return "重新从来源抓取并提取正文。"
       case "classify-relevance":
         return "重新判断文章是否与供应链安全相关。"
+      case "skip-relevance":
+        return "忽略过滤结果，清除标记并恢复文章。"
       case "title-zh":
         return "重新翻译英文标题为中文标题。"
       case "content-zh":
@@ -159,6 +181,8 @@ function getRegenerationOptionDescription(
       return "Re-fetch and extract the body from source."
     case "classify-relevance":
       return "Re-check if relevant to supply-chain security."
+    case "skip-relevance":
+      return "Dismiss the filter, clear the flag, and restore the article."
     case "title-zh":
       return "Re-translate the English title into Chinese."
     case "content-zh":
@@ -187,7 +211,7 @@ function mapDisabledReason(
   }
 
   if (lang === "zh") {
-    if (_target === "classify-relevance") {
+    if (_target === "classify-relevance" || _target === "skip-relevance") {
       return "需要先有英文标题和英文正文。"
     }
     if (_target === "title-zh") {
@@ -196,7 +220,7 @@ function mapDisabledReason(
     return "需要先有英文正文。"
   }
 
-  if (_target === "classify-relevance") {
+  if (_target === "classify-relevance" || _target === "skip-relevance") {
     return "An English title and English body are required first."
   }
   if (_target === "title-zh") {
