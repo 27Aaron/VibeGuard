@@ -2,12 +2,16 @@ import { and, desc, eq, gte, sql } from "drizzle-orm"
 
 import { articles, feeds, getDb, processingJobs } from "@vibeguard/db"
 
+import { requireAdminAuth } from "@/lib/admin-api-auth"
 import { formatDateTimeInShanghai } from "@/lib/time"
 
 export const dynamic = "force-dynamic"
 const WORKER_STATUS_LIST_LIMIT = 200
 
 export async function GET() {
+  const auth = await requireAdminAuth()
+  if (!auth.authorized) return auth.response
+
   const db = getDb()
 
   const [runningCountRow] = await db

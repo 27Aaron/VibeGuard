@@ -71,7 +71,7 @@ function constantTimeEquals(left: string, right: string) {
 
 function isAuthorizedRequest(request: Request) {
   if (!MCP_API_TOKEN) {
-    return true
+    return process.env.NODE_ENV === 'development'
   }
 
   return constantTimeEquals(extractBearerToken(request.headers), MCP_API_TOKEN)

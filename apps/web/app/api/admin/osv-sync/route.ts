@@ -2,9 +2,14 @@ import { desc } from "drizzle-orm"
 
 import { getDb, securitySyncState } from "@vibeguard/db"
 
+import { requireAdminAuth } from "@/lib/admin-api-auth"
+
 export const dynamic = "force-dynamic"
 
 export async function GET() {
+  const auth = await requireAdminAuth()
+  if (!auth.authorized) return auth.response
+
   const db = getDb()
 
   const rows = await db.query.securitySyncState.findMany({
@@ -24,6 +29,9 @@ export async function GET() {
 }
 
 export async function POST() {
+  const auth = await requireAdminAuth()
+  if (!auth.authorized) return auth.response
+
   try {
     const { syncAllOsvEcosystems } = await import("@vibeguard/content/osv/sync")
     const results = await syncAllOsvEcosystems({ db: getDb() })

@@ -201,7 +201,7 @@ export async function listArticles(searchParams: URLSearchParams) {
   }
 }
 
-export async function getArticleById(articleId: string, requestedLocale: string | undefined) {
+export async function getArticleById(articleId: string, requestedLocale: string | undefined, requiredStatus?: ArticleStatus) {
   const db = getDb()
   const rows = await db
     .select({
@@ -224,7 +224,7 @@ export async function getArticleById(articleId: string, requestedLocale: string 
     })
     .from(articles)
     .innerJoin(feeds, eq(articles.feedId, feeds.id))
-    .where(eq(articles.id, articleId))
+    .where(requiredStatus ? and(eq(articles.id, articleId), eq(articles.status, requiredStatus)) : eq(articles.id, articleId))
 
   const article = rows[0]
 
