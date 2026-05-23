@@ -151,7 +151,6 @@ describe("admin settings helpers", () => {
         "配置已保存。",
       )
     })
-    })
   })
 
   describe("provider model helpers", () => {

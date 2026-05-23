@@ -182,10 +182,10 @@ describe("W66: language-toggle startViewTransition typing", () => {
     "utf8",
   )
 
-  it("has a TypeScript declaration for startViewTransition", () => {
-    expect(src).toContain("declare global")
+  it("uses the built-in startViewTransition type instead of redeclaring Document", () => {
     expect(src).toContain("startViewTransition")
-    expect(src).toContain("interface Document")
+    expect(src).not.toContain("declare global")
+    expect(src).not.toContain("interface Document")
   })
 })
 
@@ -340,7 +340,7 @@ describe("W74: markdown-renderer memoized components", () => {
 
   it("has dependency array for useMemo", () => {
     expect(src).toMatch(
-      /\[palette,\s*lang,\s*sourceUrl,\s*copiedCodeBlock,\s*resolvedTheme\]/,
+      /\[palette,\s*lang,\s*sourceUrl,\s*copiedCodeBlock,\s*resolvedTheme,\s*text\.copiedCode,\s*text\.copyCode\]/,
     )
   })
 })
