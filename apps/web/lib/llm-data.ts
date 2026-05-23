@@ -3,10 +3,10 @@ import { DEFAULT_TAG_PROMPT, resolveRelevancePrompt, resolveTagPrompt } from "@v
 import { formatDateTimeInShanghai } from "./time"
 
 export const DEFAULT_SUMMARY_PROMPT_EN =
-  "Write a concise English summary that highlights the key security development, affected ecosystem, and why it matters."
+  "Write a concise 2–4 sentence English summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact. Omit filler and boilerplate. Focus on the security-relevant facts."
 
 export const DEFAULT_SUMMARY_PROMPT_ZH =
-  "Write a concise Simplified Chinese summary that highlights the key security development, affected ecosystem, and why it matters."
+  "Write a concise 2–4 sentence Simplified Chinese summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact. Omit filler and boilerplate. Focus on the security-relevant facts."
 
 export { DEFAULT_TAG_PROMPT }
 
@@ -14,7 +14,7 @@ const LEGACY_TRANSLATION_CONTENT_PROMPT =
   "Translate the article body into natural Chinese. Preserve links, package names, version strings, code snippets, and technical terms when needed."
 
 export const DEFAULT_TRANSLATION_CONTENT_PROMPT =
-  "Translate the article body into natural Chinese. Keep fenced code blocks, inline code, shell commands, configuration keys, package names, version strings, URLs, and file paths exactly unchanged. Translate the surrounding prose only."
+  "Translate the article body into natural, fluent Simplified Chinese. Preserve the original meaning precisely. Keep all technical accuracy — do not simplify or paraphrase security terminology. Keep fenced code blocks, inline code, shell commands, configuration keys, package names, version strings, URLs, and file paths exactly unchanged."
 
 export function normalizeLocalizedSummaryPrompt(input: {
   prompt: string | null | undefined
@@ -97,7 +97,7 @@ function buildDefaultLlmSettings() {
     model: "gpt-5-mini",
     isActive: true,
     translationTitlePrompt:
-      "Translate the article title into concise Chinese while preserving names and product terms.",
+      "Translate the article title into concise, natural Simplified Chinese. Preserve brand names, product names, project names, and technical acronyms (e.g. npm, PyPI, GitHub Actions) in their original English form. Do not add explanations or parentheses.",
     translationContentPrompt: DEFAULT_TRANSLATION_CONTENT_PROMPT,
     summaryPromptEn: DEFAULT_SUMMARY_PROMPT_EN,
     summaryPromptZh: DEFAULT_SUMMARY_PROMPT_ZH,

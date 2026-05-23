@@ -26,7 +26,7 @@ describe("I06: createChatCompletionTextWithRetry lastError default", () => {
         },
       },
       model: "test",
-      prompt: "test",
+      userContent: "test",
       maxAttempts: 0,
     })
 
@@ -45,7 +45,7 @@ describe("I06: createChatCompletionTextWithRetry lastError default", () => {
         },
       },
       model: "test",
-      prompt: "test",
+      userContent: "test",
       maxAttempts: 2,
       retryDelayMs: 1,
     })
@@ -415,7 +415,7 @@ describe("tryParseJsonCandidates", () => {
 describe("resolveRelevancePrompt", () => {
   it("returns default when given null", () => {
     const result = resolveRelevancePrompt(null)
-    expect(result).toContain("判断")
+    expect(result).toContain("supply-chain security")
   })
 
   it("returns custom prompt when provided", () => {

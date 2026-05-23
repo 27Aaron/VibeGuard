@@ -8,15 +8,16 @@ import {
 } from "../../packages/llm/src/tags"
 
 describe("LLM short tags", () => {
-  it("injects only the original article body into the configured tag prompt", () => {
-    const prompt = buildTagExtractionPrompt({
-      systemPrompt: "Extract tags from this original body only: {{content}}",
+  it("separates system prompt from article body", () => {
+    const { systemPrompt, userContent } = buildTagExtractionPrompt({
+      systemPrompt: "Extract tags from this body only.",
       sourceText: "Original English body",
     })
 
-    expect(prompt).toContain("Original English body")
-    expect(prompt).not.toContain("title")
-    expect(prompt).not.toContain("summary")
+    expect(systemPrompt).toBe("Extract tags from this body only.")
+    expect(userContent).toBe("Original English body")
+    expect(userContent).not.toContain("title")
+    expect(userContent).not.toContain("summary")
   })
 
   it("normalizes model tags into short display tags", () => {
@@ -42,7 +43,7 @@ describe("LLM short tags", () => {
 
   it("upgrades the migration placeholder prompt to the full default prompt", () => {
     expect(resolveTagPrompt("Extract short supply-chain security tags as strict JSON.")).toContain(
-      "{{content}}",
+      "supply-chain security",
     )
   })
 })

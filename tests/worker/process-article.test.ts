@@ -52,20 +52,20 @@ function createIrrelevantChatClient() {
 describe("buildLocalizedSummaryPrompt", () => {
   it("adds an explicit locale instruction", () => {
     expect(buildLocalizedSummaryPrompt("Summarize the article.", "en")).toContain(
-      "written in English",
+      "written entirely in English",
     )
     expect(buildLocalizedSummaryPrompt("Summarize the article.", "zh")).toContain(
-      "written in Simplified Chinese",
+      "written entirely in Simplified Chinese",
     )
   })
 
   it("overrides conflicting language instructions in the base prompt", () => {
     expect(
       buildLocalizedSummaryPrompt("Write the summary in Chinese.", "en"),
-    ).toContain("ignore it and respond in English only")
+    ).toContain("Ignore any conflicting language instructions")
     expect(
       buildLocalizedSummaryPrompt("Write the summary in English.", "zh"),
-    ).toContain("ignore it and respond in Simplified Chinese only")
+    ).toContain("Ignore any conflicting language instructions")
   })
 })
 

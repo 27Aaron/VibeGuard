@@ -1,33 +1,37 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  buildSummaryPrompt,
-  buildTranslationPrompt,
+  buildTranslationSystemPrompt,
+  buildLocalizedSummaryPrompt,
 } from "../../packages/llm/src/prompts";
 import { summarizeText } from "../../packages/llm/src/summarize";
 import { translateText } from "../../packages/llm/src/translate";
 
 describe("llm prompt builders", () => {
-  it("should include source content in summary prompt", () => {
-    const prompt = buildSummaryPrompt("Summarize it", "Hello world");
-
-    expect(prompt).toContain("Summarize it");
-    expect(prompt).toContain("Hello world");
-    expect(prompt).toContain("SOURCE_BOUNDARY");
-  });
-
-  it("should include source content in translation prompt", () => {
-    const prompt = buildTranslationPrompt("Translate it", "Hello world");
+  it("should include translation guardrail in system prompt", () => {
+    const prompt = buildTranslationSystemPrompt("Translate it");
 
     expect(prompt).toContain("Translate it");
-    expect(prompt).toContain("Hello world");
-    expect(prompt).toContain("SOURCE_BOUNDARY");
-    expect(prompt).toContain("Do not translate or rewrite fenced code blocks");
+    expect(prompt).toContain("Do NOT translate or alter");
+  });
+
+  it("should include locale instruction in localized summary prompt (zh)", () => {
+    const prompt = buildLocalizedSummaryPrompt("Summarize it", "zh");
+
+    expect(prompt).toContain("Summarize it");
+    expect(prompt).toContain("Simplified Chinese");
+  });
+
+  it("should include locale instruction in localized summary prompt (en)", () => {
+    const prompt = buildLocalizedSummaryPrompt("Summarize it", "en");
+
+    expect(prompt).toContain("Summarize it");
+    expect(prompt).toContain("English");
   });
 });
 
 describe("llm text services", () => {
-  it("should send translation requests through the chat completions api", async () => {
+  it("should send translation requests with system/user separation", async () => {
     const create = vi.fn().mockResolvedValue({
       choices: [
         {
@@ -51,8 +55,12 @@ describe("llm text services", () => {
       model: "gpt-5-mini",
       messages: [
         {
+          role: "system",
+          content: expect.stringContaining("Translate to Chinese"),
+        },
+        {
           role: "user",
-          content: expect.stringContaining("Hello world"),
+          content: "Hello world",
         },
       ],
     });
@@ -92,7 +100,7 @@ describe("llm text services", () => {
         {
           message: {
             content:
-              "翻译后的说明 __CF_CODE_BLOCK_0__ 保留，并且 `__CF_INLINE_CODE_0__` 也保留。",
+              "翻译后的说明 __CF_CODE_BLOCK_0__ 保留，并且 __CF_INLINE_CODE_0__ 也保留。",
           },
         },
       ],
@@ -112,17 +120,12 @@ describe("llm text services", () => {
       model: "gpt-5-mini",
       messages: [
         {
-          role: "user",
-          content: expect.stringContaining("__CF_CODE_BLOCK_0__"),
+          role: "system",
+          content: expect.stringContaining("Translate to Chinese"),
         },
-      ],
-    });
-    expect(create).toHaveBeenCalledWith({
-      model: "gpt-5-mini",
-      messages: [
         {
           role: "user",
-          content: expect.not.stringContaining("const token = process.env.API_KEY"),
+          content: expect.stringContaining("__CF_CODE_BLOCK_0__"),
         },
       ],
     });
@@ -130,7 +133,7 @@ describe("llm text services", () => {
     expect(result).toContain("`npm install`");
   });
 
-  it("should send summary requests through the chat completions api", async () => {
+  it("should send summary requests with system/user separation", async () => {
     const create = vi.fn().mockResolvedValue({
       choices: [
         {
@@ -154,8 +157,12 @@ describe("llm text services", () => {
       model: "gpt-5-mini",
       messages: [
         {
+          role: "system",
+          content: "Summarize in one sentence",
+        },
+        {
           role: "user",
-          content: expect.stringContaining("Hello world"),
+          content: "Hello world",
         },
       ],
     });
