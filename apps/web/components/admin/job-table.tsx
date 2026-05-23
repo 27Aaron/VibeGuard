@@ -19,6 +19,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+// Rows beyond this threshold use content-visibility: auto for
+// browser-native virtualization (skip off-screen layout/paint).
+const VIRTUALIZE_THRESHOLD = 30
+const ESTIMATED_ROW_HEIGHT = 56
+
 function statusVariant(status: JobRow["status"]) {
   if (status === "failed") {
     return "destructive" as const
@@ -89,6 +94,118 @@ function actionLabel(status: JobRow["status"], lang: AppLang) {
   }
 }
 
+function JobRowItem({ job, lang, status, stage, page, pageSize, shouldVirtualize }: {
+  job: JobRow
+  lang: AppLang
+  status: JobStatusFilter
+  stage: JobStageFilter
+  page: number
+  pageSize: number
+  shouldVirtualize: boolean
+}) {
+  const { current, total } = pipelineProgress(job)
+  const percent = Math.round((current / total) * 100)
+
+  return (
+    <TableRow
+      style={shouldVirtualize ? {
+        containIntrinsicSize: ESTIMATED_ROW_HEIGHT,
+        contentVisibility: "auto",
+      } : undefined}
+    >
+      <TableCell className="px-4 py-3 align-middle">
+        <label className="flex cursor-pointer items-center justify-center">
+          <input
+            aria-label={
+              lang === "zh"
+                ? `选择 ${job.articleTitle}`
+                : `Select ${job.articleTitle}`
+            }
+            form="selected-jobs-form"
+            name="ids"
+            type="checkbox"
+            value={job.id}
+          />
+        </label>
+      </TableCell>
+      <TableCell className="px-4 py-3 align-middle">
+        <div className="flex min-w-0 flex-col gap-1">
+          <Link
+            href={`/${lang}/admin/articles/${job.articleId}`}
+            className="truncate font-medium hover:underline"
+          >
+            {job.articleTitle}
+          </Link>
+          <span className="truncate text-xs text-muted-foreground">
+            {job.sourceName}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-3 text-center align-middle">
+        <Badge variant={job.status === "succeeded" ? "secondary" : "outline"}>
+          {displayStageLabel(job, lang)}
+        </Badge>
+      </TableCell>
+      <TableCell className="px-3 py-3 align-middle">
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {current}/{total}
+          </span>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                job.status === "failed"
+                  ? "bg-destructive"
+                  : "bg-emerald-500",
+              )}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-3 text-center align-middle">
+        <Badge variant={statusVariant(job.status)} className={statusClassName(job.status)}>
+          {statusLabel(job.status, lang)}
+        </Badge>
+      </TableCell>
+      <TableCell className="px-3 py-3 text-center align-middle">
+        {`${job.attempt}/${job.maxAttempts}`}
+      </TableCell>
+      <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.runAt}</TableCell>
+      <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.updatedAt}</TableCell>
+      <TableCell className="px-3 py-3 text-center align-middle">
+        {job.lastError ? (
+          <p className="line-clamp-2 text-xs text-destructive" title={job.lastError}>{job.lastError}</p>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            {lang === "zh" ? "无错误" : "No error"}
+          </span>
+        )}
+      </TableCell>
+      <TableCell className="px-4 py-3 text-center align-middle">
+        <form action={retryJobAction} className="inline-flex">
+          <input type="hidden" name="id" value={job.id} />
+          <input type="hidden" name="lang" value={lang} />
+          <input type="hidden" name="status" value={status} />
+          <input type="hidden" name="stage" value={stage} />
+          <input type="hidden" name="page" value={String(page)} />
+          <input type="hidden" name="pageSize" value={String(pageSize)} />
+          <button
+            type="submit"
+            className={cn(
+              buttonVariants({ size: "sm", variant: "outline" }),
+              "w-20 justify-center px-0",
+            )}
+          >
+            {actionLabel(job.status, lang)}
+          </button>
+        </form>
+      </TableCell>
+    </TableRow>
+  )
+}
+
 export function JobTable({
   jobs,
   lang,
@@ -104,8 +221,10 @@ export function JobTable({
   page: number
   pageSize: number
 }) {
+  const shouldVirtualize = jobs.length > VIRTUALIZE_THRESHOLD
+
   return (
-    <div className={getAdminTableSurfaceClassName()}>
+    <div className={getAdminTableSurfaceClassName()} style={{ overscrollBehavior: "contain" } as React.CSSProperties}>
       <Table className="table-fixed">
         <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
@@ -161,104 +280,16 @@ export function JobTable({
             </TableRow>
           ) : null}
           {jobs.map((job) => (
-            <TableRow key={job.id}>
-              <TableCell className="px-4 py-3 align-middle">
-                <label className="flex cursor-pointer items-center justify-center">
-                  <input
-                    aria-label={
-                      lang === "zh"
-                        ? `选择 ${job.articleTitle}`
-                        : `Select ${job.articleTitle}`
-                    }
-                    form="selected-jobs-form"
-                    name="ids"
-                    type="checkbox"
-                    value={job.id}
-                  />
-                </label>
-              </TableCell>
-              <TableCell className="px-4 py-3 align-middle">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <Link
-                    href={`/${lang}/admin/articles/${job.articleId}`}
-                    className="truncate font-medium hover:underline"
-                  >
-                    {job.articleTitle}
-                  </Link>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {job.sourceName}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell className="px-3 py-3 text-center align-middle">
-                <Badge variant={job.status === "succeeded" ? "secondary" : "outline"}>
-                  {displayStageLabel(job, lang)}
-                </Badge>
-              </TableCell>
-              <TableCell className="px-3 py-3 align-middle">
-                {(() => {
-                  const { current, total } = pipelineProgress(job)
-                  const percent = Math.round((current / total) * 100)
-
-                  return (
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs tabular-nums text-muted-foreground">
-                        {current}/{total}
-                      </span>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            job.status === "failed"
-                              ? "bg-destructive"
-                              : "bg-emerald-500",
-                          )}
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })()}
-              </TableCell>
-              <TableCell className="px-3 py-3 text-center align-middle">
-                <Badge variant={statusVariant(job.status)} className={statusClassName(job.status)}>
-                  {statusLabel(job.status, lang)}
-                </Badge>
-              </TableCell>
-              <TableCell className="px-3 py-3 text-center align-middle">
-                {`${job.attempt}/${job.maxAttempts}`}
-              </TableCell>
-              <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.runAt}</TableCell>
-              <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.updatedAt}</TableCell>
-              <TableCell className="px-3 py-3 text-center align-middle">
-                {job.lastError ? (
-                  <p className="line-clamp-2 text-xs text-destructive" title={job.lastError}>{job.lastError}</p>
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    {lang === "zh" ? "无错误" : "No error"}
-                  </span>
-                )}
-              </TableCell>
-              <TableCell className="px-4 py-3 text-center align-middle">
-                <form action={retryJobAction} className="inline-flex">
-                  <input type="hidden" name="id" value={job.id} />
-                  <input type="hidden" name="lang" value={lang} />
-                  <input type="hidden" name="status" value={status} />
-                  <input type="hidden" name="stage" value={stage} />
-                  <input type="hidden" name="page" value={String(page)} />
-                  <input type="hidden" name="pageSize" value={String(pageSize)} />
-                  <button
-                    type="submit"
-                    className={cn(
-                      buttonVariants({ size: "sm", variant: "outline" }),
-                      "w-20 justify-center px-0",
-                    )}
-                  >
-                    {actionLabel(job.status, lang)}
-                  </button>
-                </form>
-              </TableCell>
-            </TableRow>
+            <JobRowItem
+              key={job.id}
+              job={job}
+              lang={lang}
+              status={status}
+              stage={stage}
+              page={page}
+              pageSize={pageSize}
+              shouldVirtualize={shouldVirtualize}
+            />
           ))}
         </TableBody>
       </Table>
