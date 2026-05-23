@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation"
 
-import { and, eq, ne, sql } from "drizzle-orm"
+import { and, eq, ne } from "drizzle-orm"
 import { createOpenAIClient } from "@vibeguard/llm/client"
 import {
   decryptSecret,
@@ -175,13 +175,16 @@ export async function activateLlmSettingsAction(formData: FormData) {
     redirect(buildSettingsRedirect(lang === "zh" ? "未找到该配置。" : "Profile not found.", "error", undefined, lang))
   }
 
-  // Deactivate all profiles and activate the target in a single atomic SQL
-  // statement to prevent concurrent activation races between two requests.
-  await db
-    .update(llmSettings)
-    .set({
-      isActive: sql`CASE WHEN ${llmSettings.id} = ${row.id} THEN true ELSE false END`,
-    })
+  await db.transaction(async (tx) => {
+    await tx
+      .update(llmSettings)
+      .set({ isActive: false })
+      .where(eq(llmSettings.isActive, true))
+    await tx
+      .update(llmSettings)
+      .set({ isActive: true })
+      .where(eq(llmSettings.id, row.id))
+  })
 
   revalidateLocalizedPaths("/admin/settings")
 
