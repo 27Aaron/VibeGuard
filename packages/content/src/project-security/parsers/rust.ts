@@ -116,7 +116,11 @@ function toManifestPackages(
 }
 
 function isRegistryCargoSource(source: string | null) {
-  return Boolean(source?.startsWith("registry+") && source.includes("crates.io-index"))
+  if (!source) return false
+  return (
+    (source.startsWith("registry+") || source.startsWith("sparse+")) &&
+    source.includes("crates.io")
+  )
 }
 
 export async function parseRustDependencyFile(

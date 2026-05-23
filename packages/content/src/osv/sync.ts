@@ -1,8 +1,6 @@
 import crypto from "node:crypto"
-import { execFile as execFileCallback } from "node:child_process"
 import fs from "node:fs/promises"
 import path from "node:path"
-import { promisify } from "node:util"
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
@@ -37,18 +35,7 @@ type ContentDb = NodePgDatabase<typeof schema>
 
 type FetchText = (url: string, maxBytes?: number) => Promise<string>
 type FetchBytes = (url: string) => Promise<Uint8Array>
-type ExecFile = (
-  file: string,
-  args: string[],
-  options?: {
-    maxBuffer?: number
-  },
-) => Promise<{
-  stdout: string | Buffer
-  stderr: string | Buffer
-}>
 
-const execFile = promisify(execFileCallback)
 const UNZIP_MAX_BUFFER_BYTES = 64 * 1024 * 1024
 const DEFAULT_BOOTSTRAP_BATCH_SIZE = 200
 const DEFAULT_MODIFIED_ID_ROW_LIMIT = 2000
@@ -662,6 +649,9 @@ export async function bootstrapAllOsvEcosystems({
 }: BootstrapAllOsvEcosystemsInput) {
   const results = new Array<SyncOsvEcosystemSummary>(ecosystems.length)
   const maxConcurrency = Math.max(1, Math.floor(concurrency))
+  // Shared index counter is safe because JS is single-threaded: the read and
+  // increment happen synchronously before any await, so no data race can occur
+  // between concurrent workers in the Promise.all pool.
   let nextIndex = 0
 
   async function runOne() {

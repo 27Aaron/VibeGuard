@@ -72,6 +72,7 @@ function shouldRecordSuccessfulLockfile(
 async function parseDependencyFile(
   input: ScanDependenciesInput,
   file: DetectedDependencyFile,
+  manifestCache: Map<string, Promise<string | undefined>>,
 ) {
   const absolutePath = path.join(input.rootDir, file.path)
 
@@ -110,9 +111,12 @@ async function parseDependencyFile(
   }
 
   const manifestPath = path.join(path.dirname(absolutePath), "Cargo.toml")
-  const manifestContent = await fs
-    .readFile(manifestPath, "utf8")
-    .catch(() => undefined)
+  let manifestPromise = manifestCache.get(manifestPath)
+  if (!manifestPromise) {
+    manifestPromise = fs.readFile(manifestPath, "utf8").catch(() => undefined)
+    manifestCache.set(manifestPath, manifestPromise)
+  }
+  const manifestContent = await manifestPromise
 
   return parseRustDependencyFile({
     rootDir: input.rootDir,
@@ -130,6 +134,7 @@ export async function scanDependencies(
   const packages: ScanDependenciesResult["packages"] = []
   const warnings = [...discovered.warnings]
   const successfulLockfiles = new Set<string>()
+  const manifestCache = new Map<string, Promise<string | undefined>>()
 
   for (const file of filesToScan) {
     if (shouldSkipManifest(file, successfulLockfiles)) {
@@ -137,7 +142,7 @@ export async function scanDependencies(
     }
 
     try {
-      const result = await parseDependencyFile(input, file)
+      const result = await parseDependencyFile(input, file, manifestCache)
       packages.push(...result.packages)
       warnings.push(...result.warnings)
       if (shouldRecordSuccessfulLockfile(file, result.packages)) {

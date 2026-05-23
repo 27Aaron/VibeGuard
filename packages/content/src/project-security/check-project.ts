@@ -33,7 +33,7 @@ const defaultDeps: CheckProjectDependenciesDeps = {
 function buildForwardedPackageKey(
   pkg: ScanDependenciesResult["packages"][number],
 ) {
-  return `${pkg.ecosystem}\u0000${normalizePackageNameForLookup(pkg)}\u0000${getLookupVersion(pkg) ?? ""}`
+  return `${pkg.ecosystem}:${normalizePackageNameForLookup(pkg)}:${getLookupVersion(pkg) ?? ""}`
 }
 
 function normalizePackageNameForLookup(

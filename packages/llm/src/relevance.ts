@@ -27,6 +27,11 @@ function safeSlice(text: string, maxChars: number): string {
   return text.slice(0, end);
 }
 
+interface RawRelevanceResponse {
+  relevant?: unknown
+  reason?: unknown
+}
+
 function parseRelevanceResponse(value: string): RelevanceResult | null {
   const stripped = stripJsonFence(value);
   const candidates = [
@@ -37,9 +42,10 @@ function parseRelevanceResponse(value: string): RelevanceResult | null {
   const parsed = tryParseJsonCandidates(candidates);
 
   if (typeof parsed === "object" && parsed !== null && "relevant" in parsed) {
+    const raw = parsed as RawRelevanceResponse;
     return {
-      relevant: Boolean((parsed as Record<string, unknown>).relevant),
-      reason: typeof (parsed as Record<string, unknown>).reason === "string" ? (parsed as Record<string, unknown>).reason as string : "",
+      relevant: Boolean(raw.relevant),
+      reason: typeof raw.reason === "string" ? raw.reason : "",
     };
   }
 

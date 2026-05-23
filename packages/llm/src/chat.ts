@@ -42,7 +42,7 @@ export async function createChatCompletionTextWithRetry(input: {
 }) {
   const maxAttempts = input.maxAttempts ?? 3
   const retryDelayMs = input.retryDelayMs ?? 250
-  let lastError: unknown
+  let lastError: unknown = new Error("Unknown error")
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
