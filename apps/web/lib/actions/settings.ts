@@ -215,7 +215,15 @@ export async function deleteLlmSettingsAction(formData: FormData) {
     redirect(buildSettingsRedirect(lang === "zh" ? "未找到该配置。" : "Profile not found.", "error", undefined, lang))
   }
 
+  const wasActive = row.isActive
   await db.delete(llmSettings).where(eq(llmSettings.id, row.id))
+
+  if (wasActive) {
+    const firstRemaining = await db.query.llmSettings.findFirst({})
+    if (firstRemaining) {
+      await db.update(llmSettings).set({ isActive: true }).where(eq(llmSettings.id, firstRemaining.id))
+    }
+  }
 
   revalidateLocalizedPaths("/admin/settings")
 
