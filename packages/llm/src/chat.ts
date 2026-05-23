@@ -13,15 +13,17 @@ type ChatCompletionResult = {
   choices?: ChatCompletionChoice[]
 }
 
+type ChatMessage = {
+  role: "system" | "user"
+  content: string
+}
+
 export type ChatCompletionsClient = {
   chat: {
     completions: {
       create(input: {
         model: string
-        messages: Array<{
-          role: "user"
-          content: string
-        }>
+        messages: Array<ChatMessage>
       }): Promise<ChatCompletionResult>
     }
   }
@@ -36,7 +38,8 @@ function wait(ms: number) {
 export async function createChatCompletionTextWithRetry(input: {
   client: ChatCompletionsClient
   model: string
-  prompt: string
+  systemPrompt?: string
+  userContent: string
   maxAttempts?: number
   retryDelayMs?: number
 }) {
@@ -44,16 +47,17 @@ export async function createChatCompletionTextWithRetry(input: {
   const retryDelayMs = input.retryDelayMs ?? 250
   let lastError: unknown = new Error("Unknown error")
 
+  const messages: ChatMessage[] = []
+  if (input.systemPrompt) {
+    messages.push({ role: "system", content: input.systemPrompt })
+  }
+  messages.push({ role: "user", content: input.userContent })
+
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const result = await input.client.chat.completions.create({
         model: input.model,
-        messages: [
-          {
-            role: "user",
-            content: input.prompt,
-          },
-        ],
+        messages,
       })
 
       return extractChatCompletionText(result)

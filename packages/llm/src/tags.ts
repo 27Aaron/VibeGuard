@@ -5,52 +5,40 @@ import {
 
 import { stripJsonFence, tryParseJsonCandidates, resolvePrompt } from "./utils";
 
-export const DEFAULT_TAG_PROMPT = `你是一个供应链安全文章的短标签提取器。
+export const DEFAULT_TAG_PROMPT = `You are a short-tag extractor for supply-chain security articles.
 
-你的任务是为文章生成适合在首页卡片上展示的短 tag。
-tag 应帮助读者快速判断文章涉及的生态、攻击手法、目标平台、关键资产或防护主题。
+Your task is to generate 2–4 concise tags suitable for display on a homepage card. Tags help readers quickly identify the ecosystem, attack technique, target platform, key asset, or defense topic of an article.
 
-请严格遵守：
+Rules:
+1. Output ONLY valid JSON. No markdown fences, no explanation, no extra text.
+2. Generate 2 to 4 tags per article. Return fewer rather than stretching for quantity.
+3. Tags must be 2–16 characters, lowercase, kebab-case (e.g. "npm", "rce", "cloud-creds").
+4. Do NOT invent tags the article does not clearly support. Guessing is worse than omitting.
+5. When two tags overlap, keep the shorter, more specific one.
+6. NEVER produce generic tags: supply-chain, open-source, security, risk, attack, article, unknown.
 
-1. 只输出 JSON，不要输出 Markdown、解释或多余文字。
-2. 每篇文章生成 2 到 4 个 tag。
-3. tag 必须短，优先 3 到 14 个字符。
-4. tag 使用英文小写和 kebab-case，不要使用空格。
-5. 优先使用短 tag，例如 npm、pypi、aws、rce、worm、creds、actions。
-6. 不要生成过泛 tag，例如 supply-chain、open-source、security、risk、attack、article。
-7. 不要生成过长 tag，例如 credential-theft、supply-chain-attack、github-actions-security。
-8. 不要为了凑数量硬生成 tag，证据不足时可以只返回 2 个。
-9. 如果文章没有明确提到某个生态、攻击技术或平台，不要猜测。
-10. 如果多个 tag 意思重复，只保留更短、更具体的那个。
+Preferred tag vocabulary (use these when applicable):
 
-优先选择这些风格的 tag：
-
-生态/平台：
+Ecosystem / Platform:
 npm, pypi, go, maven, nuget, crates, docker, ghcr, k8s, actions, vscode, chrome, helm, terraform
 
-语言：
+Language:
 js, ts, python, java, rust, ruby, php, dotnet, shell, cpp
 
-攻击/技术：
+Attack / Technique:
 typosquat, dep-confusion, ato, injection, creds, dns-tunnel, stego, rat, worm, backdoor, rce, wiper, obfuscation, dropper, postinstall, persistence, exfil, privesc
 
-目标资产：
+Target Asset:
 tokens, secrets, private-keys, cookies, wallets, cloud-creds, ssh-keys
 
-基础设施：
+Infrastructure:
 aws, azure, gcp, github, oidc, sigstore, slsa, linux, windows, macos, circleci, jenkins, gitlab
 
-领域/主题：
+Domain / Theme:
 ci-cd, ai, llm, mcp, crypto, web3, defi, runtime, runner, egress, policy, sbom, sca, ir, monitoring
 
-输出格式：
-
-{
-  "tags": ["tag1", "tag2", "tag3"]
-}
-
-文章原始正文：
-{{content}}`;
+Output format:
+{"tags":["tag1","tag2","tag3"]}`;
 
 const LEGACY_TAG_PROMPT =
   "Extract short supply-chain security tags as strict JSON.";
@@ -145,14 +133,10 @@ export function buildTagExtractionPrompt(input: {
   systemPrompt: string;
   sourceText: string;
 }) {
-  const prompt = resolveTagPrompt(input.systemPrompt);
-
-  if (prompt.includes("{{content}}")) {
-    const escaped = input.sourceText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    return prompt.replaceAll("{{content}}", escaped);
+  return {
+    systemPrompt: resolveTagPrompt(input.systemPrompt),
+    userContent: input.sourceText,
   }
-
-  return `${prompt}\n\n文章原始正文：\n${input.sourceText}`;
 }
 
 export function resolveTagPrompt(value: string | null | undefined) {
@@ -171,14 +155,15 @@ export async function generateTags(input: {
   systemPrompt: string;
   sourceText: string;
 }) {
-  const prompt = buildTagExtractionPrompt({
+  const { systemPrompt, userContent } = buildTagExtractionPrompt({
     systemPrompt: input.systemPrompt,
     sourceText: input.sourceText,
   });
   const text = await createChatCompletionTextWithRetry({
     client: input.client,
     model: input.model,
-    prompt,
+    systemPrompt,
+    userContent,
   });
 
   return extractGeneratedTags(text);

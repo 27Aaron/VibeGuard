@@ -4,7 +4,6 @@ import {
 } from "./chat";
 
 import { stripJsonFence, tryParseJsonCandidates, resolvePrompt } from "./utils";
-import { wrapSourceText } from "./prompts";
 
 export type RelevanceResult = {
   relevant: boolean;
@@ -12,7 +11,13 @@ export type RelevanceResult = {
 };
 
 const DEFAULT_RELEVANCE_PROMPT =
-  "判断以下文章是否与软件供应链安全、开源安全、依赖安全、恶意包、漏洞利用等相关。只输出 JSON：{\"relevant\": true/false, \"reason\": \"简短理由\"}";
+  `Determine whether the following article is relevant to software supply-chain security, open-source security, dependency safety, malicious packages, or vulnerability exploitation.
+
+Relevant topics include: typosquatting, dependency confusion, account takeover targeting package registries, malicious npm/PyPI/crates/etc. packages, CI/CD pipeline attacks, build-system compromises, code-signing or signature verification issues, dependency hijacking, and similar threats.
+
+NOT relevant: general cybersecurity news with no supply-chain angle, pure application-layer bugs (XSS, SQLi) with no package/dependency component, non-technical news.
+
+Output ONLY valid JSON: {"relevant": true/false, "reason": "one-sentence explanation"}`;
 
 const MAX_SOURCE_LENGTH = 4000;
 
@@ -56,10 +61,10 @@ function buildRelevancePrompt(input: {
   systemPrompt: string;
   sourceText: string;
 }) {
-  const prompt = resolveRelevancePrompt(input.systemPrompt);
-  const truncated = safeSlice(input.sourceText, MAX_SOURCE_LENGTH);
-
-  return wrapSourceText(prompt, truncated);
+  return {
+    systemPrompt: resolveRelevancePrompt(input.systemPrompt),
+    userContent: safeSlice(input.sourceText, MAX_SOURCE_LENGTH),
+  }
 }
 
 export function resolveRelevancePrompt(value: string | null | undefined) {
@@ -72,7 +77,7 @@ export async function classifyRelevance(input: {
   systemPrompt: string;
   sourceText: string;
 }): Promise<RelevanceResult> {
-  const prompt = buildRelevancePrompt({
+  const { systemPrompt, userContent } = buildRelevancePrompt({
     systemPrompt: input.systemPrompt,
     sourceText: input.sourceText,
   });
@@ -80,7 +85,8 @@ export async function classifyRelevance(input: {
   const text = await createChatCompletionTextWithRetry({
     client: input.client,
     model: input.model,
-    prompt,
+    systemPrompt,
+    userContent,
   });
 
   const result = parseRelevanceResponse(text);
