@@ -87,7 +87,7 @@ function initFormState(provider: ProviderSettings, pipeline: PipelineSettings, p
     summaryPromptZh: pipeline.summaryPromptZh,
     tagPrompt: pipeline.tagPrompt,
     relevancePrompt: pipeline.relevancePrompt,
-    modelOptions: provider.model ? [provider.model] : [],
+    modelOptions: [],
     isLoadingModels: false,
     modelFeedback: "",
     selectedPresetIndex: presetIndex != null && presetIndex >= 0 && presetIndex < PROVIDER_PRESETS.length
@@ -110,6 +110,10 @@ function formReducer(state: FormState, action: FormAction): FormState {
         baseUrl: preset.baseUrl,
         settingsName: state.nameManuallyEdited ? state.settingsName : preset.name,
         nameManuallyEdited: false,
+        model: "",
+        modelOptions: [],
+        modelFeedback: "",
+        apiKey: "",
       }
     }
     case "SYNC_PROVIDER":
@@ -498,6 +502,12 @@ export function LlmSettingsForm({
                         size="sm"
                         disabled={isActionPending}
                         onClick={() => {
+                          const confirmed = window.confirm(
+                            resolvedLang === "zh"
+                              ? `确定要删除配置「${provider.settingsName}」吗？`
+                              : `Delete profile "${provider.settingsName}"?`,
+                          )
+                          if (!confirmed) return
                           startActionTransition(async () => {
                             const fd = new FormData()
                             fd.set("id", provider.id)
@@ -588,9 +598,9 @@ export function LlmSettingsForm({
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="model" className="text-sm font-medium">
-                    {resolvedLang === "zh" ? "默认模型" : "Default model"}
+                    {resolvedLang === "zh" ? "模型" : "Model"}
                   </label>
-                  {mergedModelOptions.length > 0 ? (
+                  {form.modelOptions.length > 0 ? (
                     <>
                       <input type="hidden" name="model" value={form.model} />
                       <CustomSelect
@@ -608,6 +618,7 @@ export function LlmSettingsForm({
                       name="model"
                       value={form.model}
                       onChange={(event) => dispatch({ type: "SET_FIELD", field: "model", value: event.target.value })}
+                      placeholder={resolvedLang === "zh" ? "输入模型名称或点击获取模型列表" : "Enter model name or load model list"}
                     />
                   )}
                   <div className="flex flex-wrap items-center gap-2">
@@ -625,7 +636,7 @@ export function LlmSettingsForm({
                           ? "获取模型列表"
                           : "Load model list"}
                     </Button>
-                    {mergedModelOptions.length > 0 ? (
+                    {form.modelOptions.length > 0 ? (
                       <Button
                         type="button"
                         variant="ghost"
@@ -718,6 +729,11 @@ export function LlmSettingsForm({
                     lang={resolvedLang}
                   />
                 </div>
+                <div className="mt-3">
+                  <Button variant="outline" type="button" size="sm" onClick={resetPipelineDraft}>
+                    {resolvedLang === "zh" ? "重置草稿" : "Reset draft"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -726,9 +742,6 @@ export function LlmSettingsForm({
         <div className="mt-4 flex items-center gap-3">
           <FeedbackMessage state={state} />
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" type="button" onClick={resetPipelineDraft}>
-              {resolvedLang === "zh" ? "重置草稿" : "Reset draft"}
-            </Button>
             <SubmitButton
               idleLabel={resolvedLang === "zh" ? "保存配置" : "Save"}
               pendingLabel={resolvedLang === "zh" ? "保存中..." : "Saving..."}
