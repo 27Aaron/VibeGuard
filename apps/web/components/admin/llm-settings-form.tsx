@@ -183,6 +183,8 @@ export function LlmSettingsForm({
   const [isLoadingModels, setIsLoadingModels] = useState(false)
   const [modelFeedback, setModelFeedback] = useState("")
   const [isActionPending, startActionTransition] = useTransition()
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState(-1)
+  const [nameManuallyEdited, setNameManuallyEdited] = useState(false)
   const mergedModelOptions = useMemo(
     () => mergeModelOptions(model, modelOptions),
     [model, modelOptions],
@@ -202,6 +204,8 @@ export function LlmSettingsForm({
     setRelevancePrompt(pipeline.relevancePrompt)
     setModelOptions(provider.model ? [provider.model] : [])
     setModelFeedback("")
+    setSelectedPresetIndex(-1)
+    setNameManuallyEdited(false)
   }, [
     provider.id,
     provider.settingsName,
@@ -283,16 +287,47 @@ export function LlmSettingsForm({
         <input type="hidden" name="isActive" value={isActive ? "on" : ""} />
 
         <Tabs defaultValue="provider">
-          <TabsList>
-            <TabsTrigger value="provider">
-              {resolvedLang === "zh" ? "模型配置" : "Model config"}
-            </TabsTrigger>
-            <TabsTrigger value="pipeline">
-              {resolvedLang === "zh" ? "处理链路" : "Pipeline"}
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-3">
+            <TabsList>
+              <TabsTrigger value="provider">
+                {resolvedLang === "zh" ? "模型配置" : "Model config"}
+              </TabsTrigger>
+              <TabsTrigger value="pipeline">
+                {resolvedLang === "zh" ? "处理链路" : "Pipeline"}
+              </TabsTrigger>
+            </TabsList>
+            {profiles.length > 0 ? (
+              <div className="ml-auto flex items-center gap-2">
+                <label className="text-sm text-muted-foreground">
+                  {resolvedLang === "zh" ? "生效配置：" : "Active config:"}
+                </label>
+                <select
+                  className={cn(getAdminSelectClassName(), "min-w-[220px]")}
+                  value={profiles.find((p) => p.isActive)?.id ?? ""}
+                  onChange={(event) => {
+                    const targetId = event.target.value
+                    if (!targetId) return
+                    startActionTransition(async () => {
+                      const fd = new FormData()
+                      fd.set("id", targetId)
+                      fd.set("lang", String(lang))
+                      await activateLlmSettingsAction(fd)
+                      router.refresh()
+                    })
+                  }}
+                  disabled={isActionPending}
+                >
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.model})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </div>
 
-          <TabsContent value="provider">
+          <TabsContent value="provider" keepMounted>
             <Card>
               <CardHeader>
                 <CardTitle>
@@ -412,7 +447,10 @@ export function LlmSettingsForm({
                     id="settings-name"
                     name="name"
                     value={settingsName}
-                    onChange={(event) => setSettingsName(event.target.value)}
+                    onChange={(event) => {
+                      setSettingsName(event.target.value)
+                      setNameManuallyEdited(true)
+                    }}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -422,28 +460,25 @@ export function LlmSettingsForm({
                   <select
                     id="provider-preset"
                     className={getAdminSelectClassName()}
-                    value=""
+                    value={selectedPresetIndex >= 0 ? PROVIDER_PRESETS[selectedPresetIndex].baseUrl : ""}
                     onChange={(event) => {
-                      const preset = PROVIDER_PRESETS.find((p) => p.baseUrl === event.target.value)
-                      if (!preset) return
+                      const idx = PROVIDER_PRESETS.findIndex((p) => p.baseUrl === event.target.value)
+                      setSelectedPresetIndex(idx)
+                      if (idx < 0) return
+                      const preset = PROVIDER_PRESETS[idx]
                       setBaseUrl(preset.baseUrl)
-                      if (!settingsName.trim()) setSettingsName(preset.label)
+                      if (!nameManuallyEdited) setSettingsName(preset.label)
                     }}
                   >
                     <option value="">
                       {resolvedLang === "zh" ? "选择预设以自动填充..." : "Select a preset to auto-fill..."}
                     </option>
-                    {PROVIDER_PRESETS.map((preset) => (
-                      <option key={preset.baseUrl} value={preset.baseUrl}>
+                    {PROVIDER_PRESETS.map((preset, idx) => (
+                      <option key={`${idx}-${preset.baseUrl}`} value={preset.baseUrl}>
                         {preset.label}
                       </option>
                     ))}
                   </select>
-                  <p className="text-sm text-muted-foreground">
-                    {resolvedLang === "zh"
-                      ? "选择后自动填充服务地址，不影响已有字段内容。"
-                      : "Auto-fills the endpoint. Existing fields are not overwritten."}
-                  </p>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="base-url" className="text-sm font-medium">
@@ -563,7 +598,7 @@ export function LlmSettingsForm({
             </Card>
           </TabsContent>
 
-          <TabsContent value="pipeline">
+          <TabsContent value="pipeline" keepMounted>
             <Card>
               <CardContent className="pt-6">
                 <div className="grid gap-3 md:grid-cols-2">
