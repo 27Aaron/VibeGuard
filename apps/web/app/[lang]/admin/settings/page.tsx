@@ -12,6 +12,7 @@ type SettingsPageProps = {
     profile?: string
     status?: string
     message?: string
+    preset?: string
   }>
 }
 
@@ -53,6 +54,7 @@ export default async function SettingsPage({ params: routeParams, searchParams }
       <LlmSettingsForm
         profiles={profiles}
         selectedProfileId={selectedProfileId}
+        presetIndex={params.preset ? Number(params.preset) : undefined}
         provider={{
           id: settings.id,
           providerName: settings.providerName,

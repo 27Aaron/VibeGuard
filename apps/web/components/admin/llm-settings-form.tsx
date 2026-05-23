@@ -126,6 +126,7 @@ function CollapsiblePromptField({
 type LlmSettingsFormProps = {
   profiles: LlmSettingsRow[]
   selectedProfileId?: string
+  presetIndex?: number
   provider: ProviderSettings
   pipeline: PipelineSettings
   lang: AppLang
@@ -154,6 +155,7 @@ function SubmitButton({
 export function LlmSettingsForm({
   profiles,
   selectedProfileId,
+  presetIndex,
   provider,
   pipeline,
   lang,
@@ -183,12 +185,30 @@ export function LlmSettingsForm({
   const [isLoadingModels, setIsLoadingModels] = useState(false)
   const [modelFeedback, setModelFeedback] = useState("")
   const [isActionPending, startActionTransition] = useTransition()
-  const [selectedPresetIndex, setSelectedPresetIndex] = useState(-1)
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState(
+    presetIndex != null && presetIndex >= 0 && presetIndex < PROVIDER_PRESETS.length
+      ? presetIndex
+      : -1,
+  )
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false)
   const mergedModelOptions = useMemo(
     () => mergeModelOptions(model, modelOptions),
     [model, modelOptions],
   )
+
+  useEffect(() => {
+    if (
+      presetIndex != null &&
+      presetIndex >= 0 &&
+      presetIndex < PROVIDER_PRESETS.length
+    ) {
+      const preset = PROVIDER_PRESETS[presetIndex]
+      setSelectedPresetIndex(presetIndex)
+      setBaseUrl(preset.baseUrl)
+      setSettingsName(preset.label)
+      setNameManuallyEdited(false)
+    }
+  }, [presetIndex])
 
   useEffect(() => {
     setSettingsName(provider.settingsName)
@@ -463,9 +483,14 @@ export function LlmSettingsForm({
                     value={selectedPresetIndex >= 0 ? PROVIDER_PRESETS[selectedPresetIndex].baseUrl : ""}
                     onChange={(event) => {
                       const idx = PROVIDER_PRESETS.findIndex((p) => p.baseUrl === event.target.value)
-                      setSelectedPresetIndex(idx)
                       if (idx < 0) return
                       const preset = PROVIDER_PRESETS[idx]
+                      if (preset.baseUrl === "") return
+                      if (provider.id) {
+                        router.push(`/${lang}/admin/settings?profile=new&preset=${idx}`)
+                        return
+                      }
+                      setSelectedPresetIndex(idx)
                       setBaseUrl(preset.baseUrl)
                       if (!nameManuallyEdited) setSettingsName(preset.label)
                     }}
