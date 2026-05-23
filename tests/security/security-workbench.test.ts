@@ -395,4 +395,15 @@ describe("security workbench helpers", () => {
       ]),
     ).toEqual([">= 0, < 1.2.0", ">= 2.0.0, <= 2.4.0"])
   })
+
+  it("formats semver range events from npm advisories", () => {
+    expect(
+      formatAffectedRanges([
+        {
+          type: "SEMVER",
+          events: [{ introduced: "1.0.0" }, { fixed: "1.15.0" }],
+        },
+      ]),
+    ).toEqual([">= 1.0.0, < 1.15.0"])
+  })
 })

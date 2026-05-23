@@ -195,6 +195,13 @@ function makeResult(
   }
 }
 
+function isSupportedVersionRange(range: OsvRange) {
+  return (
+    (range.type === "ECOSYSTEM" || range.type === "SEMVER") &&
+    (range.events?.length ?? 0) > 0
+  )
+}
+
 export function evaluateAffectedPackageVersion({
   ecosystem,
   version,
@@ -214,11 +221,9 @@ export function evaluateAffectedPackageVersion({
   }
 
   const subject = parseComparableVersion(ecosystem, normalizedVersion)
-  const ecosystemRanges = ranges.filter(
-    (range) => range.type === "ECOSYSTEM" && (range.events?.length ?? 0) > 0,
-  )
+  const supportedRanges = ranges.filter(isSupportedVersionRange)
 
-  if (ecosystemRanges.length === 0) {
+  if (supportedRanges.length === 0) {
     return makeResult(false, "undetermined", "version_outside_ecosystem_range")
   }
 
@@ -229,7 +234,7 @@ export function evaluateAffectedPackageVersion({
   let hadEvaluatedSegment = false
   let hadInconclusiveSegment = false
 
-  for (const range of ecosystemRanges) {
+  for (const range of supportedRanges) {
     for (const segment of buildSegments(range)) {
       let lowerBound: ComparableVersion | null = null
 

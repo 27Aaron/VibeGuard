@@ -38,6 +38,26 @@ describe("evaluateAffectedPackageVersion", () => {
     })
   })
 
+  it("matches a semver range used by npm advisories", () => {
+    expect(
+      evaluateAffectedPackageVersion({
+        ecosystem: "npm",
+        version: "1.6.0",
+        affectedVersions: [],
+        ranges: [
+          {
+            type: "SEMVER",
+            events: [{ introduced: "1.0.0" }, { fixed: "1.15.0" }],
+          },
+        ],
+      }),
+    ).toMatchObject({
+      affected: true,
+      confidence: "high",
+      matchReason: "version_in_ecosystem_range",
+    })
+  })
+
   it("returns a high-confidence miss when a version is outside all supported ranges", () => {
     expect(
       evaluateAffectedPackageVersion({

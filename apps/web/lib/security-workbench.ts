@@ -221,7 +221,11 @@ function formatRangeEvent(event: Record<string, string>) {
 
 export function formatAffectedRanges(ranges: SecurityRange[]) {
   return ranges.flatMap((range) => {
-    if (range.type !== "ECOSYSTEM" || !Array.isArray(range.events) || range.events.length === 0) {
+    if (
+      (range.type !== "ECOSYSTEM" && range.type !== "SEMVER") ||
+      !Array.isArray(range.events) ||
+      range.events.length === 0
+    ) {
       return []
     }
 
