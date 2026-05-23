@@ -1,7 +1,6 @@
 import { desc } from "drizzle-orm"
 
 import { getDb, securitySyncState } from "@vibeguard/db"
-import { syncAllOsvEcosystems } from "@vibeguard/content/osv/sync"
 
 export const dynamic = "force-dynamic"
 
@@ -26,6 +25,7 @@ export async function GET() {
 
 export async function POST() {
   try {
+    const { syncAllOsvEcosystems } = await import("@vibeguard/content/osv/sync")
     const results = await syncAllOsvEcosystems({ db: getDb() })
 
     return Response.json({

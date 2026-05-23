@@ -138,6 +138,25 @@ type BootstrapArchiveEntry = {
   readText: () => Promise<string>
 }
 
+type YauzlArchiveEntry = {
+  filename: string
+  openReadStream: () => Promise<NodeJS.ReadableStream>
+}
+
+type YauzlArchive = AsyncIterable<YauzlArchiveEntry> & {
+  close: () => Promise<void>
+}
+
+type YauzlPromiseModule = {
+  open: (archivePath: string) => Promise<YauzlArchive>
+}
+
+const YAUZL_PROMISE_MODULE = ["yauzl", "promise"].join("-")
+
+async function loadYauzlPromise(): Promise<YauzlPromiseModule> {
+  return import(YAUZL_PROMISE_MODULE) as Promise<YauzlPromiseModule>
+}
+
 function parseOsvTimestamp(value: string) {
   const normalized = value.replace(
     /\.(\d{3})\d*Z$/,
@@ -340,16 +359,11 @@ export function buildBootstrapArchiveEntriesListCommand(archivePath: string) {
 async function* defaultIterateArchiveEntries(
   archivePath: string,
 ): AsyncGenerator<BootstrapArchiveEntry> {
-  // yauzl-promise does not currently ship TypeScript declarations.
-  // @ts-expect-error third-party package has no bundled types
-  const yauzl = await import("yauzl-promise")
+  const yauzl = await loadYauzlPromise()
   const zip = await yauzl.open(archivePath)
 
   try {
-    for await (const entry of zip as AsyncIterable<{
-      filename: string
-      openReadStream: () => Promise<NodeJS.ReadableStream>
-    }>) {
+    for await (const entry of zip) {
       yield {
         entryName: entry.filename,
         readText: async () =>

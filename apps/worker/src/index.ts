@@ -1,6 +1,5 @@
 import { pathToFileURL } from "node:url";
 
-import { syncAllOsvEcosystems } from "@vibeguard/content/osv/sync"
 import { closeDb, getDb } from "@vibeguard/db";
 
 import { pollActiveFeeds } from "./poll-feeds";
@@ -110,6 +109,7 @@ function resolveOsvSyncInterval(env = process.env) {
 
 export async function runOsvSyncCycle(logger: WorkerLogger = console) {
   try {
+    const { syncAllOsvEcosystems } = await import("@vibeguard/content/osv/sync")
     const results = await syncAllOsvEcosystems({ db: getDb() })
     for (const result of results) {
       logger.log(
