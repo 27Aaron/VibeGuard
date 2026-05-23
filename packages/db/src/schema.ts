@@ -64,6 +64,16 @@ export const securityRiskTypeEnum = pgEnum(
   securityRiskTypeValues,
 );
 
+export const articleEcosystemEnum = pgEnum(
+  "article_ecosystem",
+  articleEcosystemValues,
+);
+
+export const articleRiskCategoryEnum = pgEnum(
+  "article_risk_category",
+  articleRiskCategoryValues,
+);
+
 export const feeds = pgTable(
   "feeds",
   {
@@ -106,8 +116,8 @@ export const articles = pgTable(
     summaryZh: text("summary_zh"),
     contentMdEn: text("content_md_en"),
     contentMdZh: text("content_md_zh"),
-    ecosystem: varchar("ecosystem", { length: 32 }).notNull().default("unknown"),
-    riskCategory: varchar("risk_category", { length: 32 })
+    ecosystem: articleEcosystemEnum("ecosystem").notNull().default("unknown"),
+    riskCategory: articleRiskCategoryEnum("risk_category")
       .notNull()
       .default("unknown"),
     tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
@@ -173,10 +183,6 @@ export const processingJobs = pgTable(
       table.runAfter,
     ),
     index("processing_jobs_pipeline_stage_idx").on(table.pipelineStage),
-    uniqueIndex("processing_jobs_article_job_type_unique").on(
-      table.articleId,
-      table.jobType,
-    ),
     uniqueIndex("processing_jobs_active_unique")
       .on(table.articleId, table.jobType)
       .where(sql`${table.status} in ('queued', 'running')`),
@@ -333,6 +339,8 @@ export const securityAffectedPackages = pgTable(
 
 export const schema = {
   articleStatusEnum,
+  articleEcosystemEnum,
+  articleRiskCategoryEnum,
   jobStatusEnum,
   jobTypeEnum,
   jobPipelineStageEnum,
