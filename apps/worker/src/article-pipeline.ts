@@ -19,6 +19,7 @@ import {
   translateText,
 } from "@vibeguard/llm"
 import { ArticleEcosystem, ArticleRiskCategory, ArticleStatus, JobPipelineStage, JobType } from "@vibeguard/shared"
+import type { UsageResult } from "@vibeguard/llm"
 
 type ArticleRecord = typeof articles.$inferSelect
 type LlmSettingsRecord = typeof llmSettings.$inferSelect
@@ -82,6 +83,14 @@ export type ProcessArticleJobDependencies = {
   markJobStage?: (
     stage: typeof JobPipelineStage[keyof typeof JobPipelineStage],
   ) => Promise<void>
+  logLlmUsage?: (input: {
+    articleId: string
+    jobId?: string
+    taskType: string
+    model: string
+    usage: UsageResult | null
+    responseTimeMs: number
+  }) => Promise<void>
 }
 
 function resolveLocalizedSummaryPrompt(
@@ -196,12 +205,16 @@ async function processExtractJob(input: {
 
     // 相关性检查：提取内容后立即判断，不相关的文章跳过后续所有 LLM 步骤
     await input.dependencies.markJobStage?.(JobPipelineStage.CLASSIFY_RELEVANCE)
-    const relevanceResult = await classifyRelevance({
-      client: input.client,
-      model: input.activeSettings.model,
-      systemPrompt: input.activeSettings.relevancePrompt,
-      sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
-    })
+    const relevanceResult = await timedLlmCall(
+      () => classifyRelevance({
+        client: input.client,
+        model: input.activeSettings.model,
+        systemPrompt: input.activeSettings.relevancePrompt,
+        sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
+      }),
+      input.dependencies,
+      { articleId: input.article.id, taskType: "classify_relevance", model: input.activeSettings.model },
+    )
     const relevance = relevanceResult.result
     if (!relevance.relevant) {
       rawMeta.relevanceFilter = {
@@ -218,39 +231,51 @@ async function processExtractJob(input: {
 
   if (!hasText(titleZh)) {
     await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_TITLE)
-    const titleZhResult = await input.dependencies.translateText({
-      client: input.client,
-      model: input.activeSettings.model,
-      systemPrompt: input.activeSettings.translateTitlePrompt,
-      sourceText: requiredTitleEn,
-    })
+    const titleZhResult = await timedLlmCall(
+      () => input.dependencies.translateText({
+        client: input.client,
+        model: input.activeSettings.model,
+        systemPrompt: input.activeSettings.translateTitlePrompt,
+        sourceText: requiredTitleEn,
+      }),
+      input.dependencies,
+      { articleId: input.article.id, taskType: "translate_title", model: input.activeSettings.model },
+    )
     titleZh = titleZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { titleZh })
   }
 
   if (!hasText(contentMdZh)) {
     await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_CONTENT)
-    const contentMdZhResult = await input.dependencies.translateText({
-      client: input.client,
-      model: input.activeSettings.model,
-      systemPrompt: input.activeSettings.translateContentPrompt,
-      sourceText: requiredContentMdEn,
-    })
+    const contentMdZhResult = await timedLlmCall(
+      () => input.dependencies.translateText({
+        client: input.client,
+        model: input.activeSettings.model,
+        systemPrompt: input.activeSettings.translateContentPrompt,
+        sourceText: requiredContentMdEn,
+      }),
+      input.dependencies,
+      { articleId: input.article.id, taskType: "translate_content", model: input.activeSettings.model },
+    )
     contentMdZh = contentMdZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { contentMdZh })
   }
 
   if (!hasText(summaryEn)) {
     await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
-    const summaryEnResult = await input.dependencies.summarizeText({
-      client: input.client,
-      model: input.activeSettings.model,
-      systemPrompt: buildLocalizedSummaryPrompt(
-        resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
-        "en",
-      ),
-      sourceText: requiredContentMdEn,
-    })
+    const summaryEnResult = await timedLlmCall(
+      () => input.dependencies.summarizeText({
+        client: input.client,
+        model: input.activeSettings.model,
+        systemPrompt: buildLocalizedSummaryPrompt(
+          resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
+          "en",
+        ),
+        sourceText: requiredContentMdEn,
+      }),
+      input.dependencies,
+      { articleId: input.article.id, taskType: "summarize_en", model: input.activeSettings.model },
+    )
     summaryEn = summaryEnResult.result
     await persistArticlePatch(input.dependencies, input.article, { summaryEn })
   }
@@ -259,15 +284,19 @@ async function processExtractJob(input: {
 
   if (!hasText(summaryZh)) {
     await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
-    const summaryZhResult = await input.dependencies.summarizeText({
-      client: input.client,
-      model: input.activeSettings.model,
-      systemPrompt: buildLocalizedSummaryPrompt(
-        resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
-        "zh",
-      ),
-      sourceText: requiredContentMdZh,
-    })
+    const summaryZhResult = await timedLlmCall(
+      () => input.dependencies.summarizeText({
+        client: input.client,
+        model: input.activeSettings.model,
+        systemPrompt: buildLocalizedSummaryPrompt(
+          resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
+          "zh",
+        ),
+        sourceText: requiredContentMdZh,
+      }),
+      input.dependencies,
+      { articleId: input.article.id, taskType: "summarize_zh", model: input.activeSettings.model },
+    )
     summaryZh = summaryZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { summaryZh })
   }
@@ -296,6 +325,7 @@ async function processExtractJob(input: {
       model: input.activeSettings.model,
       systemPrompt: resolveTagPrompt(input.activeSettings.tagPrompt || DEFAULT_TAG_PROMPT),
       sourceText: requiredContentMdEn,
+      articleId: input.article.id,
     }),
   ])
   const tags = generatedTags.length > 0 ? generatedTags : classification.tags
@@ -323,15 +353,20 @@ async function generateArticleTags(input: {
   model: string
   systemPrompt: string
   sourceText: string
+  articleId: string
 }) {
   try {
     const tagGenerator = input.dependencies.generateTags ?? generateTags
-    const tagsResult = await tagGenerator({
-      client: input.client,
-      model: input.model,
-      systemPrompt: input.systemPrompt,
-      sourceText: input.sourceText,
-    })
+    const tagsResult = await timedLlmCall(
+      () => tagGenerator({
+        client: input.client,
+        model: input.model,
+        systemPrompt: input.systemPrompt,
+        sourceText: input.sourceText,
+      }),
+      input.dependencies,
+      { articleId: input.articleId, taskType: "generate_tags", model: input.model },
+    )
 
     return tagsResult.result
   } catch {
@@ -348,25 +383,33 @@ async function processSummarizeJob(input: {
   const contentMdEn = requireArticleField(input.article.contentMdEn, "English body")
   const contentMdZh = requireArticleField(input.article.contentMdZh, "Chinese body")
   await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
-  const summaryEnResult = await input.dependencies.summarizeText({
-    client: input.client,
-    model: input.activeSettings.model,
-    systemPrompt: buildLocalizedSummaryPrompt(
-      resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
-      "en",
-    ),
-    sourceText: contentMdEn,
-  })
+  const summaryEnResult = await timedLlmCall(
+    () => input.dependencies.summarizeText({
+      client: input.client,
+      model: input.activeSettings.model,
+      systemPrompt: buildLocalizedSummaryPrompt(
+        resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
+        "en",
+      ),
+      sourceText: contentMdEn,
+    }),
+    input.dependencies,
+    { articleId: input.article.id, taskType: "summarize_en", model: input.activeSettings.model },
+  )
   await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
-  const summaryZhResult = await input.dependencies.summarizeText({
-    client: input.client,
-    model: input.activeSettings.model,
-    systemPrompt: buildLocalizedSummaryPrompt(
-      resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
-      "zh",
-    ),
-    sourceText: contentMdZh,
-  })
+  const summaryZhResult = await timedLlmCall(
+    () => input.dependencies.summarizeText({
+      client: input.client,
+      model: input.activeSettings.model,
+      systemPrompt: buildLocalizedSummaryPrompt(
+        resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
+        "zh",
+      ),
+      sourceText: contentMdZh,
+    }),
+    input.dependencies,
+    { articleId: input.article.id, taskType: "summarize_zh", model: input.activeSettings.model },
+  )
 
   await updateArticlePatchWithFallback(input.dependencies, input.article, {
     summaryEn: summaryEnResult.result,
@@ -383,39 +426,55 @@ async function processTranslateJob(input: {
   const titleEn = requireArticleField(input.article.titleEn, "English title")
   const contentMdEn = requireArticleField(input.article.contentMdEn, "English body")
   await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_TITLE)
-  const titleZhResult = await input.dependencies.translateText({
-    client: input.client,
-    model: input.activeSettings.model,
-    systemPrompt: input.activeSettings.translateTitlePrompt,
-    sourceText: titleEn,
-  })
+  const titleZhResult = await timedLlmCall(
+    () => input.dependencies.translateText({
+      client: input.client,
+      model: input.activeSettings.model,
+      systemPrompt: input.activeSettings.translateTitlePrompt,
+      sourceText: titleEn,
+    }),
+    input.dependencies,
+    { articleId: input.article.id, taskType: "translate_title", model: input.activeSettings.model },
+  )
   await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_CONTENT)
-  const contentMdZhResult = await input.dependencies.translateText({
-    client: input.client,
-    model: input.activeSettings.model,
-    systemPrompt: input.activeSettings.translateContentPrompt,
-    sourceText: contentMdEn,
-  })
+  const contentMdZhResult = await timedLlmCall(
+    () => input.dependencies.translateText({
+      client: input.client,
+      model: input.activeSettings.model,
+      systemPrompt: input.activeSettings.translateContentPrompt,
+      sourceText: contentMdEn,
+    }),
+    input.dependencies,
+    { articleId: input.article.id, taskType: "translate_content", model: input.activeSettings.model },
+  )
   await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
-  const summaryEnResult = await input.dependencies.summarizeText({
-    client: input.client,
-    model: input.activeSettings.model,
-    systemPrompt: buildLocalizedSummaryPrompt(
-      resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
-      "en",
-    ),
-    sourceText: contentMdEn,
-  })
+  const summaryEnResult = await timedLlmCall(
+    () => input.dependencies.summarizeText({
+      client: input.client,
+      model: input.activeSettings.model,
+      systemPrompt: buildLocalizedSummaryPrompt(
+        resolveLocalizedSummaryPrompt(input.activeSettings, "en"),
+        "en",
+      ),
+      sourceText: contentMdEn,
+    }),
+    input.dependencies,
+    { articleId: input.article.id, taskType: "summarize_en", model: input.activeSettings.model },
+  )
   await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
-  const summaryZhResult = await input.dependencies.summarizeText({
-    client: input.client,
-    model: input.activeSettings.model,
-    systemPrompt: buildLocalizedSummaryPrompt(
-      resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
-      "zh",
-    ),
-    sourceText: contentMdZhResult.result,
-  })
+  const summaryZhResult = await timedLlmCall(
+    () => input.dependencies.summarizeText({
+      client: input.client,
+      model: input.activeSettings.model,
+      systemPrompt: buildLocalizedSummaryPrompt(
+        resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
+        "zh",
+      ),
+      sourceText: contentMdZhResult.result,
+    }),
+    input.dependencies,
+    { articleId: input.article.id, taskType: "summarize_zh", model: input.activeSettings.model },
+  )
 
   await updateArticlePatchWithFallback(input.dependencies, input.article, {
     titleZh: titleZhResult.result,
@@ -441,6 +500,34 @@ function requireArticleField(value: string | null | undefined, label: string) {
   }
 
   return value
+}
+
+type LlmCallResult<T> = { result: T; usage: UsageResult | null }
+
+async function timedLlmCall<T>(
+  fn: () => Promise<LlmCallResult<T>>,
+  deps: ProcessArticleJobDependencies,
+  input: {
+    articleId: string
+    taskType: string
+    model: string
+  },
+): Promise<LlmCallResult<T>> {
+  const start = Date.now()
+  const response = await fn()
+  const responseTimeMs = Date.now() - start
+
+  if (deps.logLlmUsage) {
+    await deps.logLlmUsage({
+      articleId: input.articleId,
+      taskType: input.taskType,
+      model: input.model,
+      usage: response.usage,
+      responseTimeMs,
+    })
+  }
+
+  return response
 }
 
 async function persistArticlePatch(

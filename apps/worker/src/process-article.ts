@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
-import { articles, schema } from "@vibeguard/db"
+import { articles, llmUsageLogs, schema } from "@vibeguard/db"
 import {
   createOpenAIClient,
   decryptSecret,
@@ -120,6 +120,39 @@ async function updateArticlePatch(
   await db.update(articles).set(patch).where(eq(articles.id, articleId))
 }
 
+async function logLlmUsage(
+  db: ContentDb,
+  input: {
+    articleId: string
+    jobId?: string
+    taskType: string
+    model: string
+    usage: {
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+      cachedTokens?: number
+      finishReason?: string
+    } | null
+    responseTimeMs: number
+  },
+) {
+  if (!input.usage) return
+
+  await db.insert(schema.llmUsageLogs).values({
+    articleId: input.articleId,
+    jobId: input.jobId ?? null,
+    taskType: input.taskType,
+    model: input.model,
+    promptTokens: input.usage.promptTokens,
+    completionTokens: input.usage.completionTokens,
+    totalTokens: input.usage.totalTokens,
+    cachedTokens: input.usage.cachedTokens ?? null,
+    finishReason: input.usage.finishReason ?? null,
+    responseTimeMs: input.responseTimeMs,
+  })
+}
+
 // --- processClaimedJob ---
 
 async function processClaimedJob(db: ContentDb, job: JobRecord) {
@@ -140,6 +173,7 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
       updateArticlePatch: (articleId, patch) =>
         updateArticlePatch(db, articleId, patch),
       markJobStage: (stage) => markJobStage(db, job.id, stage),
+      logLlmUsage: (input) => logLlmUsage(db, { ...input, jobId: input.jobId ?? job.id }),
       fetchArticleHtml,
       extractMarkdownFromHtml,
       createOpenAIClient,
