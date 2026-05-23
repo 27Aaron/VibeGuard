@@ -106,7 +106,7 @@ export const articles = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     feedId: uuid("feed_id")
       .notNull()
-      .references(() => feeds.id),
+      .references(() => feeds.id, { onDelete: "cascade" }),
     sourceName: varchar("source_name", { length: 120 }).notNull(),
     url: text("url").notNull().unique(),
     canonicalUrl: text("canonical_url"),
@@ -155,7 +155,7 @@ export const processingJobs = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     articleId: uuid("article_id")
       .notNull()
-      .references(() => articles.id),
+      .references(() => articles.id, { onDelete: "cascade" }),
     jobType: jobTypeEnum("job_type").notNull(),
     status: jobStatusEnum("status").notNull().default("queued"),
     pipelineStage: jobPipelineStageEnum("pipeline_stage")
@@ -252,6 +252,11 @@ export const securitySyncState = pgTable(
   ],
 );
 
+// NOTE: securityAdvisories and securityAffectedPackages lack an automatic updatedAt
+// trigger because Drizzle ORM's .$onUpdateFn() only fires on Drizzle-mediated updates.
+// If true DB-level auto-update on ANY write is needed, add a PostgreSQL trigger via
+// a dedicated migration (e.g. CREATE TRIGGER ... BEFORE UPDATE SET updated_at = NOW()).
+
 export const securityAdvisories = pgTable(
   "security_advisories",
   {
@@ -278,6 +283,7 @@ export const securityAdvisories = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // updatedAt lacks a DB-level trigger — see note above securityAdvisories
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
@@ -299,7 +305,7 @@ export const securityAffectedPackages = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     advisoryId: uuid("advisory_id")
       .notNull()
-      .references(() => securityAdvisories.id),
+      .references(() => securityAdvisories.id, { onDelete: "cascade" }),
     ecosystem: securityPackageEcosystemEnum("ecosystem").notNull(),
     packageName: text("package_name").notNull(),
     packageKey: text("package_key").notNull(),
@@ -319,6 +325,7 @@ export const securityAffectedPackages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // updatedAt lacks a DB-level trigger — see note above securityAdvisories
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
