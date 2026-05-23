@@ -219,7 +219,7 @@ export function evaluateAffectedPackageVersion({
   )
 
   if (ecosystemRanges.length === 0) {
-    return makeResult(false, "none", "version_outside_ecosystem_range")
+    return makeResult(false, "undetermined", "version_outside_ecosystem_range")
   }
 
   if (!subject) {
@@ -283,7 +283,7 @@ export function evaluateAffectedPackageVersion({
   }
 
   if (hadEvaluatedSegment) {
-    return makeResult(false, "none", "version_outside_ecosystem_range")
+    return makeResult(false, "undetermined", "version_outside_ecosystem_range")
   }
 
   return makeResult(false, "medium", "range_present_but_inconclusive")

@@ -53,7 +53,7 @@ describe("evaluateAffectedPackageVersion", () => {
       }),
     ).toMatchObject({
       affected: false,
-      confidence: "none",
+      confidence: "undetermined",
       matchReason: "version_outside_ecosystem_range",
     })
   })

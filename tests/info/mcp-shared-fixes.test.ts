@@ -191,25 +191,23 @@ describe("I14: ArticleStatus naming pattern is documented", () => {
 })
 
 // ===========================================================================
-// I15 — SecurityPackageMatchConfidence "none" semantics documented
+// I15 — SecurityPackageMatchConfidence "undetermined" semantics
 // ===========================================================================
-describe("I15: SecurityPackageMatchConfidence 'none' semantics documented", () => {
+describe("I15: SecurityPackageMatchConfidence 'undetermined' semantics", () => {
   const typesPath = path.resolve("packages/shared/src/types.ts")
   const source = fs.readFileSync(typesPath, "utf8")
 
-  it("has JSDoc explaining 'none' means no match found (not explicitly safe)", () => {
-    // The JSDoc should clarify that "none" = no match found
-    expect(source).toMatch(/"none".*no match was found/i)
-    // And should clarify it does NOT mean safe
+  it("has JSDoc explaining 'undetermined' means no conclusive match (not explicitly safe)", () => {
+    expect(source).toMatch(/"undetermined".*no conclusive match/i)
     expect(source).toMatch(/does\s*not.*mean.*safe|not.*explicitly\s+safe|not.*explicitly\s+unaffected/i)
   })
 
   it("confidence values are correct", () => {
-    expect([...SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES]).toEqual(["high", "medium", "low", "none"])
+    expect([...SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES]).toEqual(["high", "medium", "low", "undetermined"])
   })
 
   it("SecurityPackageMatchConfidence runtime map works", () => {
-    expect(SecurityPackageMatchConfidence.NONE).toBe("none")
+    expect(SecurityPackageMatchConfidence.UNDETERMINED).toBe("undetermined")
     expect(SecurityPackageMatchConfidence.HIGH).toBe("high")
   })
 })

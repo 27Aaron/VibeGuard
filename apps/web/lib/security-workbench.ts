@@ -133,7 +133,7 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
   }
 
   if (value.matchReason === "version_outside_ecosystem_range") {
-    return value.confidence === "none"
+    return value.confidence === "undetermined"
   }
 
   if (value.matchReason === "package_match_without_version") {

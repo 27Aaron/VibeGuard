@@ -142,7 +142,7 @@ const securityPackageMatchConfidences = defineStatuses([
   "high",
   "medium",
   "low",
-  "none",
+  "undetermined",
 ]);
 
 export const SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES =
@@ -151,7 +151,7 @@ export const SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES =
  * Confidence levels for package-to-advisory matching.
  *
  * - `"high"` / `"medium"` / `"low"` — a match was found with the given confidence.
- * - `"none"` — **no match was found at all**.  This means the package was not
+ * - `"undetermined"` — **no conclusive match was found**.  This means the package was not
  *   determined to be affected or unaffected; the advisory data was insufficient
  *   to make any determination.  It does *not* mean the package is explicitly safe.
  */
