@@ -92,6 +92,13 @@
       "when": 1779500000002,
       "tag": "0012_articles_ecosystem_risk_category_enum",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779541814297,
+      "tag": "0013_lethal_malice",
+      "breakpoints": true
     }
   ]
 }
