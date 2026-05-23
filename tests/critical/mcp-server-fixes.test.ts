@@ -91,7 +91,7 @@ describe("MCP server critical fixes", () => {
       // check_packages uses min(1).max(100) array validation
       expect(toolsSource).toMatch(/z\.array\([\s\S]*?\)\.min\(1\)\.max\(100\)/)
       // search_articles uses z.enum for ecosystem (references variable name)
-      expect(toolsSource).toMatch(/ecosystem: z\.enum\(ecosystems\)/)
+      expect(toolsSource).toMatch(/ecosystem: z\.enum\(MCP_ECOSYSTEMS\)/)
       // search_articles also has z.enum for lang
       expect(toolsSource).toMatch(/lang: z\.enum\(\["zh", "en"\]\)/)
     })
@@ -103,7 +103,7 @@ describe("MCP server critical fixes", () => {
     })
 
     it("error response uses the same content shape as success responses", () => {
-      const textTypePattern = /\{ type: "text" as const, text:/g
+      const textTypePattern = /\{ type: "text", text:/g
       const matches = serverSource.match(textTypePattern)
       expect(matches?.length).toBeGreaterThanOrEqual(3)
     })

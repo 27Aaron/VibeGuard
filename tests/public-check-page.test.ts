@@ -9,8 +9,8 @@ describe("public check page scaffolding", () => {
     const routePath = "apps/web/app/[lang]/check/page.tsx"
 
     expect(publicHeader).toContain('{ label: "Check"')
-    expect(publicHeader).toContain('item.label === "Check"')
-    expect(publicHeader).toContain('`/${currentLang}/check`')
+    expect(publicHeader).toContain('item.surface === "check"')
+    expect(publicHeader).toContain('route: "/check"')
     expect(adminNav).not.toContain('href: "/admin/security"')
     expect(fs.existsSync(routePath)).toBe(true)
   })
