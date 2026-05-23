@@ -36,6 +36,7 @@ import {
 import type { AppLang } from "@/lib/i18n"
 import { resolveLang } from "@/lib/i18n"
 import { mergeModelOptions } from "@/lib/provider-models"
+import { PROVIDER_PRESETS } from "@/lib/provider-presets"
 import { cn } from "@/lib/utils"
 
 function FeedbackMessage({ state }: { state: FormActionResult }) {
@@ -413,6 +414,36 @@ export function LlmSettingsForm({
                     value={settingsName}
                     onChange={(event) => setSettingsName(event.target.value)}
                   />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="provider-preset" className="text-sm font-medium">
+                    {resolvedLang === "zh" ? "服务商预设" : "Provider preset"}
+                  </label>
+                  <select
+                    id="provider-preset"
+                    className={getAdminSelectClassName()}
+                    value=""
+                    onChange={(event) => {
+                      const preset = PROVIDER_PRESETS.find((p) => p.baseUrl === event.target.value)
+                      if (!preset) return
+                      setBaseUrl(preset.baseUrl)
+                      if (!settingsName.trim()) setSettingsName(preset.label)
+                    }}
+                  >
+                    <option value="">
+                      {resolvedLang === "zh" ? "选择预设以自动填充..." : "Select a preset to auto-fill..."}
+                    </option>
+                    {PROVIDER_PRESETS.map((preset) => (
+                      <option key={preset.baseUrl} value={preset.baseUrl}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-sm text-muted-foreground">
+                    {resolvedLang === "zh"
+                      ? "选择后自动填充服务地址，不影响已有字段内容。"
+                      : "Auto-fills the endpoint. Existing fields are not overwritten."}
+                  </p>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="base-url" className="text-sm font-medium">
