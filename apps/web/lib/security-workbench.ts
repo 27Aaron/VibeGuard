@@ -402,6 +402,20 @@ export function buildSecurityResultSummary(findings: SecurityFinding[]) {
       return latest ? [timestampFromIso(latest)] : []
     }),
   )
+  const latestFixedVersions = findings.reduce<{
+    timestamp: number
+    versions: string[]
+  }>(
+    (current, finding) => {
+      const latest = getSecurityFindingLatestUpdatedAt(finding)
+      const timestamp = latest ? timestampFromIso(latest) : 0
+
+      return timestamp > current.timestamp
+        ? { timestamp, versions: finding.affectedPackage.fixedVersions }
+        : current
+    },
+    { timestamp: 0, versions: [] },
+  )
 
   return {
     count: findings.length,
@@ -409,9 +423,7 @@ export function buildSecurityResultSummary(findings: SecurityFinding[]) {
     highestRisk,
     highestCvssScore: highestCvss > 0 ? String(highestCvss) : null,
     latestUpdatedAt: latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null,
-    recommendedFixedVersions: Array.from(
-      new Set(findings.flatMap((finding) => finding.affectedPackage.fixedVersions)),
-    ),
+    recommendedFixedVersions: Array.from(new Set(latestFixedVersions.versions)),
   }
 }
 

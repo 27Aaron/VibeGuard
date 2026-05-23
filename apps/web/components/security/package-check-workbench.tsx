@@ -1,6 +1,6 @@
 "use client"
 
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react"
 
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
@@ -453,11 +453,6 @@ export function PackageCheckWorkbench({
     }
   }, [selectOpen])
 
-  const searchMode: "match" | "hit" = submittedQuery?.version ? "hit" : "match"
-  const hitCount = useMemo(
-    () => result?.findings.filter((finding) => finding.affected).length ?? 0,
-    [result],
-  )
   const matchedCount = result?.findings.length ?? 0
   const pageCount = result ? Math.max(1, Math.ceil(result.findings.length / findingsPerPage)) : 1
   const pageStart = (currentPage - 1) * findingsPerPage
@@ -470,14 +465,19 @@ export function PackageCheckWorkbench({
     ecosystemLabel(ecosystem),
     initialOverviewTotals[ecosystem] ?? 0,
   )
-  const resultBadge = result
-    ? searchMode === "hit"
-      ? copy.publicCheckHitCountBadge(hitCount)
+  const summaryRiskCount = resultSummary
+    ? submittedQuery?.version
+      ? copy.publicCheckHitCountBadge(resultSummary.affectedCount)
       : copy.publicCheckMatchCountBadge(matchedCount)
     : null
-  const summaryCvssLevel = resultSummary?.highestCvssScore
-    ? cvssLevelFromScore(resultSummary.highestCvssScore)
+  const latestUpdatedAt = resultSummary?.latestUpdatedAt
+    ? formatDateTimeInShanghai(resultSummary.latestUpdatedAt, { lang })
     : null
+  const summaryLineParts = [
+    copy.publicCheckResultLabel,
+    latestUpdatedAt ? `${lang === "zh" ? "最近漏洞更新" : "Latest vulnerability update"} ${latestUpdatedAt}` : null,
+  ].filter((part): part is string => Boolean(part))
+  const summaryPackageLabel = `${packageName.trim()}${submittedQuery?.version ? `@${submittedQuery.version}` : ""}`
 
   function resetSearchState(nextEcosystem: SecurityPackageEcosystem) {
     setEcosystem(nextEcosystem)
@@ -548,11 +548,6 @@ export function PackageCheckWorkbench({
               <Badge variant="outline" className="h-7 px-3">
                 {overviewBadge}
               </Badge>
-              {resultBadge ? (
-                <Badge variant="outline" className="h-7 px-3">
-                  {resultBadge}
-                </Badge>
-              ) : null}
               {lastSyncTime ? (
                 <Badge variant="outline" className="h-7 px-3">
                   {lang === "zh" ? "数据更新于" : "Data updated"} {formatDateTimeInShanghai(lastSyncTime, { lang })}
@@ -672,32 +667,13 @@ export function PackageCheckWorkbench({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
-                {lang === "zh" ? "查询结论" : "Check summary"}
+                {summaryLineParts.join(" · ")}
               </p>
               <p className="text-base font-medium text-zinc-950 dark:text-stone-50">
-                {packageName.trim()}
-                {submittedQuery?.version ? `@${submittedQuery.version}` : ""}{" "}
-                {lang === "zh"
-                  ? `命中 ${resultSummary.affectedCount} 个已知风险`
-                  : `matched ${resultSummary.affectedCount} known risks`}
+                {summaryPackageLabel} {summaryRiskCount}
               </p>
-              {resultSummary.latestUpdatedAt ? (
-                <p className="text-xs text-zinc-500 dark:text-stone-400">
-                  {lang === "zh" ? "最近漏洞更新" : "Latest vulnerability update"}{" "}
-                  {formatDateTimeInShanghai(resultSummary.latestUpdatedAt, { lang })}
-                </p>
-              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              {summaryCvssLevel && resultSummary.highestCvssScore ? (
-                <Badge
-                  variant="outline"
-                  className={cn("h-7 px-2.5", cvssLevelBadgeClassName(summaryCvssLevel))}
-                >
-                  {lang === "zh" ? "最高 CVSS" : "Highest CVSS"} ·{" "}
-                  {cvssLevelLabel(summaryCvssLevel, lang)} {resultSummary.highestCvssScore}
-                </Badge>
-              ) : null}
               <Badge variant="outline" className="h-7 px-2.5">
                 {lang === "zh" ? "按更新时间排序" : "Sorted by update time"}
               </Badge>
@@ -708,16 +684,11 @@ export function PackageCheckWorkbench({
               <span className="text-xs font-medium text-zinc-800 dark:text-stone-100">
                 {lang === "zh" ? "建议升级" : "Upgrade to"}
               </span>
-              {resultSummary.recommendedFixedVersions.slice(0, 6).map((fixedVersion) => (
+              {resultSummary.recommendedFixedVersions.map((fixedVersion) => (
                 <Badge key={fixedVersion} variant="secondary">
                   {fixedVersion}
                 </Badge>
               ))}
-              {resultSummary.recommendedFixedVersions.length > 6 ? (
-                <span className="text-xs text-zinc-500 dark:text-stone-400">
-                  +{resultSummary.recommendedFixedVersions.length - 6}
-                </span>
-              ) : null}
             </div>
           ) : null}
         </section>

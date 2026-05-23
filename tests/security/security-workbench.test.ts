@@ -387,60 +387,75 @@ describe("security workbench helpers", () => {
     const payload = await buildPackageMatchWithoutVersionPayload()
     const finding = payload.findings[0]!
 
-    expect(
-      buildSecurityResultSummary([
+    const olderFinding = {
+      ...finding,
+      affected: true,
+      confidence: "high",
+      matchReason: "version_in_ecosystem_range",
+      advisory: {
+        ...finding.advisory,
+        modifiedAt: "2026-05-20T08:00:00.000Z",
+      },
+      affectedPackage: {
+        ...finding.affectedPackage,
+        fixedVersions: ["1.2.0"],
+      },
+      cveEnrichments: [
         {
-          ...finding,
-          affected: true,
-          confidence: "high",
-          matchReason: "version_in_ecosystem_range",
-          advisory: {
-            ...finding.advisory,
-            modifiedAt: "2026-05-20T08:00:00.000Z",
-          },
-          affectedPackage: {
-            ...finding.affectedPackage,
-            fixedVersions: ["1.2.0"],
-          },
-          cveEnrichments: [
-            {
-              cveId: "CVE-2026-1000",
-              title: null,
-              description: null,
-              cvssMetrics: [],
-              bestCvssScore: "9.8",
-              bestCvssSeverity: "CRITICAL",
-              cweIds: [],
-              epss: "0.1",
-              epssPercentile: "0.95",
-              epssScoreDate: null,
-              epssModelVersion: null,
-              kevListed: false,
-              kevDateAdded: null,
-              kevDueDate: null,
-              kevKnownRansomwareCampaignUse: null,
-              kevRequiredAction: null,
-              kevVendorProject: null,
-              kevProduct: null,
-              kevNotes: null,
-              nvdPublishedAt: "2026-05-19T08:00:00.000Z",
-              nvdModifiedAt: "2026-05-21T08:00:00.000Z",
-            },
-          ],
-          risk: {
-            level: "high",
-            score: 72,
-            signals: ["affected_version_match", "cvss_critical"],
-          },
+          cveId: "CVE-2026-1000",
+          title: null,
+          description: null,
+          cvssMetrics: [],
+          bestCvssScore: "9.8",
+          bestCvssSeverity: "CRITICAL",
+          cweIds: [],
+          epss: "0.1",
+          epssPercentile: "0.95",
+          epssScoreDate: null,
+          epssModelVersion: null,
+          kevListed: false,
+          kevDateAdded: null,
+          kevDueDate: null,
+          kevKnownRansomwareCampaignUse: null,
+          kevRequiredAction: null,
+          kevVendorProject: null,
+          kevProduct: null,
+          kevNotes: null,
+          nvdPublishedAt: "2026-05-19T08:00:00.000Z",
+          nvdModifiedAt: "2026-05-21T08:00:00.000Z",
         },
-      ]),
-    ).toEqual({
-      count: 1,
-      affectedCount: 1,
+      ],
+      risk: {
+        level: "high",
+        score: 72,
+        signals: ["affected_version_match", "cvss_critical"],
+      },
+    } satisfies typeof finding
+    const latestFinding = {
+      ...olderFinding,
+      advisory: {
+        ...olderFinding.advisory,
+        modifiedAt: "2026-05-22T08:00:00.000Z",
+      },
+      affectedPackage: {
+        ...olderFinding.affectedPackage,
+        fixedVersions: ["2.0.0", "2.0.1"],
+      },
+      cveEnrichments: [],
+      risk: {
+        level: "medium",
+        score: 44,
+        signals: ["package_match"],
+      },
+    } satisfies typeof finding
+
+    expect(buildSecurityResultSummary([olderFinding, latestFinding])).toEqual({
+      count: 2,
+      affectedCount: 2,
       highestRisk: { level: "high", score: 72 },
       highestCvssScore: "9.8",
-      latestUpdatedAt: "2026-05-21T08:00:00.000Z",
-      recommendedFixedVersions: ["1.2.0"],
+      latestUpdatedAt: "2026-05-22T08:00:00.000Z",
+      recommendedFixedVersions: ["2.0.0", "2.0.1"],
     })
   })
 
