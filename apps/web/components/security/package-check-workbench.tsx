@@ -27,6 +27,12 @@ import {
   getSecurityFindingTone,
   type SecurityFinding,
 } from "@/lib/security-workbench"
+import {
+  clearPersistedSecurityWorkbenchState,
+  loadPersistedSecurityWorkbenchState,
+  savePersistedSecurityWorkbenchState,
+  type PersistedSecurityWorkbenchState,
+} from "@/lib/security-workbench-state"
 import { buildSummaryPreviewText } from "@/lib/summary-preview"
 import { formatDateTimeInShanghai } from "@/lib/time"
 import { cn } from "@/lib/utils"
@@ -47,9 +53,7 @@ type ExpandableMarkdownBlockProps = {
   collapseLabel: string
 }
 
-type SubmittedQuery = {
-  version: string | null
-}
+type SubmittedQuery = NonNullable<PersistedSecurityWorkbenchState["submittedQuery"]>
 
 const findingsPerPage = 3
 
@@ -198,55 +202,6 @@ function ExpandableMarkdownBlock({
   )
 }
 
-const CHECK_STATE_STORAGE_KEY = "vibeguard-check-state"
-
-type PersistedCheckState = {
-  ecosystem: SecurityPackageEcosystem
-  packageName: string
-  version: string
-  submittedQuery: SubmittedQuery | null
-  result: PackageCheckWorkbenchResult | null
-}
-
-function loadPersistedCheckState(): PersistedCheckState | null {
-  try {
-    const raw = sessionStorage.getItem(CHECK_STATE_STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<PersistedCheckState>
-    if (
-      parsed.ecosystem &&
-      SECURITY_PACKAGE_ECOSYSTEM_VALUES.includes(parsed.ecosystem as SecurityPackageEcosystem)
-    ) {
-      return {
-        ecosystem: parsed.ecosystem as SecurityPackageEcosystem,
-        packageName: typeof parsed.packageName === "string" ? parsed.packageName : "",
-        version: typeof parsed.version === "string" ? parsed.version : "",
-        submittedQuery: parsed.submittedQuery ?? null,
-        result: parsed.result ?? null,
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return null
-}
-
-function savePersistedCheckState(state: PersistedCheckState) {
-  try {
-    sessionStorage.setItem(CHECK_STATE_STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    // ignore
-  }
-}
-
-function clearPersistedCheckState() {
-  try {
-    sessionStorage.removeItem(CHECK_STATE_STORAGE_KEY)
-  } catch {
-    // ignore
-  }
-}
-
 export function PackageCheckWorkbench({
   lang,
   initialOverviewTotals,
@@ -262,10 +217,11 @@ export function PackageCheckWorkbench({
   const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [submittedQuery, setSubmittedQuery] = useState<SubmittedQuery | null>(null)
+  const [storageReady, setStorageReady] = useState(false)
   const selectRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    const saved = loadPersistedCheckState()
+    const saved = loadPersistedSecurityWorkbenchState()
     if (saved) {
       setEcosystem(saved.ecosystem)
       setPackageName(saved.packageName)
@@ -273,6 +229,7 @@ export function PackageCheckWorkbench({
       if (saved.result) setResult(saved.result)
       if (saved.submittedQuery) setSubmittedQuery(saved.submittedQuery)
     }
+    setStorageReady(true)
   }, [])
 
   const persistState = useCallback(
@@ -283,7 +240,7 @@ export function PackageCheckWorkbench({
       query: SubmittedQuery | null,
       res: PackageCheckWorkbenchResult | null,
     ) => {
-      savePersistedCheckState({
+      savePersistedSecurityWorkbenchState({
         ecosystem: eco,
         packageName: name,
         version: ver,
@@ -293,6 +250,28 @@ export function PackageCheckWorkbench({
     },
     [],
   )
+
+  useEffect(() => {
+    if (!storageReady || pending) {
+      return
+    }
+
+    if (!packageName.trim() && !version.trim() && !submittedQuery && !result) {
+      clearPersistedSecurityWorkbenchState()
+      return
+    }
+
+    persistState(ecosystem, packageName, version, submittedQuery, result)
+  }, [
+    ecosystem,
+    packageName,
+    pending,
+    persistState,
+    result,
+    storageReady,
+    submittedQuery,
+    version,
+  ])
 
   useEffect(() => {
     if (!selectOpen) {
@@ -348,7 +327,7 @@ export function PackageCheckWorkbench({
     setResult(null)
     setCurrentPage(1)
     setSubmittedQuery(null)
-    clearPersistedCheckState()
+    clearPersistedSecurityWorkbenchState()
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
