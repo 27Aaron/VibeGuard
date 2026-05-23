@@ -17,6 +17,7 @@ export async function GET(request: NextRequest, { params }: ArticleRouteProps) {
   const article = await getArticleById(
     articleId,
     lang,
+    "ready",
   )
 
   if (!article) {
