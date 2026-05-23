@@ -78,6 +78,20 @@
       "when": 1779430246689,
       "tag": "0010_compact_security_osv_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779500000001,
+      "tag": "0011_drop_duplicate_job_unique_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779500000002,
+      "tag": "0012_articles_ecosystem_risk_category_enum",
+      "breakpoints": true
     }
   ]
 }
