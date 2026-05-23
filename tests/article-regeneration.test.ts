@@ -9,6 +9,7 @@ import {
 
 const baseArticle = {
   id: "article-1",
+  url: "https://example.com/article",
   titleEn: "English title",
   titleZh: "中文标题",
   summaryEn: "English summary",
@@ -18,6 +19,8 @@ const baseArticle = {
   tags: [],
   status: ArticleStatus.FAILED,
   rawMeta: null,
+  ecosystem: "unknown",
+  riskCategory: "unknown",
 }
 
 const activeSettings = {

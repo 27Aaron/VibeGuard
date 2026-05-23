@@ -4,6 +4,7 @@ import {
 } from "./article-regeneration"
 
 type RegenerationOptionArticle = {
+  url: string
   titleEn: string
   contentMdEn: string | null
   contentMdZh: string | null
@@ -17,7 +18,9 @@ export type ArticleRegenerationOption = {
 }
 
 const REGENERATION_TARGET_ORDER: ArticleRegenerationTarget[] = [
-  "full",
+  "fetch-source",
+  "extract-content",
+  "classify-relevance",
   "title-zh",
   "content-zh",
   "summary-en",
@@ -30,10 +33,10 @@ export function buildArticleRegenerationOptions(
   lang: "zh" | "en",
 ): ArticleRegenerationOption[] {
   return REGENERATION_TARGET_ORDER.map((target) => {
-    if (target === "full") {
+    if (target === "fetch-source" || target === "extract-content") {
       return {
         target,
-        label: lang === "zh" ? "全量重处理" : "Full reprocess",
+        label: getRegenerationOptionLabel(target, lang),
         disabled: false,
         disabledReason: null,
       }
@@ -42,6 +45,7 @@ export function buildArticleRegenerationOptions(
     const disabledReason = getRegenerationRequirementError(
       {
         id: "preview",
+        url: article.url,
         titleEn: article.titleEn,
         titleZh: null,
         summaryEn: null,
@@ -51,6 +55,8 @@ export function buildArticleRegenerationOptions(
         tags: [],
         status: "ready",
         rawMeta: null,
+        ecosystem: "unknown",
+        riskCategory: "unknown",
       },
       target,
       lang,
@@ -66,11 +72,17 @@ export function buildArticleRegenerationOptions(
 }
 
 function getRegenerationOptionLabel(
-  target: Exclude<ArticleRegenerationTarget, "full">,
+  target: ArticleRegenerationTarget,
   lang: "zh" | "en",
 ) {
   if (lang === "zh") {
     switch (target) {
+      case "fetch-source":
+        return "重抓原文"
+      case "extract-content":
+        return "重提取正文"
+      case "classify-relevance":
+        return "重判断相关性"
       case "title-zh":
         return "重生成中文标题"
       case "content-zh":
@@ -86,6 +98,12 @@ function getRegenerationOptionLabel(
   }
 
   switch (target) {
+    case "fetch-source":
+      return "Re-fetch source"
+    case "extract-content":
+      return "Re-extract content"
+    case "classify-relevance":
+      return "Re-classify relevance"
     case "title-zh":
       return "Regenerate Chinese title"
     case "content-zh":
@@ -102,7 +120,7 @@ function getRegenerationOptionLabel(
 
 function mapDisabledReason(
   rawMessage: string | null,
-  target: Exclude<ArticleRegenerationTarget, "full">,
+  target: ArticleRegenerationTarget,
   lang: "zh" | "en",
 ) {
   if (!rawMessage) {
@@ -110,6 +128,9 @@ function mapDisabledReason(
   }
 
   if (lang === "zh") {
+    if (target === "classify-relevance") {
+      return "需要先有英文标题和英文正文。"
+    }
     if (target === "title-zh") {
       return "需要先有英文标题。"
     }
@@ -121,6 +142,9 @@ function mapDisabledReason(
     return "需要先有中文正文。"
   }
 
+  if (target === "classify-relevance") {
+    return "An English title and English body are required first."
+  }
   if (target === "title-zh") {
     return "An English title is required first."
   }

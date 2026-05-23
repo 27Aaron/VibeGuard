@@ -2,14 +2,11 @@
 
 import { redirect } from "next/navigation"
 
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 
 import { articles, getDb, processingJobs } from "@vibeguard/db"
 import {
-  ArticleStatus,
-  JobPipelineStage,
   JobStatus,
-  JobType,
 } from "@vibeguard/shared"
 
 import {
@@ -71,62 +68,6 @@ export async function reprocessArticleAction(formData: FormData) {
             ? "当前文章已经在排队或处理中。"
             : "This article is already queued or processing."
         redirectStatus = "error"
-      } else if (target === "full") {
-        const existingJob = await db.query.processingJobs.findFirst({
-          where: and(
-            eq(processingJobs.articleId, articleId),
-            eq(processingJobs.jobType, JobType.EXTRACT),
-          ),
-        })
-
-        if (existingJob) {
-          await db
-            .update(processingJobs)
-            .set({
-              status: JobStatus.QUEUED,
-              pipelineStage: JobPipelineStage.WAITING,
-              attempt: 0,
-              maxAttempts: 3,
-              runAfter: new Date(),
-              startedAt: null,
-              finishedAt: null,
-              lastError: null,
-            })
-            .where(eq(processingJobs.id, existingJob.id))
-        } else {
-          await db.insert(processingJobs).values({
-            articleId,
-            jobType: JobType.EXTRACT,
-            status: JobStatus.QUEUED,
-            pipelineStage: JobPipelineStage.WAITING,
-            attempt: 0,
-            maxAttempts: 3,
-            runAfter: new Date(),
-          })
-        }
-
-        await db
-          .update(articles)
-          .set({
-            status: ArticleStatus.PENDING,
-            titleZh: null,
-            summaryEn: null,
-            summaryZh: null,
-            contentMdEn: null,
-            contentMdZh: null,
-            ecosystem: "unknown",
-            riskCategory: "unknown",
-            tags: [],
-            contentHash: null,
-            rawMeta: sql`CASE
-              WHEN ${articles.rawMeta} IS NULL THEN NULL
-              ELSE ${articles.rawMeta} - 'processingError'
-            END`,
-          })
-          .where(eq(articles.id, articleId))
-
-        redirectMessage = buildSuccessMessage(target, lang)
-        redirectStatus = "success"
       } else {
         const requirementError = getRegenerationRequirementError(article, target, lang)
 
@@ -134,35 +75,45 @@ export async function reprocessArticleAction(formData: FormData) {
           redirectMessage = requirementError
           redirectStatus = "error"
         } else {
-          const activeSettings = await db.query.llmSettings.findFirst({
-            where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
-          })
+          const needsLlm = target !== "extract-content"
+          const activeSettings = needsLlm
+            ? await db.query.llmSettings.findFirst({
+                where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
+              })
+            : null
 
-          if (!activeSettings) {
+          if (!activeSettings && needsLlm) {
             throw new Error("No active LLM settings found for article processing.")
           }
 
           const result = await regenerateArticleTarget({
             article,
-            settings: activeSettings,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extract-content 分支不使用 settings
+            settings: activeSettings as any,
             target,
           })
 
-          const nextRawMeta =
+          const baseRawMeta =
             article.rawMeta && typeof article.rawMeta === "object"
               ? { ...(article.rawMeta as Record<string, unknown>) }
-              : null
-
-          if (nextRawMeta && "processingError" in nextRawMeta) {
-            delete nextRawMeta.processingError
+              : {}
+          if ("processingError" in baseRawMeta) {
+            delete baseRawMeta.processingError
           }
+
+          const patchRawMeta = result.patch.rawMeta as Record<string, unknown> | undefined
+          const mergedRawMeta = patchRawMeta
+            ? { ...baseRawMeta, ...patchRawMeta }
+            : baseRawMeta
+
+          const { rawMeta: _, ...patchWithoutRawMeta } = result.patch
 
           await db
             .update(articles)
             .set({
-              ...result.patch,
+              ...patchWithoutRawMeta,
+              rawMeta: mergedRawMeta,
               status: result.nextStatus,
-              rawMeta: nextRawMeta,
             })
             .where(eq(articles.id, articleId))
 
@@ -199,12 +150,18 @@ function resolveRegenerationTarget(value: FormDataEntryValue | null): ArticleReg
     normalized as ArticleRegenerationTarget,
   )
     ? (normalized as ArticleRegenerationTarget)
-    : "full"
+    : "fetch-source"
 }
 
 function buildSuccessMessage(target: ArticleRegenerationTarget, lang: "zh" | "en") {
   if (lang === "zh") {
     switch (target) {
+      case "fetch-source":
+        return "已重新抓取原文。"
+      case "extract-content":
+        return "已重新提取正文。"
+      case "classify-relevance":
+        return "已重新判断相关性。"
       case "title-zh":
         return "已重新生成中文标题。"
       case "content-zh":
@@ -215,13 +172,16 @@ function buildSuccessMessage(target: ArticleRegenerationTarget, lang: "zh" | "en
         return "已重新生成中文摘要。"
       case "tags":
         return "已重新生成标签。"
-      case "full":
-      default:
-        return "已将文章重新加入全量处理队列。"
     }
   }
 
   switch (target) {
+    case "fetch-source":
+      return "Source has been re-fetched."
+    case "extract-content":
+      return "Content has been re-extracted."
+    case "classify-relevance":
+      return "Relevance has been re-classified."
     case "title-zh":
       return "The Chinese title has been regenerated."
     case "content-zh":
@@ -232,8 +192,5 @@ function buildSuccessMessage(target: ArticleRegenerationTarget, lang: "zh" | "en
       return "The Chinese summary has been regenerated."
     case "tags":
       return "Tags have been regenerated."
-    case "full":
-    default:
-      return "The article has been queued for full reprocessing."
   }
 }

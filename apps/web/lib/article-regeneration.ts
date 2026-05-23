@@ -1,5 +1,13 @@
+import { createHash } from "node:crypto"
+
+import {
+  classifySecurityContent,
+  extractMarkdownFromHtml,
+  fetchArticleHtml,
+} from "@vibeguard/content"
 import {
   buildLocalizedSummaryPrompt,
+  classifyRelevance as classifyRelevanceWithModel,
   createOpenAIClient,
   decryptSecret,
   generateTags as generateTagsWithModel,
@@ -9,7 +17,9 @@ import {
 import { ArticleStatus } from "@vibeguard/shared"
 
 export const ARTICLE_REGENERATION_TARGETS = [
-  "full",
+  "fetch-source",
+  "extract-content",
+  "classify-relevance",
   "title-zh",
   "content-zh",
   "summary-en",
@@ -21,6 +31,7 @@ export type ArticleRegenerationTarget = (typeof ARTICLE_REGENERATION_TARGETS)[nu
 
 type RegeneratableArticle = {
   id: string
+  url: string
   titleEn: string
   titleZh: string | null
   summaryEn: string | null
@@ -30,12 +41,15 @@ type RegeneratableArticle = {
   tags: string[]
   status: ArticleStatus
   rawMeta: unknown
+  ecosystem: string
+  riskCategory: string
 }
 
 type ActiveSettings = {
   baseUrl: string
   apiKeyEncrypted: string
   model: string
+  relevancePrompt: string
   translateTitlePrompt: string
   translateContentPrompt: string
   summaryPromptEn: string
@@ -44,18 +58,26 @@ type ActiveSettings = {
 }
 
 type RegenerationDependencies = {
+  fetchArticleHtml: typeof fetchArticleHtml
+  extractMarkdownFromHtml: typeof extractMarkdownFromHtml
+  classifySecurityContent: typeof classifySecurityContent
   createOpenAIClient: typeof createOpenAIClient
   decryptSecret: typeof decryptSecret
   translateText: typeof translateWithModel
   summarizeText: typeof summarizeWithModel
+  classifyRelevance: typeof classifyRelevanceWithModel
   generateTags?: typeof generateTagsWithModel
 }
 
 const defaultDependencies: RegenerationDependencies = {
+  fetchArticleHtml,
+  extractMarkdownFromHtml,
+  classifySecurityContent,
   createOpenAIClient,
   decryptSecret,
   translateText: translateWithModel,
   summarizeText: summarizeWithModel,
+  classifyRelevance: classifyRelevanceWithModel,
   generateTags: generateTagsWithModel,
 }
 
@@ -74,11 +96,28 @@ function hasCompleteContent(article: RegeneratableArticle, patch: Partial<Regene
   )
 }
 
+function toRawMetaRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? { ...(value as Record<string, unknown>) } : {}
+}
+
+function buildContentHash(title: string, content: string) {
+  return createHash("sha256").update(`${title}\n${content}`).digest("hex")
+}
+
 export function getRegenerationRequirementError(
   article: RegeneratableArticle,
-  target: Exclude<ArticleRegenerationTarget, "full">,
+  target: ArticleRegenerationTarget,
   lang: "zh" | "en",
 ) {
+  if (target === "classify-relevance") {
+    if (!article.titleEn.trim() || !String(article.contentMdEn ?? "").trim()) {
+      return lang === "zh"
+        ? "当前文章缺少英文标题或英文正文，无法重新判断相关性。"
+        : "An English title and English body are required to re-classify relevance."
+    }
+    return null
+  }
+
   if (target === "title-zh" && !article.titleEn.trim()) {
     return lang === "zh"
       ? "当前文章缺少英文标题，无法重新生成中文标题。"
@@ -116,16 +155,203 @@ export async function regenerateArticleTarget(
   input: {
     article: RegeneratableArticle
     settings: ActiveSettings
-    target: Exclude<ArticleRegenerationTarget, "full">
+    target: ArticleRegenerationTarget
   },
   dependencies: RegenerationDependencies = defaultDependencies,
 ) {
-  const apiKey = dependencies.decryptSecret(input.settings.apiKeyEncrypted)
+  if (input.target === "fetch-source") {
+    // 完整流水线：抓取→提取→相关性→如果相关则翻译/摘要/标签
+    const html = await dependencies.fetchArticleHtml(input.article.url)
+    const extracted = await dependencies.extractMarkdownFromHtml(html, input.article.url)
+    const titleEn = extracted.title
+    const contentMdEn = extracted.contentMd
+    const rawMeta = toRawMetaRecord(input.article.rawMeta)
+    rawMeta.extraction = {
+      author: extracted.author,
+      description: extracted.description,
+      publishedAt: extracted.publishedAt,
+      siteName: extracted.siteName,
+    }
 
+    // 相关性判断
+    const apiKey = dependencies.decryptSecret(input.settings.apiKeyEncrypted)
+    if (!apiKey) {
+      throw new Error("Active LLM settings could not be decrypted.")
+    }
+    const client = dependencies.createOpenAIClient({
+      baseUrl: input.settings.baseUrl,
+      apiKey,
+    })
+    const relevance = await dependencies.classifyRelevance({
+      client,
+      model: input.settings.model,
+      systemPrompt: input.settings.relevancePrompt,
+      sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
+    })
+
+    if (!relevance.relevant) {
+      rawMeta.relevanceFilter = {
+        reason: relevance.reason,
+        checkedAt: new Date().toISOString(),
+      }
+      const classification = dependencies.classifySecurityContent({
+        url: input.article.url,
+        title: titleEn,
+        summary: extracted.description ?? "",
+        content: contentMdEn,
+      })
+      return {
+        patch: {
+          titleEn,
+          contentMdEn,
+          contentHash: buildContentHash(titleEn, contentMdEn),
+          ecosystem: classification.ecosystem,
+          riskCategory: classification.riskCategory,
+          rawMeta,
+        },
+        nextStatus: ArticleStatus.FILTERED,
+      }
+    }
+
+    if (rawMeta.relevanceFilter) {
+      delete rawMeta.relevanceFilter
+    }
+
+    // 相关：继续翻译/摘要/标签
+    const titleZh = await dependencies.translateText({
+      client,
+      model: input.settings.model,
+      systemPrompt: input.settings.translateTitlePrompt,
+      sourceText: titleEn,
+    })
+    const contentMdZh = await dependencies.translateText({
+      client,
+      model: input.settings.model,
+      systemPrompt: input.settings.translateContentPrompt,
+      sourceText: contentMdEn,
+    })
+    const summaryEn = await dependencies.summarizeText({
+      client,
+      model: input.settings.model,
+      systemPrompt: buildLocalizedSummaryPrompt(input.settings.summaryPromptEn, "en"),
+      sourceText: contentMdEn,
+    })
+    const summaryZh = await dependencies.summarizeText({
+      client,
+      model: input.settings.model,
+      systemPrompt: buildLocalizedSummaryPrompt(input.settings.summaryPromptZh, "zh"),
+      sourceText: contentMdZh,
+    })
+    const classification = dependencies.classifySecurityContent({
+      url: input.article.url,
+      title: titleEn,
+      summary: extracted.description ?? summaryEn,
+      content: contentMdEn,
+    })
+    const tagGenerator = dependencies.generateTags ?? generateTagsWithModel
+    const tags = await tagGenerator({
+      client,
+      model: input.settings.model,
+      systemPrompt: input.settings.tagPrompt,
+      sourceText: contentMdEn,
+    })
+
+    return {
+      patch: {
+        titleEn,
+        contentMdEn,
+        contentMdZh,
+        titleZh,
+        summaryEn,
+        summaryZh,
+        tags: tags.length > 0 ? tags : classification.tags,
+        contentHash: buildContentHash(titleEn, contentMdEn),
+        ecosystem: classification.ecosystem,
+        riskCategory: classification.riskCategory,
+        rawMeta,
+      },
+      nextStatus: ArticleStatus.READY,
+    }
+  }
+
+  if (input.target === "extract-content") {
+    const html = await dependencies.fetchArticleHtml(input.article.url)
+    const extracted = await dependencies.extractMarkdownFromHtml(html, input.article.url)
+    const titleEn = extracted.title
+    const contentMdEn = extracted.contentMd
+    const rawMeta = toRawMetaRecord(input.article.rawMeta)
+    rawMeta.extraction = {
+      author: extracted.author,
+      description: extracted.description,
+      publishedAt: extracted.publishedAt,
+      siteName: extracted.siteName,
+    }
+    const classification = dependencies.classifySecurityContent({
+      url: input.article.url,
+      title: titleEn,
+      summary: extracted.description ?? "",
+      content: contentMdEn,
+    })
+
+    return {
+      patch: {
+        titleEn,
+        contentMdEn,
+        contentHash: buildContentHash(titleEn, contentMdEn),
+        ecosystem: classification.ecosystem,
+        riskCategory: classification.riskCategory,
+        rawMeta,
+      },
+      nextStatus: hasCompleteContent(input.article, { titleEn, contentMdEn })
+        ? ArticleStatus.READY
+        : input.article.status,
+    }
+  }
+
+  if (input.target === "classify-relevance") {
+    const apiKey = dependencies.decryptSecret(input.settings.apiKeyEncrypted)
+    if (!apiKey) {
+      throw new Error("Active LLM settings could not be decrypted.")
+    }
+    const client = dependencies.createOpenAIClient({
+      baseUrl: input.settings.baseUrl,
+      apiKey,
+    })
+    const titleEn = input.article.titleEn
+    const contentMdEn = input.article.contentMdEn ?? ""
+    const relevance = await dependencies.classifyRelevance({
+      client,
+      model: input.settings.model,
+      systemPrompt: input.settings.relevancePrompt,
+      sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
+    })
+    if (!relevance.relevant) {
+      const rawMeta = toRawMetaRecord(input.article.rawMeta)
+      rawMeta.relevanceFilter = {
+        reason: relevance.reason,
+        checkedAt: new Date().toISOString(),
+      }
+      return {
+        patch: { rawMeta },
+        nextStatus: ArticleStatus.FILTERED,
+      }
+    }
+    const rawMeta = toRawMetaRecord(input.article.rawMeta)
+    if (rawMeta.relevanceFilter) {
+      delete rawMeta.relevanceFilter
+    }
+    return {
+      patch: { rawMeta },
+      nextStatus: hasCompleteContent(input.article, {})
+        ? ArticleStatus.READY
+        : input.article.status,
+    }
+  }
+
+  const apiKey = dependencies.decryptSecret(input.settings.apiKeyEncrypted)
   if (!apiKey) {
     throw new Error("Active LLM settings could not be decrypted.")
   }
-
   const client = dependencies.createOpenAIClient({
     baseUrl: input.settings.baseUrl,
     apiKey,
