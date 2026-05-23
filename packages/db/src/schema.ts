@@ -227,6 +227,35 @@ export const llmSettings = pgTable(
   ],
 );
 
+export const llmUsageLogs = pgTable(
+  "llm_usage_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    articleId: uuid("article_id")
+      .notNull()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id").references(() => processingJobs.id, {
+      onDelete: "set null",
+    }),
+    taskType: varchar("task_type", { length: 40 }).notNull(),
+    model: varchar("model", { length: 120 }).notNull(),
+    promptTokens: integer("prompt_tokens").notNull(),
+    completionTokens: integer("completion_tokens").notNull(),
+    totalTokens: integer("total_tokens").notNull(),
+    cachedTokens: integer("cached_tokens"),
+    finishReason: varchar("finish_reason", { length: 20 }),
+    responseTimeMs: integer("response_time_ms").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("llm_usage_logs_created_at_idx").on(table.createdAt),
+    index("llm_usage_logs_article_id_idx").on(table.articleId),
+    index("llm_usage_logs_task_type_idx").on(table.taskType),
+  ],
+);
+
 export const securitySyncState = pgTable(
   "security_sync_state",
   {
@@ -366,6 +395,7 @@ export const schema = {
   articles,
   processingJobs,
   llmSettings,
+  llmUsageLogs,
   securitySyncState,
   securityAdvisories,
   securityAffectedPackages,
