@@ -224,8 +224,11 @@ export function LlmSettingsForm({
     setRelevancePrompt(pipeline.relevancePrompt)
     setModelOptions(provider.model ? [provider.model] : [])
     setModelFeedback("")
-    setSelectedPresetIndex(-1)
     setNameManuallyEdited(false)
+    const matchedIdx = provider.baseUrl
+      ? PROVIDER_PRESETS.findIndex((p) => p.baseUrl === provider.baseUrl)
+      : -1
+    setSelectedPresetIndex(matchedIdx >= 0 ? matchedIdx : PROVIDER_PRESETS.length - 1)
   }, [
     provider.id,
     provider.settingsName,
