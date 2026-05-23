@@ -58,6 +58,23 @@ describe("getRegenerationRequirementError", () => {
       ),
     ).toBe("The article has no English body, so the Chinese summary cannot be regenerated.")
   })
+
+  it("blocks translation/summary/tags targets for filtered articles", () => {
+    const filteredArticle = {
+      ...baseArticle,
+      status: ArticleStatus.FILTERED,
+    }
+
+    expect(getRegenerationRequirementError(filteredArticle, "title-zh", "zh")).toBeTruthy()
+    expect(getRegenerationRequirementError(filteredArticle, "content-zh", "zh")).toBeTruthy()
+    expect(getRegenerationRequirementError(filteredArticle, "summary-en", "zh")).toBeTruthy()
+    expect(getRegenerationRequirementError(filteredArticle, "summary-zh", "zh")).toBeTruthy()
+    expect(getRegenerationRequirementError(filteredArticle, "tags", "zh")).toBeTruthy()
+
+    expect(getRegenerationRequirementError(filteredArticle, "fetch-source", "zh")).toBeNull()
+    expect(getRegenerationRequirementError(filteredArticle, "extract-content", "zh")).toBeNull()
+    expect(getRegenerationRequirementError(filteredArticle, "classify-relevance", "zh")).toBeNull()
+  })
 })
 
 describe("regenerateArticleTarget", () => {

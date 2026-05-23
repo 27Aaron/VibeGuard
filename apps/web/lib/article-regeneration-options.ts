@@ -1,3 +1,5 @@
+import { ArticleStatus } from "@vibeguard/shared"
+
 import {
   getRegenerationRequirementError,
   type ArticleRegenerationTarget,
@@ -7,6 +9,7 @@ type RegenerationOptionArticle = {
   url: string
   titleEn: string
   contentMdEn: string | null
+  status: ArticleStatus
 }
 
 export type ArticleRegenerationOption = {
@@ -57,7 +60,7 @@ export function buildArticleRegenerationOptions(
         contentMdEn: article.contentMdEn,
         contentMdZh: null,
         tags: [],
-        status: "ready",
+        status: article.status,
         rawMeta: null,
         ecosystem: "unknown",
         riskCategory: "unknown",
@@ -177,6 +180,10 @@ function mapDisabledReason(
 ) {
   if (!rawMessage) {
     return null
+  }
+
+  if (rawMessage.includes("已被过滤") || rawMessage.includes("has been filtered")) {
+    return lang === "zh" ? "文章已被过滤，无法执行后续步骤。" : "This article has been filtered."
   }
 
   if (lang === "zh") {

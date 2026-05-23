@@ -9,6 +9,7 @@ describe("buildArticleRegenerationOptions", () => {
         url: "https://example.com/article",
         titleEn: "English title",
         contentMdEn: "",
+        status: "ready",
       },
       "zh",
     )
@@ -71,6 +72,7 @@ describe("buildArticleRegenerationOptions", () => {
         url: "https://example.com/article",
         titleEn: "",
         contentMdEn: "English body",
+        status: "ready",
       },
       "en",
     )
@@ -131,6 +133,7 @@ describe("buildArticleRegenerationOptions", () => {
         url: "https://example.com/article",
         titleEn: "English title",
         contentMdEn: "English body",
+        status: "ready",
       },
       "zh",
     )
@@ -143,5 +146,57 @@ describe("buildArticleRegenerationOptions", () => {
         disabledReason: null,
       }),
     )
+  })
+
+  it("disables translation, summary and tags targets for filtered articles", () => {
+    const options = buildArticleRegenerationOptions(
+      {
+        url: "https://example.com/article",
+        titleEn: "English title",
+        contentMdEn: "English body",
+        status: "filtered",
+      },
+      "zh",
+    )
+
+    expect(options).toEqual([
+      expect.objectContaining({
+        target: "fetch-source",
+        disabled: false,
+      }),
+      expect.objectContaining({
+        target: "extract-content",
+        disabled: false,
+      }),
+      expect.objectContaining({
+        target: "classify-relevance",
+        disabled: false,
+      }),
+      expect.objectContaining({
+        target: "title-zh",
+        disabled: true,
+        disabledReason: "文章已被过滤，无法执行后续步骤。",
+      }),
+      expect.objectContaining({
+        target: "content-zh",
+        disabled: true,
+        disabledReason: "文章已被过滤，无法执行后续步骤。",
+      }),
+      expect.objectContaining({
+        target: "summary-en",
+        disabled: true,
+        disabledReason: "文章已被过滤，无法执行后续步骤。",
+      }),
+      expect.objectContaining({
+        target: "summary-zh",
+        disabled: true,
+        disabledReason: "文章已被过滤，无法执行后续步骤。",
+      }),
+      expect.objectContaining({
+        target: "tags",
+        disabled: true,
+        disabledReason: "文章已被过滤，无法执行后续步骤。",
+      }),
+    ])
   })
 })

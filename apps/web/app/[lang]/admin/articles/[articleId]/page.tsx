@@ -138,6 +138,7 @@ export default async function ArticleDetailPage({
       url: article.url,
       titleEn: article.titleEn,
       contentMdEn: article.contentMdEn,
+      status: article.status,
     },
     resolvedLang,
   )

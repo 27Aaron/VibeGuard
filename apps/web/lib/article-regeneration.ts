@@ -104,11 +104,25 @@ function buildContentHash(title: string, content: string) {
   return createHash("sha256").update(`${title}\n${content}`).digest("hex")
 }
 
+const FILTERED_BLOCKED_TARGETS = new Set<ArticleRegenerationTarget>([
+  "title-zh",
+  "content-zh",
+  "summary-en",
+  "summary-zh",
+  "tags",
+])
+
 export function getRegenerationRequirementError(
   article: RegeneratableArticle,
   target: ArticleRegenerationTarget,
   lang: "zh" | "en",
 ) {
+  if (article.status === ArticleStatus.FILTERED && FILTERED_BLOCKED_TARGETS.has(target)) {
+    return lang === "zh"
+      ? "当前文章已被过滤"
+      : "This article has been filtered"
+  }
+
   if (target === "classify-relevance") {
     if (!article.titleEn.trim() || !String(article.contentMdEn ?? "").trim()) {
       return lang === "zh"
