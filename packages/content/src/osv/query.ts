@@ -149,7 +149,7 @@ export async function checkPackagesAgainstLocalDb(
   }))
 
   // Build OR conditions for all packages in one query
-  const ecosystemKeys = new Map<string, Set<string>>()
+  const ecosystemKeys = new Map<SecurityPackageEcosystem, Set<string>>()
   for (const { ecosystem, packageKey } of packageLookupKeys) {
     const keys = ecosystemKeys.get(ecosystem)
     if (keys) {
@@ -162,7 +162,7 @@ export async function checkPackagesAgainstLocalDb(
   // Query all affected packages in batches by ecosystem (inArray requires same column)
   const allAffectedPackages: Array<{
     id: string
-    ecosystem: string
+    ecosystem: SecurityPackageEcosystem
     packageName: string
     packageKey: string
     purl: string | null
