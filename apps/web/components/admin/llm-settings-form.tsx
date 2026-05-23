@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState, useTransition } from "rea
 import { useFormStatus } from "react-dom"
 import { useRouter } from "next/navigation"
 import { Check, ChevronDown, ChevronRight, PlusCircle, Trash2 } from "lucide-react"
+import { CustomSelect } from "@/components/ui/custom-select"
 
 import type {
   LlmSettingsRow,
@@ -27,7 +28,6 @@ import {
   IDLE_FORM_ACTION_RESULT,
   type FormActionResult,
 } from "@/lib/action-result"
-import { getAdminSelectClassName } from "@/lib/admin-layout"
 import {
   activateLlmSettingsAction,
   deleteLlmSettingsAction,
@@ -324,11 +324,10 @@ export function LlmSettingsForm({
                 <label className="text-sm text-muted-foreground">
                   {resolvedLang === "zh" ? "生效配置：" : "Active config:"}
                 </label>
-                <select
-                  className={cn(getAdminSelectClassName(), "min-w-[220px]")}
+                <CustomSelect
+                  className="min-w-[220px]"
                   value={profiles.find((p) => p.isActive)?.id ?? ""}
-                  onChange={(event) => {
-                    const targetId = event.target.value
+                  onChange={(targetId) => {
                     if (!targetId) return
                     startActionTransition(async () => {
                       const fd = new FormData()
@@ -339,13 +338,11 @@ export function LlmSettingsForm({
                     })
                   }}
                   disabled={isActionPending}
-                >
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.model})
-                    </option>
-                  ))}
-                </select>
+                  options={profiles.map((p) => ({
+                    value: p.id,
+                    label: `${p.name} (${p.model})`,
+                  }))}
+                />
               </div>
             ) : null}
           </div>
@@ -364,27 +361,27 @@ export function LlmSettingsForm({
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <select
+                  <CustomSelect
                     value={selectedProfileId ?? ""}
-                    onChange={(event) => {
-                      const value = event.target.value
+                    onChange={(value) => {
                       if (value === "new") {
                         router.push(`/${lang}/admin/settings?profile=new`)
                       } else if (value) {
                         router.push(`/${lang}/admin/settings?profile=${value}`)
                       }
                     }}
-                    className={cn(getAdminSelectClassName(), "min-w-[180px]")}
-                  >
-                    {profiles.map((profile) => (
-                      <option key={profile.id} value={profile.id}>
-                        {profile.name}
-                      </option>
-                    ))}
-                    <option value="new">
-                      {resolvedLang === "zh" ? "＋ 新建配置" : "＋ New profile"}
-                    </option>
-                  </select>
+                    className="min-w-[180px]"
+                    options={[
+                      ...profiles.map((profile) => ({
+                        value: profile.id,
+                        label: profile.name,
+                      })),
+                      {
+                        value: "new",
+                        label: resolvedLang === "zh" ? "＋ 新建配置" : "＋ New profile",
+                      },
+                    ]}
+                  />
                   <div className="ml-auto flex items-center gap-2">
                     {isActive ? (
                       <Badge
@@ -480,12 +477,10 @@ export function LlmSettingsForm({
                   <label htmlFor="provider-preset" className="text-sm font-medium">
                     {resolvedLang === "zh" ? "服务商预设" : "Provider preset"}
                   </label>
-                  <select
-                    id="provider-preset"
-                    className={getAdminSelectClassName()}
+                  <CustomSelect
                     value={selectedPresetIndex >= 0 ? PROVIDER_PRESETS[selectedPresetIndex].baseUrl : ""}
-                    onChange={(event) => {
-                      const idx = PROVIDER_PRESETS.findIndex((p) => p.baseUrl === event.target.value)
+                    onChange={(val) => {
+                      const idx = PROVIDER_PRESETS.findIndex((p) => p.baseUrl === val)
                       if (idx < 0) return
                       const preset = PROVIDER_PRESETS[idx]
                       if (preset.baseUrl === "") return
@@ -497,16 +492,12 @@ export function LlmSettingsForm({
                       setBaseUrl(preset.baseUrl)
                       if (!nameManuallyEdited) setSettingsName(preset.name)
                     }}
-                  >
-                    <option value="">
-                      {resolvedLang === "zh" ? "选择预设以自动填充..." : "Select a preset to auto-fill..."}
-                    </option>
-                    {PROVIDER_PRESETS.map((preset, idx) => (
-                      <option key={`${idx}-${preset.baseUrl}`} value={preset.baseUrl}>
-                        {resolvePresetLabel(preset, resolvedLang)}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder={resolvedLang === "zh" ? "选择预设以自动填充..." : "Select a preset to auto-fill..."}
+                    options={PROVIDER_PRESETS.map((preset) => ({
+                      value: preset.baseUrl,
+                      label: resolvePresetLabel(preset, resolvedLang),
+                    }))}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="base-url" className="text-sm font-medium">
@@ -548,19 +539,17 @@ export function LlmSettingsForm({
                     {resolvedLang === "zh" ? "默认模型" : "Default model"}
                   </label>
                   {mergedModelOptions.length > 0 ? (
-                    <select
-                      id="model"
-                      name="model"
-                      value={model}
-                      onChange={(event) => setModel(event.target.value)}
-                      className={getAdminSelectClassName()}
-                    >
-                      {mergedModelOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
+                    <>
+                      <input type="hidden" name="model" value={model} />
+                      <CustomSelect
+                        value={model}
+                        onChange={(val) => setModel(val)}
+                        options={mergedModelOptions.map((option) => ({
+                          value: option,
+                          label: option,
+                        }))}
+                      />
+                    </>
                   ) : (
                     <Input
                       id="model"
