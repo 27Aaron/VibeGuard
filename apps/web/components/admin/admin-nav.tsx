@@ -27,6 +27,7 @@ export function AdminNav({ lang }: { lang: AppLang }) {
     { href: "/admin/articles", label: getUiText(lang).adminNavArticles },
     { href: "/admin/jobs", label: getUiText(lang).adminNavJobs },
     { href: "/admin/settings", label: getUiText(lang).adminNavSettings },
+    { href: "/admin/stats", label: getUiText(lang).adminNavStats },
   ]
 
   return (

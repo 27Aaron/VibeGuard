@@ -54,6 +54,7 @@ export const uiText = {
     adminNavArticles: "文章",
     adminNavJobs: "任务",
     adminNavSettings: "设置",
+    adminNavStats: "LLM 统计",
     adminSecurityTitle: "依赖安全",
     adminSecurityDescription: "检查关键依赖是否存在已知安全风险。",
     adminSecurityCheck: "检查依赖安全",
@@ -141,6 +142,7 @@ export const uiText = {
     adminNavArticles: "Articles",
     adminNavJobs: "Jobs",
     adminNavSettings: "Settings",
+    adminNavStats: "LLM Stats",
     adminSecurityTitle: "Dependency security",
     adminSecurityDescription:
       "Check whether key dependencies have known security risk signals.",
