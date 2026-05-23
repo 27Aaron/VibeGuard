@@ -9,7 +9,6 @@ describe("buildArticleRegenerationOptions", () => {
         url: "https://example.com/article",
         titleEn: "English title",
         contentMdEn: "",
-        contentMdZh: null,
       },
       "zh",
     )
@@ -55,7 +54,7 @@ describe("buildArticleRegenerationOptions", () => {
         target: "summary-zh",
         label: "中文摘要",
         disabled: true,
-        disabledReason: "需要先有中文正文。",
+        disabledReason: "需要先有英文正文。",
       }),
       expect.objectContaining({
         target: "tags",
@@ -72,7 +71,6 @@ describe("buildArticleRegenerationOptions", () => {
         url: "https://example.com/article",
         titleEn: "",
         contentMdEn: "English body",
-        contentMdZh: "中文正文",
       },
       "en",
     )
@@ -133,7 +131,6 @@ describe("buildArticleRegenerationOptions", () => {
         url: "https://example.com/article",
         titleEn: "English title",
         contentMdEn: "English body",
-        contentMdZh: null,
       },
       "zh",
     )

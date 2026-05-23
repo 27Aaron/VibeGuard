@@ -142,10 +142,10 @@ export function getRegenerationRequirementError(
       : "The article has no English body, so tags cannot be regenerated."
   }
 
-  if (target === "summary-zh" && !String(article.contentMdZh ?? "").trim()) {
+  if (target === "summary-zh" && !String(article.contentMdEn ?? "").trim()) {
     return lang === "zh"
-      ? "当前文章缺少中文正文，请先重新生成中文正文。"
-      : "The article has no Chinese body yet. Regenerate the Chinese body first."
+      ? "当前文章缺少英文正文，无法重新生成中文摘要。"
+      : "The article has no English body, so the Chinese summary cannot be regenerated."
   }
 
   return null
@@ -434,7 +434,7 @@ export async function regenerateArticleTarget(
     client,
     model: input.settings.model,
     systemPrompt: buildLocalizedSummaryPrompt(input.settings.summaryPromptZh, "zh"),
-    sourceText: input.article.contentMdZh ?? "",
+    sourceText: input.article.contentMdEn ?? "",
   })
 
   return {

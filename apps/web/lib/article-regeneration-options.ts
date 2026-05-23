@@ -7,7 +7,6 @@ type RegenerationOptionArticle = {
   url: string
   titleEn: string
   contentMdEn: string | null
-  contentMdZh: string | null
 }
 
 export type ArticleRegenerationOption = {
@@ -56,7 +55,7 @@ export function buildArticleRegenerationOptions(
         summaryEn: null,
         summaryZh: null,
         contentMdEn: article.contentMdEn,
-        contentMdZh: article.contentMdZh,
+        contentMdZh: null,
         tags: [],
         status: "ready",
         rawMeta: null,
@@ -143,7 +142,7 @@ function getRegenerationOptionDescription(
       case "summary-en":
         return "重新从英文正文生成英文摘要。"
       case "summary-zh":
-        return "重新从中文正文生成中文摘要。"
+        return "重新从英文正文生成中文摘要。"
       case "tags":
       default:
         return "重新从英文正文生成安全标签。"
@@ -173,7 +172,7 @@ function getRegenerationOptionDescription(
 
 function mapDisabledReason(
   rawMessage: string | null,
-  target: ArticleRegenerationTarget,
+  _target: ArticleRegenerationTarget,
   lang: "zh" | "en",
 ) {
   if (!rawMessage) {
@@ -181,30 +180,20 @@ function mapDisabledReason(
   }
 
   if (lang === "zh") {
-    if (target === "classify-relevance") {
+    if (_target === "classify-relevance") {
       return "需要先有英文标题和英文正文。"
     }
-    if (target === "title-zh") {
+    if (_target === "title-zh") {
       return "需要先有英文标题。"
     }
-
-    if (target === "content-zh" || target === "summary-en" || target === "tags") {
-      return "需要先有英文正文。"
-    }
-
-    return "需要先有中文正文。"
+    return "需要先有英文正文。"
   }
 
-  if (target === "classify-relevance") {
+  if (_target === "classify-relevance") {
     return "An English title and English body are required first."
   }
-  if (target === "title-zh") {
+  if (_target === "title-zh") {
     return "An English title is required first."
   }
-
-  if (target === "content-zh" || target === "summary-en" || target === "tags") {
-    return "An English body is required first."
-  }
-
-  return "A Chinese body is required first."
+  return "An English body is required first."
 }

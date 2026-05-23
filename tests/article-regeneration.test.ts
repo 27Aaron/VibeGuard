@@ -35,28 +35,28 @@ const activeSettings = {
 }
 
 describe("getRegenerationRequirementError", () => {
-  it("returns a localized requirement error for missing Chinese summary prerequisites", () => {
+  it("returns a localized requirement error for missing English body for Chinese summary", () => {
     expect(
       getRegenerationRequirementError(
         {
           ...baseArticle,
-          contentMdZh: null,
+          contentMdEn: null,
         },
         "summary-zh",
         "zh",
       ),
-    ).toBe("当前文章缺少中文正文，请先重新生成中文正文。")
+    ).toBe("当前文章缺少英文正文，无法重新生成中文摘要。")
 
     expect(
       getRegenerationRequirementError(
         {
           ...baseArticle,
-          contentMdZh: null,
+          contentMdEn: null,
         },
         "summary-zh",
         "en",
       ),
-    ).toBe("The article has no Chinese body yet. Regenerate the Chinese body first.")
+    ).toBe("The article has no English body, so the Chinese summary cannot be regenerated.")
   })
 })
 
