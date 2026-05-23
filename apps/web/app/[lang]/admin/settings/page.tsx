@@ -23,8 +23,10 @@ export default async function SettingsPage({ params: routeParams, searchParams }
     getLlmSettingsRows(),
     getLlmSettingsDetail(params.profile),
   ])
-  const selectedProfileId =
-    params.profile && params.profile !== "new" ? params.profile : settings.id
+  const isNewProfile = params.profile === "new"
+  const selectedProfileId = isNewProfile
+    ? "new"
+    : (params.profile ?? settings.id)
   const showBanner = params.status === "success" || params.status === "error"
 
   return (
