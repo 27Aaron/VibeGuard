@@ -73,7 +73,7 @@ describe("I19: parseRelevanceResponse via classifyRelevance", () => {
 
   it("parses a valid relevance JSON response", async () => {
     const client = makeMockClient('{"relevant": true, "reason": "about vulnerabilities"}')
-    const result = await classifyRelevance({
+    const { result } = await classifyRelevance({
       // @ts-expect-error -- simplified mock
       client,
       model: "test",
@@ -86,7 +86,7 @@ describe("I19: parseRelevanceResponse via classifyRelevance", () => {
 
   it("returns default relevant=true when response is unparseable", async () => {
     const client = makeMockClient("not json at all")
-    const result = await classifyRelevance({
+    const { result } = await classifyRelevance({
       // @ts-expect-error -- simplified mock
       client,
       model: "test",

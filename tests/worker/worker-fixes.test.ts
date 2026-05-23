@@ -294,7 +294,7 @@ describe("W34: processExtractJob parallelizes classify and tags", () => {
       tagCallOrder.push("tags-start");
       await new Promise((r) => setTimeout(r, 5));
       tagCallOrder.push("tags-end");
-      return ["tag-1", "tag-2"];
+      return { result: ["tag-1", "tag-2"], usage: null };
     });
 
     const article = {

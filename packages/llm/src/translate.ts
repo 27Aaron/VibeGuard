@@ -2,6 +2,7 @@ import { buildTranslationSystemPrompt } from "./prompts"
 import {
   createChatCompletionTextWithRetry,
   type ChatCompletionsClient,
+  type UsageResult,
 } from "./chat"
 
 type ProtectedMarkdownCode = {
@@ -48,12 +49,15 @@ export async function translateText(input: {
 }) {
   const protectedMarkdown = protectMarkdownCode(input.sourceText)
   const systemPrompt = buildTranslationSystemPrompt(input.systemPrompt)
-  const text = await createChatCompletionTextWithRetry({
+  const { text, usage } = await createChatCompletionTextWithRetry({
     client: input.client,
     model: input.model,
     systemPrompt,
     userContent: protectedMarkdown.protectedText,
   })
 
-  return protectedMarkdown.restore(text)
+  return {
+    result: protectedMarkdown.restore(text),
+    usage,
+  }
 }

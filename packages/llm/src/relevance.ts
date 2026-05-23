@@ -1,6 +1,7 @@
 import {
   createChatCompletionTextWithRetry,
   type ChatCompletionsClient,
+  type UsageResult,
 } from "./chat";
 
 import { stripJsonFence, tryParseJsonCandidates, resolvePrompt } from "./utils";
@@ -76,25 +77,22 @@ export async function classifyRelevance(input: {
   model: string;
   systemPrompt: string;
   sourceText: string;
-}): Promise<RelevanceResult> {
+}): Promise<{ result: RelevanceResult; usage: UsageResult | null }> {
   const { systemPrompt, userContent } = buildRelevancePrompt({
     systemPrompt: input.systemPrompt,
     sourceText: input.sourceText,
   });
 
-  const text = await createChatCompletionTextWithRetry({
+  const { text, usage } = await createChatCompletionTextWithRetry({
     client: input.client,
     model: input.model,
     systemPrompt,
     userContent,
   });
 
-  const result = parseRelevanceResponse(text);
+  const parsed = parseRelevanceResponse(text);
 
-  if (result) {
-    return result;
-  }
+  const result = parsed ?? { relevant: true, reason: "Failed to parse relevance response" };
 
-  // 解析失败时默认认为相关，避免误过滤
-  return { relevant: true, reason: "Failed to parse relevance response" };
+  return { result, usage };
 }

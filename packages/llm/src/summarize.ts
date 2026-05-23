@@ -2,6 +2,7 @@ import { buildLocalizedSummaryPrompt } from "./prompts"
 import {
   createChatCompletionTextWithRetry,
   type ChatCompletionsClient,
+  type UsageResult,
 } from "./chat"
 
 const MAX_SUMMARY_SOURCE_LENGTH = 100_000
@@ -21,10 +22,12 @@ export async function summarizeText(input: {
     sourceText = sourceText.slice(0, MAX_SUMMARY_SOURCE_LENGTH)
   }
 
-  return createChatCompletionTextWithRetry({
+  const { text, usage } = await createChatCompletionTextWithRetry({
     client: input.client,
     model: input.model,
     systemPrompt: input.systemPrompt,
     userContent: sourceText,
   })
+
+  return { result: text, usage }
 }

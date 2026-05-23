@@ -1,6 +1,7 @@
 import {
   createChatCompletionTextWithRetry,
   type ChatCompletionsClient,
+  type UsageResult,
 } from "./chat";
 
 import { stripJsonFence, tryParseJsonCandidates, resolvePrompt } from "./utils";
@@ -159,12 +160,12 @@ export async function generateTags(input: {
     systemPrompt: input.systemPrompt,
     sourceText: input.sourceText,
   });
-  const text = await createChatCompletionTextWithRetry({
+  const { text, usage } = await createChatCompletionTextWithRetry({
     client: input.client,
     model: input.model,
     systemPrompt,
     userContent,
   });
 
-  return extractGeneratedTags(text);
+  return { result: extractGeneratedTags(text), usage };
 }

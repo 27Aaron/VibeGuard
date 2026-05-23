@@ -104,8 +104,8 @@ describe("processArticleJob pipeline stages", () => {
         }),
         createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
         decryptSecret: vi.fn().mockReturnValue("plain-key"),
-        translateText: vi.fn().mockResolvedValue("中文"),
-        summarizeText: vi.fn().mockResolvedValue("summary"),
+        translateText: vi.fn().mockResolvedValue({ result: "中文", usage: null }),
+        summarizeText: vi.fn().mockResolvedValue({ result: "summary", usage: null }),
         markJobStage,
       } as never,
     );

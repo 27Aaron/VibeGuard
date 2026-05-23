@@ -42,7 +42,7 @@ describe("llm text services", () => {
       ],
     });
 
-    const result = await translateText({
+    const { result } = await translateText({
       client: {
         chat: { completions: { create } },
       },
@@ -81,7 +81,7 @@ describe("llm text services", () => {
         ],
       });
 
-    const result = await translateText({
+    const { result } = await translateText({
       client: {
         chat: { completions: { create } },
       },
@@ -106,7 +106,7 @@ describe("llm text services", () => {
       ],
     });
 
-    const result = await translateText({
+    const { result } = await translateText({
       client: {
         chat: { completions: { create } },
       },
@@ -144,7 +144,7 @@ describe("llm text services", () => {
       ],
     });
 
-    const result = await summarizeText({
+    const { result } = await summarizeText({
       client: {
         chat: { completions: { create } },
       },
@@ -183,7 +183,7 @@ describe("llm text services", () => {
         ],
       });
 
-    const result = await summarizeText({
+    const { result } = await summarizeText({
       client: {
         chat: { completions: { create } },
       },

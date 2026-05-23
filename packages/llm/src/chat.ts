@@ -7,15 +7,34 @@ type ChatCompletionChoice = {
   message?: {
     content?: string | ChatCompletionContentPart[] | null
   } | null
+  finish_reason?: string
+}
+
+type CompletionUsage = {
+  prompt_tokens?: number
+  completion_tokens?: number
+  total_tokens?: number
+  prompt_tokens_details?: {
+    cached_tokens?: number
+  }
 }
 
 type ChatCompletionResult = {
   choices?: ChatCompletionChoice[]
+  usage?: CompletionUsage
 }
 
 type ChatMessage = {
   role: "system" | "user"
   content: string
+}
+
+export type UsageResult = {
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  cachedTokens?: number
+  finishReason?: string
 }
 
 export type ChatCompletionsClient = {
@@ -33,6 +52,20 @@ function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
+}
+
+function extractUsage(result: ChatCompletionResult): UsageResult | null {
+  if (!result.usage) {
+    return null
+  }
+
+  return {
+    promptTokens: result.usage.prompt_tokens ?? 0,
+    completionTokens: result.usage.completion_tokens ?? 0,
+    totalTokens: result.usage.total_tokens ?? 0,
+    cachedTokens: result.usage.prompt_tokens_details?.cached_tokens,
+    finishReason: result.choices?.[0]?.finish_reason,
+  }
 }
 
 export async function createChatCompletionTextWithRetry(input: {
@@ -60,7 +93,10 @@ export async function createChatCompletionTextWithRetry(input: {
         messages,
       })
 
-      return extractChatCompletionText(result)
+      return {
+        text: extractChatCompletionText(result),
+        usage: extractUsage(result),
+      }
     } catch (error) {
       lastError = error
 
@@ -77,7 +113,7 @@ export async function createChatCompletionTextWithRetry(input: {
 
 function stripThinkingTags(text: string): string {
   return text
-    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .replace(/<think[\s\S]*?<\/think>/g, "")
     .replace(/<think[\s\S]*?(<\/think>|$)/g, "")
     .trim()
 }

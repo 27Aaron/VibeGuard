@@ -196,12 +196,13 @@ async function processExtractJob(input: {
 
     // 相关性检查：提取内容后立即判断，不相关的文章跳过后续所有 LLM 步骤
     await input.dependencies.markJobStage?.(JobPipelineStage.CLASSIFY_RELEVANCE)
-    const relevance = await classifyRelevance({
+    const relevanceResult = await classifyRelevance({
       client: input.client,
       model: input.activeSettings.model,
       systemPrompt: input.activeSettings.relevancePrompt,
       sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
     })
+    const relevance = relevanceResult.result
     if (!relevance.relevant) {
       rawMeta.relevanceFilter = {
         reason: relevance.reason,
@@ -217,29 +218,31 @@ async function processExtractJob(input: {
 
   if (!hasText(titleZh)) {
     await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_TITLE)
-    titleZh = await input.dependencies.translateText({
+    const titleZhResult = await input.dependencies.translateText({
       client: input.client,
       model: input.activeSettings.model,
       systemPrompt: input.activeSettings.translateTitlePrompt,
       sourceText: requiredTitleEn,
     })
+    titleZh = titleZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { titleZh })
   }
 
   if (!hasText(contentMdZh)) {
     await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_CONTENT)
-    contentMdZh = await input.dependencies.translateText({
+    const contentMdZhResult = await input.dependencies.translateText({
       client: input.client,
       model: input.activeSettings.model,
       systemPrompt: input.activeSettings.translateContentPrompt,
       sourceText: requiredContentMdEn,
     })
+    contentMdZh = contentMdZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { contentMdZh })
   }
 
   if (!hasText(summaryEn)) {
     await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
-    summaryEn = await input.dependencies.summarizeText({
+    const summaryEnResult = await input.dependencies.summarizeText({
       client: input.client,
       model: input.activeSettings.model,
       systemPrompt: buildLocalizedSummaryPrompt(
@@ -248,6 +251,7 @@ async function processExtractJob(input: {
       ),
       sourceText: requiredContentMdEn,
     })
+    summaryEn = summaryEnResult.result
     await persistArticlePatch(input.dependencies, input.article, { summaryEn })
   }
 
@@ -255,7 +259,7 @@ async function processExtractJob(input: {
 
   if (!hasText(summaryZh)) {
     await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
-    summaryZh = await input.dependencies.summarizeText({
+    const summaryZhResult = await input.dependencies.summarizeText({
       client: input.client,
       model: input.activeSettings.model,
       systemPrompt: buildLocalizedSummaryPrompt(
@@ -264,6 +268,7 @@ async function processExtractJob(input: {
       ),
       sourceText: requiredContentMdZh,
     })
+    summaryZh = summaryZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { summaryZh })
   }
 
@@ -321,13 +326,14 @@ async function generateArticleTags(input: {
 }) {
   try {
     const tagGenerator = input.dependencies.generateTags ?? generateTags
-
-    return await tagGenerator({
+    const tagsResult = await tagGenerator({
       client: input.client,
       model: input.model,
       systemPrompt: input.systemPrompt,
       sourceText: input.sourceText,
     })
+
+    return tagsResult.result
   } catch {
     return []
   }
@@ -342,7 +348,7 @@ async function processSummarizeJob(input: {
   const contentMdEn = requireArticleField(input.article.contentMdEn, "English body")
   const contentMdZh = requireArticleField(input.article.contentMdZh, "Chinese body")
   await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
-  const summaryEn = await input.dependencies.summarizeText({
+  const summaryEnResult = await input.dependencies.summarizeText({
     client: input.client,
     model: input.activeSettings.model,
     systemPrompt: buildLocalizedSummaryPrompt(
@@ -352,7 +358,7 @@ async function processSummarizeJob(input: {
     sourceText: contentMdEn,
   })
   await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
-  const summaryZh = await input.dependencies.summarizeText({
+  const summaryZhResult = await input.dependencies.summarizeText({
     client: input.client,
     model: input.activeSettings.model,
     systemPrompt: buildLocalizedSummaryPrompt(
@@ -363,8 +369,8 @@ async function processSummarizeJob(input: {
   })
 
   await updateArticlePatchWithFallback(input.dependencies, input.article, {
-    summaryEn,
-    summaryZh,
+    summaryEn: summaryEnResult.result,
+    summaryZh: summaryZhResult.result,
   })
 }
 
@@ -377,21 +383,21 @@ async function processTranslateJob(input: {
   const titleEn = requireArticleField(input.article.titleEn, "English title")
   const contentMdEn = requireArticleField(input.article.contentMdEn, "English body")
   await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_TITLE)
-  const titleZh = await input.dependencies.translateText({
+  const titleZhResult = await input.dependencies.translateText({
     client: input.client,
     model: input.activeSettings.model,
     systemPrompt: input.activeSettings.translateTitlePrompt,
     sourceText: titleEn,
   })
   await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_CONTENT)
-  const contentMdZh = await input.dependencies.translateText({
+  const contentMdZhResult = await input.dependencies.translateText({
     client: input.client,
     model: input.activeSettings.model,
     systemPrompt: input.activeSettings.translateContentPrompt,
     sourceText: contentMdEn,
   })
   await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
-  const summaryEn = await input.dependencies.summarizeText({
+  const summaryEnResult = await input.dependencies.summarizeText({
     client: input.client,
     model: input.activeSettings.model,
     systemPrompt: buildLocalizedSummaryPrompt(
@@ -401,21 +407,21 @@ async function processTranslateJob(input: {
     sourceText: contentMdEn,
   })
   await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
-  const summaryZh = await input.dependencies.summarizeText({
+  const summaryZhResult = await input.dependencies.summarizeText({
     client: input.client,
     model: input.activeSettings.model,
     systemPrompt: buildLocalizedSummaryPrompt(
       resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
       "zh",
     ),
-    sourceText: contentMdZh,
+    sourceText: contentMdZhResult.result,
   })
 
   await updateArticlePatchWithFallback(input.dependencies, input.article, {
-    titleZh,
-    contentMdZh,
-    summaryEn,
-    summaryZh,
+    titleZh: titleZhResult.result,
+    contentMdZh: contentMdZhResult.result,
+    summaryEn: summaryEnResult.result,
+    summaryZh: summaryZhResult.result,
   })
 }
 

@@ -75,12 +75,12 @@ describe("processArticleJob", () => {
     const updateArticleContent = vi.fn().mockResolvedValue(undefined)
     const translateText = vi
       .fn()
-      .mockResolvedValueOnce("中文标题")
-      .mockResolvedValueOnce("中文正文")
+      .mockResolvedValueOnce({ result: "中文标题", usage: null })
+      .mockResolvedValueOnce({ result: "中文正文", usage: null })
     const summarizeText = vi
       .fn()
-      .mockResolvedValueOnce("English summary")
-      .mockResolvedValueOnce("中文摘要")
+      .mockResolvedValueOnce({ result: "English summary", usage: null })
+      .mockResolvedValueOnce({ result: "中文摘要", usage: null })
 
     await processArticleJob(
       { articleId: "article-1" },
@@ -144,15 +144,15 @@ describe("processArticleJob", () => {
     const updateArticleContent = vi.fn().mockResolvedValue(undefined)
     const translateText = vi
       .fn()
-      .mockResolvedValueOnce("中文标题")
-      .mockResolvedValueOnce("中文正文")
+      .mockResolvedValueOnce({ result: "中文标题", usage: null })
+      .mockResolvedValueOnce({ result: "中文正文", usage: null })
     const summarizeText = vi
       .fn()
-      .mockResolvedValueOnce("English summary")
-      .mockResolvedValueOnce("中文摘要")
+      .mockResolvedValueOnce({ result: "English summary", usage: null })
+      .mockResolvedValueOnce({ result: "中文摘要", usage: null })
     const generateTags = vi
       .fn()
-      .mockResolvedValue(["npm", "creds", "postinstall"])
+      .mockResolvedValue({ result: ["npm", "creds", "postinstall"], usage: null })
 
     await processArticleJob(
       { articleId: "article-1" },
@@ -275,12 +275,12 @@ describe("processArticleJob", () => {
     const updateArticleContent = vi.fn().mockResolvedValue(undefined)
     const translateText = vi
       .fn()
-      .mockResolvedValueOnce("中文标题")
-      .mockResolvedValueOnce("中文正文")
+      .mockResolvedValueOnce({ result: "中文标题", usage: null })
+      .mockResolvedValueOnce({ result: "中文正文", usage: null })
     const summarizeText = vi
       .fn()
-      .mockResolvedValueOnce("English summary")
-      .mockResolvedValueOnce("中文摘要")
+      .mockResolvedValueOnce({ result: "English summary", usage: null })
+      .mockResolvedValueOnce({ result: "中文摘要", usage: null })
 
     await processArticleJob(
       { articleId: "article-1", jobType: JobType.EXTRACT },
@@ -367,8 +367,8 @@ describe("processArticleJob", () => {
     const updateArticlePatch = vi.fn().mockResolvedValue(undefined)
     const summarizeText = vi
       .fn()
-      .mockResolvedValueOnce("Fresh English summary")
-      .mockResolvedValueOnce("新的中文摘要")
+      .mockResolvedValueOnce({ result: "Fresh English summary", usage: null })
+      .mockResolvedValueOnce({ result: "新的中文摘要", usage: null })
     const fetchArticleHtml = vi.fn()
     const extractMarkdownFromHtml = vi.fn()
     const translateText = vi.fn()
@@ -423,7 +423,7 @@ describe("processArticleJob", () => {
     const fetchArticleHtml = vi.fn()
     const extractMarkdownFromHtml = vi.fn()
     const translateText = vi.fn()
-    const summarizeText = vi.fn().mockResolvedValueOnce("新的中文摘要")
+    const summarizeText = vi.fn().mockResolvedValueOnce({ result: "新的中文摘要", usage: null })
     const updateArticlePatch = vi.fn().mockResolvedValue(undefined)
 
     await processArticleJob(
@@ -484,7 +484,7 @@ describe("processArticleJob", () => {
     const updateArticlePatch = vi.fn().mockResolvedValue(undefined)
     const translateText = vi
       .fn()
-      .mockResolvedValueOnce("中文标题")
+      .mockResolvedValueOnce({ result: "中文标题", usage: null })
       .mockRejectedValueOnce(new Error("content translation failed"))
 
     await expect(
