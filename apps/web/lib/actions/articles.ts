@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 
 import { and, eq, inArray } from "drizzle-orm"
 
-import { articles, getDb, processingJobs } from "@vibeguard/db"
+import { articles, getDb, llmUsageLogs, processingJobs, schema } from "@vibeguard/db"
 import {
   JobStatus,
 } from "@vibeguard/shared"
@@ -13,6 +13,7 @@ import {
   ARTICLE_REGENERATION_TARGETS,
   getRegenerationRequirementError,
   regenerateArticleTarget,
+  defaultDependencies,
   type ArticleRegenerationTarget,
 } from "../article-regeneration"
 import { normalizeUserFacingError } from "../errors"
@@ -91,6 +92,23 @@ export async function reprocessArticleAction(formData: FormData) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extract-content 分支不使用 settings
             settings: activeSettings as any,
             target,
+          }, {
+            ...defaultDependencies,
+            logLlmUsage: async (input) => {
+              if (!input.usage) return
+              await db.insert(schema.llmUsageLogs).values({
+                articleId: input.articleId,
+                jobId: null,
+                taskType: input.taskType,
+                model: input.model,
+                promptTokens: input.usage.promptTokens,
+                completionTokens: input.usage.completionTokens,
+                totalTokens: input.usage.totalTokens,
+                cachedTokens: input.usage.cachedTokens ?? null,
+                finishReason: input.usage.finishReason ?? null,
+                responseTimeMs: input.responseTimeMs,
+              })
+            },
           })
 
           const baseRawMeta =

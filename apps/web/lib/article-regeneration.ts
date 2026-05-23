@@ -13,6 +13,7 @@ import {
   generateTags as generateTagsWithModel,
   summarizeText as summarizeWithModel,
   translateText as translateWithModel,
+  type UsageResult,
 } from "@vibeguard/llm"
 import { ArticleStatus } from "@vibeguard/shared"
 
@@ -68,9 +69,16 @@ type RegenerationDependencies = {
   summarizeText: typeof summarizeWithModel
   classifyRelevance: typeof classifyRelevanceWithModel
   generateTags?: typeof generateTagsWithModel
+  logLlmUsage?: (input: {
+    articleId: string
+    taskType: string
+    model: string
+    usage: UsageResult | null
+    responseTimeMs: number
+  }) => Promise<void>
 }
 
-const defaultDependencies: RegenerationDependencies = {
+export const defaultDependencies: RegenerationDependencies = {
   fetchArticleHtml,
   extractMarkdownFromHtml,
   classifySecurityContent,
@@ -186,6 +194,17 @@ export async function regenerateArticleTarget(
   },
   dependencies: RegenerationDependencies = defaultDependencies,
 ) {
+  const logUsage = async (taskType: string, usage: UsageResult | null, start: number) => {
+    if (!dependencies.logLlmUsage || !usage) return
+    await dependencies.logLlmUsage({
+      articleId: input.article.id,
+      taskType,
+      model: input.settings.model,
+      usage,
+      responseTimeMs: Date.now() - start,
+    })
+  }
+
   if (input.target === "fetch-source") {
     // 完整流水线：抓取→提取→相关性→如果相关则翻译/摘要/标签
     const html = await dependencies.fetchArticleHtml(input.article.url)
@@ -209,12 +228,15 @@ export async function regenerateArticleTarget(
       baseUrl: input.settings.baseUrl,
       apiKey,
     })
-    const relevance = await dependencies.classifyRelevance({
+    let start = Date.now()
+    const relevanceResult = await dependencies.classifyRelevance({
       client,
       model: input.settings.model,
       systemPrompt: input.settings.relevancePrompt,
       sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
     })
+    await logUsage("classify_relevance", relevanceResult.usage, start)
+    const relevance = relevanceResult.result
 
     if (!relevance.relevant) {
       rawMeta.relevanceFilter = {
@@ -245,30 +267,46 @@ export async function regenerateArticleTarget(
     }
 
     // 相关：继续翻译/摘要/标签
-    const titleZh = await dependencies.translateText({
+    start = Date.now()
+    const titleZhResult = await dependencies.translateText({
       client,
       model: input.settings.model,
       systemPrompt: input.settings.translateTitlePrompt,
       sourceText: titleEn,
     })
-    const contentMdZh = await dependencies.translateText({
+    await logUsage("translate_title", titleZhResult.usage, start)
+    const titleZh = titleZhResult.result
+
+    start = Date.now()
+    const contentMdZhResult = await dependencies.translateText({
       client,
       model: input.settings.model,
       systemPrompt: input.settings.translateContentPrompt,
       sourceText: contentMdEn,
     })
-    const summaryEn = await dependencies.summarizeText({
+    await logUsage("translate_content", contentMdZhResult.usage, start)
+    const contentMdZh = contentMdZhResult.result
+
+    start = Date.now()
+    const summaryEnResult = await dependencies.summarizeText({
       client,
       model: input.settings.model,
       systemPrompt: buildLocalizedSummaryPrompt(input.settings.summaryPromptEn, "en"),
       sourceText: contentMdEn,
     })
-    const summaryZh = await dependencies.summarizeText({
+    await logUsage("summarize_en", summaryEnResult.usage, start)
+    const summaryEn = summaryEnResult.result
+
+    start = Date.now()
+    const summaryZhResult = await dependencies.summarizeText({
       client,
       model: input.settings.model,
       systemPrompt: buildLocalizedSummaryPrompt(input.settings.summaryPromptZh, "zh"),
       sourceText: contentMdZh,
     })
+    await logUsage("summarize_zh", summaryZhResult.usage, start)
+    const summaryZh = summaryZhResult.result
+
     const classification = dependencies.classifySecurityContent({
       url: input.article.url,
       title: titleEn,
@@ -276,12 +314,15 @@ export async function regenerateArticleTarget(
       content: contentMdEn,
     })
     const tagGenerator = dependencies.generateTags ?? generateTagsWithModel
-    const tags = await tagGenerator({
+    start = Date.now()
+    const tagsResult = await tagGenerator({
       client,
       model: input.settings.model,
       systemPrompt: input.settings.tagPrompt,
       sourceText: contentMdEn,
     })
+    await logUsage("generate_tags", tagsResult.usage, start)
+    const tags = tagsResult.result
 
     return {
       patch: {
@@ -346,12 +387,15 @@ export async function regenerateArticleTarget(
     })
     const titleEn = input.article.titleEn
     const contentMdEn = input.article.contentMdEn ?? ""
-    const relevance = await dependencies.classifyRelevance({
+    let start = Date.now()
+    const relevanceResult = await dependencies.classifyRelevance({
       client,
       model: input.settings.model,
       systemPrompt: input.settings.relevancePrompt,
       sourceText: `${titleEn}\n\n${contentMdEn.slice(0, 4000)}`,
     })
+    await logUsage("classify_relevance", relevanceResult.usage, start)
+    const relevance = relevanceResult.result
     if (!relevance.relevant) {
       const rawMeta = toRawMetaRecord(input.article.rawMeta)
       rawMeta.relevanceFilter = {
@@ -398,12 +442,15 @@ export async function regenerateArticleTarget(
   })
 
   if (input.target === "title-zh") {
-    const titleZh = await dependencies.translateText({
+    let start = Date.now()
+    const titleZhResult = await dependencies.translateText({
       client,
       model: input.settings.model,
       systemPrompt: input.settings.translateTitlePrompt,
       sourceText: input.article.titleEn,
     })
+    await logUsage("translate_title", titleZhResult.usage, start)
+    const titleZh = titleZhResult.result
 
     return {
       patch: {
@@ -416,12 +463,15 @@ export async function regenerateArticleTarget(
   }
 
   if (input.target === "content-zh") {
-    const contentMdZh = await dependencies.translateText({
+    let start = Date.now()
+    const contentMdZhResult = await dependencies.translateText({
       client,
       model: input.settings.model,
       systemPrompt: input.settings.translateContentPrompt,
       sourceText: input.article.contentMdEn ?? "",
     })
+    await logUsage("translate_content", contentMdZhResult.usage, start)
+    const contentMdZh = contentMdZhResult.result
 
     return {
       patch: {
@@ -434,12 +484,15 @@ export async function regenerateArticleTarget(
   }
 
   if (input.target === "summary-en") {
-    const summaryEn = await dependencies.summarizeText({
+    let start = Date.now()
+    const summaryEnResult = await dependencies.summarizeText({
       client,
       model: input.settings.model,
       systemPrompt: buildLocalizedSummaryPrompt(input.settings.summaryPromptEn, "en"),
       sourceText: input.article.contentMdEn ?? "",
     })
+    await logUsage("summarize_en", summaryEnResult.usage, start)
+    const summaryEn = summaryEnResult.result
 
     return {
       patch: {
@@ -453,16 +506,18 @@ export async function regenerateArticleTarget(
 
   if (input.target === "tags") {
     const tagGenerator = dependencies.generateTags ?? generateTagsWithModel
-    const tags = await tagGenerator({
+    let start = Date.now()
+    const tagsResult = await tagGenerator({
       client,
       model: input.settings.model,
       systemPrompt: input.settings.tagPrompt,
       sourceText: input.article.contentMdEn ?? "",
     })
+    await logUsage("generate_tags", tagsResult.usage, start)
 
     return {
       patch: {
-        tags,
+        tags: tagsResult.result,
       },
       nextStatus: hasCompleteContent(input.article, {})
         ? ArticleStatus.READY
@@ -470,13 +525,16 @@ export async function regenerateArticleTarget(
     }
   }
 
-  const summaryZh = await dependencies.summarizeText({
+  let start = Date.now()
+  const summaryZhResult = await dependencies.summarizeText({
     client,
     model: input.settings.model,
     systemPrompt: buildLocalizedSummaryPrompt(input.settings.summaryPromptZh, "zh"),
     sourceText: input.article.contentMdEn ?? "",
   })
+  await logUsage("summarize_zh", summaryZhResult.usage, start)
 
+  const summaryZh = summaryZhResult.result
   return {
     patch: {
       summaryZh,

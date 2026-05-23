@@ -79,7 +79,7 @@ describe("getRegenerationRequirementError", () => {
 
 describe("regenerateArticleTarget", () => {
   it("regenerates the Chinese title only", async () => {
-    const translateText = vi.fn().mockResolvedValue("新的中文标题")
+    const translateText = vi.fn().mockResolvedValue({ result: "新的中文标题", usage: null })
 
     const result = await regenerateArticleTarget(
       {
@@ -116,7 +116,7 @@ describe("regenerateArticleTarget", () => {
   })
 
   it("regenerates the English summary from the English body and can restore ready status", async () => {
-    const summarizeText = vi.fn().mockResolvedValue("Fresh English summary")
+    const summarizeText = vi.fn().mockResolvedValue({ result: "Fresh English summary", usage: null })
 
     const result = await regenerateArticleTarget(
       {
@@ -150,7 +150,7 @@ describe("regenerateArticleTarget", () => {
   })
 
   it("regenerates tags from the original English body", async () => {
-    const generateTags = vi.fn().mockResolvedValue(["npm", "creds", "postinstall"])
+    const generateTags = vi.fn().mockResolvedValue({ result: ["npm", "creds", "postinstall"], usage: null })
 
     const result = await regenerateArticleTarget(
       {
