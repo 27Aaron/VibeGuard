@@ -31,6 +31,13 @@ function statusVariant(status: JobRow["status"]) {
   return "outline" as const
 }
 
+function statusClassName(status: JobRow["status"]) {
+  if (status === "filtered") {
+    return "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-300"
+  }
+  return undefined
+}
+
 function statusLabel(status: JobRow["status"], lang: AppLang) {
   switch (status) {
     case "queued":
@@ -41,11 +48,13 @@ function statusLabel(status: JobRow["status"], lang: AppLang) {
       return lang === "zh" ? "已完成" : "Succeeded"
     case "failed":
       return lang === "zh" ? "失败" : "Failed"
+    case "filtered":
+      return lang === "zh" ? "已过滤" : "Filtered"
   }
 }
 
 function displayStageLabel(job: JobRow, lang: AppLang) {
-  if (job.status === "succeeded") {
+  if (job.status === "succeeded" || job.status === "filtered") {
     return lang === "zh" ? "处理完成" : "Processing complete"
   }
 
@@ -72,6 +81,8 @@ function actionLabel(status: JobRow["status"], lang: AppLang) {
     case "running":
       return lang === "zh" ? "重置执行" : "Reset"
     case "succeeded":
+      return lang === "zh" ? "重新执行" : "Rerun"
+    case "filtered":
       return lang === "zh" ? "重新执行" : "Rerun"
     case "failed":
       return lang === "zh" ? "继续执行" : "Continue"
@@ -210,7 +221,7 @@ export function JobTable({
                 })()}
               </TableCell>
               <TableCell className="px-3 py-3 text-center align-middle">
-                <Badge variant={statusVariant(job.status)}>
+                <Badge variant={statusVariant(job.status)} className={statusClassName(job.status)}>
                   {statusLabel(job.status, lang)}
                 </Badge>
               </TableCell>

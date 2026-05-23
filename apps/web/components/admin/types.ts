@@ -37,7 +37,7 @@ export type JobRow = {
   articleTitle: string
   sourceName: string
   jobType: "extract" | "translate" | "summarize"
-  status: "queued" | "running" | "succeeded" | "failed"
+  status: "queued" | "running" | "succeeded" | "failed" | "filtered"
   pipelineStage:
     | "waiting"
     | "fetch_source"
