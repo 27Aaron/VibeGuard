@@ -90,7 +90,7 @@ export class VibeGuardClient {
     searchParams.set("limit", String(params.limit || 10))
     searchParams.set("lang", params.lang || "zh")
 
-    const res = await fetch(`${this.baseUrl}/api/articles?${searchParams}`)
+    const res = await fetch(`${this.baseUrl}/api/articles?${searchParams}`, { signal: AbortSignal.timeout(30_000) })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
     return res.json()
   }
@@ -99,7 +99,7 @@ export class VibeGuardClient {
     const searchParams = new URLSearchParams()
     searchParams.set("lang", lang || "zh")
 
-    const res = await fetch(`${this.baseUrl}/api/articles/${id}?${searchParams}`)
+    const res = await fetch(`${this.baseUrl}/api/articles/${id}?${searchParams}`, { signal: AbortSignal.timeout(30_000) })
     if (res.status === 404) return null
     if (!res.ok) throw new Error(`API error: ${res.status}`)
     return res.json()
@@ -114,13 +114,14 @@ export class VibeGuardClient {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ packages }),
+      signal: AbortSignal.timeout(30_000),
     })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
     return res.json()
   }
 
   async securityOverview(): Promise<{ totals: SecurityOverviewTotals }> {
-    const res = await fetch(`${this.baseUrl}/api/security/check/overview`)
+    const res = await fetch(`${this.baseUrl}/api/security/check/overview`, { signal: AbortSignal.timeout(30_000) })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
     return res.json()
   }

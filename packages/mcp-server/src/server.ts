@@ -3,6 +3,7 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import { z } from "zod"
 
 import type { VibeGuardClient } from "./client"
 import { tools } from "./tools"
@@ -32,7 +33,15 @@ export function createMcpServer(client: VibeGuardClient) {
       tool.inputSchema,
       async (args: Record<string, unknown>) => {
         try {
-          const result = await tool.handler(client, args)
+          const schema = z.object(tool.inputSchema)
+          const parsed = schema.safeParse(args)
+          if (!parsed.success) {
+            return {
+              content: [{ type: "text" as const, text: `参数错误: ${parsed.error.message}` }],
+              isError: true,
+            }
+          }
+          const result = await tool.handler(client, parsed.data)
           return { content: [{ type: "text" as const, text: result }] }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
