@@ -9,7 +9,7 @@ import {
   summarizeText,
   translateText,
 } from "@vibeguard/llm"
-import { ArticleStatus } from "@vibeguard/shared"
+import { ArticleEcosystem, ArticleRiskCategory, ArticleStatus } from "@vibeguard/shared"
 
 import {
   processArticleJob,
@@ -91,8 +91,8 @@ async function updateArticleContent(
     summaryZh: string
     contentMdEn: string
     contentMdZh: string
-    ecosystem: string
-    riskCategory: string
+    ecosystem: ArticleEcosystem
+    riskCategory: ArticleRiskCategory
     tags: string[]
     contentHash: string
     rawMeta: Record<string, unknown>

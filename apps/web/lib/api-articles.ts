@@ -115,8 +115,8 @@ export async function listArticles(searchParams: URLSearchParams) {
   const filters = [
     eq(articles.status, params.status),
     params.source ? eq(feeds.name, params.source) : undefined,
-    params.ecosystem ? eq(articles.ecosystem, params.ecosystem) : undefined,
-    params.riskCategory ? eq(articles.riskCategory, params.riskCategory) : undefined,
+    params.ecosystem ? eq(articles.ecosystem, params.ecosystem as ArticleEcosystem) : undefined,
+    params.riskCategory ? eq(articles.riskCategory, params.riskCategory as ArticleRiskCategory) : undefined,
     params.tag ? sql`${articles.tags} ? ${params.tag}` : undefined,
     params.query
       ? or(
