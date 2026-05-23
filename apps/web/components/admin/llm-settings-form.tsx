@@ -2,31 +2,34 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react"
 import { useFormStatus } from "react-dom"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Check, ChevronDown, ChevronRight, PlusCircle, Trash2 } from "lucide-react"
 
 import type {
+  LlmSettingsRow,
   PipelineSettings,
   ProviderSettings,
 } from "@/components/admin/types"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import {
   IDLE_FORM_ACTION_RESULT,
   type FormActionResult,
 } from "@/lib/action-result"
-import { getAdminSelectClassName, getAdminSubtlePanelClassName } from "@/lib/admin-layout"
-import { deleteLlmSettingsAction } from "@/lib/actions/settings"
+import { getAdminSelectClassName } from "@/lib/admin-layout"
+import {
+  activateLlmSettingsAction,
+  deleteLlmSettingsAction,
+} from "@/lib/actions/settings"
 import type { AppLang } from "@/lib/i18n"
 import { resolveLang } from "@/lib/i18n"
 import { mergeModelOptions } from "@/lib/provider-models"
@@ -69,7 +72,7 @@ function CollapsiblePromptField({
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
       <div className="flex items-center justify-between gap-2">
         <label htmlFor={id} className="text-sm font-medium">
           {label}
@@ -117,6 +120,8 @@ function CollapsiblePromptField({
 }
 
 type LlmSettingsFormProps = {
+  profiles: LlmSettingsRow[]
+  selectedProfileId?: string
   provider: ProviderSettings
   pipeline: PipelineSettings
   lang: AppLang
@@ -143,15 +148,15 @@ function SubmitButton({
 }
 
 export function LlmSettingsForm({
+  profiles,
+  selectedProfileId,
   provider,
   pipeline,
   lang,
   action,
 }: LlmSettingsFormProps) {
   const resolvedLang = resolveLang(lang)
-  const providerCardTitle =
-    provider.settingsName.trim() || provider.providerName
-  const [activeTab, setActiveTab] = useState<"provider" | "pipeline">("provider")
+  const router = useRouter()
   const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT)
   const [settingsName, setSettingsName] = useState(provider.settingsName)
   const [baseUrl, setBaseUrl] = useState(provider.baseUrl)
@@ -213,15 +218,8 @@ export function LlmSettingsForm({
     try {
       const response = await fetch("/api/admin/provider-models", {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          profileId: provider.id,
-          baseUrl,
-          apiKey,
-          lang,
-        }),
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ profileId: provider.id, baseUrl, apiKey, lang }),
       })
       const payload = (await response.json()) as {
         ok: boolean
@@ -233,8 +231,8 @@ export function LlmSettingsForm({
         throw new Error(
           payload.message ||
             (resolvedLang === "zh"
-              ? "获取模型列表失败。"
-              : "Failed to load the model list."),
+              ? "获取模型失败。"
+              : "Failed to load models."),
         )
       }
 
@@ -255,86 +253,96 @@ export function LlmSettingsForm({
         error instanceof Error
           ? error.message
           : resolvedLang === "zh"
-            ? "获取模型列表失败。"
-            : "Failed to load the model list.",
+            ? "获取模型失败。"
+            : "Failed to load models.",
       )
     } finally {
       setIsLoadingModels(false)
     }
   }
 
-  function resetPipelineDraft() {
-    setRelevancePrompt(pipeline.relevancePrompt)
-    setTranslationTitlePrompt(pipeline.translationTitlePrompt)
-    setTranslationContentPrompt(pipeline.translationContentPrompt)
-    setSummaryPromptEn(pipeline.summaryPromptEn)
-    setSummaryPromptZh(pipeline.summaryPromptZh)
-    setTagPrompt(pipeline.tagPrompt)
-  }
-
   return (
-    <Tabs
-      key={provider.id || "new-provider"}
-      value={activeTab}
-      onValueChange={(value) =>
-        setActiveTab(value === "pipeline" ? "pipeline" : "provider")
-      }
-      className="gap-4"
-    >
-      <TabsList>
-        <TabsTrigger value="provider">
-          {resolvedLang === "zh" ? "模型服务配置" : "Model service"}
-        </TabsTrigger>
-        <TabsTrigger value="pipeline">
-          {resolvedLang === "zh" ? "处理链路" : "Pipeline"}
-        </TabsTrigger>
-      </TabsList>
-      {activeTab === "provider" ? (
-      <TabsContent value="provider">
-        <form action={formAction}>
-          <input type="hidden" name="lang" value={lang} />
-          <input type="hidden" name="formKind" value="provider" />
-          <input type="hidden" name="id" value={provider.id} />
-          <input
-            type="hidden"
-            name="translateTitlePrompt"
-            value={translationTitlePrompt}
-          />
-          <input
-            type="hidden"
-            name="translateContentPrompt"
-            value={translationContentPrompt}
-          />
-          <input
-            type="hidden"
-            name="summaryPromptEn"
-            value={summaryPromptEn}
-          />
-          <input
-            type="hidden"
-            name="summaryPromptZh"
-            value={summaryPromptZh}
-          />
-          <input
-            type="hidden"
-            name="tagPrompt"
-            value={tagPrompt}
-          />
-          <input
-            type="hidden"
-            name="relevancePrompt"
-            value={relevancePrompt}
-          />
-          <Card>
-            <CardHeader>
-              <CardTitle>{providerCardTitle}</CardTitle>
-              <CardDescription>
-                {resolvedLang === "zh"
-                  ? "在一个地方维护模型服务凭证、默认模型和启用状态。"
-                  : "Manage model service credentials, the default model, and active state in one place."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+    <div key={provider.id || "new-provider"} className="flex flex-col gap-6">
+      {/* Profile selector */}
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={selectedProfileId ?? ""}
+          onChange={(event) => {
+            const value = event.target.value
+            if (value === "new") {
+              router.push(`/${lang}/admin/settings?profile=new`)
+            } else if (value) {
+              router.push(`/${lang}/admin/settings?profile=${value}`)
+            }
+          }}
+          className={cn(getAdminSelectClassName(), "min-w-[180px]")}
+        >
+          {profiles.map((profile) => (
+            <option key={profile.id} value={profile.id}>
+              {profile.name}
+            </option>
+          ))}
+          <option value="new">
+            {resolvedLang === "zh" ? "＋ 新建配置" : "＋ New profile"}
+          </option>
+        </select>
+        <p className="text-sm text-muted-foreground">
+          {model} · {baseUrl.replace(/^https?:\/\//, "").split("/")[0]}
+        </p>
+        <div className="ml-auto flex items-center gap-2">
+          {isActive ? (
+            <Badge
+              variant="outline"
+              className="border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
+            >
+              <Check className="mr-1 size-3" />
+              {resolvedLang === "zh" ? "当前生效" : "Active"}
+            </Badge>
+          ) : (
+            <form action={activateLlmSettingsAction}>
+              <input type="hidden" name="id" value={provider.id} />
+              <input type="hidden" name="lang" value={lang} />
+              <Button type="submit" variant="outline" size="sm">
+                {resolvedLang === "zh" ? "设为生效" : "Activate"}
+              </Button>
+            </form>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/${lang}/admin/settings?profile=new`)}
+          >
+            <PlusCircle className="mr-1.5 size-3.5" />
+            {resolvedLang === "zh" ? "新建" : "New"}
+          </Button>
+          {provider.id && profiles.length > 1 ? (
+            <form action={deleteLlmSettingsAction}>
+              <input type="hidden" name="id" value={provider.id} />
+              <input type="hidden" name="lang" value={lang} />
+              <Button type="submit" variant="outline" size="sm">
+                <Trash2 className="mr-1.5 size-3.5" />
+                {resolvedLang === "zh" ? "删除" : "Delete"}
+              </Button>
+            </form>
+          ) : null}
+        </div>
+      </div>
+
+      <form action={formAction}>
+        <input type="hidden" name="lang" value={lang} />
+        <input type="hidden" name="id" value={provider.id} />
+        <input type="hidden" name="isActive" value={isActive ? "on" : ""} />
+
+        {/* Model config */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {resolvedLang === "zh" ? "模型配置" : "Model config"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <label htmlFor="settings-name" className="text-sm font-medium">
                   {resolvedLang === "zh" ? "配置名称" : "Profile name"}
@@ -348,7 +356,7 @@ export function LlmSettingsForm({
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="base-url" className="text-sm font-medium">
-                  {resolvedLang === "zh" ? "模型服务地址" : "Service base URL"}
+                  {resolvedLang === "zh" ? "服务地址" : "Endpoint"}
                 </label>
                 <Input
                   id="base-url"
@@ -370,137 +378,77 @@ export function LlmSettingsForm({
                   placeholder={
                     provider.hasStoredApiKey
                       ? resolvedLang === "zh"
-                        ? "密钥已安全保存。输入新密钥可完成轮换。"
-                        : "A key is already stored securely. Enter a new key to rotate it."
+                        ? "密钥已保存，输入新密钥可轮换"
+                        : "Key stored. Enter a new key to rotate."
                       : "sk-..."
                   }
                 />
-                {provider.hasStoredApiKey ? (
-                  <p className="text-sm text-muted-foreground">
-                    {resolvedLang === "zh"
-                      ? "当前已经保存过密钥。留空即可继续使用现有凭证。"
-                      : "A key is already stored. Leave this empty to keep using the existing credentials."}
-                  </p>
-                ) : null}
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="model" className="text-sm font-medium">
                   {resolvedLang === "zh" ? "默认模型" : "Default model"}
                 </label>
-                {mergedModelOptions.length > 0 ? (
-                  <select
-                    id="model"
-                    name="model"
-                    value={model}
-                    onChange={(event) => setModel(event.target.value)}
-                    className={getAdminSelectClassName()}
-                  >
-                    {mergedModelOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <Input
-                    id="model"
-                    name="model"
-                    value={model}
-                    onChange={(event) => setModel(event.target.value)}
-                  />
-                )}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  {mergedModelOptions.length > 0 ? (
+                    <select
+                      id="model"
+                      name="model"
+                      value={model}
+                      onChange={(event) => setModel(event.target.value)}
+                      className={cn(getAdminSelectClassName(), "flex-1")}
+                    >
+                      {mergedModelOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input
+                      id="model"
+                      name="model"
+                      value={model}
+                      onChange={(event) => setModel(event.target.value)}
+                      className="flex-1"
+                    />
+                  )}
                   <Button
                     type="button"
                     variant="outline"
+                    size="sm"
                     onClick={loadProviderModels}
                     disabled={isLoadingModels}
                   >
                     {isLoadingModels
                       ? resolvedLang === "zh"
-                        ? "获取模型中..."
-                        : "Loading models..."
+                        ? "获取中..."
+                        : "Loading..."
                       : resolvedLang === "zh"
-                        ? "获取模型列表"
-                        : "Load model list"}
+                        ? "获取模型"
+                        : "Fetch models"}
                   </Button>
                 </div>
                 {modelFeedback ? (
                   <p className="text-sm text-muted-foreground">{modelFeedback}</p>
                 ) : null}
               </div>
-              <Separator />
-              <div className={cn("flex items-center justify-between gap-4", getAdminSubtlePanelClassName())}>
-                <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">
-                    {resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {resolvedLang === "zh"
-                      ? "Worker 会优先读取这套配置来执行处理任务。"
-                      : "The worker will prefer this profile when processing article jobs."}
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={isActive}
-                  onChange={(event) => setIsActive(event.target.checked)}
-                  aria-label={resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
-                />
-              </div>
-              <FeedbackMessage state={state} />
-            </CardContent>
-            <CardFooter className="justify-between">
-              {provider.id ? (
-                <button
-                  type="submit"
-                  formAction={deleteLlmSettingsAction}
-                  className="text-sm text-destructive hover:underline"
-                >
-                  {resolvedLang === "zh" ? "删除配置" : "Delete profile"}
-                </button>
-              ) : (
-                <span />
-              )}
-              <SubmitButton
-                idleLabel={resolvedLang === "zh" ? "保存" : "Save"}
-                pendingLabel={resolvedLang === "zh" ? "保存中..." : "Saving..."}
-              />
-            </CardFooter>
-          </Card>
-        </form>
-      </TabsContent>
-      ) : null}
-      {activeTab === "pipeline" ? (
-      <TabsContent value="pipeline">
-        <form action={formAction}>
-          <input type="hidden" name="lang" value={lang} />
-          <input type="hidden" name="formKind" value="pipeline" />
-          <input type="hidden" name="id" value={provider.id} />
-          <input type="hidden" name="name" value={provider.settingsName} />
-          <input type="hidden" name="baseUrl" value={provider.baseUrl} />
-          <input type="hidden" name="apiKey" value="" />
-          <input type="hidden" name="model" value={provider.model} />
-          <input
-            type="hidden"
-            name="isActive"
-            value={provider.isActive ? "on" : ""}
-          />
-          <Card>
-            <CardHeader>
-              <CardTitle>{resolvedLang === "zh" ? "默认提示词" : "Default prompts"}</CardTitle>
-              <CardDescription>
-                {resolvedLang === "zh"
-                  ? "保存可复用的翻译、双语摘要和短标签提示词。"
-                  : "Save reusable translation, bilingual summary, and short-tag prompts."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pipeline prompts */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>
+              {resolvedLang === "zh" ? "处理链路" : "Pipeline"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2">
               <CollapsiblePromptField
                 id="relevance-prompt"
                 name="relevancePrompt"
-                label={resolvedLang === "zh" ? "内容相关性判断 Prompt" : "Content relevance prompt"}
+                label={resolvedLang === "zh" ? "相关性判断" : "Classify relevance"}
                 value={relevancePrompt}
                 onChange={setRelevancePrompt}
                 lang={resolvedLang}
@@ -508,15 +456,15 @@ export function LlmSettingsForm({
               <CollapsiblePromptField
                 id="title-prompt"
                 name="translateTitlePrompt"
-                label={resolvedLang === "zh" ? "标题翻译 Prompt" : "Title translation prompt"}
+                label={resolvedLang === "zh" ? "标题翻译" : "Translate title"}
                 value={translationTitlePrompt}
                 onChange={setTranslationTitlePrompt}
                 lang={resolvedLang}
               />
               <CollapsiblePromptField
-                id="system-prompt"
+                id="content-prompt"
                 name="translateContentPrompt"
-                label={resolvedLang === "zh" ? "正文翻译 Prompt" : "Body translation prompt"}
+                label={resolvedLang === "zh" ? "正文翻译" : "Translate body"}
                 value={translationContentPrompt}
                 onChange={setTranslationContentPrompt}
                 lang={resolvedLang}
@@ -524,7 +472,7 @@ export function LlmSettingsForm({
               <CollapsiblePromptField
                 id="summary-prompt-en"
                 name="summaryPromptEn"
-                label={resolvedLang === "zh" ? "英文摘要 Prompt" : "English summary prompt"}
+                label={resolvedLang === "zh" ? "英文摘要" : "English summary"}
                 value={summaryPromptEn}
                 onChange={setSummaryPromptEn}
                 lang={resolvedLang}
@@ -532,7 +480,7 @@ export function LlmSettingsForm({
               <CollapsiblePromptField
                 id="summary-prompt-zh"
                 name="summaryPromptZh"
-                label={resolvedLang === "zh" ? "中文摘要 Prompt" : "Chinese summary prompt"}
+                label={resolvedLang === "zh" ? "中文摘要" : "Chinese summary"}
                 value={summaryPromptZh}
                 onChange={setSummaryPromptZh}
                 lang={resolvedLang}
@@ -540,30 +488,26 @@ export function LlmSettingsForm({
               <CollapsiblePromptField
                 id="tag-prompt"
                 name="tagPrompt"
-                label={resolvedLang === "zh" ? "Tag 提取 Prompt" : "Tag extraction prompt"}
+                label={resolvedLang === "zh" ? "标签提取" : "Generate tags"}
                 value={tagPrompt}
                 onChange={setTagPrompt}
                 lang={resolvedLang}
               />
-              <FeedbackMessage state={state} />
-            </CardContent>
-            <CardFooter className="justify-end gap-2">
-              <Button variant="outline" type="button" onClick={resetPipelineDraft}>
-                {resolvedLang === "zh" ? "重置草稿" : "Reset draft"}
-              </Button>
+            </div>
+          </CardContent>
+          <CardFooter className="flex-col gap-3">
+            <FeedbackMessage state={state} />
+            <div className="ml-auto">
               <SubmitButton
-                idleLabel={resolvedLang === "zh" ? "保存处理链路配置" : "Save pipeline settings"}
+                idleLabel={resolvedLang === "zh" ? "保存配置" : "Save"}
                 pendingLabel={
-                  resolvedLang === "zh"
-                    ? "保存处理链路配置中..."
-                    : "Saving pipeline settings..."
+                  resolvedLang === "zh" ? "保存中..." : "Saving..."
                 }
               />
-            </CardFooter>
-          </Card>
-        </form>
-      </TabsContent>
-      ) : null}
-    </Tabs>
+            </div>
+          </CardFooter>
+        </Card>
+      </form>
+    </div>
   )
 }
