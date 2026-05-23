@@ -30,6 +30,7 @@ import { getAdminSelectClassName } from "@/lib/admin-layout"
 import {
   activateLlmSettingsAction,
   deleteLlmSettingsAction,
+  testLlmSettingsAction,
 } from "@/lib/actions/settings"
 import type { AppLang } from "@/lib/i18n"
 import { resolveLang } from "@/lib/i18n"
@@ -262,6 +263,15 @@ export function LlmSettingsForm({
     }
   }
 
+  function resetPipelineDraft() {
+    setRelevancePrompt(pipeline.relevancePrompt)
+    setTranslationTitlePrompt(pipeline.translationTitlePrompt)
+    setTranslationContentPrompt(pipeline.translationContentPrompt)
+    setSummaryPromptEn(pipeline.summaryPromptEn)
+    setSummaryPromptZh(pipeline.summaryPromptZh)
+    setTagPrompt(pipeline.tagPrompt)
+  }
+
   return (
     <div key={provider.id || "new-provider"} className="flex flex-col gap-6">
       {/* Profile selector */}
@@ -314,6 +324,15 @@ export function LlmSettingsForm({
             <PlusCircle className="mr-1.5 size-3.5" />
             {resolvedLang === "zh" ? "新建" : "New"}
           </Button>
+          {provider.id ? (
+            <form action={testLlmSettingsAction}>
+              <input type="hidden" name="id" value={provider.id} />
+              <input type="hidden" name="lang" value={lang} />
+              <Button type="submit" variant="outline" size="sm">
+                {resolvedLang === "zh" ? "测试连接" : "Test"}
+              </Button>
+            </form>
+          ) : null}
           {provider.id && profiles.length > 1 ? (
             <form action={deleteLlmSettingsAction}>
               <input type="hidden" name="id" value={provider.id} />
@@ -499,7 +518,10 @@ export function LlmSettingsForm({
 
         <div className="mt-4 flex items-center gap-3">
           <FeedbackMessage state={state} />
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" type="button" onClick={resetPipelineDraft}>
+              {resolvedLang === "zh" ? "重置草稿" : "Reset draft"}
+            </Button>
             <SubmitButton
               idleLabel={resolvedLang === "zh" ? "保存配置" : "Save"}
               pendingLabel={resolvedLang === "zh" ? "保存中..." : "Saving..."}
