@@ -38,21 +38,24 @@ async function getTaskBreakdown(db: ContentDb) {
 }
 
 async function getDailyTrend(db: ContentDb, days: number = 30) {
-  const since = new Date()
-  since.setDate(since.getDate() - days)
-
-  return db
-    .select({
-      date: sql<string>`(${llmUsageLogs.createdAt})::date::text`,
-      promptTokens: sql<number>`COALESCE(SUM(${llmUsageLogs.promptTokens}), 0)`,
-      completionTokens: sql<number>`COALESCE(SUM(${llmUsageLogs.completionTokens}), 0)`,
-      cachedTokens: sql<number>`COALESCE(SUM(${llmUsageLogs.cachedTokens}), 0)`,
-      calls: sql<number>`COUNT(*)::int`,
-    })
-    .from(llmUsageLogs)
-    .where(sql`${llmUsageLogs.createdAt} >= ${since.toISOString()}`)
-    .groupBy(sql`(${llmUsageLogs.createdAt})::date`)
-    .orderBy(sql`(${llmUsageLogs.createdAt})::date`)
+  const result = await db.execute(sql`
+    SELECT (created_at)::date::text AS date,
+      COALESCE(SUM(prompt_tokens), 0) AS "promptTokens",
+      COALESCE(SUM(completion_tokens), 0) AS "completionTokens",
+      COALESCE(SUM(cached_tokens), 0) AS "cachedTokens",
+      COUNT(*)::int AS calls
+    FROM llm_usage_logs
+    WHERE created_at >= NOW() - interval '${sql.raw(String(days))} days'
+    GROUP BY (created_at)::date
+    ORDER BY (created_at)::date
+  `)
+  return result.rows as Array<{
+    date: string
+    promptTokens: number
+    completionTokens: number
+    cachedTokens: number
+    calls: number
+  }>
 }
 
 const TASK_TYPE_LABELS: Record<string, Record<string, string>> = {
