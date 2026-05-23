@@ -1,10 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 
 import {
-  ADMIN_SESSION_COOKIE,
   getAdminAuthConfig,
   verifyAdminSessionToken,
 } from "../../apps/web/lib/admin-auth"
+import { checkAdminAuthFromSession } from "../../apps/web/lib/admin-api-auth"
 import { parseArticleListParams } from "../../apps/web/lib/api-articles"
 
 const originalAdminPassword = process.env.ADMIN_PASSWORD
@@ -27,8 +27,8 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 // SEC-01: Admin API routes must reject requests without a valid session cookie.
 // The middleware in proxy.ts gates /api/admin/*, but each handler also calls
-// requireAdminAuth() for defense-in-depth.  We verify the underlying auth
-// primitives that requireAdminAuth relies on.
+// requireAdminAuth() for defense-in-depth.  We verify the auth primitives
+// and the core checkAdminAuthFromSession function.
 // ---------------------------------------------------------------------------
 
 describe("SEC-01: admin API handler-level auth", () => {
@@ -66,7 +66,6 @@ describe("SEC-01: admin API handler-level auth", () => {
     process.env.VIBEGUARD_SECRET = "0123456789abcdef0123456789abcdef"
     const config = getAdminAuthConfig()!
 
-    // Import dynamically to use the real createAdminSessionToken
     const { createAdminSessionToken } = await import("../../apps/web/lib/admin-auth")
     const validToken = await createAdminSessionToken({
       password: config.password,
@@ -83,50 +82,60 @@ describe("SEC-01: admin API handler-level auth", () => {
     ).resolves.toBe(false)
   })
 
-  it("requireAdminAuth returns 401 when session cookie is missing", async () => {
+  it("checkAdminAuthFromSession returns 401 when session token is missing", async () => {
     process.env.ADMIN_PASSWORD = "correct horse battery staple"
     process.env.VIBEGUARD_SECRET = "0123456789abcdef0123456789abcdef"
 
-    // Mock next/headers cookies() to return no session cookie
-    vi.doMock("next/headers", () => ({
-      cookies: vi.fn().mockResolvedValue({
-        get: vi.fn().mockReturnValue(undefined),
-      }),
-    }))
-
-    // Import after mock setup (dynamic import to get fresh module)
-    const { requireAdminAuth } = await import("../../apps/web/lib/admin-api-auth")
-
-    const result = await requireAdminAuth()
+    const result = await checkAdminAuthFromSession(undefined)
     expect(result.authorized).toBe(false)
     if (!result.authorized) {
       expect(result.response.status).toBe(401)
       const body = await result.response.json()
       expect(body.ok).toBe(false)
+      expect(body.message).toContain("Authentication required")
     }
-
-    vi.doUnmock("next/headers")
   })
 
-  it("requireAdminAuth returns 503 when auth config is unsafe", async () => {
+  it("checkAdminAuthFromSession returns 401 when session token is invalid", async () => {
+    process.env.ADMIN_PASSWORD = "correct horse battery staple"
+    process.env.VIBEGUARD_SECRET = "0123456789abcdef0123456789abcdef"
+
+    const result = await checkAdminAuthFromSession("invalid.token.value")
+    expect(result.authorized).toBe(false)
+    if (!result.authorized) {
+      expect(result.response.status).toBe(401)
+    }
+  })
+
+  it("checkAdminAuthFromSession returns 503 when auth config is unsafe", async () => {
     delete process.env.ADMIN_PASSWORD
     process.env.VIBEGUARD_SECRET = "test-secret"
 
-    vi.doMock("next/headers", () => ({
-      cookies: vi.fn().mockResolvedValue({
-        get: vi.fn().mockReturnValue(undefined),
-      }),
-    }))
-
-    const { requireAdminAuth } = await import("../../apps/web/lib/admin-api-auth")
-
-    const result = await requireAdminAuth()
+    const result = await checkAdminAuthFromSession(undefined)
     expect(result.authorized).toBe(false)
     if (!result.authorized) {
       expect(result.response.status).toBe(503)
+      const body = await result.response.json()
+      expect(body.ok).toBe(false)
+      expect(body.message).toContain("not configured safely")
     }
+  })
 
-    vi.doUnmock("next/headers")
+  it("checkAdminAuthFromSession returns authorized when session token is valid", async () => {
+    process.env.ADMIN_PASSWORD = "correct horse battery staple"
+    process.env.VIBEGUARD_SECRET = "0123456789abcdef0123456789abcdef"
+    const config = getAdminAuthConfig()!
+
+    const { createAdminSessionToken } = await import("../../apps/web/lib/admin-auth")
+    const issuedAt = Date.now() - 60_000 // 1 minute ago
+    const token = await createAdminSessionToken({
+      password: config.password,
+      secret: config.secret,
+      issuedAt,
+    })
+
+    const result = await checkAdminAuthFromSession(token)
+    expect(result.authorized).toBe(true)
   })
 })
 
@@ -176,26 +185,13 @@ describe("SEC-02: public article API data leakage prevention", () => {
     expect(parsed.status).toBe("ready")
   })
 
-  it("getArticleById with requiredStatus filters non-ready articles at DB level", async () => {
-    // This tests that the API route passes requiredStatus="ready" to getArticleById.
-    // We verify the function signature accepts the parameter correctly.
-    // The actual DB query integration is tested via the getArticleById function.
-    //
-    // Key behavior: when requiredStatus is provided, the query adds
-    // eq(articles.status, requiredStatus) to the WHERE clause, so non-ready
-    // articles return null even if the ID is correct.
-    //
-    // This is verified by examining the function source — the unit test
-    // ensures the parameter is plumbed through correctly.
-
-    // We can verify the function accepts the third parameter by checking
-    // it doesn't throw on invocation (it will fail on DB connection,
-    // but the parameter handling is correct).
+  it("getArticleById accepts requiredStatus parameter for status filtering", async () => {
+    // Verify that getArticleById accepts the third parameter.
+    // The public API route passes requiredStatus="ready" to prevent
+    // leaking draft/failed articles by guessing IDs.
     const { getArticleById } = await import("../../apps/web/lib/api-articles")
 
-    // The function should accept three arguments; verify the signature
-    // by checking the function length (number of declared parameters).
-    // getArticleById has 3 declared params: articleId, requestedLocale, requiredStatus
+    // Function should accept 3 declared parameters
     expect(getArticleById.length).toBe(3)
   })
 })

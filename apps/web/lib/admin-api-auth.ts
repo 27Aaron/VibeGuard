@@ -6,15 +6,17 @@ import {
   verifyAdminSessionToken,
 } from "./admin-auth"
 
-/**
- * Defense-in-depth auth check for admin API route handlers.
- * The middleware in proxy.ts already gates /api/admin/* paths, but this
- * provides a redundant handler-level guard in case middleware is bypassed.
- */
-export async function requireAdminAuth(): Promise<
+export type AdminAuthResult =
   | { authorized: true }
   | { authorized: false; response: Response }
-> {
+
+/**
+ * Core auth check that can be tested without Next.js request context.
+ * Returns a 401/503 response when auth fails, or { authorized: true } on success.
+ */
+export async function checkAdminAuthFromSession(
+  sessionToken: string | undefined,
+): Promise<AdminAuthResult> {
   const config = getAdminAuthConfig()
 
   if (!config) {
@@ -27,10 +29,7 @@ export async function requireAdminAuth(): Promise<
     }
   }
 
-  const cookieStore = await cookies()
-  const session = cookieStore.get(ADMIN_SESSION_COOKIE)?.value
-
-  if (!(await verifyAdminSessionToken(session, config))) {
+  if (!(await verifyAdminSessionToken(sessionToken, config))) {
     return {
       authorized: false,
       response: Response.json(
@@ -41,4 +40,16 @@ export async function requireAdminAuth(): Promise<
   }
 
   return { authorized: true }
+}
+
+/**
+ * Defense-in-depth auth check for admin API route handlers.
+ * The middleware in proxy.ts already gates /api/admin/* paths, but this
+ * provides a redundant handler-level guard in case middleware is bypassed.
+ */
+export async function requireAdminAuth(): Promise<AdminAuthResult> {
+  const cookieStore = await cookies()
+  const session = cookieStore.get(ADMIN_SESSION_COOKIE)?.value
+
+  return checkAdminAuthFromSession(session)
 }
