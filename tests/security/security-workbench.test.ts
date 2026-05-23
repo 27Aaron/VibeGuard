@@ -4,7 +4,9 @@ import { checkPackagesAgainstLocalDb } from "../../packages/content/src/osv/quer
 
 import {
   buildSecurityCheckRequestBody,
+  buildSecurityResultSummary,
   formatAffectedRanges,
+  formatSecurityMatchReason,
   parseSecurityCheckPayload,
   buildSecurityWorkbenchResultState,
   getSecurityFindingTone,
@@ -379,6 +381,76 @@ describe("security workbench helpers", () => {
       lastSyncedAt: "2026-05-21T23:00:00.000Z",
       findings: payload.findings,
     })
+  })
+
+  it("builds a scan-friendly summary from findings", async () => {
+    const payload = await buildPackageMatchWithoutVersionPayload()
+    const finding = payload.findings[0]!
+
+    expect(
+      buildSecurityResultSummary([
+        {
+          ...finding,
+          affected: true,
+          confidence: "high",
+          matchReason: "version_in_ecosystem_range",
+          advisory: {
+            ...finding.advisory,
+            modifiedAt: "2026-05-20T08:00:00.000Z",
+          },
+          affectedPackage: {
+            ...finding.affectedPackage,
+            fixedVersions: ["1.2.0"],
+          },
+          cveEnrichments: [
+            {
+              cveId: "CVE-2026-1000",
+              title: null,
+              description: null,
+              cvssMetrics: [],
+              bestCvssScore: "9.8",
+              bestCvssSeverity: "CRITICAL",
+              cweIds: [],
+              epss: "0.1",
+              epssPercentile: "0.95",
+              epssScoreDate: null,
+              epssModelVersion: null,
+              kevListed: false,
+              kevDateAdded: null,
+              kevDueDate: null,
+              kevKnownRansomwareCampaignUse: null,
+              kevRequiredAction: null,
+              kevVendorProject: null,
+              kevProduct: null,
+              kevNotes: null,
+              nvdPublishedAt: "2026-05-19T08:00:00.000Z",
+              nvdModifiedAt: "2026-05-21T08:00:00.000Z",
+            },
+          ],
+          risk: {
+            level: "high",
+            score: 72,
+            signals: ["affected_version_match", "cvss_critical"],
+          },
+        },
+      ]),
+    ).toEqual({
+      count: 1,
+      affectedCount: 1,
+      highestRisk: { level: "high", score: 72 },
+      highestCvssScore: "9.8",
+      latestUpdatedAt: "2026-05-21T08:00:00.000Z",
+      recommendedFixedVersions: ["1.2.0"],
+    })
+  })
+
+  it("formats technical match reasons for display", () => {
+    expect(formatSecurityMatchReason("version_in_ecosystem_range", "high", "zh")).toBe(
+      "版本落在受影响范围内 · 高置信",
+    )
+    expect(formatSecurityMatchReason("package_match_without_version", "low", "en")).toBe(
+      "Package matched, version missing · Low confidence",
+    )
   })
 
   it("formats ecosystem range events into human-readable summaries", () => {

@@ -203,6 +203,99 @@ describe("checkPackagesAgainstLocalDb", () => {
     })
   })
 
+  it("sorts findings by advisory update time and exposes advisory timestamps", async () => {
+    const db = {
+      query: {
+        securitySyncState: {
+          findFirst: vi.fn().mockResolvedValue({
+            lastSuccessAt: new Date("2026-05-22T07:00:00Z"),
+          }),
+        },
+        securityAffectedPackages: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "affected-old",
+              advisoryId: "advisory-old",
+              ecosystem: "npm",
+              packageName: "axios",
+              packageKey: "axios",
+              purl: "pkg:npm/axios",
+              affectedVersions: [],
+              ranges: [
+                {
+                  type: "SEMVER",
+                  events: [{ introduced: "0" }, { fixed: "0.28.0" }],
+                },
+              ],
+              fixedVersions: ["0.28.0"],
+            },
+            {
+              id: "affected-new",
+              advisoryId: "advisory-new",
+              ecosystem: "npm",
+              packageName: "axios",
+              packageKey: "axios",
+              purl: "pkg:npm/axios",
+              affectedVersions: [],
+              ranges: [
+                {
+                  type: "SEMVER",
+                  events: [{ introduced: "0" }, { fixed: "0.31.0" }],
+                },
+              ],
+              fixedVersions: ["0.31.0"],
+            },
+          ]),
+        },
+        securityAdvisories: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-old",
+              source: "osv",
+              externalId: "GHSA-old",
+              riskType: "vulnerability",
+              summary: "Older axios advisory",
+              details: null,
+              aliases: [],
+              severity: [],
+              references: [],
+              withdrawnAt: null,
+              publishedAt: new Date("2023-11-08T12:00:00Z"),
+              modifiedAt: new Date("2026-02-04T02:41:22Z"),
+            },
+            {
+              id: "advisory-new",
+              source: "osv",
+              externalId: "GHSA-new",
+              riskType: "vulnerability",
+              summary: "Newer axios advisory",
+              details: null,
+              aliases: [],
+              severity: [],
+              references: [],
+              withdrawnAt: null,
+              publishedAt: new Date("2026-04-09T15:16:08Z"),
+              modifiedAt: new Date("2026-05-21T20:38:54Z"),
+            },
+          ]),
+        },
+      },
+    } as never
+
+    const result = await checkPackagesAgainstLocalDb(db, {
+      packages: [{ ecosystem: "npm", name: "axios", version: "0.21.1" }],
+    })
+
+    expect(result.findings.map((finding) => finding.advisory.id)).toEqual([
+      "GHSA-new",
+      "GHSA-old",
+    ])
+    expect(result.findings[0]?.advisory).toMatchObject({
+      publishedAt: "2026-04-09T15:16:08.000Z",
+      modifiedAt: "2026-05-21T20:38:54.000Z",
+    })
+  })
+
   it("enriches advisory CVE aliases with local KEV, EPSS, NVD, and risk signals", async () => {
     const db = {
       query: {

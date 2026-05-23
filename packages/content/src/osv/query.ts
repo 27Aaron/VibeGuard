@@ -157,6 +157,26 @@ function formatCveEnrichment(row: typeof securityCveEnrichments.$inferSelect): S
   }
 }
 
+function timestampFromIso(value: string | null | undefined) {
+  if (!value) return 0
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function findingLatestTimestamp(finding: {
+  advisory: { publishedAt: string | null; modifiedAt: string | null }
+  cveEnrichments: SecurityCveEnrichmentResult[]
+}) {
+  return Math.max(
+    timestampFromIso(finding.advisory.modifiedAt),
+    timestampFromIso(finding.advisory.publishedAt),
+    ...finding.cveEnrichments.flatMap((cve) => [
+      timestampFromIso(cve.nvdModifiedAt),
+      timestampFromIso(cve.nvdPublishedAt),
+    ]),
+  )
+}
+
 export function buildPackageMatchSummary({
   affected,
   confidence,
@@ -344,6 +364,7 @@ export async function checkPackagesAgainstLocalDb(
           aliases: advisory.aliases,
           severity: advisory.severity,
           references: advisory.references,
+          publishedAt: advisory.publishedAt?.toISOString() ?? null,
           modifiedAt: advisory.modifiedAt?.toISOString() ?? null,
         },
         affectedPackage: {
@@ -359,6 +380,8 @@ export async function checkPackagesAgainstLocalDb(
 
   return {
     meta,
-    findings,
+    findings: findings.sort(
+      (left, right) => findingLatestTimestamp(right) - findingLatestTimestamp(left),
+    ),
   }
 }

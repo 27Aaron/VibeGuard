@@ -158,6 +158,7 @@ describe("POST /api/security/check/packages", () => {
             aliases: [],
             severity: [],
             references: [],
+            publishedAt: null,
             modifiedAt: "2026-05-21T23:01:37.000Z",
           },
           affectedPackage: {

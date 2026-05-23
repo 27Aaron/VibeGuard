@@ -3,6 +3,8 @@ import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES,
   SECURITY_PACKAGE_MATCH_REASON_VALUES,
+  type SecurityPackageMatchConfidence,
+  type SecurityPackageMatchReason,
   type SecurityPackageEcosystem,
 } from "@vibeguard/shared"
 
@@ -172,6 +174,9 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
     value.advisory.severity.every(isSeverityEntry) &&
     Array.isArray(value.advisory.references) &&
     value.advisory.references.every(isReferenceEntry) &&
+    (typeof value.advisory.publishedAt === "string" ||
+      value.advisory.publishedAt === null ||
+      value.advisory.publishedAt === undefined) &&
     (typeof value.advisory.modifiedAt === "string" || value.advisory.modifiedAt === null) &&
     isRecord(value.affectedPackage) &&
     isStringArray(value.affectedPackage.affectedVersions) &&
@@ -336,6 +341,117 @@ export function buildSecurityWorkbenchResultState(payload: SecurityCheckPayload)
     lastSyncedAt: payload.meta.lastSyncedAt,
     findings: payload.findings,
   }
+}
+
+function timestampFromIso(value: string | null | undefined) {
+  if (!value) return 0
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function numberFromDecimal(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (typeof value !== "string" || !value.trim()) {
+    return null
+  }
+
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+export function getSecurityFindingLatestUpdatedAt(finding: SecurityFinding) {
+  const latestTimestamp = Math.max(
+    timestampFromIso(finding.advisory.modifiedAt),
+    timestampFromIso(finding.advisory.publishedAt),
+    ...finding.cveEnrichments.flatMap((cve) => [
+      timestampFromIso(cve.nvdModifiedAt),
+      timestampFromIso(cve.nvdPublishedAt),
+    ]),
+  )
+
+  return latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null
+}
+
+export function buildSecurityResultSummary(findings: SecurityFinding[]) {
+  const highestRisk = findings.reduce<{
+    level: SecurityFinding["risk"]["level"]
+    score: number
+  }>(
+    (current, finding) =>
+      finding.risk.score > current.score
+        ? { level: finding.risk.level, score: finding.risk.score }
+        : current,
+    { level: "unknown", score: 0 },
+  )
+  const highestCvss = Math.max(
+    0,
+    ...findings.flatMap((finding) =>
+      finding.cveEnrichments.flatMap((cve) => {
+        const parsed = numberFromDecimal(cve.bestCvssScore)
+        return parsed === null ? [] : [parsed]
+      }),
+    ),
+  )
+  const latestTimestamp = Math.max(
+    0,
+    ...findings.flatMap((finding) => {
+      const latest = getSecurityFindingLatestUpdatedAt(finding)
+      return latest ? [timestampFromIso(latest)] : []
+    }),
+  )
+
+  return {
+    count: findings.length,
+    affectedCount: findings.filter((finding) => finding.affected).length,
+    highestRisk,
+    highestCvssScore: highestCvss > 0 ? String(highestCvss) : null,
+    latestUpdatedAt: latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null,
+    recommendedFixedVersions: Array.from(
+      new Set(findings.flatMap((finding) => finding.affectedPackage.fixedVersions)),
+    ),
+  }
+}
+
+export function formatSecurityMatchReason(
+  reason: SecurityPackageMatchReason,
+  confidence: SecurityPackageMatchConfidence,
+  lang: "zh" | "en",
+) {
+  const reasonText = {
+    zh: {
+      explicit_affected_version: "版本在受影响清单中",
+      version_in_ecosystem_range: "版本落在受影响范围内",
+      version_outside_ecosystem_range: "版本不在受影响范围内",
+      range_present_but_inconclusive: "存在范围但暂不能确认",
+      package_match_without_version: "包名命中但缺少版本",
+    },
+    en: {
+      explicit_affected_version: "Version explicitly affected",
+      version_in_ecosystem_range: "Version in affected range",
+      version_outside_ecosystem_range: "Version outside affected range",
+      range_present_but_inconclusive: "Range present, not conclusive",
+      package_match_without_version: "Package matched, version missing",
+    },
+  }[lang][reason]
+  const confidenceText = {
+    zh: {
+      high: "高置信",
+      medium: "中置信",
+      low: "低置信",
+      undetermined: "未确定",
+    },
+    en: {
+      high: "High confidence",
+      medium: "Medium confidence",
+      low: "Low confidence",
+      undetermined: "Undetermined",
+    },
+  }[lang][confidence]
+
+  return `${reasonText} · ${confidenceText}`
 }
 
 export function isSecurityWorkbenchResultState(
