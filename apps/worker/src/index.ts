@@ -159,13 +159,16 @@ function resolvePollInterval(value: number, fallback: number) {
   return parsed
 }
 
+const DEFAULT_MAX_ITERATIONS = 1000
+
 export async function runWorkerLoop({
   intervalMs = DEFAULT_POLL_INTERVAL_MS,
   logger = console,
   runCycle = runWorkerCycle,
   signal,
   sleep: wait = sleep,
-}: WorkerLoopOptions = {}) {
+  maxIterations = DEFAULT_MAX_ITERATIONS,
+}: WorkerLoopOptions & { maxIterations?: number } = {}) {
   const configuredIntervalMs = resolvePollInterval(intervalMs, DEFAULT_POLL_INTERVAL_MS)
   const envInterval = process.env.WORKER_POLL_INTERVAL_MS
   const baseIntervalMs = resolvePollInterval(
@@ -174,8 +177,17 @@ export async function runWorkerLoop({
   )
   let consecutiveIdleCycles = 0
   let currentInterval = baseIntervalMs
+  let iterations = 0
 
   while (!signal?.aborted) {
+    if (iterations >= maxIterations) {
+      logger.error(
+        `Worker loop reached max iteration limit (${maxIterations}). Shutting down to prevent infinite loop without a signal.`,
+      )
+      break
+    }
+
+    iterations += 1
     let didPerformWork = false
 
     try {

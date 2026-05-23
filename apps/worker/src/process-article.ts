@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
 import { articles, schema } from "@vibeguard/db"
@@ -61,24 +61,20 @@ async function markArticleStatus(
   status: typeof ArticleStatus[keyof typeof ArticleStatus],
   error?: string,
 ) {
-  const currentArticle = await db.query.articles.findFirst({
-    where: (table, { eq: whereEq }) => whereEq(table.id, articleId),
-  })
-
-  await db
-    .update(articles)
-    .set({
-      status,
-      rawMeta: error
-        ? {
-            ...(typeof currentArticle?.rawMeta === "object" && currentArticle?.rawMeta
-              ? currentArticle.rawMeta
-              : {}),
-            processingError: error,
-          }
-        : currentArticle?.rawMeta ?? null,
-    })
-    .where(eq(articles.id, articleId))
+  if (error) {
+    await db
+      .update(articles)
+      .set({
+        status,
+        rawMeta: sql`COALESCE(${articles.rawMeta}, '{}'::jsonb) || ${JSON.stringify({ processingError: error })}::jsonb`,
+      })
+      .where(eq(articles.id, articleId))
+  } else {
+    await db
+      .update(articles)
+      .set({ status })
+      .where(eq(articles.id, articleId))
+  }
 }
 
 async function updateArticleContent(

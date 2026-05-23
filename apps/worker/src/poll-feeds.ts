@@ -64,6 +64,14 @@ export function shouldPollFeed(feed: ActiveFeed, now = new Date()) {
     return true;
   }
 
+  if (
+    typeof feed.pollIntervalMinutes !== "number" ||
+    !Number.isFinite(feed.pollIntervalMinutes) ||
+    feed.pollIntervalMinutes <= 0
+  ) {
+    return false;
+  }
+
   const nextPollAt =
     feed.lastPolledAt.getTime() + feed.pollIntervalMinutes * 60 * 1000;
 
@@ -75,25 +83,20 @@ export async function pollFeed(
   dependencies: PollFeedDependencies,
 ) {
   const polledAt = dependencies.now?.() ?? new Date();
+  const items = [] as FeedItemInput[];
   let processedItemCount = 0;
 
   try {
     const parsedFeed = await dependencies.fetchFeed(feed.feedUrl);
+    const feedItems = parsedFeed.items ?? [];
 
-    for (const item of parsedFeed.items ?? []) {
-      const result = await dependencies.insertFeedItem({
-        feedId: feed.id,
-        sourceName: feed.name,
-        item,
-        fetchedAt: polledAt,
-      });
-
-      if (result.created) {
-        await dependencies.enqueueExtractJob(result.article.id);
-      }
-
-      processedItemCount += 1;
-    }
+    processedItemCount = await processFeedItemsWithConcurrency(
+      feedItems,
+      feed.id,
+      feed.name,
+      polledAt,
+      dependencies,
+    );
 
     await dependencies.markFeedPoll(feed.id, {
       lastPolledAt: polledAt,
@@ -112,6 +115,44 @@ export async function pollFeed(
 
     throw error;
   }
+}
+
+const FEED_ITEM_CONCURRENCY = 5;
+
+async function processFeedItemsWithConcurrency(
+  items: FeedItemInput[],
+  feedId: string,
+  sourceName: string,
+  fetchedAt: Date,
+  dependencies: PollFeedDependencies,
+): Promise<number> {
+  let processed = 0;
+  let cursor = 0;
+
+  while (cursor < items.length) {
+    const chunk = items.slice(cursor, cursor + FEED_ITEM_CONCURRENCY);
+    cursor += chunk.length;
+
+    const results = await Promise.all(
+      chunk.map((item) =>
+        dependencies.insertFeedItem({
+          feedId,
+          sourceName,
+          item,
+          fetchedAt,
+        }),
+      ),
+    );
+
+    const newArticles = results.filter((r) => r.created);
+    await Promise.all(
+      newArticles.map((r) => dependencies.enqueueExtractJob(r.article.id)),
+    );
+
+    processed += chunk.length;
+  }
+
+  return processed;
 }
 
 export async function pollFeedNow(
@@ -159,6 +200,8 @@ export type PollActiveFeedsDependencies = {
   now?: PollFeedDependencies["now"];
 };
 
+const ACTIVE_FEED_CONCURRENCY = 5;
+
 export async function pollActiveFeeds(
   dependencies: PollActiveFeedsDependencies = {},
 ) {
@@ -172,28 +215,43 @@ export async function pollActiveFeeds(
     ((feedId: string, state: { lastPolledAt: Date; lastSuccessAt?: Date }) =>
       markFeedPoll(db, feedId, state));
 
-  const succeeded = [];
-  const failed = [];
+  const succeeded: string[] = [];
+  const failed: { feedId: string; error: string }[] = [];
 
-  for (const feed of activeFeeds) {
-    try {
-      await pollFeed(feed, {
-        fetchFeed: dependencies.fetchFeed ?? fetchFeed,
-        insertFeedItem:
-          dependencies.insertFeedItem ??
-          ((input: ToArticleInsertInput) => insertFeedItem(db, input)),
-        enqueueExtractJob:
-          dependencies.enqueueExtractJob ??
-          ((articleId: string) => enqueueExtractJob(db, articleId)),
-        markFeedPoll: applyMarkFeedPoll,
-        now: () => cycleNow,
-      });
-      succeeded.push(feed.id);
-    } catch (error) {
-      failed.push({
-        feedId: feed.id,
-        error: error instanceof Error ? error.message : String(error),
-      });
+  let cursor = 0;
+  while (cursor < activeFeeds.length) {
+    const chunk = activeFeeds.slice(cursor, cursor + ACTIVE_FEED_CONCURRENCY);
+    cursor += chunk.length;
+
+    const results = await Promise.allSettled(
+      chunk.map((feed) =>
+        pollFeed(feed, {
+          fetchFeed: dependencies.fetchFeed ?? fetchFeed,
+          insertFeedItem:
+            dependencies.insertFeedItem ??
+            ((input: ToArticleInsertInput) => insertFeedItem(db, input)),
+          enqueueExtractJob:
+            dependencies.enqueueExtractJob ??
+            ((articleId: string) => enqueueExtractJob(db, articleId)),
+          markFeedPoll: applyMarkFeedPoll,
+          now: () => cycleNow,
+        }).then(() => feed.id),
+      ),
+    );
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === "fulfilled") {
+        succeeded.push(result.value);
+      } else {
+        failed.push({
+          feedId: chunk[i].id,
+          error:
+            result.reason instanceof Error
+              ? result.reason.message
+              : String(result.reason),
+        });
+      }
     }
   }
 

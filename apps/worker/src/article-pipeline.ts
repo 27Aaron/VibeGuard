@@ -268,29 +268,31 @@ async function processExtractJob(input: {
   }
 
   const requiredSummaryEn = requireArticleField(summaryEn, "English summary")
-  const classification = classifySecurityContent({
-    sourceName: input.article.sourceName,
-    url: input.article.url,
-    title: requiredTitleEn,
-    summary: rawMeta.extraction && typeof rawMeta.extraction === "object"
-      ? String(
-          (rawMeta.extraction as { description?: unknown }).description ??
-            requiredSummaryEn,
-        )
-      : requiredSummaryEn,
-    content: requiredContentMdEn,
-    categories: Array.isArray(rawMeta.categories)
-      ? (rawMeta.categories as string[])
-      : undefined,
-  })
   await input.dependencies.markJobStage?.(JobPipelineStage.GENERATE_TAGS)
-  const generatedTags = await generateArticleTags({
-    dependencies: input.dependencies,
-    client: input.client,
-    model: input.activeSettings.model,
-    systemPrompt: resolveTagPrompt(input.activeSettings.tagPrompt || DEFAULT_TAG_PROMPT),
-    sourceText: requiredContentMdEn,
-  })
+  const [classification, generatedTags] = await Promise.all([
+    Promise.resolve(classifySecurityContent({
+      sourceName: input.article.sourceName,
+      url: input.article.url,
+      title: requiredTitleEn,
+      summary: rawMeta.extraction && typeof rawMeta.extraction === "object"
+        ? String(
+            (rawMeta.extraction as { description?: unknown }).description ??
+              requiredSummaryEn,
+          )
+        : requiredSummaryEn,
+      content: requiredContentMdEn,
+      categories: Array.isArray(rawMeta.categories)
+        ? (rawMeta.categories as string[])
+        : undefined,
+    })),
+    generateArticleTags({
+      dependencies: input.dependencies,
+      client: input.client,
+      model: input.activeSettings.model,
+      systemPrompt: resolveTagPrompt(input.activeSettings.tagPrompt || DEFAULT_TAG_PROMPT),
+      sourceText: requiredContentMdEn,
+    }),
+  ])
   const tags = generatedTags.length > 0 ? generatedTags : classification.tags
 
   await input.dependencies.updateArticleContent(input.article.id, {
@@ -452,34 +454,41 @@ async function updateArticlePatchWithFallback(
   article: ArticleRecord,
   patch: ArticlePatch,
 ) {
-  if (dependencies.updateArticlePatch) {
-    await dependencies.updateArticlePatch(article.id, patch)
-    return
-  }
+  try {
+    if (dependencies.updateArticlePatch) {
+      await dependencies.updateArticlePatch(article.id, patch)
+      return
+    }
 
-  await dependencies.updateArticleContent(article.id, {
-    titleEn: patch.titleEn ?? article.titleEn,
-    titleZh: patch.titleZh ?? article.titleZh ?? "",
-    summaryEn: patch.summaryEn ?? article.summaryEn ?? "",
-    summaryZh: patch.summaryZh ?? article.summaryZh ?? "",
-    contentMdEn:
-      patch.contentMdEn ?? requireArticleField(article.contentMdEn, "English body"),
-    contentMdZh: patch.contentMdZh ?? article.contentMdZh ?? "",
-    ecosystem: patch.ecosystem ?? article.ecosystem,
-    riskCategory: patch.riskCategory ?? article.riskCategory,
-    tags: patch.tags ?? article.tags,
-    contentHash:
-      patch.contentHash ??
-      article.contentHash ??
-      buildContentHash(
-        patch.titleEn ?? article.titleEn,
-        patch.contentMdEn ?? article.contentMdEn ?? "",
-      ),
-    rawMeta:
-      patch.rawMeta && typeof patch.rawMeta === "object"
-        ? (patch.rawMeta as Record<string, unknown>)
-        : toRawMetaRecord(article.rawMeta),
-  })
+    await dependencies.updateArticleContent(article.id, {
+      titleEn: patch.titleEn ?? article.titleEn,
+      titleZh: patch.titleZh ?? article.titleZh ?? "",
+      summaryEn: patch.summaryEn ?? article.summaryEn ?? "",
+      summaryZh: patch.summaryZh ?? article.summaryZh ?? "",
+      contentMdEn:
+        patch.contentMdEn ?? requireArticleField(article.contentMdEn, "English body"),
+      contentMdZh: patch.contentMdZh ?? article.contentMdZh ?? "",
+      ecosystem: patch.ecosystem ?? article.ecosystem,
+      riskCategory: patch.riskCategory ?? article.riskCategory,
+      tags: patch.tags ?? article.tags,
+      contentHash:
+        patch.contentHash ??
+        article.contentHash ??
+        buildContentHash(
+          patch.titleEn ?? article.titleEn,
+          patch.contentMdEn ?? article.contentMdEn ?? "",
+        ),
+      rawMeta:
+        patch.rawMeta && typeof patch.rawMeta === "object"
+          ? (patch.rawMeta as Record<string, unknown>)
+          : toRawMetaRecord(article.rawMeta),
+    })
+  } catch (error) {
+    console.error(
+      `updateArticlePatchWithFallback failed for article ${article.id}:`,
+      error,
+    )
+  }
 }
 
 function buildContentHash(title: string, content: string) {

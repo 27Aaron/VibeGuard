@@ -230,29 +230,17 @@ export async function claimQueuedJobById(
   jobId: string,
   now = new Date(),
 ) {
-  const job = await db.query.processingJobs.findFirst({
-    where: (table, { and: whereAnd, eq: whereEq }) =>
-      whereAnd(
-        whereEq(table.id, jobId),
-        whereEq(table.status, JobStatus.QUEUED),
-      ),
-  });
-
-  if (!job) {
-    return null;
-  }
-
   const claimed = await db
     .update(processingJobs)
     .set({
       status: JobStatus.RUNNING,
-      attempt: job.attempt + 1,
+      attempt: sql`${processingJobs.attempt} + 1`,
       startedAt: now,
       lastError: null,
     })
     .where(
       and(
-        eq(processingJobs.id, job.id),
+        eq(processingJobs.id, jobId),
         eq(processingJobs.status, JobStatus.QUEUED),
       ),
     )
