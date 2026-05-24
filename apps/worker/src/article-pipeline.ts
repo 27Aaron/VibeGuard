@@ -24,6 +24,20 @@ import type { UsageResult } from "@vibeguard/llm"
 type ArticleRecord = typeof articles.$inferSelect
 type LlmSettingsRecord = typeof llmSettings.$inferSelect
 type JobRecord = typeof schema.processingJobs.$inferSelect
+export class JobPausedSignal extends Error {
+  constructor(message = "Job pause requested.") {
+    super(message)
+    this.name = "JobPausedSignal"
+  }
+}
+
+export class JobCancelledSignal extends Error {
+  constructor(message = "Job cancel requested.") {
+    super(message)
+    this.name = "JobCancelledSignal"
+  }
+}
+
 type ProcessArticleFinalStatus =
   | typeof ArticleStatus.READY
   | typeof ArticleStatus.FILTERED
@@ -83,6 +97,7 @@ export type ProcessArticleJobDependencies = {
   markJobStage?: (
     stage: typeof JobPipelineStage[keyof typeof JobPipelineStage],
   ) => Promise<void>
+  checkJobControl?: () => Promise<void>
   logLlmUsage?: (input: {
     articleId: string
     jobId?: string
@@ -105,7 +120,7 @@ function resolveLocalizedSummaryPrompt(
 }
 
 export async function processArticleJob(
-  job: Pick<JobRecord, "articleId"> & Partial<Pick<JobRecord, "jobType">>,
+  job: Pick<JobRecord, "articleId"> & Partial<Pick<JobRecord, "jobType" | "pipelineStage">>,
   dependencies: ProcessArticleJobDependencies,
 ) {
   const article = await dependencies.loadArticle(job.articleId)
@@ -127,6 +142,7 @@ export async function processArticleJob(
   }
 
   await dependencies.markArticleStatus(article.id, ArticleStatus.PROCESSING)
+  await checkJobControl(dependencies)
   const client = dependencies.createOpenAIClient({
     baseUrl: activeSettings.baseUrl,
     apiKey,
@@ -179,9 +195,9 @@ async function processExtractJob(input: {
   let summaryZh = input.article.summaryZh
 
   if (!hasText(titleEn) || !hasText(contentMdEn)) {
-    await input.dependencies.markJobStage?.(JobPipelineStage.FETCH_SOURCE)
+    await markStageAndCheck(input.dependencies, JobPipelineStage.FETCH_SOURCE)
     const html = await input.dependencies.fetchArticleHtml(input.article.url)
-    await input.dependencies.markJobStage?.(JobPipelineStage.EXTRACT_CONTENT)
+    await markStageAndCheck(input.dependencies, JobPipelineStage.EXTRACT_CONTENT)
     const extracted = await input.dependencies.extractMarkdownFromHtml(
       html,
       input.article.url,
@@ -202,35 +218,49 @@ async function processExtractJob(input: {
       contentHash: buildContentHash(titleEn, contentMdEn),
       rawMeta,
     })
+    await checkJobControl(input.dependencies)
+  }
 
-    // 相关性检查：提取内容后立即判断，不相关的文章跳过后续所有 LLM 步骤
-    await input.dependencies.markJobStage?.(JobPipelineStage.CLASSIFY_RELEVANCE)
+  const requiredTitleEn = requireArticleField(titleEn, "English title")
+  const requiredContentMdEn = requireArticleField(contentMdEn, "English body")
+
+  // 相关性检查：提取内容后立即判断，不相关的文章跳过后续所有 LLM 步骤。
+  // If a paused job resumes after extraction, raw content already exists, but
+  // the relevance marker may not. Run the check before translation in that case.
+  if (!hasRelevanceCheck(rawMeta)) {
+    await markStageAndCheck(input.dependencies, JobPipelineStage.CLASSIFY_RELEVANCE)
     const relevanceResult = await timedLlmCall(
       () => classifyRelevance({
         client: input.client,
         model: input.activeSettings.model,
         systemPrompt: input.activeSettings.relevancePrompt,
-        sourceText: `${extracted.title}\n\n${extracted.contentMd.slice(0, 4000)}`,
+        sourceText: `${requiredTitleEn}\n\n${requiredContentMdEn.slice(0, 4000)}`,
       }),
       input.dependencies,
       { articleId: input.article.id, taskType: "classify_relevance", model: input.activeSettings.model },
     )
     const relevance = relevanceResult.result
+    rawMeta.relevanceCheck = {
+      relevant: relevance.relevant,
+      reason: relevance.reason,
+      checkedAt: new Date().toISOString(),
+    }
     if (!relevance.relevant) {
       rawMeta.relevanceFilter = {
         reason: relevance.reason,
         checkedAt: new Date().toISOString(),
       }
       await persistArticlePatch(input.dependencies, input.article, { rawMeta })
+      await checkJobControl(input.dependencies)
       return ArticleStatus.FILTERED
     }
+
+    await persistArticlePatch(input.dependencies, input.article, { rawMeta })
+    await checkJobControl(input.dependencies)
   }
 
-  const requiredTitleEn = requireArticleField(titleEn, "English title")
-  const requiredContentMdEn = requireArticleField(contentMdEn, "English body")
-
   if (!hasText(titleZh)) {
-    await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_TITLE)
+    await markStageAndCheck(input.dependencies, JobPipelineStage.TRANSLATE_TITLE)
     const titleZhResult = await timedLlmCall(
       () => input.dependencies.translateText({
         client: input.client,
@@ -243,10 +273,11 @@ async function processExtractJob(input: {
     )
     titleZh = titleZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { titleZh })
+    await checkJobControl(input.dependencies)
   }
 
   if (!hasText(contentMdZh)) {
-    await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_CONTENT)
+    await markStageAndCheck(input.dependencies, JobPipelineStage.TRANSLATE_CONTENT)
     const contentMdZhResult = await timedLlmCall(
       () => input.dependencies.translateText({
         client: input.client,
@@ -259,10 +290,11 @@ async function processExtractJob(input: {
     )
     contentMdZh = contentMdZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { contentMdZh })
+    await checkJobControl(input.dependencies)
   }
 
   if (!hasText(summaryEn)) {
-    await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
+    await markStageAndCheck(input.dependencies, JobPipelineStage.SUMMARIZE_EN)
     const summaryEnResult = await timedLlmCall(
       () => input.dependencies.summarizeText({
         client: input.client,
@@ -278,12 +310,13 @@ async function processExtractJob(input: {
     )
     summaryEn = summaryEnResult.result
     await persistArticlePatch(input.dependencies, input.article, { summaryEn })
+    await checkJobControl(input.dependencies)
   }
 
   const requiredContentMdZh = requireArticleField(contentMdZh, "Chinese body")
 
   if (!hasText(summaryZh)) {
-    await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
+    await markStageAndCheck(input.dependencies, JobPipelineStage.SUMMARIZE_ZH)
     const summaryZhResult = await timedLlmCall(
       () => input.dependencies.summarizeText({
         client: input.client,
@@ -299,10 +332,11 @@ async function processExtractJob(input: {
     )
     summaryZh = summaryZhResult.result
     await persistArticlePatch(input.dependencies, input.article, { summaryZh })
+    await checkJobControl(input.dependencies)
   }
 
   const requiredSummaryEn = requireArticleField(summaryEn, "English summary")
-  await input.dependencies.markJobStage?.(JobPipelineStage.GENERATE_TAGS)
+  await markStageAndCheck(input.dependencies, JobPipelineStage.GENERATE_TAGS)
   const [classification, generatedTags] = await Promise.all([
     Promise.resolve(classifySecurityContent({
       sourceName: input.article.sourceName,
@@ -343,6 +377,7 @@ async function processExtractJob(input: {
     contentHash: buildContentHash(requiredTitleEn, requiredContentMdEn),
     rawMeta,
   })
+  await checkJobControl(input.dependencies)
 
   return ArticleStatus.READY
 }
@@ -382,7 +417,7 @@ async function processSummarizeJob(input: {
 }) {
   const contentMdEn = requireArticleField(input.article.contentMdEn, "English body")
   const contentMdZh = requireArticleField(input.article.contentMdZh, "Chinese body")
-  await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
+  await markStageAndCheck(input.dependencies, JobPipelineStage.SUMMARIZE_EN)
   const summaryEnResult = await timedLlmCall(
     () => input.dependencies.summarizeText({
       client: input.client,
@@ -396,7 +431,8 @@ async function processSummarizeJob(input: {
     input.dependencies,
     { articleId: input.article.id, taskType: "summarize_en", model: input.activeSettings.model },
   )
-  await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
+  await checkJobControl(input.dependencies)
+  await markStageAndCheck(input.dependencies, JobPipelineStage.SUMMARIZE_ZH)
   const summaryZhResult = await timedLlmCall(
     () => input.dependencies.summarizeText({
       client: input.client,
@@ -415,6 +451,7 @@ async function processSummarizeJob(input: {
     summaryEn: summaryEnResult.result,
     summaryZh: summaryZhResult.result,
   })
+  await checkJobControl(input.dependencies)
 }
 
 async function processTranslateJob(input: {
@@ -425,7 +462,7 @@ async function processTranslateJob(input: {
 }) {
   const titleEn = requireArticleField(input.article.titleEn, "English title")
   const contentMdEn = requireArticleField(input.article.contentMdEn, "English body")
-  await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_TITLE)
+  await markStageAndCheck(input.dependencies, JobPipelineStage.TRANSLATE_TITLE)
   const titleZhResult = await timedLlmCall(
     () => input.dependencies.translateText({
       client: input.client,
@@ -436,7 +473,8 @@ async function processTranslateJob(input: {
     input.dependencies,
     { articleId: input.article.id, taskType: "translate_title", model: input.activeSettings.model },
   )
-  await input.dependencies.markJobStage?.(JobPipelineStage.TRANSLATE_CONTENT)
+  await checkJobControl(input.dependencies)
+  await markStageAndCheck(input.dependencies, JobPipelineStage.TRANSLATE_CONTENT)
   const contentMdZhResult = await timedLlmCall(
     () => input.dependencies.translateText({
       client: input.client,
@@ -447,7 +485,8 @@ async function processTranslateJob(input: {
     input.dependencies,
     { articleId: input.article.id, taskType: "translate_content", model: input.activeSettings.model },
   )
-  await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_EN)
+  await checkJobControl(input.dependencies)
+  await markStageAndCheck(input.dependencies, JobPipelineStage.SUMMARIZE_EN)
   const summaryEnResult = await timedLlmCall(
     () => input.dependencies.summarizeText({
       client: input.client,
@@ -461,7 +500,8 @@ async function processTranslateJob(input: {
     input.dependencies,
     { articleId: input.article.id, taskType: "summarize_en", model: input.activeSettings.model },
   )
-  await input.dependencies.markJobStage?.(JobPipelineStage.SUMMARIZE_ZH)
+  await checkJobControl(input.dependencies)
+  await markStageAndCheck(input.dependencies, JobPipelineStage.SUMMARIZE_ZH)
   const summaryZhResult = await timedLlmCall(
     () => input.dependencies.summarizeText({
       client: input.client,
@@ -482,6 +522,7 @@ async function processTranslateJob(input: {
     summaryEn: summaryEnResult.result,
     summaryZh: summaryZhResult.result,
   })
+  await checkJobControl(input.dependencies)
 }
 
 function hasText(value: string | null | undefined): value is string {
@@ -492,6 +533,28 @@ function toRawMetaRecord(value: unknown) {
   return value && typeof value === "object"
     ? { ...(value as Record<string, unknown>) }
     : {}
+}
+
+function hasRelevanceCheck(rawMeta: Record<string, unknown>) {
+  const relevanceCheck = rawMeta.relevanceCheck
+
+  return Boolean(
+    relevanceCheck &&
+      typeof relevanceCheck === "object" &&
+      typeof (relevanceCheck as { relevant?: unknown }).relevant === "boolean",
+  )
+}
+
+async function markStageAndCheck(
+  dependencies: ProcessArticleJobDependencies,
+  stage: typeof JobPipelineStage[keyof typeof JobPipelineStage],
+) {
+  await dependencies.markJobStage?.(stage)
+  await checkJobControl(dependencies)
+}
+
+async function checkJobControl(dependencies: ProcessArticleJobDependencies) {
+  await dependencies.checkJobControl?.()
 }
 
 function requireArticleField(value: string | null | undefined, label: string) {

@@ -120,6 +120,20 @@
       "when": 1779589674664,
       "tag": "0016_abandoned_shaman",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1779624000000,
+      "tag": "0017_job_control_statuses",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1779624000001,
+      "tag": "0018_job_control_active_index",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, sql } from "drizzle-orm";
 
 import { processingJobs, schema } from "@vibeguard/db";
 import { JobPipelineStage, JobStatus, JobType } from "@vibeguard/shared";
@@ -8,6 +8,11 @@ type ContentDb = NodePgDatabase<typeof schema>;
 const CLAIM_RETRY_MAX_ATTEMPTS = 6;
 const CLAIM_RETRY_BASE_DELAY_MS = 25;
 const CLAIM_RETRY_MAX_DELAY_MS = 250;
+export const CONTROL_RUNNING_JOB_STATUSES = [
+  JobStatus.RUNNING,
+  JobStatus.PAUSE_REQUESTED,
+  JobStatus.CANCEL_REQUESTED,
+] as const;
 
 function waitMs(durationMs: number) {
   return new Promise<void>((resolve) => {
@@ -83,6 +88,35 @@ export function buildJobFailureUpdate(input: {
   };
 }
 
+export function buildJobPauseRequestedUpdate(now = new Date()) {
+  return {
+    status: JobStatus.PAUSE_REQUESTED,
+    lastError: "用户请求暂停，当前步骤完成后暂停。",
+    updatedAt: now,
+  };
+}
+
+export function buildJobPausedUpdate(now = new Date()) {
+  return {
+    status: JobStatus.PAUSED,
+    startedAt: null,
+    finishedAt: null,
+    lastError: "任务已暂停，可稍后恢复。",
+    updatedAt: now,
+  };
+}
+
+export function buildJobResumeUpdate(now = new Date()) {
+  return {
+    status: JobStatus.QUEUED,
+    startedAt: null,
+    finishedAt: null,
+    runAfter: now,
+    lastError: null,
+    updatedAt: now,
+  };
+}
+
 export function buildStaleRunningJobUpdate(input: {
   attempt: number;
   maxAttempts: number;
@@ -124,7 +158,7 @@ export async function claimNextQueuedJob(
         WITH running_count AS (
           SELECT count(*)::int AS count
           FROM ${processingJobs}
-          WHERE ${processingJobs.status} = ${JobStatus.RUNNING}
+          WHERE ${processingJobs.status} IN ('running', 'pause_requested', 'cancel_requested')
         ),
         next_job AS (
           SELECT ${processingJobs.id}
@@ -220,7 +254,7 @@ export async function countRunningJobs(db: ContentDb) {
   const [row] = await db
     .select({ count: sql<number>`count(*)` })
     .from(processingJobs)
-    .where(eq(processingJobs.status, JobStatus.RUNNING));
+    .where(inArray(processingJobs.status, CONTROL_RUNNING_JOB_STATUSES));
 
   return Number(row?.count ?? 0);
 }
@@ -310,6 +344,27 @@ export async function resetStaleRunningJobs(
   const staleAfterMinutes = input.staleAfterMinutes ?? 3;
   const staleThreshold = new Date(now.getTime() - staleAfterMinutes * 60 * 1000);
 
+  const paused = await db
+    .update(processingJobs)
+    .set(buildJobPausedUpdate(now))
+    .where(
+      and(
+        eq(processingJobs.status, JobStatus.PAUSE_REQUESTED),
+        lt(processingJobs.startedAt, staleThreshold),
+      ),
+    )
+    .returning();
+
+  const cancelled = await db
+    .delete(processingJobs)
+    .where(
+      and(
+        eq(processingJobs.status, JobStatus.CANCEL_REQUESTED),
+        lt(processingJobs.startedAt, staleThreshold),
+      ),
+    )
+    .returning();
+
   const result = await db
     .update(processingJobs)
     .set({
@@ -329,10 +384,10 @@ export async function resetStaleRunningJobs(
     )
     .returning();
 
-  const resetCount = result.length;
+  const resetCount = result.length + paused.length;
 
   return {
     resetCount,
-    failedCount: 0,
+    failedCount: cancelled.length,
   };
 }

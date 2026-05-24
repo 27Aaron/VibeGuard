@@ -3,12 +3,17 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { JobStatus, JobType } from "@vibeguard/shared"
 
 // ---------------------------------------------------------------------------
-// Test 1: resetStaleRunningJobs only updates jobs still in RUNNING status
+// Test 1: resetStaleRunningJobs keeps control-requested jobs bounded
 // ---------------------------------------------------------------------------
 
 describe("resetStaleRunningJobs", () => {
-  it("issues a single bulk UPDATE with status=RUNNING in the WHERE clause", async () => {
-    const updateChain = {
+  it("pauses stale pause requests, deletes stale cancel requests, and requeues stale running jobs", async () => {
+    const pauseChain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([{ id: "paused-job" }]),
+    }
+    const runningChain = {
       set: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([
@@ -16,9 +21,16 @@ describe("resetStaleRunningJobs", () => {
         { id: "job-2" },
       ]),
     }
+    const deleteChain = {
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([{ id: "cancelled-job" }]),
+    }
 
     const mockDb = {
-      update: vi.fn().mockReturnValue(updateChain),
+      update: vi.fn()
+        .mockReturnValueOnce(pauseChain)
+        .mockReturnValueOnce(runningChain),
+      delete: vi.fn().mockReturnValue(deleteChain),
     } as never
 
     const { resetStaleRunningJobs } = await import(
@@ -30,34 +42,49 @@ describe("resetStaleRunningJobs", () => {
       staleAfterMinutes: 3,
     })
 
-    // The function should call db.update exactly once (bulk, no N+1)
-    expect(mockDb.update).toHaveBeenCalledTimes(1)
+    expect(mockDb.update).toHaveBeenCalledTimes(2)
+    expect(mockDb.delete).toHaveBeenCalledTimes(1)
 
-    // .set() should be called with status QUEUED and pipelineStage WAITING
-    expect(updateChain.set).toHaveBeenCalledWith(
+    expect(pauseChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: JobStatus.PAUSED,
+      }),
+    )
+    expect(runningChain.set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: JobStatus.QUEUED,
         pipelineStage: "waiting",
       }),
     )
 
-    // .where() must be called — this is the critical safety check.
-    expect(updateChain.where).toHaveBeenCalledTimes(1)
-
-    // Verify the result counting
-    expect(result.resetCount).toBe(2)
-    expect(result.failedCount).toBe(0)
+    expect(pauseChain.where).toHaveBeenCalledTimes(1)
+    expect(runningChain.where).toHaveBeenCalledTimes(1)
+    expect(deleteChain.where).toHaveBeenCalledTimes(1)
+    expect(result.resetCount).toBe(3)
+    expect(result.failedCount).toBe(1)
   })
 
   it("returns zero counts when no stale jobs exist", async () => {
-    const updateChain = {
+    const pauseChain = {
       set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([]),
+    }
+    const runningChain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([]),
+    }
+    const deleteChain = {
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([]),
     }
 
     const mockDb = {
-      update: vi.fn().mockReturnValue(updateChain),
+      update: vi.fn()
+        .mockReturnValueOnce(pauseChain)
+        .mockReturnValueOnce(runningChain),
+      delete: vi.fn().mockReturnValue(deleteChain),
     } as never
 
     const { resetStaleRunningJobs } = await import(
@@ -170,6 +197,8 @@ describe("processClaimedJob catch block", () => {
 
     // Make processArticleJob throw
     vi.doMock("../../apps/worker/src/article-pipeline", () => ({
+      JobPausedSignal: class JobPausedSignal extends Error {},
+      JobCancelledSignal: class JobCancelledSignal extends Error {},
       processArticleJob: vi
         .fn()
         .mockRejectedValue(new Error("LLM processing failed")),
@@ -200,6 +229,8 @@ describe("processClaimedJob catch block", () => {
     })
 
     vi.doMock("../../apps/worker/src/article-pipeline", () => ({
+      JobPausedSignal: class JobPausedSignal extends Error {},
+      JobCancelledSignal: class JobCancelledSignal extends Error {},
       processArticleJob: vi
         .fn()
         .mockRejectedValue(new Error("pipeline crash")),
@@ -227,6 +258,8 @@ describe("processClaimedJob catch block", () => {
     })
 
     vi.doMock("../../apps/worker/src/article-pipeline", () => ({
+      JobPausedSignal: class JobPausedSignal extends Error {},
+      JobCancelledSignal: class JobCancelledSignal extends Error {},
       processArticleJob: vi
         .fn()
         .mockRejectedValue(new Error("timeout exceeded")),

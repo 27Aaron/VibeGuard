@@ -194,7 +194,7 @@ export const processingJobs = pgTable(
     index("processing_jobs_pipeline_stage_idx").on(table.pipelineStage),
     uniqueIndex("processing_jobs_active_unique")
       .on(table.articleId, table.jobType)
-      .where(sql`${table.status} in ('queued', 'running')`),
+      .where(sql`${table.status} <> 'succeeded' and ${table.status} <> 'failed'`),
   ],
 );
 

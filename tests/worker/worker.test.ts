@@ -5,11 +5,16 @@ import { JobPipelineStage, JobStatus, JobType } from "@vibeguard/shared";
 import {
   buildExtractJobInsert,
   buildJobFailureUpdate,
+  buildJobPauseRequestedUpdate,
+  buildJobPausedUpdate,
+  buildJobResumeUpdate,
   buildStaleRunningJobUpdate,
   buildJobSuccessUpdate,
+  CONTROL_RUNNING_JOB_STATUSES,
   markJobSucceeded,
 } from "../../apps/worker/src/jobs";
 import {
+  JobPausedSignal,
   processArticleJob,
   processAllRemainingJobs,
   processAvailableQueuedJobs,
@@ -118,6 +123,139 @@ describe("processArticleJob pipeline stages", () => {
     expect(markJobStage).toHaveBeenNthCalledWith(6, JobPipelineStage.SUMMARIZE_EN);
     expect(markJobStage).toHaveBeenNthCalledWith(7, JobPipelineStage.SUMMARIZE_ZH);
     expect(markJobStage).toHaveBeenNthCalledWith(8, JobPipelineStage.GENERATE_TAGS);
+  });
+
+  it("stops at a checkpoint after persisted extraction when pause is requested", async () => {
+    const markJobStage = vi.fn().mockResolvedValue(undefined);
+    const updateArticlePatch = vi.fn().mockResolvedValue(undefined);
+    const translateText = vi.fn().mockResolvedValue({ result: "中文", usage: null });
+    const article = {
+      id: "article-1",
+      url: "https://example.com/article",
+      sourceName: "Example",
+      rawMeta: null,
+    };
+    const activeSettings = {
+      apiKeyEncrypted: "encrypted-key",
+      baseUrl: "https://llm.example.com/v1",
+      model: "test-model",
+      translateTitlePrompt: "translate title",
+      translateContentPrompt: "translate content",
+      summaryPromptEn: "summarize en",
+      summaryPromptZh: "summarize zh",
+      relevancePrompt: "relevance",
+      tagPrompt: "tags",
+    };
+    const checkJobControl = vi.fn().mockImplementation(async () => {
+      if (updateArticlePatch.mock.calls.length > 0) {
+        throw new JobPausedSignal();
+      }
+    });
+
+    await expect(
+      processArticleJob(
+        { articleId: article.id, jobType: JobType.EXTRACT },
+        {
+          loadArticle: vi.fn().mockResolvedValue(article),
+          loadActiveLlmSettings: vi.fn().mockResolvedValue(activeSettings),
+          markArticleStatus: vi.fn().mockResolvedValue(undefined),
+          updateArticleContent: vi.fn().mockResolvedValue(undefined),
+          updateArticlePatch,
+          fetchArticleHtml: vi.fn().mockResolvedValue("<article>hello</article>"),
+          extractMarkdownFromHtml: vi.fn().mockResolvedValue({
+            title: "English title",
+            contentMd: "English body",
+            description: "Description",
+            author: "Author",
+            publishedAt: "2026-05-20T00:00:00.000Z",
+            siteName: "Example",
+          }),
+          createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
+          decryptSecret: vi.fn().mockReturnValue("plain-key"),
+          translateText,
+          summarizeText: vi.fn().mockResolvedValue({ result: "summary", usage: null }),
+          markJobStage,
+          checkJobControl,
+        } as never,
+      ),
+    ).rejects.toBeInstanceOf(JobPausedSignal);
+
+    expect(updateArticlePatch).toHaveBeenCalledWith(
+      article.id,
+      expect.objectContaining({
+        titleEn: "English title",
+        contentMdEn: "English body",
+      }),
+    );
+    expect(translateText).not.toHaveBeenCalled();
+  });
+
+  it("runs relevance checks when resuming extracted content without a relevance marker", async () => {
+    const client = createRelevantChatClient();
+    const updateArticlePatch = vi.fn().mockResolvedValue(undefined);
+    const article = {
+      id: "article-1",
+      url: "https://example.com/article",
+      sourceName: "Example",
+      titleEn: "English title",
+      titleZh: "中文标题",
+      contentMdEn: "English body",
+      contentMdZh: "中文正文",
+      summaryEn: "English summary",
+      summaryZh: "中文摘要",
+      ecosystem: "unknown",
+      riskCategory: "unknown",
+      tags: [],
+      contentHash: null,
+      rawMeta: {},
+    };
+    const activeSettings = {
+      apiKeyEncrypted: "encrypted-key",
+      baseUrl: "https://llm.example.com/v1",
+      model: "test-model",
+      translateTitlePrompt: "translate title",
+      translateContentPrompt: "translate content",
+      summaryPromptEn: "summarize en",
+      summaryPromptZh: "summarize zh",
+      relevancePrompt: "relevance",
+      tagPrompt: "tags",
+    };
+
+    await processArticleJob(
+      {
+        articleId: article.id,
+        jobType: JobType.EXTRACT,
+        pipelineStage: JobPipelineStage.EXTRACT_CONTENT,
+      },
+      {
+        loadArticle: vi.fn().mockResolvedValue(article),
+        loadActiveLlmSettings: vi.fn().mockResolvedValue(activeSettings),
+        markArticleStatus: vi.fn().mockResolvedValue(undefined),
+        updateArticleContent: vi.fn().mockResolvedValue(undefined),
+        updateArticlePatch,
+        fetchArticleHtml: vi.fn(),
+        extractMarkdownFromHtml: vi.fn(),
+        createOpenAIClient: vi.fn().mockReturnValue(client),
+        decryptSecret: vi.fn().mockReturnValue("plain-key"),
+        translateText: vi.fn().mockResolvedValue({ result: "中文", usage: null }),
+        summarizeText: vi.fn().mockResolvedValue({ result: "summary", usage: null }),
+        generateTags: vi.fn().mockResolvedValue({ result: [], usage: null }),
+        markJobStage: vi.fn().mockResolvedValue(undefined),
+      } as never,
+    );
+
+    expect(client.chat.completions.create).toHaveBeenCalledTimes(1);
+    expect(updateArticlePatch).toHaveBeenCalledWith(
+      article.id,
+      expect.objectContaining({
+        rawMeta: expect.objectContaining({
+          relevanceCheck: expect.objectContaining({
+            relevant: true,
+            reason: "security content",
+          }),
+        }),
+      }),
+    );
   });
 });
 
@@ -502,6 +640,41 @@ describe("buildJobSuccessUpdate", () => {
     expect(del).not.toHaveBeenCalled();
     expect(set).toHaveBeenCalledWith(buildJobSuccessUpdate(now));
     expect(where).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("job pause and resume updates", () => {
+  it("treats requested control states as occupied running slots", () => {
+    expect(CONTROL_RUNNING_JOB_STATUSES).toEqual([
+      JobStatus.RUNNING,
+      JobStatus.PAUSE_REQUESTED,
+      JobStatus.CANCEL_REQUESTED,
+    ]);
+  });
+
+  it("builds pause, pause request, and resume updates without losing progress", () => {
+    const now = new Date("2026-05-24T08:00:00.000Z");
+
+    expect(buildJobPauseRequestedUpdate(now)).toEqual({
+      status: JobStatus.PAUSE_REQUESTED,
+      lastError: "用户请求暂停，当前步骤完成后暂停。",
+      updatedAt: now,
+    });
+    expect(buildJobPausedUpdate(now)).toEqual({
+      status: JobStatus.PAUSED,
+      startedAt: null,
+      finishedAt: null,
+      lastError: "任务已暂停，可稍后恢复。",
+      updatedAt: now,
+    });
+    expect(buildJobResumeUpdate(now)).toEqual({
+      status: JobStatus.QUEUED,
+      startedAt: null,
+      finishedAt: null,
+      runAfter: now,
+      lastError: null,
+      updatedAt: now,
+    });
   });
 });
 

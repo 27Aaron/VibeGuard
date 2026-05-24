@@ -12,6 +12,8 @@ import {
 import { ArticleEcosystem, ArticleRiskCategory, ArticleStatus } from "@vibeguard/shared"
 
 import {
+  JobCancelledSignal,
+  JobPausedSignal,
   processArticleJob,
   type ProcessArticleJobDependencies,
 } from "./article-pipeline"
@@ -19,6 +21,7 @@ import {
   claimQueuedJobById,
   claimNextQueuedJob,
   countRunningJobs,
+  buildJobPausedUpdate,
   markJobFailed,
   markJobStage,
   markJobSucceeded,
@@ -26,10 +29,11 @@ import {
 } from "./jobs"
 import { fetchArticleHtml } from "@vibeguard/content/extract/article-html"
 import { extractMarkdownFromHtml } from "@vibeguard/content"
+import { JobStatus } from "@vibeguard/shared"
 
 // Re-export public API from article-pipeline for backward compatibility
 export { buildLocalizedSummaryPrompt } from "@vibeguard/llm"
-export { processArticleJob } from "./article-pipeline"
+export { JobCancelledSignal, JobPausedSignal, processArticleJob } from "./article-pipeline"
 export type { ProcessArticleJobDependencies } from "./article-pipeline"
 
 type ContentDb = NodePgDatabase<typeof schema>
@@ -52,6 +56,7 @@ type ArticlePatch = Partial<
     | "rawMeta"
   >
 >
+const CANCELLED_JOB_MESSAGE = "任务已取消。"
 
 // --- DB adapter functions ---
 
@@ -153,10 +158,48 @@ async function logLlmUsage(
   })
 }
 
+async function deleteJob(db: ContentDb, jobId: string) {
+  await db.delete(schema.processingJobs).where(eq(schema.processingJobs.id, jobId))
+}
+
+async function checkClaimedJobControl(
+  db: ContentDb,
+  input: {
+    jobId: string
+    articleId: string
+  },
+) {
+  const current = await db.query.processingJobs.findFirst({
+    where: (table, { eq: whereEq }) => whereEq(table.id, input.jobId),
+  })
+
+  if (!current) {
+    throw new JobCancelledSignal()
+  }
+
+  if (current.status === JobStatus.PAUSE_REQUESTED) {
+    await markArticleStatus(db, input.articleId, ArticleStatus.PENDING)
+    await db
+      .update(schema.processingJobs)
+      .set(buildJobPausedUpdate(new Date()))
+      .where(eq(schema.processingJobs.id, input.jobId))
+    throw new JobPausedSignal()
+  }
+
+  if (current.status === JobStatus.CANCEL_REQUESTED) {
+    await markArticleStatus(db, input.articleId, ArticleStatus.FAILED, CANCELLED_JOB_MESSAGE)
+    await deleteJob(db, input.jobId)
+    throw new JobCancelledSignal()
+  }
+}
+
 // --- processClaimedJob ---
 
 async function processClaimedJob(db: ContentDb, job: JobRecord) {
   try {
+    const checkJobControl = () =>
+      checkClaimedJobControl(db, { jobId: job.id, articleId: job.articleId })
+
     await processArticleJob(job, {
       loadArticle: (articleId: string) =>
         db.query.articles.findFirst({
@@ -173,6 +216,7 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
       updateArticlePatch: (articleId, patch) =>
         updateArticlePatch(db, articleId, patch),
       markJobStage: (stage) => markJobStage(db, job.id, stage),
+      checkJobControl,
       logLlmUsage: (input) => logLlmUsage(db, { ...input, jobId: input.jobId ?? job.id }),
       fetchArticleHtml,
       extractMarkdownFromHtml,
@@ -183,6 +227,7 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
       generateTags,
     })
 
+    await checkJobControl()
     await markJobSucceeded(db, job.id)
 
     return {
@@ -191,7 +236,43 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
       status: "succeeded" as const,
     }
   } catch (error) {
+    if (error instanceof JobPausedSignal) {
+      return {
+        jobId: job.id,
+        articleId: job.articleId,
+        status: "paused" as const,
+      }
+    }
+
+    if (error instanceof JobCancelledSignal) {
+      return {
+        jobId: job.id,
+        articleId: job.articleId,
+        status: "cancelled" as const,
+      }
+    }
+
     const message = error instanceof Error ? error.message : String(error)
+
+    try {
+      await checkClaimedJobControl(db, { jobId: job.id, articleId: job.articleId })
+    } catch (secondary) {
+      if (secondary instanceof JobPausedSignal) {
+        return {
+          jobId: job.id,
+          articleId: job.articleId,
+          status: "paused" as const,
+        }
+      }
+
+      if (secondary instanceof JobCancelledSignal) {
+        return {
+          jobId: job.id,
+          articleId: job.articleId,
+          status: "cancelled" as const,
+        }
+      }
+    }
 
     try {
       await markArticleStatus(db, job.articleId, ArticleStatus.FAILED, message)

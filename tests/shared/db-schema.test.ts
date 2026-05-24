@@ -21,13 +21,13 @@ describe("BUG-01 — processing_jobs unique index", () => {
     )
   })
 
-  it("keeps the partial unique index for active jobs (queued/running)", () => {
+  it("keeps the partial unique index for active jobs", () => {
     // The partial index must still exist to prevent duplicate active jobs
     expect(schemaSource).toContain(
       'uniqueIndex("processing_jobs_active_unique")',
     )
     expect(schemaSource).toContain(
-      "in ('queued', 'running')",
+      "<> 'succeeded' and ${table.status} <> 'failed'",
     )
   })
 

@@ -44,6 +44,9 @@ describe("shared status enums", () => {
     expect(JOB_STATUS_VALUES).toEqual([
       "queued",
       "running",
+      "paused",
+      "pause_requested",
+      "cancel_requested",
       "succeeded",
       "failed",
     ]);

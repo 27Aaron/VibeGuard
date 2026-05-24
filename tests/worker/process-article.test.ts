@@ -88,7 +88,14 @@ describe("processArticleJob", () => {
         loadArticle: vi.fn().mockResolvedValue({
           id: "article-1",
           url: "https://example.com/post",
-          rawMeta: { seed: true },
+          rawMeta: {
+            seed: true,
+            relevanceCheck: {
+              relevant: true,
+              reason: "already checked",
+              checkedAt: "2026-05-24T00:00:00.000Z",
+            },
+          },
         }),
         loadActiveLlmSettings: vi.fn().mockResolvedValue({
           apiKeyEncrypted: "ciphertext",
@@ -161,7 +168,14 @@ describe("processArticleJob", () => {
           id: "article-1",
           url: "https://example.com/post",
           sourceName: "Example",
-          rawMeta: { seed: true },
+          rawMeta: {
+            seed: true,
+            relevanceCheck: {
+              relevant: true,
+              reason: "already checked",
+              checkedAt: "2026-05-24T00:00:00.000Z",
+            },
+          },
         }),
         loadActiveLlmSettings: vi.fn().mockResolvedValue({
           apiKeyEncrypted: "ciphertext",
@@ -443,7 +457,14 @@ describe("processArticleJob", () => {
           riskCategory: "unknown",
           tags: [],
           contentHash: "old-hash",
-          rawMeta: { seed: true },
+          rawMeta: {
+            seed: true,
+            relevanceCheck: {
+              relevant: true,
+              reason: "already checked",
+              checkedAt: "2026-05-24T00:00:00.000Z",
+            },
+          },
         }),
         loadActiveLlmSettings: vi.fn().mockResolvedValue({
           apiKeyEncrypted: "ciphertext",
@@ -535,7 +556,19 @@ describe("processArticleJob", () => {
         contentMdEn: "English body",
       }),
     )
-    expect(updateArticlePatch).toHaveBeenNthCalledWith(2, "article-1", {
+    expect(updateArticlePatch).toHaveBeenNthCalledWith(
+      2,
+      "article-1",
+      expect.objectContaining({
+        rawMeta: expect.objectContaining({
+          relevanceCheck: expect.objectContaining({
+            relevant: true,
+            reason: "security content",
+          }),
+        }),
+      }),
+    )
+    expect(updateArticlePatch).toHaveBeenNthCalledWith(3, "article-1", {
       titleZh: "中文标题",
     })
   })

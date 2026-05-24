@@ -38,6 +38,9 @@ export type ArticleStatus = (typeof ARTICLE_STATUS_VALUES)[number];
 const jobStatuses = defineStatuses([
   "queued",
   "running",
+  "paused",
+  "pause_requested",
+  "cancel_requested",
   "succeeded",
   "failed",
 ]);
