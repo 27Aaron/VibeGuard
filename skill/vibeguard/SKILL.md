@@ -29,6 +29,11 @@ https://vibeguard.ou.al
 
 - `POST https://vibeguard.ou.al/api/security/check/packages`：批量检查软件包是否命中已知漏洞或恶意包记录。
 - `GET https://vibeguard.ou.al/api/security/check/overview`：查看 VibeGuard 当前漏洞数据概览。
+- `GET https://vibeguard.ou.al/api/security/advisories`：查询结构化漏洞公告，可按包、CVE、KEV、CVSS、EPSS、风险类型筛选。
+- `GET https://vibeguard.ou.al/api/security/advisories/{advisoryId}`：读取单条 GHSA、MAL 或 OSV 公告详情。
+- `GET https://vibeguard.ou.al/api/security/packages/{ecosystem}/{name}`：读取单个包的风险画像和推荐修复版本。
+- `GET https://vibeguard.ou.al/api/security/cves/{cveId}`：读取 CVE 的 CVSS、CWE、EPSS、CISA KEV、NVD 时间和相关公告。
+- `GET https://vibeguard.ou.al/api/security/sync/status`：查看安全数据源同步状态和数据新鲜度。
 - `GET https://vibeguard.ou.al/api/articles`：检索安全资讯、漏洞解读、供应链攻击事件。
 - `GET https://vibeguard.ou.al/api/articles/{articleId}`：读取单篇安全文章详情。
 
@@ -71,6 +76,15 @@ curl -sS 'https://vibeguard.ou.al/api/security/check/packages' \
 
 ```bash
 curl -sS 'https://vibeguard.ou.al/api/articles?q=nginx&lang=zh&limit=10'
+```
+
+结构化公告和 CVE 查询示例：
+
+```bash
+curl -sS 'https://vibeguard.ou.al/api/security/advisories?ecosystem=npm&package=axios&kev=true&limit=10'
+curl -sS 'https://vibeguard.ou.al/api/security/packages/npm/axios?version=1.0.0'
+curl -sS 'https://vibeguard.ou.al/api/security/cves/CVE-2026-25639'
+curl -sS 'https://vibeguard.ou.al/api/security/sync/status'
 ```
 
 ## 检查流程
@@ -158,6 +172,14 @@ POST https://vibeguard.ou.al/api/security/check/packages
 
 ```bash
 curl -sS 'https://vibeguard.ou.al/api/articles?q=nginx&lang=zh&limit=10'
+```
+
+如果用户问的是明确包名、GHSA、MAL 或 CVE，优先用结构化接口，再用文章作为背景补充：
+
+```bash
+curl -sS 'https://vibeguard.ou.al/api/security/advisories?q=GHSA-43fc-jf86-j433'
+curl -sS 'https://vibeguard.ou.al/api/security/packages/npm/axios'
+curl -sS 'https://vibeguard.ou.al/api/security/cves/CVE-2026-25639'
 ```
 
 能判断范围时，加入筛选参数：

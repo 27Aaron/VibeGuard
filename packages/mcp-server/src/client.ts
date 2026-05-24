@@ -102,6 +102,72 @@ export type PackageFinding = {
   }>
 }
 
+export type SecurityAdvisory = {
+  id: string
+  source: string
+  sourceUrl: string | null
+  riskType: string
+  summary: string
+  aliases: string[]
+  related?: string[]
+  upstream?: string[]
+  packageImpacts?: Array<{
+    ecosystem: string
+    packageName: string
+    fixedVersions: string[]
+  }>
+  cveEnrichments?: Array<{
+    cveId: string
+    bestCvssScore: string | null
+    bestCvssSeverity: string | null
+    epssPercentile: string | null
+    kevListed: boolean
+  }>
+  modifiedAt: string | null
+  withdrawnAt: string | null
+}
+
+export type PackageProfile = {
+  package: { ecosystem: string; name: string; version: string | null }
+  summary: {
+    totalFindings: number
+    affectedCount: number
+    inconclusiveCount: number
+    highestRisk: { level: string; score: number } | null
+    latestUpdatedAt: string | null
+    recommendedFixedVersions: string[]
+  }
+  findings: PackageFinding[]
+}
+
+export type CveDetail = {
+  cveId: string
+  enrichment: {
+    bestCvssScore: string | null
+    bestCvssSeverity: string | null
+    epssPercentile: string | null
+    kevListed: boolean
+    kevRequiredAction: string | null
+    cweIds: string[]
+    nvdModifiedAt: string | null
+  } | null
+  advisories: SecurityAdvisory[]
+}
+
+export type SecuritySyncStatus = {
+  meta: { sourceCount: number; staleAfterMs: number }
+  items: Array<{
+    source: string
+    scope: string
+    status: string
+    lastSuccessAt: string | null
+    lastError: string | null
+    recordsImported: number
+    recordsFailed: number
+    stale: boolean
+  }>
+}
+
 export type SecurityOverviewTotals = {
   npm: number
   pypi: number
@@ -163,8 +229,63 @@ export class VibeGuardClient {
     return res.json()
   }
 
+  async searchAdvisories(params: {
+    q?: string
+    ecosystem?: string
+    packageName?: string
+    cve?: string
+    riskType?: string
+    kev?: boolean
+    withdrawn?: boolean
+    cvssMin?: number
+    epssMin?: number
+    limit?: number
+    page?: number
+  }): Promise<{ meta: { totalCount: number; page: number; totalPages: number }; items: SecurityAdvisory[] }> {
+    const searchParams = new URLSearchParams()
+    if (params.q) searchParams.set("q", params.q)
+    if (params.ecosystem) searchParams.set("ecosystem", params.ecosystem)
+    if (params.packageName) searchParams.set("package", params.packageName)
+    if (params.cve) searchParams.set("cve", params.cve)
+    if (params.riskType) searchParams.set("riskType", params.riskType)
+    if (typeof params.kev === "boolean") searchParams.set("kev", String(params.kev))
+    if (typeof params.withdrawn === "boolean") searchParams.set("withdrawn", String(params.withdrawn))
+    if (typeof params.cvssMin === "number") searchParams.set("cvssMin", String(params.cvssMin))
+    if (typeof params.epssMin === "number") searchParams.set("epssMin", String(params.epssMin))
+    searchParams.set("limit", String(params.limit || 10))
+    if (params.page) searchParams.set("page", String(params.page))
+
+    const res = await fetch(`${this.baseUrl}/api/security/advisories?${searchParams}`, { signal: AbortSignal.timeout(30_000) })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  }
+
+  async getPackageProfile(ecosystem: string, name: string, version?: string): Promise<PackageProfile> {
+    const encodedName = name.split("/").map(encodeURIComponent).join("/")
+    const searchParams = new URLSearchParams()
+    if (version) searchParams.set("version", version)
+
+    const suffix = searchParams.size > 0 ? `?${searchParams}` : ""
+    const res = await fetch(`${this.baseUrl}/api/security/packages/${ecosystem}/${encodedName}${suffix}`, { signal: AbortSignal.timeout(30_000) })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  }
+
+  async getCve(cveId: string): Promise<CveDetail | null> {
+    const res = await fetch(`${this.baseUrl}/api/security/cves/${cveId.toUpperCase()}`, { signal: AbortSignal.timeout(30_000) })
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  }
+
   async securityOverview(): Promise<{ totals: SecurityOverviewTotals }> {
     const res = await fetch(`${this.baseUrl}/api/security/check/overview`, { signal: AbortSignal.timeout(30_000) })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  }
+
+  async securitySyncStatus(): Promise<SecuritySyncStatus> {
+    const res = await fetch(`${this.baseUrl}/api/security/sync/status`, { signal: AbortSignal.timeout(30_000) })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
     return res.json()
   }

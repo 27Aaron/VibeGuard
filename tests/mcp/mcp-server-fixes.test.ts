@@ -12,9 +12,9 @@ describe("MCP server critical fixes", () => {
       "utf8",
     )
 
-    it("all 4 fetch calls include AbortSignal.timeout(30_000)", () => {
+    it("all API fetch calls include AbortSignal.timeout(30_000)", () => {
       const timeoutMatches = clientSource.match(/AbortSignal\.timeout\(30_000\)/g)
-      expect(timeoutMatches).toHaveLength(4)
+      expect(timeoutMatches).toHaveLength(8)
     })
 
     it("searchArticles GET fetch passes timeout signal in options object", () => {
