@@ -300,35 +300,6 @@ function advisoryRelationItems(finding: SecurityFinding) {
   return items
 }
 
-function maliciousPackageOrigins(finding: SecurityFinding) {
-  return finding.advisory.maliciousOrigins ?? []
-}
-
-function truncateSha256(value: string) {
-  return value.length > 18 ? `${value.slice(0, 12)}...${value.slice(-6)}` : value
-}
-
-function maliciousPackageInfo(finding: SecurityFinding, lang: AppLang) {
-  if (finding.advisory.riskType !== "malicious-package") {
-    return null
-  }
-
-  const origins = maliciousPackageOrigins(finding)
-  const sourceLabels = Array.from(
-    new Set(origins.flatMap((origin) => (origin.source ? [origin.source] : []))),
-  )
-
-  return {
-    title: lang === "zh" ? "恶意包信息" : "Malicious package info",
-    action:
-      lang === "zh"
-        ? "建议移除依赖，并检查 lockfile、构建日志和凭据使用。"
-        : "Remove the dependency and review lockfiles, build logs, and credential use.",
-    sourceLabel: sourceLabels.length > 0 ? sourceLabels.join(" / ") : "OSV",
-    origins,
-  }
-}
-
 function findingReferenceItems(finding: SecurityFinding) {
   const references = [...finding.advisory.references]
   const sourceUrl = finding.advisory.sourceUrl
@@ -878,7 +849,6 @@ export function PackageCheckWorkbench({
             const hasRemediationInfo =
               affectedRangeLabels.length > 0 ||
               finding.affectedPackage.fixedVersions.length > 0
-            const maliciousInfo = maliciousPackageInfo(finding, lang)
             const referenceItems = findingReferenceItems(finding)
             const withdrawnInfo = withdrawnLabel(finding, lang)
             const relationItems = advisoryRelationItems(finding)
@@ -995,43 +965,6 @@ export function PackageCheckWorkbench({
                         </Badge>
                       ))}
                     </div>
-                  </div>
-                ) : null}
-
-                {maliciousInfo ? (
-                  <div className="space-y-2 rounded-2xl border border-red-500/15 bg-red-50/45 px-4 py-3 dark:border-red-300/15 dark:bg-red-400/5">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {maliciousInfo.title}
-                    </p>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <Badge variant="outline" className="h-6 px-2.5">
-                        {lang === "zh" ? "来源" : "Source"} · {maliciousInfo.sourceLabel}
-                      </Badge>
-                      {maliciousInfo.origins.flatMap((origin, originIndex) => [
-                        origin.id ? (
-                          <Badge
-                            key={`${originIndex}-id-${origin.id}`}
-                            variant="outline"
-                            className="h-6 px-2.5"
-                          >
-                            {origin.id}
-                          </Badge>
-                        ) : null,
-                        origin.sha256 ? (
-                          <Badge
-                            key={`${originIndex}-sha-${origin.sha256}`}
-                            variant="outline"
-                            title={origin.sha256}
-                            className="h-6 px-2.5 font-mono"
-                          >
-                            SHA256 {truncateSha256(origin.sha256)}
-                          </Badge>
-                        ) : null,
-                      ])}
-                    </div>
-                    <p className="text-xs leading-5 text-zinc-600 dark:text-stone-300">
-                      {maliciousInfo.action}
-                    </p>
                   </div>
                 ) : null}
 
