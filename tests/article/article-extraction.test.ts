@@ -1,9 +1,17 @@
 import { createServer } from "node:http";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchArticleHtml } from "../../packages/content/src/extract/article-html";
 import { extractMarkdownFromHtml } from "../../packages/content/src/extract/defuddle";
+
+vi.mock("../../packages/content/src/shared/http", async () => {
+  const actual = await vi.importActual("../../packages/content/src/shared/http")
+  return {
+    ...actual,
+    assertHttpUrl: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 const servers = new Set<ReturnType<typeof createServer>>();
 

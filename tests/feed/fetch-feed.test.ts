@@ -1,8 +1,16 @@
 import { createServer } from "node:http";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchFeed } from "../../packages/content/src/feed/fetch-feed";
+
+vi.mock("../../packages/content/src/shared/http", async () => {
+  const actual = await vi.importActual("../../packages/content/src/shared/http")
+  return {
+    ...actual,
+    assertHttpUrl: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 const servers = new Set<ReturnType<typeof createServer>>();
 

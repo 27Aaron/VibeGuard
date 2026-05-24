@@ -11,7 +11,7 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BYTES = 1_000_000;
 
 export async function fetchFeed(feedUrl: string): Promise<ParsedFeed> {
-  assertHttpUrl(feedUrl);
+  await assertHttpUrl(feedUrl);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 

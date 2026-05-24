@@ -7,7 +7,7 @@ export async function fetchArticleHtml(
   url: string,
   fetchImpl: typeof fetch = fetch,
 ) {
-  assertHttpUrl(url);
+  await assertHttpUrl(url);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
@@ -26,7 +26,7 @@ export async function fetchArticleHtml(
 
     const contentLength = Number(response.headers.get("content-length") ?? "0");
 
-    if (contentLength > DEFAULT_MAX_BYTES) {
+    if (Number.isFinite(contentLength) && contentLength > DEFAULT_MAX_BYTES) {
       throw new Error("Article HTML response is too large.");
     }
 
