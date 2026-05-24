@@ -97,12 +97,9 @@ export const feeds = pgTable(
       .$onUpdateFn(() => new Date()),
   },
   (table) => [
-    // 待办：布尔类型单列索引的选择性极低（约 50% 的行为 true），导致索引效率不高。
-    // 建议改为部分索引（partial index），即 `WHERE enabled = true`，仅对活跃的
-    // feed 建立索引，这样索引体积会小得多，查询性能也更优。Drizzle ORM 的索引
-    // 构建器支持通过 `.where()` 方法创建部分索引，但需要编写数据库迁移脚本来落地。
-    index("feeds_enabled_idx").on(table.enabled),
-    index("feeds_last_polled_at_idx").on(table.lastPolledAt),
+    index("feeds_enabled_poll_idx")
+      .on(table.lastPolledAt)
+      .where(sql`${table.enabled} = true`),
   ],
 );
 
@@ -302,11 +299,8 @@ export const securitySyncState = pgTable(
   ],
 );
 
-// 注意：securityAdvisories 和 securityAffectedPackages 表的 updatedAt 字段没有数据库
-// 级别的自动更新触发器。原因是 Drizzle ORM 的 .$onUpdateFn() 仅在使用 Drizzle API
-// 执行更新操作时才会触发，无法覆盖原始 SQL 或其他 ORM 发起的写入。如果需要在任何
-// 写入方式下都保证 updated_at 自动刷新，应通过独立的数据库迁移脚本添加 PostgreSQL
-// 触发器，例如：CREATE TRIGGER ... BEFORE UPDATE ON ... SET updated_at = NOW()。
+// 初始化迁移会为所有带 updated_at 的表安装数据库级 set_updated_at 触发器。
+// .$onUpdateFn() 仍保留在 schema 中，方便 Drizzle API 在类型层表达更新语义。
 
 export const securityAdvisories = pgTable(
   "security_advisories",
@@ -358,7 +352,6 @@ export const securityAdvisories = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    // updatedAt 缺少数据库级别的自动更新触发器——详见上方 securityAdvisories 表前的注释
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
@@ -400,7 +393,6 @@ export const securityAffectedPackages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    // updatedAt 缺少数据库级别的自动更新触发器——详见上方 securityAdvisories 表前的注释
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()

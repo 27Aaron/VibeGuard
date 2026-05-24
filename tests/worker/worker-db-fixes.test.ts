@@ -22,16 +22,17 @@ describe("UUID v7 optimization opportunity noted", () => {
 });
 
 // ===========================================================================
-// feeds_enabled_idx 低选择性索引注释
+// feeds 启用轮询部分索引
 // ===========================================================================
-describe("Boolean index low-selectivity noted", () => {
-  it("schema.ts has a comment about the enabled boolean index selectivity", () => {
-    expect(schemaSource).toMatch(/feeds_enabled_idx/);
-    expect(schemaSource).toMatch(/选择性/);
+describe("Feeds polling uses a partial enabled index", () => {
+  it("replaces the low-selectivity boolean-only index", () => {
+    expect(schemaSource).not.toMatch(/feeds_enabled_idx/);
+    expect(schemaSource).toMatch(/feeds_enabled_poll_idx/);
   });
 
-  it("mentions partial index as an alternative", () => {
-    expect(schemaSource).toMatch(/部分索引|partial index|WHERE enabled/);
+  it("indexes lastPolledAt only for enabled feeds", () => {
+    expect(schemaSource).toMatch(/\.on\(table\.lastPolledAt\)/);
+    expect(schemaSource).toMatch(/\.where\(sql`\$\{table\.enabled\} = true`\)/);
   });
 });
 

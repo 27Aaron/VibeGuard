@@ -345,23 +345,8 @@
         }
       },
       "indexes": {
-        "feeds_enabled_idx": {
-          "name": "feeds_enabled_idx",
-          "columns": [
-            {
-              "expression": "enabled",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "feeds_last_polled_at_idx": {
-          "name": "feeds_last_polled_at_idx",
+        "feeds_enabled_poll_idx": {
+          "name": "feeds_enabled_poll_idx",
           "columns": [
             {
               "expression": "last_polled_at",
@@ -371,6 +356,7 @@
             }
           ],
           "isUnique": false,
+          "where": "\"feeds\".\"enabled\" = true",
           "concurrently": false,
           "method": "btree",
           "with": {}

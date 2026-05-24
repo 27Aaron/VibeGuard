@@ -9,7 +9,7 @@ import {
 
 const schemaSource = fs.readFileSync("packages/db/src/schema.ts", "utf8");
 const migrationSource = fs.readFileSync(
-  "packages/db/src/migrations/0000_unknown_wiccan.sql",
+  "packages/db/src/migrations/0000_vibeguard_init.sql",
   "utf8",
 );
 

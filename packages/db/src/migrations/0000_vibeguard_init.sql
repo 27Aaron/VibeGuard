@@ -186,8 +186,7 @@ CREATE INDEX "articles_ecosystem_idx" ON "articles" USING btree ("ecosystem");--
 CREATE INDEX "articles_risk_category_idx" ON "articles" USING btree ("risk_category");--> statement-breakpoint
 CREATE INDEX "articles_published_at_idx" ON "articles" USING btree ("published_at" desc);--> statement-breakpoint
 CREATE INDEX "articles_feed_id_idx" ON "articles" USING btree ("feed_id");--> statement-breakpoint
-CREATE INDEX "feeds_enabled_idx" ON "feeds" USING btree ("enabled");--> statement-breakpoint
-CREATE INDEX "feeds_last_polled_at_idx" ON "feeds" USING btree ("last_polled_at");--> statement-breakpoint
+CREATE INDEX "feeds_enabled_poll_idx" ON "feeds" USING btree ("last_polled_at") WHERE "feeds"."enabled" = true;--> statement-breakpoint
 CREATE UNIQUE INDEX "llm_settings_active_unique" ON "llm_settings" USING btree ("is_active") WHERE "llm_settings"."is_active" = true;--> statement-breakpoint
 CREATE INDEX "llm_usage_logs_created_at_idx" ON "llm_usage_logs" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "llm_usage_logs_article_id_idx" ON "llm_usage_logs" USING btree ("article_id");--> statement-breakpoint
@@ -204,4 +203,64 @@ CREATE INDEX "security_cve_enrichments_kev_listed_idx" ON "security_cve_enrichme
 CREATE INDEX "security_cve_enrichments_best_cvss_score_idx" ON "security_cve_enrichments" USING btree ("best_cvss_score");--> statement-breakpoint
 CREATE INDEX "security_cve_enrichments_epss_percentile_idx" ON "security_cve_enrichments" USING btree ("epss_percentile");--> statement-breakpoint
 CREATE UNIQUE INDEX "security_sync_state_source_scope_unique" ON "security_sync_state" USING btree ("source","scope");--> statement-breakpoint
-CREATE INDEX "security_sync_state_status_idx" ON "security_sync_state" USING btree ("status");
+CREATE INDEX "security_sync_state_status_idx" ON "security_sync_state" USING btree ("status");--> statement-breakpoint
+CREATE OR REPLACE FUNCTION "public"."set_updated_at"()
+RETURNS trigger AS $$
+BEGIN
+	NEW."updated_at" = now();
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;--> statement-breakpoint
+CREATE TRIGGER "feeds_set_updated_at"
+BEFORE UPDATE ON "feeds"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."set_updated_at"();--> statement-breakpoint
+CREATE TRIGGER "articles_set_updated_at"
+BEFORE UPDATE ON "articles"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."set_updated_at"();--> statement-breakpoint
+CREATE TRIGGER "processing_jobs_set_updated_at"
+BEFORE UPDATE ON "processing_jobs"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."set_updated_at"();--> statement-breakpoint
+CREATE TRIGGER "llm_settings_set_updated_at"
+BEFORE UPDATE ON "llm_settings"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."set_updated_at"();--> statement-breakpoint
+CREATE TRIGGER "security_sync_state_set_updated_at"
+BEFORE UPDATE ON "security_sync_state"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."set_updated_at"();--> statement-breakpoint
+CREATE TRIGGER "security_advisories_set_updated_at"
+BEFORE UPDATE ON "security_advisories"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."set_updated_at"();--> statement-breakpoint
+CREATE TRIGGER "security_affected_packages_set_updated_at"
+BEFORE UPDATE ON "security_affected_packages"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."set_updated_at"();--> statement-breakpoint
+CREATE TRIGGER "security_cve_enrichments_set_updated_at"
+BEFORE UPDATE ON "security_cve_enrichments"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."set_updated_at"();--> statement-breakpoint
+CREATE EXTENSION IF NOT EXISTS pg_trgm;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_articles_title_en_trgm"
+  ON "articles" USING gin ("title_en" gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_articles_title_zh_trgm"
+  ON "articles" USING gin ("title_zh" gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_articles_summary_en_trgm"
+  ON "articles" USING gin ("summary_en" gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_articles_summary_zh_trgm"
+  ON "articles" USING gin ("summary_zh" gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_articles_tags_gin"
+  ON "articles" USING gin ("tags" jsonb_path_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_security_advisories_aliases_gin"
+  ON "security_advisories" USING gin ("aliases" jsonb_path_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_security_advisories_upstream_ids_gin"
+  ON "security_advisories" USING gin ("upstream_ids" jsonb_path_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_security_advisories_external_id_trgm"
+  ON "security_advisories" USING gin ("external_id" gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_security_advisories_summary_trgm"
+  ON "security_advisories" USING gin ("summary" gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_security_advisories_details_trgm"
+  ON "security_advisories" USING gin ("details" gin_trgm_ops);

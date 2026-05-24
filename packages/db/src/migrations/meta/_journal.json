@@ -6,14 +6,7 @@
       "idx": 0,
       "version": "7",
       "when": 1779612376037,
-      "tag": "0000_unknown_wiccan",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1779615016031,
-      "tag": "0001_feeds_updated_at_trigger",
+      "tag": "0000_vibeguard_init",
       "breakpoints": true
     }
   ]

@@ -119,13 +119,13 @@ describe("schema.ts cascade deletes", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 安全表缺少 updatedAt 触发器（仅文档记录）
+// 安全表 updatedAt 触发器
 // ---------------------------------------------------------------------------
 
 describe("schema.ts security tables updatedAt documentation", () => {
   const source = fs.readFileSync("packages/db/src/schema.ts", "utf8");
 
-  it("contains a comment noting the DB-level trigger limitation", () => {
-    expect(source).toMatch(/PostgreSQL[^]*触发器/);
+  it("documents the DB-level updated_at triggers", () => {
+    expect(source).toMatch(/数据库级 set_updated_at 触发器/);
   });
 });
