@@ -10,6 +10,7 @@ import remarkGfm from "remark-gfm"
 
 import type { AppLang } from "@/lib/i18n"
 import { getUiText } from "@/lib/i18n"
+import { normalizeSummaryMarkdownHeadings } from "@/lib/markdown-summary"
 import {
   resolveMarkdownImageProxyUrl,
   resolveMarkdownLinkUrl,
@@ -463,7 +464,7 @@ export function MarkdownSummary({
 }: MarkdownRendererProps) {
   return (
       <MarkdownRenderer
-        content={content}
+        content={normalizeSummaryMarkdownHeadings(content)}
         sourceUrl={sourceUrl}
         variant={variant}
         lang={lang}
