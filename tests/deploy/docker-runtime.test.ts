@@ -75,19 +75,22 @@ describe("Docker production runtime", () => {
     expect(fs.readFileSync(".gitignore", "utf8")).toContain("data/postgres/");
   });
 
-  it("publishes GHCR images with Buildx cache and skips pushes for pull requests", () => {
+  it("publishes multi-architecture GHCR images only when manually dispatched", () => {
     const workflow = fs.readFileSync(
       ".github/workflows/docker-image.yml",
       "utf8",
     );
 
+    expect(workflow).toContain("on:\n  workflow_dispatch:");
+    expect(workflow).not.toContain("\n  push:\n");
+    expect(workflow).not.toContain("\n  pull_request:\n");
     expect(workflow).toContain("REGISTRY: ghcr.io");
+    expect(workflow).toContain("docker/setup-qemu-action@v4");
     expect(workflow).toContain("docker/setup-buildx-action@v4");
     expect(workflow).toContain("docker/metadata-action@v6");
     expect(workflow).toContain("docker/build-push-action@v7");
-    expect(workflow).toContain(
-      "push: ${{ github.event_name != 'pull_request' }}",
-    );
+    expect(workflow).toContain("platforms: linux/amd64,linux/arm64");
+    expect(workflow).toContain("push: true");
     expect(workflow).toContain("cache-to: type=gha,mode=max");
   });
 });
