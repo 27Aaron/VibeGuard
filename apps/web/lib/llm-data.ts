@@ -7,10 +7,10 @@ import {
 import { formatDateTimeInShanghai } from "./time";
 
 export const DEFAULT_SUMMARY_PROMPT_EN =
-  "Write a concise 2–4 sentence English summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact. Omit filler and boilerplate. Focus on the security-relevant facts.";
+  "Write a concise 2–4 sentence English summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact or defensive takeaway. Use concrete names from the article. Omit filler, speculation, and boilerplate. Return only the summary.";
 
 export const DEFAULT_SUMMARY_PROMPT_ZH =
-  "Write a concise 2–4 sentence Simplified Chinese summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact. Omit filler and boilerplate. Focus on the security-relevant facts.";
+  "Write a concise 2–4 sentence Simplified Chinese summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact or defensive takeaway. Use concrete names from the article. Omit filler, speculation, and boilerplate. Return only the summary.";
 
 export { DEFAULT_TAG_PROMPT };
 
@@ -18,7 +18,7 @@ const LEGACY_TRANSLATION_CONTENT_PROMPT =
   "Translate the article body into natural Chinese. Preserve links, package names, version strings, code snippets, and technical terms when needed.";
 
 export const DEFAULT_TRANSLATION_CONTENT_PROMPT =
-  "Translate the article body into natural, fluent Simplified Chinese. Preserve the original meaning precisely. Keep all technical accuracy — do not simplify or paraphrase security terminology. Keep fenced code blocks, inline code, shell commands, configuration keys, package names, version strings, URLs, and file paths exactly unchanged.";
+  "Translate the article body into natural, fluent Simplified Chinese. Preserve the original meaning precisely. Keep all technical accuracy; do not simplify, embellish, or paraphrase security terminology. Keep fenced code blocks, inline code, shell commands, configuration keys, package names, version strings, URLs, and file paths exactly unchanged.";
 
 export function normalizeLocalizedSummaryPrompt(input: {
   prompt: string | null | undefined;

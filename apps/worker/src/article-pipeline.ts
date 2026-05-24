@@ -3,6 +3,7 @@ import {
 } from "@vibeguard/content";
 import {
   buildLocalizedSummaryPrompt,
+  buildTagSourceText,
   classifyRelevance,
   generateTags,
   DEFAULT_TAG_PROMPT,
@@ -295,7 +296,7 @@ async function processExtractJob(input: {
             resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
             "zh",
           ),
-          sourceText: requiredContentMdZh,
+          sourceText: requiredContentMdEn,
         }),
       input.dependencies,
       {
@@ -337,7 +338,11 @@ async function processExtractJob(input: {
       systemPrompt: resolveTagPrompt(
         input.activeSettings.tagPrompt || DEFAULT_TAG_PROMPT,
       ),
-      sourceText: requiredContentMdEn,
+      sourceText: buildTagSourceText({
+        title: requiredTitleEn,
+        summary: requiredSummaryEn,
+        content: requiredContentMdEn,
+      }),
       articleId: input.article.id,
     }),
   ]);
@@ -403,10 +408,6 @@ async function processSummarizeJob(input: {
     input.article.contentMdEn,
     "English body",
   );
-  const contentMdZh = requireArticleField(
-    input.article.contentMdZh,
-    "Chinese body",
-  );
   await markStageAndCheck(input.dependencies, JobPipelineStage.SUMMARIZE_EN);
   const summaryEnResult = await timedLlmCall(
     () =>
@@ -437,7 +438,7 @@ async function processSummarizeJob(input: {
           resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
           "zh",
         ),
-        sourceText: contentMdZh,
+        sourceText: contentMdEn,
       }),
     input.dependencies,
     {
@@ -532,7 +533,7 @@ async function processTranslateJob(input: {
           resolveLocalizedSummaryPrompt(input.activeSettings, "zh"),
           "zh",
         ),
-        sourceText: contentMdZhResult.result,
+        sourceText: contentMdEn,
       }),
     input.dependencies,
     {

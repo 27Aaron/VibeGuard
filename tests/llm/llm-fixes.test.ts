@@ -4,7 +4,10 @@ import {
   buildTranslationSystemPrompt,
   buildLocalizedSummaryPrompt,
 } from "../../packages/llm/src/prompts";
-import { buildTagExtractionPrompt } from "../../packages/llm/src/tags";
+import {
+  buildTagExtractionPrompt,
+  buildTagSourceText,
+} from "../../packages/llm/src/tags";
 import { createOpenAIClient } from "../../packages/llm/src/client";
 import {
   decryptSecret,
@@ -47,6 +50,23 @@ describe("tag extraction prompt separates system/user (tags.ts)", () => {
 
     expect(result.systemPrompt).toBe("Extract tags.");
     expect(result.userContent).toBe("Some article content");
+  });
+});
+
+describe("tag source builder keeps tag requests compact (tags.ts)", () => {
+  it("uses title, summary, and a bounded content excerpt", () => {
+    const source = buildTagSourceText({
+      title: "NPM package steals tokens",
+      summary: "A malicious npm package exfiltrated CI tokens.",
+      content: `important details\n${"tail ".repeat(3000)}`,
+    });
+
+    expect(source).toContain("Title:\nNPM package steals tokens");
+    expect(source).toContain(
+      "Summary:\nA malicious npm package exfiltrated CI tokens.",
+    );
+    expect(source).toContain("Content excerpt:\nimportant details");
+    expect(source.length).toBeLessThan(7_000);
   });
 });
 

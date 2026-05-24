@@ -213,9 +213,14 @@ describe("processArticleJob", () => {
     expect(generateTags).toHaveBeenCalledWith(
       expect.objectContaining({
         systemPrompt: "Extract short tags from the original body: {{content}}",
-        sourceText:
-          "Original English body mentioning npm postinstall token theft.",
+        sourceText: expect.stringContaining("Title:\nEnglish title"),
       }),
+    );
+    expect(generateTags.mock.calls[0]?.[0]?.sourceText).toContain(
+      "Summary:\nEnglish summary",
+    );
+    expect(generateTags.mock.calls[0]?.[0]?.sourceText).toContain(
+      "Content excerpt:\nOriginal English body mentioning npm postinstall token theft.",
     );
     expect(generateTags.mock.calls[0]?.[0]?.sourceText).not.toContain(
       "中文正文",
@@ -436,6 +441,12 @@ describe("processArticleJob", () => {
       summaryEn: "Fresh English summary",
       summaryZh: "新的中文摘要",
     });
+    expect(summarizeText).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        sourceText: "English body",
+      }),
+    );
     expect(markArticleStatus).toHaveBeenLastCalledWith(
       "article-1",
       ArticleStatus.READY,
@@ -504,7 +515,7 @@ describe("processArticleJob", () => {
     expect(summarizeText).toHaveBeenCalledTimes(1);
     expect(summarizeText).toHaveBeenCalledWith(
       expect.objectContaining({
-        sourceText: "中文正文",
+        sourceText: "English body",
       }),
     );
     expect(updateArticlePatch).toHaveBeenCalledWith("article-1", {

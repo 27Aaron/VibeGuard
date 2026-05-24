@@ -7,6 +7,7 @@ import {
 } from "@vibeguard/content";
 import {
   buildLocalizedSummaryPrompt,
+  buildTagSourceText,
   classifyRelevance as classifyRelevanceWithModel,
   createOpenAIClient,
   decryptSecret,
@@ -326,7 +327,7 @@ export async function regenerateArticleTarget(
         input.settings.summaryPromptZh,
         "zh",
       ),
-      sourceText: contentMdZh,
+      sourceText: contentMdEn,
     });
     await logUsage("summarize_zh", summaryZhResult.usage, start);
     const summaryZh = summaryZhResult.result;
@@ -343,7 +344,11 @@ export async function regenerateArticleTarget(
       client,
       model: input.settings.model,
       systemPrompt: input.settings.tagPrompt,
-      sourceText: contentMdEn,
+      sourceText: buildTagSourceText({
+        title: titleEn,
+        summary: summaryEn,
+        content: contentMdEn,
+      }),
     });
     await logUsage("generate_tags", tagsResult.usage, start);
     const tags = tagsResult.result;
@@ -541,7 +546,11 @@ export async function regenerateArticleTarget(
       client,
       model: input.settings.model,
       systemPrompt: input.settings.tagPrompt,
-      sourceText: input.article.contentMdEn ?? "",
+      sourceText: buildTagSourceText({
+        title: input.article.titleEn,
+        summary: input.article.summaryEn,
+        content: input.article.contentMdEn ?? "",
+      }),
     });
     await logUsage("generate_tags", tagsResult.usage, start);
 

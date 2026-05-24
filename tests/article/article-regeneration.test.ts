@@ -200,9 +200,15 @@ describe("regenerateArticleTarget", () => {
 
     expect(generateTags).toHaveBeenCalledWith(
       expect.objectContaining({
-        sourceText: "English body",
+        sourceText: expect.stringContaining("Title:\nEnglish title"),
         systemPrompt: "Extract tags from {{content}}",
       }),
+    );
+    expect(generateTags.mock.calls[0]?.[0]?.sourceText).toContain(
+      "Summary:\nEnglish summary",
+    );
+    expect(generateTags.mock.calls[0]?.[0]?.sourceText).toContain(
+      "Content excerpt:\nEnglish body",
     );
     expect(generateTags.mock.calls[0]?.[0]?.sourceText).not.toContain(
       "中文正文",

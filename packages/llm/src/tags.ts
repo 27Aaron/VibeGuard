@@ -17,6 +17,7 @@ Rules:
 4. Do NOT invent tags the article does not clearly support. Guessing is worse than omitting.
 5. When two tags overlap, keep the shorter, more specific one.
 6. NEVER produce generic tags: supply-chain, open-source, security, risk, attack, article, unknown.
+7. Prefer evidence from Title and Summary first; use Content excerpt only to confirm ecosystem, technique, or target asset.
 
 Preferred tag vocabulary (use these when applicable):
 
@@ -66,6 +67,51 @@ const BLOCKED_TAGS = new Set([
   "security",
   "unknown",
 ]);
+
+const TAG_SOURCE_CONTENT_LIMIT = 6_000;
+
+function safeSlice(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  let end = maxChars;
+  while (end > 0 && (text.charCodeAt(end) & 0xfc00) === 0xdc00) {
+    end -= 1;
+  }
+  return text.slice(0, end);
+}
+
+function normalizeSourcePart(value: string | null | undefined) {
+  return String(value ?? "").trim();
+}
+
+export function buildTagSourceText(input: {
+  title: string | null | undefined;
+  summary: string | null | undefined;
+  content: string | null | undefined;
+  maxContentChars?: number;
+}) {
+  const title = normalizeSourcePart(input.title);
+  const summary = normalizeSourcePart(input.summary);
+  const content = safeSlice(
+    normalizeSourcePart(input.content),
+    input.maxContentChars ?? TAG_SOURCE_CONTENT_LIMIT,
+  );
+  const parts: string[] = [];
+
+  if (title) {
+    parts.push(`Title:\n${title}`);
+  }
+
+  if (summary) {
+    parts.push(`Summary:\n${summary}`);
+  }
+
+  if (content) {
+    parts.push(`Content excerpt:\n${content}`);
+  }
+
+  return parts.join("\n\n");
+}
 
 function normalizeTag(value: unknown) {
   if (typeof value !== "string") {
