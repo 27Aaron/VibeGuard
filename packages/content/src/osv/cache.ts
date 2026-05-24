@@ -3,6 +3,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
+import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { fileURLToPath } from "node:url";
 
 export const OSV_VULNERABILITIES_BASE_URL =
@@ -220,7 +221,9 @@ async function streamArchiveToFile(url: string, destPath: string) {
   const tmpPath = `${destPath}.tmp`;
   await fs.mkdir(path.dirname(tmpPath), { recursive: true });
 
-  const readable = Readable.fromWeb(response.body);
+  const readable = Readable.fromWeb(
+    response.body as unknown as NodeReadableStream<Uint8Array>,
+  );
   const writable = createWriteStream(tmpPath);
   await pipeline(readable, writable);
   await fs.rename(tmpPath, destPath);
