@@ -10,8 +10,8 @@ import { normalizeUserFacingError } from "../../apps/web/lib/errors";
 import { parseFeedInput } from "../../apps/web/lib/feed-input";
 import { formatDateTimeInShanghai } from "../../apps/web/lib/time";
 
-// W04: errors.ts — production fallback hides raw messages
-describe("W04: normalizeUserFacingError hides raw messages in production", () => {
+// errors.ts 生产环境回退隐藏原始错误信息
+describe("normalizeUserFacingError hides raw messages in production", () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
@@ -52,8 +52,8 @@ describe("W04: normalizeUserFacingError hides raw messages in production", () =>
   });
 });
 
-// W09: feed-input.ts — upper bound on poll interval
-describe("W09: coercePollInterval enforces upper bound", () => {
+// feed-input.ts 轮询间隔上限
+describe("coercePollInterval enforces upper bound", () => {
   function buildFormData(values: Record<string, string>) {
     const formData = new FormData();
     Object.entries(values).forEach(([key, value]) => {
@@ -119,8 +119,8 @@ describe("W09: coercePollInterval enforces upper bound", () => {
   });
 });
 
-// W30: time.ts — cached DateTimeFormat
-describe("W30: formatDateTimeInShanghai uses cached formatter", () => {
+// time.ts 缓存 DateTimeFormat 实例
+describe("formatDateTimeInShanghai uses cached formatter", () => {
   it("formats dates consistently", () => {
     const date = new Date("2025-01-15T08:30:00Z");
     const result = formatDateTimeInShanghai(date);
@@ -140,8 +140,8 @@ describe("W30: formatDateTimeInShanghai uses cached formatter", () => {
   });
 });
 
-// W58: constantTimeEqual — length-safe comparison
-describe("W58: constantTimeEqual handles different-length inputs safely", () => {
+// constantTimeEqual 长度安全比较
+describe("constantTimeEqual handles different-length inputs safely", () => {
   it("returns false for different-length strings", async () => {
     const result = await verifyAdminPassword(
       "short",
@@ -161,8 +161,8 @@ describe("W58: constantTimeEqual handles different-length inputs safely", () => 
   });
 });
 
-// W05: admin-auth rate limiting still works after documentation change
-describe("W05: login rate limiting still functions", () => {
+// admin-auth 限流在文档变更后仍然有效
+describe("login rate limiting still functions", () => {
   afterEach(() => {
     clearLoginFailures("test-key-w05");
   });

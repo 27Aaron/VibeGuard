@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import { normalizeInt } from "@vibeguard/shared";
 
 // ---------------------------------------------------------------------------
-// W39: normalizeInt has no upper bound parameter
-// W40: fallback could be less than minimum
+// normalizeInt 没有上限参数
+// fallback 可能小于最小值
 // ---------------------------------------------------------------------------
 
-describe("W39/W40 — normalizeInt maximum parameter and fallback clamping", () => {
+describe("normalizeInt 上限参数和 fallback 值钳制", () => {
   // --- W39: maximum parameter ---
 
   it("clamps parsed value to maximum when exceeded", () => {

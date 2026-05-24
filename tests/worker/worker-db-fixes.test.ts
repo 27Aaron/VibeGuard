@@ -12,9 +12,9 @@ const syncOsvSource = fs.readFileSync("apps/worker/src/sync-osv.ts", "utf8");
 const runUtilsSource = fs.readFileSync("apps/worker/src/run-utils.ts", "utf8");
 
 // ===========================================================================
-// I01 — UUID v7 optimization comment for high-write tables
+// 高写入表 UUID v7 优化注释
 // ===========================================================================
-describe("I01 — UUID v7 optimization opportunity noted", () => {
+describe("UUID v7 optimization opportunity noted", () => {
   it("schema.ts contains a comment mentioning UUID v7 for high-write tables", () => {
     expect(schemaSource).toMatch(/UUID v7/);
     expect(schemaSource).toMatch(/高写入/);
@@ -22,9 +22,9 @@ describe("I01 — UUID v7 optimization opportunity noted", () => {
 });
 
 // ===========================================================================
-// I02 — feeds_enabled_idx low-selectivity comment
+// feeds_enabled_idx 低选择性索引注释
 // ===========================================================================
-describe("I02 — Boolean index low-selectivity noted", () => {
+describe("Boolean index low-selectivity noted", () => {
   it("schema.ts has a comment about the enabled boolean index selectivity", () => {
     expect(schemaSource).toMatch(/feeds_enabled_idx/);
     expect(schemaSource).toMatch(/选择性/);
@@ -36,9 +36,9 @@ describe("I02 — Boolean index low-selectivity noted", () => {
 });
 
 // ===========================================================================
-// I03 — Singleton pattern documented in client.ts
+// client.ts 单例模式文档注释
 // ===========================================================================
-describe("I03 — Singleton pattern documented", () => {
+describe("Singleton pattern documented", () => {
   it("client.ts has a comment about the singleton pattern and thread safety", () => {
     expect(clientSource).toMatch(/单例模式/);
     expect(clientSource).toMatch(/closeDb/);
@@ -47,9 +47,9 @@ describe("I03 — Singleton pattern documented", () => {
 });
 
 // ===========================================================================
-// I04 — resolvePollInterval skips redundant String conversion
+// resolvePollInterval 跳过冗余的 String 转换
 // ===========================================================================
-describe("I04 — resolvePollInterval avoids redundant String conversion", () => {
+describe("resolvePollInterval avoids redundant String conversion", () => {
   it("checks typeof before parseInt", () => {
     expect(indexSource).toMatch(/typeof value === "number"/);
   });
@@ -68,9 +68,9 @@ describe("I04 — resolvePollInterval avoids redundant String conversion", () =>
 });
 
 // ===========================================================================
-// I05 — MAX_BACKOFF_POWER named constant
+// MAX_BACKOFF_POWER 命名常量
 // ===========================================================================
-describe("I05 — Backoff power uses named constant", () => {
+describe("Backoff power uses named constant", () => {
   it("index.ts defines MAX_BACKOFF_POWER constant", () => {
     expect(indexSource).toMatch(/const MAX_BACKOFF_POWER = 6/);
   });
@@ -87,9 +87,9 @@ describe("I05 — Backoff power uses named constant", () => {
 });
 
 // ===========================================================================
-// I16 — articleEcosystemValues / articleRiskCategoryValues are actually used
+// articleEcosystemValues / articleRiskCategoryValues 实际被使用
 // ===========================================================================
-describe("I16 — articleEcosystemValues and articleRiskCategoryValues usage", () => {
+describe("articleEcosystemValues and articleRiskCategoryValues usage", () => {
   it("articleEcosystemValues is used in articleEcosystemEnum pgEnum call", () => {
     // These are NOT unused — they are used in pgEnum() definitions
     expect(schemaSource).toContain("articleEcosystemValues,");
@@ -117,9 +117,9 @@ describe("I16 — articleEcosystemValues and articleRiskCategoryValues usage", (
 });
 
 // ===========================================================================
-// I17 — Module-level mutable global state documented
+// 模块级可变全局状态已文档化
 // ===========================================================================
-describe("I17 — Module-level mutable global state noted", () => {
+describe("Module-level mutable global state noted", () => {
   it("client.ts has a comment about module-level mutable globals", () => {
     expect(clientSource).toMatch(/可变全局变量/);
   });
@@ -131,9 +131,9 @@ describe("I17 — Module-level mutable global state noted", () => {
 });
 
 // ===========================================================================
-// I18 — Duplicated isDirectExecution extracted to shared helper
+// 重复的 isDirectExecution 提取为共享辅助函数
 // ===========================================================================
-describe("I18 — Shared isDirectExecution helper", () => {
+describe("Shared isDirectExecution helper", () => {
   it("run-utils.ts exists and exports isDirectExecution", () => {
     expect(runUtilsSource).toMatch(/export function isDirectExecution/);
   });

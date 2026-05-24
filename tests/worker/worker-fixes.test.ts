@@ -55,9 +55,9 @@ function createRelevantChatClient() {
 }
 
 // ---------------------------------------------------------------------------
-// W23: markArticleStatus atomic update (tested via processArticleJob error path)
+// markArticleStatus 原子更新（通过 processArticleJob 错误路径测试）
 // ---------------------------------------------------------------------------
-describe("W23: markArticleStatus uses atomic SQL update", () => {
+describe("markArticleStatus uses atomic SQL update", () => {
   it("does not read rawMeta before updating when marking article status", async () => {
     const article = {
       id: "article-1",
@@ -101,9 +101,9 @@ describe("W23: markArticleStatus uses atomic SQL update", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W24: claimQueuedJobById uses single atomic UPDATE
+// claimQueuedJobById 使用单条原子 UPDATE
 // ---------------------------------------------------------------------------
-describe("W24: claimQueuedJobById atomic claim", () => {
+describe("claimQueuedJobById atomic claim", () => {
   it("claims a job in a single UPDATE without a separate SELECT", async () => {
     const mockUpdate = vi.fn().mockReturnValue({
       set: vi.fn().mockReturnValue({
@@ -153,9 +153,9 @@ describe("W24: claimQueuedJobById atomic claim", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W32: pollFeed processes items with concurrency
+// pollFeed 并发处理条目
 // ---------------------------------------------------------------------------
-describe("W32: pollFeed processes items in parallel batches", () => {
+describe("pollFeed processes items in parallel batches", () => {
   it("processes multiple feed items concurrently", async () => {
     const now = new Date("2026-05-19T08:00:00.000Z");
     const items = Array.from({ length: 6 }, (_, i) => ({
@@ -211,9 +211,9 @@ describe("W32: pollFeed processes items in parallel batches", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W33: pollActiveFeeds processes feeds with concurrency
+// pollActiveFeeds 并发处理来源
 // ---------------------------------------------------------------------------
-describe("W33: pollActiveFeeds processes feeds in parallel batches", () => {
+describe("pollActiveFeeds processes feeds in parallel batches", () => {
   it("processes multiple feeds concurrently", async () => {
     const now = new Date("2026-05-19T08:00:00.000Z");
     const feeds = [
@@ -284,9 +284,9 @@ describe("W33: pollActiveFeeds processes feeds in parallel batches", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W34: Parallel LLM classification and tag generation
+// 并行执行 LLM 分类和标签生成
 // ---------------------------------------------------------------------------
-describe("W34: processExtractJob parallelizes classify and tags", () => {
+describe("processExtractJob parallelizes classify and tags", () => {
   it("runs classifySecurityContent and generateTags in the same tick", async () => {
     const tagCallOrder: string[] = [];
     const markJobStage = vi.fn().mockResolvedValue(undefined);
@@ -342,9 +342,9 @@ describe("W34: processExtractJob parallelizes classify and tags", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W44: shouldPollFeed validates pollIntervalMinutes > 0
+// shouldPollFeed 校验 pollIntervalMinutes > 0
 // ---------------------------------------------------------------------------
-describe("W44: shouldPollFeed rejects invalid pollIntervalMinutes", () => {
+describe("shouldPollFeed rejects invalid pollIntervalMinutes", () => {
   it("returns false when pollIntervalMinutes is 0", () => {
     const feed = makeFeed({
       pollIntervalMinutes: 0,
@@ -407,9 +407,9 @@ describe("W44: shouldPollFeed rejects invalid pollIntervalMinutes", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W56: runWorkerLoop max iterations guard
+// runWorkerLoop 最大迭代次数保护
 // ---------------------------------------------------------------------------
-describe("W56: runWorkerLoop respects max iteration limit", () => {
+describe("runWorkerLoop respects max iteration limit", () => {
   it("stops after reaching maxIterations without a signal", async () => {
     const runCycle = vi.fn().mockResolvedValue({
       activeFeedCount: 0,
@@ -465,9 +465,9 @@ describe("W56: runWorkerLoop respects max iteration limit", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W57: updateArticlePatchWithFallback graceful error handling
+// updateArticlePatchWithFallback 优雅错误处理
 // ---------------------------------------------------------------------------
-describe("W57: updateArticlePatchWithFallback catches errors gracefully", () => {
+describe("updateArticlePatchWithFallback catches errors gracefully", () => {
   it("throws when updateArticleContent fails in summarize job", async () => {
     const article = {
       id: "article-1",

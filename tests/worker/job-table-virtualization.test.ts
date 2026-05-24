@@ -7,7 +7,7 @@ const JOB_TABLE = fs.readFileSync(
   "utf8",
 );
 
-describe("I28: job-table virtualization", () => {
+describe("job-table virtualization", () => {
   it("defines a VIRTUALIZE_THRESHOLD constant to gate virtualization", () => {
     expect(JOB_TABLE).toContain("VIRTUALIZE_THRESHOLD");
     expect(JOB_TABLE).toMatch(/VIRTUALIZE_THRESHOLD = \d+/);

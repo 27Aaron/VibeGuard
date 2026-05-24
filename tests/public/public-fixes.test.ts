@@ -2,7 +2,7 @@ import fs from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-describe("I09: getArticleById wrapped with React.cache()", () => {
+describe("getArticleById wrapped with React.cache()", () => {
   const page = fs.readFileSync(
     "apps/web/app/[lang]/articles/[articleId]/page.tsx",
     "utf8",
@@ -30,7 +30,7 @@ describe("I09: getArticleById wrapped with React.cache()", () => {
   });
 });
 
-describe("I11: SoftLink uses Next.js <Link> instead of router.push", () => {
+describe("SoftLink uses Next.js <Link> instead of router.push", () => {
   const softLink = fs.readFileSync(
     "apps/web/components/admin/soft-link.tsx",
     "utf8",
@@ -63,7 +63,7 @@ describe("I11: SoftLink uses Next.js <Link> instead of router.push", () => {
   });
 });
 
-describe("I27: public-header matches routes by path instead of label", () => {
+describe("public-header matches routes by path instead of label", () => {
   const header = fs.readFileSync(
     "apps/web/components/public-header.tsx",
     "utf8",
@@ -100,7 +100,7 @@ describe("I27: public-header matches routes by path instead of label", () => {
   });
 });
 
-describe("I29: search-toast guards against duplicate toasts", () => {
+describe("search-toast guards against duplicate toasts", () => {
   const toast = fs.readFileSync(
     "apps/web/components/ui/search-toast.tsx",
     "utf8",
@@ -121,7 +121,7 @@ describe("I29: search-toast guards against duplicate toasts", () => {
   });
 });
 
-describe("I30: markdown-renderer pre component only unwraps code blocks", () => {
+describe("markdown-renderer pre component only unwraps code blocks", () => {
   const renderer = fs.readFileSync(
     "apps/web/components/content/markdown-renderer.tsx",
     "utf8",
@@ -144,7 +144,7 @@ describe("I30: markdown-renderer pre component only unwraps code blocks", () => 
   });
 });
 
-describe("I31: error.tsx uses design tokens instead of hardcoded classes", () => {
+describe("error.tsx uses design tokens instead of hardcoded classes", () => {
   const errorPage = fs.readFileSync("apps/web/app/[lang]/error.tsx", "utf8");
 
   it("imports layout token functions", () => {
@@ -168,7 +168,7 @@ describe("I31: error.tsx uses design tokens instead of hardcoded classes", () =>
   });
 });
 
-describe("I32: Skill nav icon differentiated from homepage brand icon", () => {
+describe("Skill nav icon differentiated from homepage brand icon", () => {
   const header = fs.readFileSync(
     "apps/web/components/public-header.tsx",
     "utf8",

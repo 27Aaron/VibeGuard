@@ -12,8 +12,8 @@ import { parseDate } from "../../packages/content/src/osv/normalize";
 import { stripHtmlTags } from "../../packages/content/src/feed/store";
 import { parseSimpleNumericVersion } from "../../packages/content/src/osv/version-match";
 
-// W15: deleteCachedOsvFile should only delete a single file, not a directory tree
-describe("W15: deleteCachedOsvFile uses unlink, not recursive rm", () => {
+// deleteCachedOsvFile 只删除单个文件，不删除目录树
+describe("deleteCachedOsvFile uses unlink, not recursive rm", () => {
   it("deletes a single cached file", async () => {
     const dir = fs.mkdtempSync(path.join("/tmp", "vibeguard-w15-"));
     const file = path.join(dir, "test.json");
@@ -47,8 +47,8 @@ describe("W15: deleteCachedOsvFile uses unlink, not recursive rm", () => {
   });
 });
 
-// W16: assertSafeFileName rejects NULL bytes
-describe("W16: assertSafeFileName rejects NULL bytes", () => {
+// assertSafeFileName 拒绝 NULL 字节
+describe("assertSafeFileName rejects NULL bytes", () => {
   // Access the internal function indirectly through buildOsvCachePath which calls it
   it("rejects filenames containing null bytes", () => {
     expect(() =>
@@ -90,8 +90,8 @@ describe("W16: assertSafeFileName rejects NULL bytes", () => {
   });
 });
 
-// W41: Single record failure does not mark entire sync as FAILED
-describe("W41: sync marks partial success correctly", () => {
+// 单条记录失败不会将整个同步标记为 FAILED
+describe("sync marks partial success correctly", () => {
   it("partial success is not marked as FAILED", async () => {
     // Import the sync module and verify the logic via parseModifiedIdCsv
     const { parseModifiedIdCsv } =
@@ -104,8 +104,8 @@ describe("W41: sync marks partial success correctly", () => {
   });
 });
 
-// W42: parseDate validates date format
-describe("W42: parseDate validates date format", () => {
+// parseDate 校验日期格式
+describe("parseDate validates date format", () => {
   it("accepts valid ISO 8601 dates", () => {
     expect(parseDate("2026-01-15")).toBeInstanceOf(Date);
     expect(parseDate("2026-01-15T10:30:00Z")).toBeInstanceOf(Date);
@@ -133,8 +133,8 @@ describe("W42: parseDate validates date format", () => {
   });
 });
 
-// W51: content-length NaN bypasses size check
-describe("W51: fetchFeed validates content-length is finite", () => {
+// content-length 为 NaN 时绕过大小检查
+describe("fetchFeed validates content-length is finite", () => {
   it("Number.isFinite check prevents NaN bypass", () => {
     const nan = Number("invalid");
     expect(Number.isFinite(nan)).toBe(false);
@@ -146,8 +146,8 @@ describe("W51: fetchFeed validates content-length is finite", () => {
   });
 });
 
-// W52: HTML content is stripped before classification
-describe("W52: stripHtmlTags removes HTML before classification", () => {
+// HTML 内容在分类前被清除
+describe("stripHtmlTags removes HTML before classification", () => {
   it("strips basic HTML tags", () => {
     expect(stripHtmlTags("<p>Hello <b>world</b></p>")).toBe("Hello world");
   });
@@ -175,8 +175,8 @@ describe("W52: stripHtmlTags removes HTML before classification", () => {
   });
 });
 
-// W53: PyPI pre-release tag comparison
-describe("W53: PyPI pre-release version comparison", () => {
+// PyPI 预发布标签比较
+describe("PyPI pre-release version comparison", () => {
   it("orders alpha < beta < rc < release", () => {
     const alpha = parseSimpleNumericVersion("1.0.0a1");
     const beta = parseSimpleNumericVersion("1.0.0b1");
