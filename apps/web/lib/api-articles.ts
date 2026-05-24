@@ -148,44 +148,41 @@ export async function listArticles(searchParams: URLSearchParams) {
   ].filter(Boolean);
   const where = filters.length > 0 ? and(...filters) : undefined;
 
-  // 并行执行计数查询和数据查询以提升性能。数据查询使用原始页码偏移量，
-  // 在两个查询都完成后，再根据实际计数结果对页码进行校正。
-  const preliminaryOffset = (params.page - 1) * params.limit;
-  const [countRows, rows] = await Promise.all([
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(articles)
-      .innerJoin(feeds, eq(articles.feedId, feeds.id))
-      .where(where),
-    db
-      .select({
-        id: articles.id,
-        titleEn: articles.titleEn,
-        titleZh: articles.titleZh,
-        summaryEn: articles.summaryEn,
-        summaryZh: articles.summaryZh,
-        contentMdEn: articles.contentMdEn,
-        contentMdZh: articles.contentMdZh,
-        url: articles.url,
-        sourceName: feeds.name,
-        ecosystem: articles.ecosystem,
-        riskCategory: articles.riskCategory,
-        tags: articles.tags,
-        status: articles.status,
-        publishedAt: articles.publishedAt,
-        updatedAt: articles.updatedAt,
-      })
-      .from(articles)
-      .innerJoin(feeds, eq(articles.feedId, feeds.id))
-      .where(where)
-      .orderBy(desc(articles.publishedAt))
-      .limit(params.limit)
-      .offset(preliminaryOffset),
-  ]);
+  const countRows = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(articles)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
+    .where(where);
 
   const totalCount = Number(countRows[0]?.count ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / params.limit));
   const page = Math.min(params.page, totalPages);
+  const offset = (page - 1) * params.limit;
+
+  const rows = await db
+    .select({
+      id: articles.id,
+      titleEn: articles.titleEn,
+      titleZh: articles.titleZh,
+      summaryEn: articles.summaryEn,
+      summaryZh: articles.summaryZh,
+      contentMdEn: articles.contentMdEn,
+      contentMdZh: articles.contentMdZh,
+      url: articles.url,
+      sourceName: feeds.name,
+      ecosystem: articles.ecosystem,
+      riskCategory: articles.riskCategory,
+      tags: articles.tags,
+      status: articles.status,
+      publishedAt: articles.publishedAt,
+      updatedAt: articles.updatedAt,
+    })
+    .from(articles)
+    .innerJoin(feeds, eq(articles.feedId, feeds.id))
+    .where(where)
+    .orderBy(desc(articles.publishedAt))
+    .limit(params.limit)
+    .offset(offset);
 
   return {
     meta: buildArticleListMeta({
