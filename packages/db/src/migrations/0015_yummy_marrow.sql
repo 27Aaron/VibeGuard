@@ -1,1 +1,0 @@
-ALTER TABLE "security_advisories" ADD COLUMN "malicious_origins" jsonb DEFAULT '[]'::jsonb NOT NULL;

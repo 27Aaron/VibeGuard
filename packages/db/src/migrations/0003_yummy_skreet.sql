@@ -1,1 +1,0 @@
-ALTER TABLE "llm_settings" DROP COLUMN "summary_prompt";
