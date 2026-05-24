@@ -24,6 +24,13 @@ const env = {
   PATH: [path.join(rootDir, "node_modules", ".bin"), process.env.PATH]
     .filter(Boolean)
     .join(path.delimiter),
+  // Ensure child processes (e.g. eslint) get enough heap
+  NODE_OPTIONS: [
+    process.env.NODE_OPTIONS,
+    "--max-old-space-size=4096",
+  ]
+    .filter(Boolean)
+    .join(" "),
 };
 const child = spawn(resolvedCommand, args, {
   cwd: process.cwd(),
