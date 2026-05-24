@@ -24,7 +24,8 @@ export type FetchText = (url: string, maxBytes?: number) => Promise<string>;
 export const UNZIP_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 export const DEFAULT_BOOTSTRAP_BATCH_SIZE = 200;
 export const DEFAULT_MODIFIED_ID_ROW_LIMIT = 2000;
-export const DEFAULT_VULNERABILITY_TEXT_BYTES = 16 * 1024 * 1024;
+export const DEFAULT_MODIFIED_ID_CSV_BYTES = 64 * 1024 * 1024;
+export const DEFAULT_VULNERABILITY_TEXT_BYTES = 64 * 1024 * 1024;
 
 export type SyncOsvEcosystemInput = {
   db: ContentDb;
@@ -99,6 +100,11 @@ export type ModifiedIdRow = {
 export const MAX_MODIFIED_ID_ROW_LIMIT = normalizeInt(
   process.env.VIBEGUARD_OSV_MODIFIED_ID_ROW_LIMIT,
   DEFAULT_MODIFIED_ID_ROW_LIMIT,
+);
+
+export const MAX_MODIFIED_ID_CSV_BYTES = normalizeInt(
+  process.env.VIBEGUARD_OSV_MODIFIED_ID_CSV_BYTES,
+  DEFAULT_MODIFIED_ID_CSV_BYTES,
 );
 
 export const MAX_VULNERABILITY_TEXT_BYTES = normalizeInt(

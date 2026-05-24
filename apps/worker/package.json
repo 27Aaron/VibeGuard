@@ -6,7 +6,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "node ../../scripts/with-env.mjs --local-defaults tsx watch src/index.ts"
+    "dev": "node ../../scripts/with-env.mjs --local-defaults tsx watch src/index.ts",
+    "start": "node --import tsx src/index.ts"
   },
   "dependencies": {
     "@vibeguard/content": "workspace:*",

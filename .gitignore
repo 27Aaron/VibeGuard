@@ -37,6 +37,7 @@ Thumbs.db
 data/osv-cache/
 data/osv-bootstrap/
 data/enrichment-cache/
+data/postgres/
 *.bak
 *.db
 *.dump

@@ -1,21 +1,48 @@
 services:
+  app:
+    image: ${VIBEGUARD_IMAGE:-ghcr.io/27aaron/vibeguard:latest}
+    container_name: vibeguard-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3000}
+      VIBEGUARD_BIND_HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@vibeguard:5432/${POSTGRES_DB:-vibeguard}
+      WORKER_MAX_ITERATIONS: ${WORKER_MAX_ITERATIONS:-0}
+    ports:
+      - "127.0.0.1:${PORT:-3000}:3000"
+    volumes:
+      - ./data/osv-cache:/app/data/osv-cache
+      - ./data/osv-bootstrap:/app/data/osv-bootstrap
+      - ./data/enrichment-cache:/app/data/enrichment-cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "const port=process.env.PORT||3000;fetch(''http://127.0.0.1:''+port+''/api/overview'').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+
   postgres:
     image: postgres:18
-    container_name: vibeguard-postgres
+    container_name: vibeguard
     restart: unless-stopped
     environment:
-      POSTGRES_DB: vibeguard
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-vibeguard}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
-      - vibeguard_postgres_data:/var/lib/postgresql
+      - ./data/postgres:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d vibeguard"]
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s
       timeout: 5s
       retries: 12
-
-volumes:
-  vibeguard_postgres_data:

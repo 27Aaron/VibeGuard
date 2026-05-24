@@ -12,6 +12,10 @@ import {
   syncAllOsvEcosystems,
   syncOsvEcosystem,
 } from "../../packages/content/src/osv/sync";
+import {
+  MAX_MODIFIED_ID_CSV_BYTES,
+  MAX_VULNERABILITY_TEXT_BYTES,
+} from "../../packages/content/src/osv/sync-types";
 
 describe("parseModifiedIdCsv", () => {
   it("parses newest OSV modified rows and skips invalid lines", () => {
@@ -51,6 +55,52 @@ describe("OSV sync urls", () => {
 });
 
 describe("syncOsvEcosystem", () => {
+  it("uses separate byte limits for modified_id.csv and advisory JSON", async () => {
+    const repoRoot = fs.mkdtempSync(path.join("/tmp", "vibeguard-osv-sync-"));
+    const upsertNormalizedOsvRecord = vi.fn().mockResolvedValue({
+      advisoryId: "advisory-1",
+      affectedPackageCount: 1,
+      skipped: false,
+      writeKind: "new",
+    });
+    const upsertSecuritySyncState = vi.fn().mockResolvedValue(undefined);
+    const fetchText = vi.fn().mockImplementation(async (url: string) => {
+      if (url.endsWith("modified_id.csv")) {
+        return "2026-05-21T23:01:37.118219322Z,MAL-2026-4230\n";
+      }
+
+      return JSON.stringify({
+        schema_version: "1.7.5",
+        id: "MAL-2026-4230",
+        published: "2026-05-21T21:15:38Z",
+        modified: "2026-05-21T23:01:37.118219322Z",
+        summary: "Malicious code in cryptoco-auth (npm)",
+        affected: [],
+      });
+    });
+
+    await syncOsvEcosystem({
+      db: {} as never,
+      ecosystem: "npm",
+      repoRoot,
+      limit: 1,
+      fetchText,
+      upsertNormalizedOsvRecord,
+      upsertSecuritySyncState,
+    });
+
+    expect(fetchText).toHaveBeenNthCalledWith(
+      1,
+      "https://storage.googleapis.com/osv-vulnerabilities/npm/modified_id.csv",
+      MAX_MODIFIED_ID_CSV_BYTES,
+    );
+    expect(fetchText).toHaveBeenNthCalledWith(
+      2,
+      "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
+      MAX_VULNERABILITY_TEXT_BYTES,
+    );
+  });
+
   it("downloads a limited set, stores normalized records, deletes cached JSON, and updates sync state", async () => {
     const repoRoot = fs.mkdtempSync(path.join("/tmp", "vibeguard-osv-sync-"));
     const upsertNormalizedOsvRecord = vi.fn().mockResolvedValue({

@@ -292,6 +292,28 @@ function resolvePollInterval(value: number, fallback: number) {
 
 const DEFAULT_MAX_ITERATIONS = 1000;
 
+export function resolveWorkerMaxIterations(
+  value = process.env.WORKER_MAX_ITERATIONS,
+) {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return DEFAULT_MAX_ITERATIONS;
+  }
+
+  if (normalized === "0" || normalized === "infinite") {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return DEFAULT_MAX_ITERATIONS;
+  }
+
+  return parsed;
+}
+
 export async function runWorkerLoop({
   intervalMs = DEFAULT_POLL_INTERVAL_MS,
   logger = console,
@@ -362,7 +384,10 @@ export async function main() {
 
   try {
     await Promise.all([
-      runWorkerLoop({ signal: controller.signal }),
+      runWorkerLoop({
+        signal: controller.signal,
+        maxIterations: resolveWorkerMaxIterations(),
+      }),
       startOsvSyncScheduler(controller.signal),
     ]);
   } finally {

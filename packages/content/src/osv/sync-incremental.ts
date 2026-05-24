@@ -11,6 +11,7 @@ import { normalizeOsvRecord } from "./normalize";
 import { upsertNormalizedOsvRecord, upsertSecuritySyncState } from "./store";
 import {
   ensureTextSizeLimit,
+  MAX_MODIFIED_ID_CSV_BYTES,
   MAX_MODIFIED_ID_ROW_LIMIT,
   MAX_VULNERABILITY_TEXT_BYTES,
   sha256,
@@ -45,7 +46,7 @@ export async function syncOsvEcosystem({
   console.log(`[osv/sync] 开始增量同步 ${ecosystem}，下载 modified_id.csv…`);
   const modifiedCsv = await fetchText(
     buildModifiedIdCsvUrl(ecosystem),
-    MAX_VULNERABILITY_TEXT_BYTES,
+    MAX_MODIFIED_ID_CSV_BYTES,
   );
   const effectiveLimit = Math.min(
     Math.max(0, limit ?? Number.POSITIVE_INFINITY),
