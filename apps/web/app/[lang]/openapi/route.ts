@@ -3,8 +3,18 @@ import { resolve } from "node:path"
 
 import { NextResponse } from "next/server"
 
-export async function GET() {
-  const filePath = resolve("public", "openapi.yaml")
+import { resolveLang } from "@/lib/i18n"
+
+type OpenApiRouteProps = {
+  params: Promise<{
+    lang: string
+  }>
+}
+
+export async function GET(_request: Request, { params }: OpenApiRouteProps) {
+  const { lang: rawLang } = await params
+  const lang = resolveLang(rawLang)
+  const filePath = resolve("public", `openapi.${lang}.yaml`)
   const content = await readFile(filePath, "utf-8")
 
   return new NextResponse(content, {

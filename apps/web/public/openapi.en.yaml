@@ -3,40 +3,40 @@ info:
   title: VibeGuard Public API
   version: 1.1.0
   description: |
-    VibeGuard 为开发者、安全团队和 Agent 工具提供供应链威胁情报公开 API。
-    接口覆盖安全文章检索、来源统计、漏洞包检查、结构化公告查询、CVE 富集信息和同步状态。
-    公开接口无需认证；Admin 与 MCP 传输端点不在本文件描述范围内。
+    VibeGuard provides a public supply-chain threat intelligence API for developers, security teams, and agent tools.
+    The API covers security article search, source statistics, package vulnerability checks, structured advisories, CVE enrichment, and sync status.
+    Public endpoints require no authentication; Admin and MCP transport endpoints are intentionally outside this document.
   contact:
     name: VibeGuard
     url: https://github.com/27Aaron/VibeGuard
 
 externalDocs:
-  description: VibeGuard API 页面
-  url: /zh/api
+  description: VibeGuard API page
+  url: /en/api
 
 servers:
   - url: /
-    description: 当前站点根地址。部署到线上时保持相对路径，便于反向代理和多域名复用。
+    description: Current site root. Relative paths work across reverse proxies and multiple deployment domains.
 
 tags:
   - name: Public
-    description: 站点公开阅读流的概览和来源接口。
+    description: Overview and source endpoints for the public reading stream.
   - name: Articles
-    description: 安全文章列表和详情接口，只返回 ready 状态文章。
+    description: Security article list and detail endpoints. Only ready articles are returned.
   - name: Security
-    description: 本地安全镜像查询接口，面向包坐标、公告、CVE 和同步状态。
+    description: Local security mirror queries for package coordinates, advisories, CVEs, and sync status.
 
-# 公开内容接口：适合网页、RSS/MCP 工具和轻量客户端读取。
+# Public content endpoints for web pages, RSS/MCP tools, and lightweight clients.
 paths:
   /api/overview:
     get:
       operationId: getPublicOverview
-      summary: 公开站点概览
-      description: 返回当前公开阅读流的文章数量和来源数量，适合首页、健康检查或监控面板快速展示。
+      summary: Public site overview
+      description: Returns article and source counts for the public reading stream. Useful for homepages, health checks, and monitoring panels.
       tags: [Public]
       responses:
         "200":
-          description: 文章与来源数量概览。
+          description: Article and source count overview.
           content:
             application/json:
               schema:
@@ -49,7 +49,7 @@ paths:
                     $ref: "#/components/schemas/PublicOverview"
               examples:
                 currentSite:
-                  summary: 当前站点概览
+                  summary: Current site overview
                   value:
                     meta:
                       generatedAt: "2026-05-24T12:24:04+08:00"
@@ -59,19 +59,19 @@ paths:
                       sourceCount: 1
       x-codeSamples:
         - lang: cURL
-          label: 获取站点概览
+          label: Get site overview
           source: |
             curl -sS 'http://127.0.0.1:3000/api/overview'
 
   /api/sources:
     get:
       operationId: listPublicSources
-      summary: 公开来源列表
-      description: 返回每个公开内容来源及其已发布文章数量。可用于来源筛选器、数据源覆盖率展示或 Agent 选择查询范围。
+      summary: Public source list
+      description: Returns each public content source and its published article count. Use it to build source filters, coverage views, or agent query scopes.
       tags: [Public]
       responses:
         "200":
-          description: 已发布文章来源及数量。
+          description: Published article sources and counts.
           content:
             application/json:
               schema:
@@ -85,7 +85,7 @@ paths:
                         properties:
                           count:
                             type: integer
-                            description: 来源数量。
+                            description: Number of sources.
                   items:
                     type: array
                     items:
@@ -102,60 +102,60 @@ paths:
                         count: 12
       x-codeSamples:
         - lang: cURL
-          label: 获取来源列表
+          label: Get source list
           source: |
             curl -sS 'http://127.0.0.1:3000/api/sources'
 
   /api/articles:
     get:
       operationId: listArticles
-      summary: 查询文章列表
+      summary: Query articles
       description: |
-        查询公开安全文章。接口会强制只返回 ready 状态，调用方即使传入 status 也会被忽略，避免泄露后台处理中内容。
-        返回标题和摘要会根据 lang 参数选择中文或英文；详情正文请继续调用 /api/articles/{articleId}。
+        Query public security articles. The endpoint always returns ready articles only; any caller-supplied status parameter is ignored to avoid exposing in-progress admin content.
+        Titles and summaries are localized by the lang parameter. Use /api/articles/{articleId} to fetch the Markdown body.
       tags: [Articles]
       parameters:
         - name: lang
           in: query
           schema: { type: string, enum: [zh, en], default: zh }
-          description: 返回内容语言。zh 返回中文标题/摘要；en 返回英文标题/摘要。
-          example: zh
+          description: Response language. zh returns Chinese titles/summaries; en returns English titles/summaries.
+          example: en
         - name: q
           in: query
           schema: { type: string }
-          description: 搜索关键词，匹配标题、摘要、来源与标签。支持中英文。
+          description: Keyword search across title, summary, source, and tags. Chinese and English are supported.
           example: cve
         - name: tag
           in: query
           schema: { type: string }
-          description: 按标签筛选。标签通常由规则或 LLM 生成，例如 cve、npm、supply-chain。
+          description: Filter by tag. Tags are usually produced by rules or LLM processing, such as cve, npm, or supply-chain.
           example: npm
         - name: source
           in: query
           schema: { type: string }
-          description: 按来源名称筛选，需要与 /api/sources 返回的 sourceName 对齐。
+          description: Filter by source name. Match values returned by /api/sources in sourceName.
           example: GitHub Advisory
         - name: ecosystem
           in: query
           schema: { type: string, enum: [npm, pypi, maven, go, crates-io, github-actions, docker, multi] }
-          description: 按文章涉及的主要包生态筛选。
+          description: Filter by the primary package ecosystem discussed by the article.
           example: npm
         - name: riskCategory
           in: query
           schema: { type: string, enum: [vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk] }
-          description: 按风险类别筛选。
+          description: Filter by risk category.
           example: malicious-package
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
-          description: 每页数量。小于 1 或非数字时回退到默认值；超过 100 会被截断为 100。
+          description: Page size. Invalid values fall back to the default; values above 100 are clamped to 100.
         - name: page
           in: query
           schema: { type: integer, minimum: 1, default: 1 }
-          description: 页码，从 1 开始。
+          description: Page number, starting from 1.
       responses:
         "200":
-          description: 文章列表。
+          description: Article list.
           content:
             application/json:
               schema:
@@ -170,10 +170,10 @@ paths:
                       $ref: "#/components/schemas/Article"
               examples:
                 keywordSearch:
-                  summary: 搜索 CVE 相关文章
+                  summary: Search CVE-related articles
                   value:
                     meta:
-                      lang: zh
+                      lang: en
                       status: ready
                       query: cve
                       limit: 2
@@ -185,34 +185,34 @@ paths:
                     items: []
       x-codeSamples:
         - lang: cURL
-          label: 搜索文章
+          label: Search articles
           source: |
-            curl -sS 'http://127.0.0.1:3000/api/articles?q=cve&limit=2&lang=zh'
+            curl -sS 'http://127.0.0.1:3000/api/articles?q=cve&limit=2&lang=en'
         - lang: cURL
-          label: 按标签筛选
+          label: Filter by tag
           source: |
             curl -sS 'http://127.0.0.1:3000/api/articles?tag=npm&limit=5'
 
   /api/articles/{articleId}:
     get:
       operationId: getArticleById
-      summary: 获取文章详情
-      description: 根据文章 ID 获取完整详情，包含 Markdown 正文、规范链接、元数据、标签和发布时间。建议先从 /api/articles 列表中取得 articleId。
+      summary: Get article details
+      description: Fetch one full article by id, including the Markdown body, canonical URL, metadata, tags, and timestamps. Prefer getting articleId from /api/articles first.
       tags: [Articles]
       parameters:
         - name: articleId
           in: path
           required: true
           schema: { type: string, format: uuid }
-          description: UUID 格式文章 ID。
+          description: UUID-format article id.
           example: 8b761e1e-ba00-4bbd-af4b-ee4c605a5531
         - name: lang
           in: query
           schema: { type: string, enum: [zh, en], default: zh }
-          description: 返回正文语言。没有对应语言内容时，服务端会按内容可用性回退。
+          description: Response body language. If the requested locale is unavailable, the server falls back to available content.
       responses:
         "200":
-          description: 文章详情。
+          description: Article details.
           content:
             application/json:
               schema:
@@ -221,19 +221,19 @@ paths:
           $ref: "#/components/responses/NotFound"
       x-codeSamples:
         - lang: cURL
-          label: 获取文章详情
+          label: Get article details
           source: |
-            curl -sS 'http://127.0.0.1:3000/api/articles/{articleId}?lang=zh'
+            curl -sS 'http://127.0.0.1:3000/api/articles/{articleId}?lang=en'
 
   /api/security/check/overview:
     get:
       operationId: getSecurityCheckOverview
-      summary: 漏洞统计概览
-      description: 返回本地安全镜像中各生态系统的受影响包记录数。该接口用于判断镜像大致覆盖范围，不代表唯一漏洞数量。
+      summary: Vulnerability statistics overview
+      description: Returns affected package record counts by ecosystem from the local security mirror. Use this to understand mirror coverage, not as a unique vulnerability count.
       tags: [Security]
       responses:
         "200":
-          description: 各生态系统受影响包数量。
+          description: Affected package counts by ecosystem.
           content:
             application/json:
               schema:
@@ -252,21 +252,21 @@ paths:
                       crates-io: 3007
       x-codeSamples:
         - lang: cURL
-          label: 获取安全数据概览
+          label: Get security overview
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/check/overview'
 
   /api/security/check/packages:
     post:
       operationId: checkSecurityPackages
-      summary: 批量检查包漏洞
+      summary: Batch check package vulnerabilities
       description: |
-        批量检查依赖包是否存在已知安全漏洞或其他安全风险。请求体只应包含规范化包坐标，不要上传完整项目、lockfile 或源码。
-        单次最多 100 个包。传 version 时会尝试做版本范围判断；不传 version 时返回该包所有已知命中。
+        Batch check package coordinates against the local security mirror for known security risk signals. Send normalized package coordinates only; do not upload a full project, lockfile, or source code.
+        Each request accepts up to 100 packages. When version is present, the API attempts range matching for that exact version; when omitted, it returns all known matches for the package.
       tags: [Security]
       requestBody:
         required: true
-        description: packages 数组必须包含 1-100 个包坐标。
+        description: packages must contain 1-100 package coordinates.
         content:
           application/json:
             schema:
@@ -281,7 +281,7 @@ paths:
                     $ref: "#/components/schemas/PackageCoordinate"
             examples:
               mixedEcosystems:
-                summary: 混合生态批量检查
+                summary: Mixed ecosystem package check
                 value:
                   packages:
                     - ecosystem: npm
@@ -292,7 +292,7 @@ paths:
                       version: 2.19.0
       responses:
         "200":
-          description: 检查结果。
+          description: Package check result.
           content:
             application/json:
               schema:
@@ -303,7 +303,7 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
       x-codeSamples:
         - lang: cURL
-          label: 批量检查依赖包
+          label: Batch check packages
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/check/packages' \
               -H 'content-type: application/json' \
@@ -312,53 +312,53 @@ paths:
   /api/security/advisories:
     get:
       operationId: listSecurityAdvisories
-      summary: 查询安全公告
-      description: 查询结构化安全公告，可按包、CVE、风险类型、CISA KEV、CVSS、EPSS、撤回状态和更新时间筛选。
+      summary: Query security advisories
+      description: Search structured advisories by package, CVE, risk type, CISA KEV status, CVSS, EPSS, withdrawn state, and update time.
       tags: [Security]
       parameters:
         - name: q
           in: query
           schema: { type: string }
-          description: 搜索 GHSA、MAL、摘要、详情、CVE、related 或 upstream ID。
+          description: Search GHSA, MAL, summary, details, CVE, related ids, or upstream ids.
           example: axios
         - name: ecosystem
           in: query
           schema: { type: string, enum: [npm, pypi, go, crates-io] }
-          description: 包生态。与 package 一起使用时可定位某个包相关公告。
+          description: Package ecosystem. Use together with package to query advisories for one package.
         - name: package
           in: query
           schema: { type: string }
-          description: 包名。PyPI 会做大小写与分隔符规范化；npm/crates.io 会转小写；Go 保留路径大小写。
+          description: Package name. PyPI names are normalized by case and separators; npm/crates.io are lowercased; Go module paths are preserved.
           example: axios
         - name: cve
           in: query
           schema: { type: string, pattern: '^CVE-\d{4}-\d{4,}$' }
-          description: CVE 编号，服务端会规范为大写。
+          description: CVE id. The server normalizes it to uppercase.
           example: CVE-2026-25639
         - name: riskType
           in: query
           schema: { type: string, enum: [unknown, vulnerability, malicious-package] }
-          description: 风险类型。
+          description: Risk type.
         - name: kev
           in: query
           schema: { type: boolean }
-          description: true 只返回 CISA KEV 已列入公告；false 只返回未列入公告。
+          description: true returns only CISA KEV-listed advisories; false returns only non-KEV advisories.
         - name: withdrawn
           in: query
           schema: { type: boolean }
-          description: 是否筛选已撤回公告。
+          description: Filter by withdrawn state.
         - name: cvssMin
           in: query
           schema: { type: number, minimum: 0, maximum: 10 }
-          description: 只返回最高 CVSS 分数不低于该值的公告。
+          description: Return advisories whose best CVSS score is at least this value.
         - name: epssMin
           in: query
           schema: { type: number, minimum: 0, maximum: 1 }
-          description: 只返回 EPSS percentile 不低于该值的公告。
+          description: Return advisories whose EPSS percentile is at least this value.
         - name: updatedAfter
           in: query
           schema: { type: string, format: date-time }
-          description: 只返回在该时间之后更新、发布或撤回的公告。
+          description: Return advisories updated, published, or withdrawn after this timestamp.
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
@@ -367,7 +367,7 @@ paths:
           schema: { type: integer, minimum: 1, default: 1 }
       responses:
         "200":
-          description: 安全公告列表。
+          description: Security advisory list.
           content:
             application/json:
               schema:
@@ -382,30 +382,30 @@ paths:
                       $ref: "#/components/schemas/SecurityAdvisory"
       x-codeSamples:
         - lang: cURL
-          label: 查询 axios 公告
+          label: Query axios advisories
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/advisories?ecosystem=npm&package=axios&limit=3'
         - lang: cURL
-          label: 查询 CISA KEV 公告
+          label: Query CISA KEV advisories
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/advisories?kev=true&limit=3'
 
   /api/security/advisories/{advisoryId}:
     get:
       operationId: getSecurityAdvisory
-      summary: 获取单条安全公告
-      description: 根据 OSV/GHSA/MAL external id 获取单条公告详情，包含影响包、范围、修复版本、关联 ID 和 CVE 富集信息。
+      summary: Get one security advisory
+      description: Get one advisory by OSV/GHSA/MAL external id, including affected packages, ranges, fixed versions, related ids, and CVE enrichment.
       tags: [Security]
       parameters:
         - name: advisoryId
           in: path
           required: true
           schema: { type: string }
-          description: OSV/GHSA/MAL external id，例如 GHSA-43fc-jf86-j433。
+          description: OSV/GHSA/MAL external id, for example GHSA-43fc-jf86-j433.
           example: GHSA-43fc-jf86-j433
       responses:
         "200":
-          description: 安全公告详情。
+          description: Security advisory detail.
           content:
             application/json:
               schema:
@@ -414,36 +414,36 @@ paths:
           $ref: "#/components/responses/NotFound"
       x-codeSamples:
         - lang: cURL
-          label: 获取公告详情
+          label: Get advisory detail
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/advisories/GHSA-43fc-jf86-j433'
 
   /api/security/packages/{ecosystem}/{packageName}:
     get:
       operationId: getSecurityPackageProfile
-      summary: 获取包风险画像
-      description: 获取单个包的风险画像，返回命中数量、确认影响数量、最高风险、最近更新、修复版本建议和完整 findings。
+      summary: Get package risk profile
+      description: Get a risk profile for one package, including finding count, confirmed affected count, highest risk, latest update, suggested fixed versions, and full findings.
       tags: [Security]
       parameters:
         - name: ecosystem
           in: path
           required: true
           schema: { type: string, enum: [npm, pypi, go, crates-io] }
-          description: 包生态。
+          description: Package ecosystem.
         - name: packageName
           in: path
           required: true
           schema: { type: string }
-          description: 包名或模块路径。npm scope 和 Go module 路径可使用多段路径。
+          description: Package name or module path. Scoped npm packages and multi-segment Go module paths are supported.
           example: axios
         - name: version
           in: query
           schema: { type: string, nullable: true }
-          description: 可选版本；传入后按版本范围判断是否确认命中。
+          description: Optional version. When present, the API checks whether that version is affected by each matched range.
           example: 1.0.0
       responses:
         "200":
-          description: 包风险画像。
+          description: Package risk profile.
           content:
             application/json:
               schema:
@@ -452,30 +452,30 @@ paths:
           $ref: "#/components/responses/BadRequest"
       x-codeSamples:
         - lang: cURL
-          label: 获取 npm 包风险画像
+          label: Get npm package profile
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/packages/npm/axios?version=1.0.0'
         - lang: cURL
-          label: 获取 Go module 风险画像
+          label: Get Go module profile
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/packages/go/golang.org/x/net'
 
   /api/security/cves/{cveId}:
     get:
       operationId: getSecurityCve
-      summary: 获取 CVE 富集详情
-      description: 获取 CVE 富集详情，包含 CVSS、CWE、EPSS、CISA KEV、NVD 时间和与该 CVE 关联的安全公告。
+      summary: Get CVE enrichment detail
+      description: Get CVE enrichment details, including CVSS, CWE, EPSS, CISA KEV, NVD timestamps, and advisories related to the CVE.
       tags: [Security]
       parameters:
         - name: cveId
           in: path
           required: true
           schema: { type: string, pattern: '^CVE-\d{4}-\d{4,}$' }
-          description: CVE 编号。
+          description: CVE id.
           example: CVE-2026-25639
       responses:
         "200":
-          description: CVE 富集数据与相关公告。
+          description: CVE enrichment and related advisories.
           content:
             application/json:
               schema:
@@ -484,45 +484,45 @@ paths:
           $ref: "#/components/responses/NotFound"
       x-codeSamples:
         - lang: cURL
-          label: 获取 CVE 详情
+          label: Get CVE detail
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/cves/CVE-2026-25639'
 
   /api/security/sync/status:
     get:
       operationId: getSecuritySyncStatus
-      summary: 安全数据同步状态
-      description: 查看 OSV、NVD、FIRST EPSS、CISA KEV 等安全数据源的同步状态、数据新鲜度、导入数量和最近错误。
+      summary: Security data sync status
+      description: Inspect sync status, data freshness, imported record counts, and recent errors for OSV, NVD, FIRST EPSS, CISA KEV, and related security sources.
       tags: [Security]
       responses:
         "200":
-          description: OSV/NVD/EPSS/KEV 等来源同步状态。
+          description: Sync status for OSV/NVD/EPSS/KEV and related sources.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SecuritySyncStatusResponse"
       x-codeSamples:
         - lang: cURL
-          label: 查看同步状态
+          label: Get sync status
           source: |
             curl -sS 'http://127.0.0.1:3000/api/security/sync/status'
 
 components:
   responses:
     BadRequest:
-      description: 请求参数或请求体不符合接口约束。
+      description: The request parameters or request body do not satisfy the endpoint contract.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           examples:
             invalidPackages:
-              summary: packages 为空
+              summary: Empty packages array
               value:
                 ok: false
                 message: packages must include at least one package.
     NotFound:
-      description: 指定资源不存在，或文章尚未公开发布。
+      description: The requested resource does not exist, or the article is not publicly published.
       content:
         application/json:
           schema:
@@ -531,13 +531,13 @@ components:
             properties:
               error:
                 type: string
-                description: 面向调用方的错误说明。
+                description: Human-readable error message for callers.
           examples:
             missingArticle:
               value:
-                error: 未找到对应文章。
+                error: Article not found.
     TooManyRequests:
-      description: 请求过多。包检查接口当前有基础限流，调用方应分批和重试。
+      description: Too many requests. The package-check endpoint has a basic local rate limit; callers should batch and retry.
       content:
         application/json:
           schema:
@@ -551,7 +551,7 @@ components:
   schemas:
     ErrorResponse:
       type: object
-      description: 标准错误响应。公开接口不会返回堆栈或内部数据库错误。
+      description: Standard error response. Public endpoints do not expose stack traces or internal database errors.
       required: [ok, message]
       properties:
         ok:
@@ -563,7 +563,7 @@ components:
 
     PublicMeta:
       type: object
-      description: 公共接口的生成时间。display 字段固定使用 Asia/Shanghai 展示格式。
+      description: Generation metadata for public endpoints. Display fields use the Asia/Shanghai time format.
       properties:
         generatedAt:
           type: string
@@ -575,20 +575,20 @@ components:
 
     PublicOverview:
       type: object
-      description: 首页和公开浏览流的基础计数。
+      description: Basic counts for the public browsing surface.
       properties:
         articleCount:
           type: integer
-          description: 当前公开可读文章数量，只包含 ready 状态。
+          description: Number of publicly readable articles. Only ready articles are counted.
           example: 101
         sourceCount:
           type: integer
-          description: 当前公开来源数量。
+          description: Number of public content sources.
           example: 1
 
     SourceSummary:
       type: object
-      description: 一个公开来源及其已发布文章数量。
+      description: One public source and its published article count.
       properties:
         sourceName:
           type: string
@@ -599,87 +599,87 @@ components:
 
     ArticleListMeta:
       type: object
-      description: 文章列表分页和筛选回显。status 对公开 API 固定为 ready。
+      description: Pagination and filter echo for article list responses. status is fixed to ready for the public API.
       properties:
         lang:
           type: string
           enum: [zh, en]
-          description: 本次返回内容使用的语言。
+          description: Language used for returned content.
         status:
           type: string
-          description: 公开 API 强制只返回 ready 文章。
+          description: The public API only returns ready articles.
           example: ready
         source:
           type: string
           nullable: true
-          description: 来源筛选回显；未传时为 null。
+          description: Source filter echo; null when omitted.
         query:
           type: string
           nullable: true
-          description: 关键词筛选回显；未传时为 null。
+          description: Keyword filter echo; null when omitted.
         ecosystem:
           type: string
           nullable: true
-          description: 生态系统筛选回显。
+          description: Ecosystem filter echo.
         riskCategory:
           type: string
           nullable: true
-          description: 风险类别筛选回显。
+          description: Risk category filter echo.
         tag:
           type: string
           nullable: true
-          description: 标签筛选回显。
+          description: Tag filter echo.
         limit:
           type: integer
-          description: 请求页大小，最大 100。
+          description: Requested page size, capped at 100.
           example: 20
         count:
           type: integer
-          description: 当前页实际返回数量。
+          description: Number of items returned in this page.
         page:
           type: integer
-          description: 当前页码，从 1 开始。
+          description: Current page number, starting from 1.
         pageSize:
           type: integer
-          description: 与 limit 相同，便于客户端统一读取。
+          description: Same value as limit for client compatibility.
         totalCount:
           type: integer
-          description: 当前筛选条件下的总数量。
+          description: Total number of records matching the current filters.
         totalPages:
           type: integer
-          description: 当前筛选条件下的总页数。
+          description: Total page count for the current filters.
 
     Article:
       type: object
-      description: 公开文章列表项。正文 content 只在详情接口返回。
+      description: Public article list item. The Markdown body is returned only by the detail endpoint.
       properties:
         id:
           type: string
           format: uuid
-          description: 文章唯一 ID，可继续用于 /api/articles/{articleId}。
+          description: Article id. Use it with /api/articles/{articleId} for details.
         title:
           type: string
-          description: 按 lang 返回的标题。
+          description: Localized title selected by lang.
         summary:
           type: string
-          description: 按 lang 返回的摘要，可能是 Markdown。
+          description: Localized summary selected by lang. It may contain Markdown.
         url:
           type: string
           format: uri
           nullable: true
-          description: 原始来源 URL。
+          description: Original source URL.
         sourceName:
           type: string
-          description: RSS 或内容来源名称。
+          description: RSS or content source name.
         ecosystem:
           type: string
-          description: 文章涉及的主要生态系统。
+          description: Primary ecosystem discussed by the article.
         riskCategory:
           type: string
-          description: 文章风险类别。
+          description: Risk category for the article.
         tags:
           type: array
-          description: LLM 或规则生成的标签，适合继续作为 tag 筛选。
+          description: Rule or LLM-generated tags that can be reused as tag filters.
           items:
             type: string
         status:
@@ -688,10 +688,10 @@ components:
         publishedAt:
           type: string
           format: date-time
-          description: 发布时间，带 Asia/Shanghai offset。
+          description: Published time with Asia/Shanghai offset.
         publishedAtDisplay:
           type: string
-          description: 面向界面展示的北京时间。
+          description: Beijing-time display string.
         updatedAt:
           type: string
           format: date-time
@@ -700,26 +700,26 @@ components:
         locale:
           type: string
           enum: [zh, en]
-          description: 实际命中的内容语言。
+          description: Actual content locale returned by the API.
 
     ArticleDetail:
       allOf:
         - $ref: "#/components/schemas/Article"
         - type: object
-          description: 文章详情比列表项多返回 Markdown 正文和规范链接。
+          description: Article detail adds the Markdown body and canonical URL to the list item fields.
           properties:
             content:
               type: string
-              description: Markdown 正文。
+              description: Markdown body.
             canonicalUrl:
               type: string
               format: uri
               nullable: true
-              description: 来源站点提供的 canonical URL。
+              description: Canonical URL from the source site.
 
     SecurityEcosystemTotals:
       type: object
-      description: 本地安全镜像中按生态统计的受影响包记录数，不等于唯一漏洞数。
+      description: Affected package record counts by ecosystem in the local security mirror. This is not a unique vulnerability count.
       properties:
         npm:
           type: integer
@@ -736,44 +736,44 @@ components:
 
     PackageCoordinate:
       type: object
-      description: 包检查请求只接收规范化包坐标，不接收完整仓库、lockfile 或源码内容。
+      description: Package-check requests accept normalized package coordinates only; do not send repositories, lockfiles, or source code.
       required: [ecosystem, name]
       properties:
         ecosystem:
           type: string
           enum: [npm, pypi, go, crates-io]
-          description: 包所在生态。公开检查接口目前支持 npm、PyPI、Go、crates.io。
+          description: Package ecosystem. The public check currently supports npm, PyPI, Go, and crates.io.
           example: npm
         name:
           type: string
-          description: 包名或模块路径。Go module 使用完整路径，npm scope 需包含 @scope/name。
+          description: Package name or module path. Use full module paths for Go and include @scope/name for scoped npm packages.
           example: axios
         version:
           type: string
           nullable: true
-          description: 可选版本号。传入后 API 会尝试按版本范围判断是否确认受影响；不传则返回该包全部已知命中。
+          description: Optional package version. When provided, the API tries to decide whether that exact version is affected; when omitted, it returns all known records for the package.
           example: 1.0.0
 
     PackageCheckMeta:
       type: object
-      description: 本次包检查使用的数据源状态。
+      description: Data-source status for this package-check response.
       properties:
         source:
           type: string
           enum: [local-osv-mirror]
-          description: 当前查询使用本地 OSV 镜像。
+          description: The query used the local OSV mirror.
         lastSyncedAt:
           type: string
           format: date-time
           nullable: true
-          description: 最近一次成功同步时间。
+          description: Last successful sync time.
         stale:
           type: boolean
-          description: 当前镜像是否超过新鲜度阈值。
+          description: Whether the local mirror is older than the freshness threshold.
 
     PackageCheckResponse:
       type: object
-      description: 批量包检查结果。findings 是扁平数组，每条记录对应一个包坐标与一个安全公告的匹配关系。
+      description: Batch package-check result. findings is a flat list where each record links one package coordinate to one advisory match.
       properties:
         meta:
           $ref: "#/components/schemas/PackageCheckMeta"
@@ -784,7 +784,7 @@ components:
 
     PackageProfile:
       type: object
-      description: 单个包的风险画像，适合包详情页或 Agent 查询工具直接消费。
+      description: Risk profile for one package, suitable for package detail pages or agent tools.
       properties:
         package:
           $ref: "#/components/schemas/PackageCoordinate"
@@ -792,21 +792,21 @@ components:
           $ref: "#/components/schemas/PackageCheckMeta"
         summary:
           type: object
-          description: 从 findings 汇总出的包级风险摘要。
+          description: Package-level summary derived from findings.
           properties:
             totalFindings:
               type: integer
-              description: 总命中记录数。
+              description: Total finding records.
             affectedCount:
               type: integer
-              description: 版本判断确认 affected=true 的记录数。
+              description: Findings where version matching confirmed affected=true.
             inconclusiveCount:
               type: integer
-              description: 包名命中但版本判断不确定的记录数。
+              description: Package-name matches where version matching could not confirm the exact affected state.
             highestRisk:
               type: object
               nullable: true
-              description: 当前包命中的最高风险等级。
+              description: Highest risk level found for this package.
               properties:
                 level:
                   type: string
@@ -817,10 +817,10 @@ components:
               type: string
               format: date-time
               nullable: true
-              description: 相关记录中最近更新时间。
+              description: Most recent update time across related records.
             recommendedFixedVersions:
               type: array
-              description: 从公告影响范围汇总出的修复版本候选。
+              description: Candidate fixed versions gathered from advisory impact ranges.
               items:
                 type: string
         findings:
@@ -830,18 +830,18 @@ components:
 
     SecurityFinding:
       type: object
-      description: 一个包坐标与一条安全公告的匹配结果。
+      description: Match result between one package coordinate and one security advisory.
       properties:
         affected:
           type: boolean
-          description: 当前版本是否确认落在受影响范围内。未传版本或范围无法判断时可能为 false。
+          description: Whether the requested version is confirmed to be in an affected range. It may be false when no version was provided or matching is inconclusive.
         confidence:
           type: string
           enum: [high, medium, low, undetermined]
-          description: 版本匹配置信度。
+          description: Version-match confidence.
         matchReason:
           type: string
-          description: 解释为什么 affected/confidence 得出当前结果。
+          description: Explains how affected and confidence were derived.
           enum:
             - explicit_affected_version
             - version_in_ecosystem_range
@@ -850,7 +850,7 @@ components:
             - package_match_without_version
         matchSummary:
           type: string
-          description: 面向人类阅读的匹配摘要。
+          description: Human-readable match summary.
         package:
           $ref: "#/components/schemas/PackageCoordinate"
         advisory:
@@ -859,13 +859,13 @@ components:
           $ref: "#/components/schemas/PackageImpact"
         cveEnrichments:
           type: array
-          description: 与该公告关联的 CVE 富集信息，可能来自 NVD、FIRST EPSS、CISA KEV。
+          description: CVE enrichment records related to this advisory, potentially sourced from NVD, FIRST EPSS, and CISA KEV.
           items:
             $ref: "#/components/schemas/CveEnrichment"
         risk:
           type: object
           nullable: true
-          description: 风险评分由静态严重度、EPSS、KEV 和命中置信度综合计算。
+          description: Risk score computed from static severity, EPSS, KEV, and match confidence.
           properties:
             level:
               type: string
@@ -879,18 +879,18 @@ components:
 
     SecurityAdvisoryListMeta:
       type: object
-      description: 安全公告列表分页和筛选回显。
+      description: Pagination and filter echo for advisory list responses.
       properties:
-        q: { type: string, description: 关键词筛选回显。 }
-        ecosystem: { type: string, nullable: true, description: 生态系统筛选回显。 }
-        packageName: { type: string, description: 包名筛选回显。 }
-        cve: { type: string, nullable: true, description: CVE 筛选回显。 }
-        riskType: { type: string, nullable: true, description: 风险类型筛选回显。 }
-        kev: { type: boolean, nullable: true, description: CISA KEV 筛选回显。 }
-        withdrawn: { type: boolean, nullable: true, description: 撤回状态筛选回显。 }
-        cvssMin: { type: number, nullable: true, description: CVSS 最小值筛选回显。 }
-        epssMin: { type: number, nullable: true, description: EPSS percentile 最小值筛选回显。 }
-        updatedAfter: { type: string, format: date-time, nullable: true, description: 更新时间筛选回显。 }
+        q: { type: string, description: Keyword filter echo. }
+        ecosystem: { type: string, nullable: true, description: Ecosystem filter echo. }
+        packageName: { type: string, description: Package-name filter echo. }
+        cve: { type: string, nullable: true, description: CVE filter echo. }
+        riskType: { type: string, nullable: true, description: Risk-type filter echo. }
+        kev: { type: boolean, nullable: true, description: CISA KEV filter echo. }
+        withdrawn: { type: boolean, nullable: true, description: Withdrawn-state filter echo. }
+        cvssMin: { type: number, nullable: true, description: Minimum CVSS filter echo. }
+        epssMin: { type: number, nullable: true, description: Minimum EPSS percentile filter echo. }
+        updatedAfter: { type: string, format: date-time, nullable: true, description: Updated-after filter echo. }
         limit: { type: integer }
         page: { type: integer }
         count: { type: integer }
@@ -899,57 +899,57 @@ components:
 
     SecurityAdvisoryBase:
       type: object
-      description: OSV/GHSA/MAL 公告的基础结构。
+      description: Base structure for OSV/GHSA/MAL advisories.
       properties:
         id:
           type: string
-          description: 外部公告 ID，例如 GHSA 或 MAL ID。
+          description: External advisory id, such as a GHSA or MAL id.
         source:
           type: string
-          description: 数据来源。
+          description: Data source.
         sourceUrl:
           type: string
           format: uri
           nullable: true
-          description: 上游公告 URL。
+          description: Upstream advisory URL.
         riskType:
           type: string
           enum: [unknown, vulnerability, malicious-package]
         summary:
           type: string
-          description: 公告摘要。
+          description: Advisory summary.
         details:
           type: string
           nullable: true
-          description: 上游公告详情。
+          description: Upstream advisory details.
         aliases:
           type: array
-          description: 别名，通常包含 CVE。
+          description: Aliases, commonly including CVE ids.
           items:
             type: string
         related:
           type: array
-          description: OSV related IDs。
+          description: OSV related ids.
           items:
             type: string
         upstream:
           type: array
-          description: 上游相关 ID。
+          description: Upstream related ids.
           items:
             type: string
         severity:
           type: array
-          description: OSV severity 原始结构。
+          description: Raw OSV severity objects.
           items:
             type: object
         references:
           type: array
-          description: 修复、报告、网页等参考链接。
+          description: Fix, report, web, and other reference links.
           items:
             type: object
         maliciousOrigins:
           type: array
-          description: 恶意包来源记录；漏洞公告通常为空。
+          description: Malicious-package origin records; usually empty for vulnerability advisories.
           items:
             type: object
         publishedAt:
@@ -964,7 +964,7 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: 公告撤回时间；未撤回时为 null。
+          description: Advisory withdrawal time; null when not withdrawn.
 
     SecurityAdvisory:
       allOf:
@@ -973,51 +973,51 @@ components:
           properties:
             packageImpacts:
               type: array
-              description: 受影响包、范围和修复版本。
+              description: Affected packages, ranges, and fixed versions.
               items:
                 $ref: "#/components/schemas/PackageImpact"
             cveEnrichments:
               type: array
-              description: CVE 扩展数据。
+              description: CVE enrichment data.
               items:
                 $ref: "#/components/schemas/CveEnrichment"
 
     PackageImpact:
       type: object
-      description: 一条公告对某个包的影响范围。
+      description: Impact range for one package in one advisory.
       properties:
         ecosystem:
           type: string
           enum: [npm, pypi, go, crates-io]
         packageName:
           type: string
-          description: 上游公告中的包名。
+          description: Package name from the upstream advisory.
         packageKey:
           type: string
-          description: VibeGuard 内部规范化后的包键。
+          description: VibeGuard-normalized package key.
         purl:
           type: string
           nullable: true
-          description: Package URL，存在时可用于跨工具关联。
+          description: Package URL, useful for cross-tool correlation when present.
         affectedVersions:
           type: array
-          description: 上游显式列出的受影响版本。
+          description: Explicitly listed affected versions from the upstream advisory.
           items:
             type: string
         ranges:
           type: array
-          description: OSV ranges 原始结构，包含 introduced/fixed/last_affected 等事件。
+          description: Raw OSV ranges with introduced/fixed/last_affected events.
           items:
             type: object
         fixedVersions:
           type: array
-          description: 已知修复版本。
+          description: Known fixed versions.
           items:
             type: string
 
     CveDetail:
       type: object
-      description: 单个 CVE 的富集信息和关联公告。
+      description: Enrichment and related advisories for one CVE.
       properties:
         cveId:
           type: string
@@ -1033,20 +1033,20 @@ components:
 
     CveEnrichment:
       type: object
-      description: 来自 NVD、FIRST EPSS、CISA KEV 的 CVE 扩展字段。
+      description: CVE enrichment fields from NVD, FIRST EPSS, and CISA KEV.
       properties:
         cveId: { type: string }
-        title: { type: string, nullable: true, description: NVD 或来源标题。 }
-        description: { type: string, nullable: true, description: CVE 描述。 }
-        cvssMetrics: { type: array, description: CVSS 指标原始结构。 , items: { type: object } }
-        bestCvssScore: { type: string, nullable: true, description: 选出的最高 CVSS 分数。 }
-        bestCvssSeverity: { type: string, nullable: true, description: 最高 CVSS 严重度。 }
-        cweIds: { type: array, description: CWE 分类。 , items: { type: string } }
-        epss: { type: string, nullable: true, description: FIRST EPSS 分数。 }
-        epssPercentile: { type: string, nullable: true, description: FIRST EPSS percentile。 }
+        title: { type: string, nullable: true, description: NVD or source title. }
+        description: { type: string, nullable: true, description: CVE description. }
+        cvssMetrics: { type: array, description: Raw CVSS metric objects. , items: { type: object } }
+        bestCvssScore: { type: string, nullable: true, description: Selected highest CVSS score. }
+        bestCvssSeverity: { type: string, nullable: true, description: Highest CVSS severity. }
+        cweIds: { type: array, description: CWE categories. , items: { type: string } }
+        epss: { type: string, nullable: true, description: FIRST EPSS score. }
+        epssPercentile: { type: string, nullable: true, description: FIRST EPSS percentile. }
         epssScoreDate: { type: string, format: date-time, nullable: true }
         epssModelVersion: { type: string, nullable: true }
-        kevListed: { type: boolean, description: 是否列入 CISA KEV。 }
+        kevListed: { type: boolean, description: Whether the CVE is listed in CISA KEV. }
         kevDateAdded: { type: string, format: date-time, nullable: true }
         kevDueDate: { type: string, format: date-time, nullable: true }
         kevKnownRansomwareCampaignUse: { type: string, nullable: true }
@@ -1059,27 +1059,27 @@ components:
 
     SecuritySyncStatusResponse:
       type: object
-      description: 安全数据源同步状态，用于判断本地镜像是否新鲜。
+      description: Security source sync status, used to decide whether the local mirror is fresh.
       properties:
         meta:
           type: object
           properties:
             sourceCount:
               type: integer
-              description: 同步状态记录数量。
+              description: Number of sync-state records.
             staleAfterMs:
               type: integer
-              description: 判定 stale 的毫秒阈值。
+              description: Millisecond threshold used to mark a source as stale.
         items:
           type: array
           items:
             type: object
             properties:
-              source: { type: string, description: 数据源，例如 osv、nvd、epss、kev。 }
-              scope: { type: string, description: 同步范围。 }
+              source: { type: string, description: Data source, such as osv, nvd, epss, or kev. }
+              scope: { type: string, description: Sync scope. }
               status: { type: string, enum: [idle, running, success, failed] }
               lastProcessedModifiedAt: { type: string, format: date-time, nullable: true }
-              cursorJson: { type: object, description: 增量同步游标。 }
+              cursorJson: { type: object, description: Incremental sync cursor. }
               lastStartedAt: { type: string, format: date-time, nullable: true }
               lastSuccessAt: { type: string, format: date-time, nullable: true }
               lastError: { type: string, nullable: true }
@@ -1087,4 +1087,4 @@ components:
               recordsImported: { type: integer }
               recordsFailed: { type: integer }
               updatedAt: { type: string, format: date-time }
-              stale: { type: boolean, description: 该来源是否超过新鲜度阈值。 }
+              stale: { type: boolean, description: Whether this source is older than the freshness threshold. }
