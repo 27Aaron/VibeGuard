@@ -3,9 +3,9 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 // ---------------------------------------------------------------------------
-// W35 – worker-status-panel polling interval increased to 5s
+// worker-status-panel 轮询间隔改为 5 秒
 // ---------------------------------------------------------------------------
-describe("W35: worker-status-panel polling interval", () => {
+describe("worker-status-panel 轮询间隔改为 5 秒", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/worker-status-panel.tsx",
     "utf8",
@@ -18,9 +18,9 @@ describe("W35: worker-status-panel polling interval", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W36 – llm-settings-form loadProviderModels uses AbortController
+// llm-settings-form loadProviderModels 使用 AbortController
 // ---------------------------------------------------------------------------
-describe("W36: loadProviderModels AbortController", () => {
+describe("loadProviderModels 使用 AbortController", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/llm-settings-form.tsx",
     "utf8",
@@ -45,9 +45,9 @@ describe("W36: loadProviderModels AbortController", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W60 – article-search-form syncs state with prop
+// article-search-form 状态与 prop 同步
 // ---------------------------------------------------------------------------
-describe("W60: article-search-form state sync", () => {
+describe("article-search-form 状态与 prop 同步", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/article-search-form.tsx",
     "utf8",
@@ -63,9 +63,9 @@ describe("W60: article-search-form state sync", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W61 – test connection button loading state
+// 测试连接按钮加载状态
 // ---------------------------------------------------------------------------
-describe("W61: test connection button loading feedback", () => {
+describe("测试连接按钮加载状态", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/llm-settings-form.tsx",
     "utf8",
@@ -85,9 +85,9 @@ describe("W61: test connection button loading feedback", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W62 – osv-sync-panel auto-refresh after sync
+// osv-sync-panel 同步完成后自动刷新
 // ---------------------------------------------------------------------------
-describe("W62: osv-sync-panel auto-refresh after sync", () => {
+describe("osv-sync-panel 同步完成后自动刷新", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/osv-sync-panel.tsx",
     "utf8",
@@ -107,9 +107,9 @@ describe("W62: osv-sync-panel auto-refresh after sync", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W63 – feed-table useFormStatus loading state
+// feed-table useFormStatus 加载状态
 // ---------------------------------------------------------------------------
-describe("W63: feed-table useFormStatus loading state", () => {
+describe("feed-table useFormStatus 加载状态", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/feed-table.tsx",
     "utf8",
@@ -137,9 +137,9 @@ describe("W63: feed-table useFormStatus loading state", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W64 – redirect-countdown interval changed to 1000ms
+// redirect-countdown 倒计时间隔改为 1000ms
 // ---------------------------------------------------------------------------
-describe("W64: redirect-countdown interval", () => {
+describe("redirect-countdown 倒计时间隔改为 1000ms", () => {
   const src = fs.readFileSync(
     "apps/web/components/redirect-countdown.tsx",
     "utf8",
@@ -152,9 +152,9 @@ describe("W64: redirect-countdown interval", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W65 – job-stage-filter-select runtime validation
+// job-stage-filter-select 运行时校验
 // ---------------------------------------------------------------------------
-describe("W65: job-stage-filter-select runtime validation", () => {
+describe("job-stage-filter-select 运行时校验", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/job-stage-filter-select.tsx",
     "utf8",
@@ -174,9 +174,9 @@ describe("W65: job-stage-filter-select runtime validation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W66 – language-toggle document.startViewTransition typed
+// language-toggle startViewTransition 类型声明
 // ---------------------------------------------------------------------------
-describe("W66: language-toggle startViewTransition typing", () => {
+describe("language-toggle startViewTransition 类型声明", () => {
   const src = fs.readFileSync(
     "apps/web/components/language-toggle.tsx",
     "utf8",
@@ -190,9 +190,9 @@ describe("W66: language-toggle startViewTransition typing", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W67 – page-select scrolls to top on page change
+// page-select 翻页时滚动到顶部
 // ---------------------------------------------------------------------------
-describe("W67: page-select scrollTo on navigation", () => {
+describe("page-select 翻页时滚动到顶部", () => {
   const src = fs.readFileSync("apps/web/components/page-select.tsx", "utf8");
 
   it("calls window.scrollTo(0, 0) in navigateTo", () => {
@@ -201,9 +201,9 @@ describe("W67: page-select scrollTo on navigation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W68 – osv-sync-panel aria-live on error element
+// osv-sync-panel 错误元素添加 aria-live
 // ---------------------------------------------------------------------------
-describe("W68: osv-sync-panel aria-live placement", () => {
+describe("osv-sync-panel 错误元素添加 aria-live", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/osv-sync-panel.tsx",
     "utf8",
@@ -222,9 +222,9 @@ describe("W68: osv-sync-panel aria-live placement", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W69 – article-table warns for unknown statuses
+// article-table 未知状态警告
 // ---------------------------------------------------------------------------
-describe("W69: article-table unknown status warning", () => {
+describe("article-table 未知状态警告", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/article-table.tsx",
     "utf8",
@@ -242,9 +242,9 @@ describe("W69: article-table unknown status warning", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W70 – endpoint-card lang typed as AppLang
+// endpoint-card lang 类型改为 AppLang
 // ---------------------------------------------------------------------------
-describe("W70: endpoint-card lang type", () => {
+describe("endpoint-card lang 类型改为 AppLang", () => {
   const src = fs.readFileSync(
     "apps/web/app/[lang]/api/endpoint-card.tsx",
     "utf8",
@@ -261,9 +261,9 @@ describe("W70: endpoint-card lang type", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W71 – duplicate skill/copy-button removed
+// 移除重复的 skill/copy-button
 // ---------------------------------------------------------------------------
-describe("W71: duplicate skill/copy-button removed", () => {
+describe("移除重复的 skill/copy-button", () => {
   it("the duplicate file no longer exists", () => {
     const exists = fs.existsSync("apps/web/app/[lang]/skill/copy-button.tsx");
     expect(exists).toBe(false);
@@ -276,9 +276,9 @@ describe("W71: duplicate skill/copy-button removed", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W72 – job-select-all-checkbox uses React state
+// job-select-all-checkbox 使用 React state
 // ---------------------------------------------------------------------------
-describe("W72: job-select-all-checkbox React state", () => {
+describe("job-select-all-checkbox 使用 React state", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/job-select-all-checkbox.tsx",
     "utf8",
@@ -302,9 +302,9 @@ describe("W72: job-select-all-checkbox React state", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W73 – admin/error.tsx default language "zh"
+// admin/error.tsx 默认语言改为 zh
 // ---------------------------------------------------------------------------
-describe("W73: admin error.tsx default language", () => {
+describe("admin/error.tsx 默认语言改为 zh", () => {
   const src = fs.readFileSync("apps/web/app/[lang]/admin/error.tsx", "utf8");
 
   it('defaults to "zh" not "en"', () => {
@@ -314,9 +314,9 @@ describe("W73: admin error.tsx default language", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W74 – markdown-renderer memoized components
+// markdown-renderer 组件 memo 化
 // ---------------------------------------------------------------------------
-describe("W74: markdown-renderer memoized components", () => {
+describe("markdown-renderer 组件 memo 化", () => {
   const src = fs.readFileSync(
     "apps/web/components/content/markdown-renderer.tsx",
     "utf8",
@@ -338,9 +338,9 @@ describe("W74: markdown-renderer memoized components", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W75 – custom-select keyboard navigation
+// custom-select 键盘导航
 // ---------------------------------------------------------------------------
-describe("W75: custom-select keyboard navigation", () => {
+describe("custom-select 键盘导航", () => {
   const src = fs.readFileSync(
     "apps/web/components/ui/custom-select.tsx",
     "utf8",
@@ -373,9 +373,9 @@ describe("W75: custom-select keyboard navigation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W76 – llm-settings-form isActive checkbox label association
+// llm-settings-form isActive 复选框 label 关联
 // ---------------------------------------------------------------------------
-describe("W76: isActive checkbox label association", () => {
+describe("isActive 复选框 label 关联", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/llm-settings-form.tsx",
     "utf8",
@@ -388,9 +388,9 @@ describe("W76: isActive checkbox label association", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W77 – feed-table delete button aria-label
+// feed-table 删除按钮添加 aria-label
 // ---------------------------------------------------------------------------
-describe("W77: feed-table delete button aria confirmation", () => {
+describe("feed-table 删除按钮 aria-label", () => {
   const src = fs.readFileSync(
     "apps/web/components/admin/feed-table.tsx",
     "utf8",
@@ -404,9 +404,9 @@ describe("W77: feed-table delete button aria confirmation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W78 – custom-select focus trap (Tab closes dropdown)
+// custom-select 焦点陷阱（Tab 关闭下拉菜单）
 // ---------------------------------------------------------------------------
-describe("W78: custom-select focus trap", () => {
+describe("custom-select 焦点陷阱（Tab 关闭下拉菜单）", () => {
   const src = fs.readFileSync(
     "apps/web/components/ui/custom-select.tsx",
     "utf8",
