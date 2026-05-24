@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 
 import { and, eq, inArray } from "drizzle-orm"
 
-import { articles, getDb, llmUsageLogs, processingJobs, schema } from "@vibeguard/db"
+import { articles, getDb, processingJobs, schema } from "@vibeguard/db"
 import {
   JobStatus,
 } from "@vibeguard/shared"
@@ -32,6 +32,123 @@ function buildArticleDetailRedirect(
   })
 
   return `/${lang}/admin/articles/${articleId}?${params.toString()}`
+}
+
+type ArticlesListRedirectContext = {
+  page?: string
+  pageSize?: string
+  q?: string
+}
+
+function buildArticlesListRedirect(
+  status: "success" | "error",
+  message: string,
+  lang: "zh" | "en",
+  context: ArticlesListRedirectContext = {},
+) {
+  const params = new URLSearchParams({
+    status,
+    message,
+  })
+
+  if (context.page) {
+    params.set("page", context.page)
+  }
+
+  if (context.pageSize) {
+    params.set("pageSize", context.pageSize)
+  }
+
+  if (context.q?.trim()) {
+    params.set("q", context.q.trim())
+  }
+
+  return `/${lang}/admin/articles?${params.toString()}`
+}
+
+function getArticlesListRedirectContext(formData: FormData): ArticlesListRedirectContext {
+  return {
+    page: String(formData.get("page") ?? "1"),
+    pageSize: String(formData.get("pageSize") ?? "10"),
+    q: String(formData.get("q") ?? ""),
+  }
+}
+
+export async function deleteSelectedArticlesAction(formData: FormData) {
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
+  const redirectContext = getArticlesListRedirectContext(formData)
+  const ids = Array.from(
+    new Set(
+      formData
+        .getAll("ids")
+        .map((id) => String(id).trim())
+        .filter(Boolean),
+    ),
+  )
+
+  let redirectTarget = buildArticlesListRedirect(
+    "error",
+    lang === "zh"
+      ? "请先选择要删除的文章。"
+      : "Select articles to delete first.",
+    lang,
+    redirectContext,
+  )
+
+  if (ids.length === 0) {
+    redirect(redirectTarget)
+  }
+
+  try {
+    const db = getDb()
+    const existingRows = await db.query.articles.findMany({
+      where: inArray(articles.id, ids),
+      columns: { id: true },
+    })
+    const existingIds = existingRows.map((article) => article.id)
+
+    if (existingIds.length === 0) {
+      redirectTarget = buildArticlesListRedirect(
+        "error",
+        lang === "zh"
+          ? "选中的文章不存在或已经被删除。"
+          : "The selected articles were not found or were already deleted.",
+        lang,
+        redirectContext,
+      )
+    } else {
+      await db.delete(articles).where(inArray(articles.id, existingIds))
+
+      revalidateLocalizedPaths(
+        "/admin",
+        "/admin/articles",
+        "/admin/jobs",
+        "/",
+        ...existingIds.flatMap((articleId) => [
+          `/admin/articles/${articleId}`,
+          `/articles/${articleId}`,
+        ]),
+      )
+
+      redirectTarget = buildArticlesListRedirect(
+        "success",
+        lang === "zh"
+          ? `已删除 ${existingIds.length} 篇文章。`
+          : `${existingIds.length} article${existingIds.length === 1 ? "" : "s"} deleted.`,
+        lang,
+        redirectContext,
+      )
+    }
+  } catch (error) {
+    redirectTarget = buildArticlesListRedirect(
+      "error",
+      normalizeUserFacingError(error, lang),
+      lang,
+      redirectContext,
+    )
+  }
+
+  redirect(redirectTarget)
 }
 
 export async function reprocessArticleAction(formData: FormData) {

@@ -292,17 +292,23 @@ describe("W72: job-select-all-checkbox React state", () => {
     "apps/web/components/admin/job-select-all-checkbox.tsx",
     "utf8",
   )
+  const sharedSrc = fs.readFileSync(
+    "apps/web/components/admin/admin-select-all-checkbox.tsx",
+    "utf8",
+  )
 
   it("does not use document.querySelectorAll directly in the component body", () => {
     // The old code had a standalone function using querySelectorAll with form= attribute
-    expect(src).not.toContain(
+    expect(sharedSrc).not.toContain(
       'input[type="checkbox"][form="${formId}"]',
     )
   })
 
-  it("manages checked and count state with React state", () => {
-    expect(src).toContain("setChecked")
-    expect(src).toContain("setCheckedCount")
+  it("delegates to the shared checkbox state component", () => {
+    expect(src).toContain("AdminSelectAllCheckbox")
+    expect(sharedSrc).toContain("setChecked")
+    expect(sharedSrc).toContain("setDisabled")
+    expect(sharedSrc).toContain("form.elements")
   })
 })
 

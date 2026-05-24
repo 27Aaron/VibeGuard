@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { AdminSelectAllCheckbox } from "@/components/admin/admin-select-all-checkbox"
 import { Badge } from "@/components/ui/badge"
 import type { ArticleRow } from "@/components/admin/types"
 import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
@@ -50,6 +51,13 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
       <Table>
         <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
+            <TableHead className="w-14 px-4">
+              <AdminSelectAllCheckbox
+                formId="selected-articles-form"
+                inputName="ids"
+                label={lang === "zh" ? "全选当前页文章" : "Select all articles on this page"}
+              />
+            </TableHead>
             <TableHead className="px-4">{lang === "zh" ? "标题" : "Title"}</TableHead>
             <TableHead className="px-4 text-center">{lang === "zh" ? "来源" : "Source"}</TableHead>
             <TableHead className="px-4 text-center">{lang === "zh" ? "状态" : "Status"}</TableHead>
@@ -64,6 +72,21 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
         <TableBody>
           {articles.map((article) => (
             <TableRow key={article.id}>
+              <TableCell className="px-4 py-3 align-middle">
+                <label className="flex cursor-pointer items-center justify-center">
+                  <input
+                    aria-label={
+                      lang === "zh"
+                        ? `选择 ${article.title}`
+                        : `Select ${article.title}`
+                    }
+                    form="selected-articles-form"
+                    name="ids"
+                    type="checkbox"
+                    value={article.id}
+                  />
+                </label>
+              </TableCell>
               <TableCell className="max-w-[420px] px-4 py-3 align-middle font-medium">
                 <div className="flex min-w-0 flex-col gap-1">
                   <Link

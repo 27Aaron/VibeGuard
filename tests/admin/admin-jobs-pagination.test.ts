@@ -54,6 +54,10 @@ describe("admin job pagination", () => {
       "apps/web/components/admin/job-select-all-checkbox.tsx",
       "utf8",
     )
+    const adminSelectAll = fs.readFileSync(
+      "apps/web/components/admin/admin-select-all-checkbox.tsx",
+      "utf8",
+    )
 
     expect(page).toContain("parseAdminJobListParams")
     expect(page).toContain("ADMIN_JOB_PAGE_SIZE_OPTIONS")
@@ -79,9 +83,10 @@ describe("admin job pagination", () => {
     expect(stageFilter).toContain("router.push")
     expect(stageFilter).toContain("router.push(`/${lang}/admin/jobs?")
     expect(stageFilter).toContain("onChange")
-    expect(selectAll).toContain("\"use client\"")
-    expect(selectAll).toContain("indeterminate")
-    expect(selectAll).toContain("querySelectorAll")
+    expect(selectAll).toContain("AdminSelectAllCheckbox")
+    expect(adminSelectAll).toContain("\"use client\"")
+    expect(adminSelectAll).toContain("indeterminate")
+    expect(adminSelectAll).toContain("form.elements")
     expect(page).not.toContain("最近 100 条任务")
     expect(page).not.toContain("latest 100 jobs")
     expect(page).not.toContain("服务端完成")

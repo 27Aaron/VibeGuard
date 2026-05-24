@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell"
+import { ArticleBulkDeleteButton } from "@/components/admin/article-bulk-delete-button"
 import { ArticleSearchForm } from "@/components/admin/article-search-form"
 import { SoftLink } from "@/components/admin/soft-link"
 import { ArticleTable } from "@/components/admin/article-table"
@@ -18,6 +19,7 @@ import {
   ADMIN_ARTICLE_PAGE_SIZE_OPTIONS,
   parseAdminArticleListParams,
 } from "@/lib/admin-article-pagination"
+import { deleteSelectedArticlesAction } from "@/lib/actions/articles"
 import { getArticleRows } from "@/lib/admin-data"
 import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import { resolveLang, type AppLang } from "@/lib/i18n"
@@ -31,6 +33,8 @@ type ArticlesPageProps = {
     page?: string
     pageSize?: string
     q?: string
+    status?: string
+    message?: string
   }>
 }
 
@@ -69,6 +73,7 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
   const nextPage = Math.min(pagination.totalPages, pagination.page + 1)
   const hasPreviousPage = pagination.page > 1
   const hasNextPage = pagination.page < pagination.totalPages
+  const showBanner = params.status === "success" || params.status === "error"
 
   return (
     <AdminPageShell
@@ -80,14 +85,40 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
       }
       lang={lang}
     >
+      {showBanner ? (
+        <div
+          className={`rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none ${
+            params.status === "error"
+              ? "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10"
+              : "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
+          }`}
+        >
+          {params.message}
+        </div>
+      ) : null}
       <Card>
-        <CardHeader>
-          <CardTitle>{lang === "zh" ? "最近文章" : "Recent articles"}</CardTitle>
-          <CardDescription>
-            {lang === "zh"
-              ? "最近入库的文章，包含状态和中英文标题预览。"
-              : "Recently ingested articles with status and bilingual title previews."}
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1.5">
+            <CardTitle>{lang === "zh" ? "最近文章" : "Recent articles"}</CardTitle>
+            <CardDescription>
+              {lang === "zh"
+                ? "最近入库的文章，包含状态和中英文标题预览。"
+                : "Recently ingested articles with status and bilingual title previews."}
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <form id="selected-articles-form" action={deleteSelectedArticlesAction}>
+              <input type="hidden" name="lang" value={lang} />
+              <input type="hidden" name="page" value={String(pagination.page)} />
+              <input type="hidden" name="pageSize" value={String(pagination.pageSize)} />
+              <input type="hidden" name="q" value={searchQuery} />
+            </form>
+            <ArticleBulkDeleteButton
+              formId="selected-articles-form"
+              inputName="ids"
+              lang={lang}
+            />
+          </div>
         </CardHeader>
         <CardContent className="px-6 pb-4">
           <Suspense>
