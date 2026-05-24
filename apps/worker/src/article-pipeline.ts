@@ -1,17 +1,9 @@
-import { createHash } from "node:crypto";
-
-import { fetchArticleHtml } from "@vibeguard/content/extract/article-html";
 import {
   classifySecurityContent,
-  extractMarkdownFromHtml,
-  type ExtractedArticle,
 } from "@vibeguard/content";
-import { articles, llmSettings, schema } from "@vibeguard/db";
 import {
   buildLocalizedSummaryPrompt,
   classifyRelevance,
-  createOpenAIClient,
-  decryptSecret,
   generateTags,
   DEFAULT_TAG_PROMPT,
   resolveTagPrompt,
@@ -19,103 +11,35 @@ import {
   translateText,
 } from "@vibeguard/llm";
 import {
-  ArticleEcosystem,
-  ArticleRiskCategory,
   ArticleStatus,
   JobPipelineStage,
   JobType,
 } from "@vibeguard/shared";
-import type { UsageResult } from "@vibeguard/llm";
 
-type ArticleRecord = typeof articles.$inferSelect;
-type LlmSettingsRecord = typeof llmSettings.$inferSelect;
-type JobRecord = typeof schema.processingJobs.$inferSelect;
-export class JobPausedSignal extends Error {
-  constructor(message = "Job pause requested.") {
-    super(message);
-    this.name = "JobPausedSignal";
-  }
-}
+// Re-export public API so external consumers keep working.
+export { JobPausedSignal, JobCancelledSignal } from "./article-pipeline-types";
+export type { ProcessArticleJobDependencies } from "./article-pipeline-types";
 
-export class JobCancelledSignal extends Error {
-  constructor(message = "Job cancel requested.") {
-    super(message);
-    this.name = "JobCancelledSignal";
-  }
-}
+import type {
+  ArticleRecord,
+  LlmSettingsRecord,
+  JobRecord,
+  ProcessArticleFinalStatus,
+} from "./article-pipeline-types";
+import type { ProcessArticleJobDependencies } from "./article-pipeline-types";
 
-type ProcessArticleFinalStatus =
-  | typeof ArticleStatus.READY
-  | typeof ArticleStatus.FILTERED;
-type ArticlePatch = Partial<
-  Pick<
-    ArticleRecord,
-    | "titleEn"
-    | "titleZh"
-    | "summaryEn"
-    | "summaryZh"
-    | "contentMdEn"
-    | "contentMdZh"
-    | "ecosystem"
-    | "riskCategory"
-    | "tags"
-    | "contentHash"
-    | "status"
-    | "rawMeta"
-  >
->;
-
-export type ProcessArticleJobDependencies = {
-  loadArticle: (articleId: string) => Promise<ArticleRecord | undefined>;
-  loadActiveLlmSettings: () => Promise<LlmSettingsRecord | undefined>;
-  markArticleStatus: (
-    articleId: string,
-    status: (typeof ArticleStatus)[keyof typeof ArticleStatus],
-    error?: string,
-  ) => Promise<void>;
-  updateArticleContent: (
-    articleId: string,
-    content: {
-      titleEn: string;
-      titleZh: string;
-      summaryEn: string;
-      summaryZh: string;
-      contentMdEn: string;
-      contentMdZh: string;
-      ecosystem: ArticleEcosystem;
-      riskCategory: ArticleRiskCategory;
-      tags: string[];
-      contentHash: string;
-      rawMeta: Record<string, unknown>;
-    },
-  ) => Promise<void>;
-  updateArticlePatch?: (
-    articleId: string,
-    patch: ArticlePatch,
-  ) => Promise<void>;
-  fetchArticleHtml: typeof fetchArticleHtml;
-  extractMarkdownFromHtml: (
-    html: string,
-    url: string,
-  ) => Promise<ExtractedArticle>;
-  createOpenAIClient: typeof createOpenAIClient;
-  decryptSecret: typeof decryptSecret;
-  translateText: typeof translateText;
-  summarizeText: typeof summarizeText;
-  generateTags?: typeof generateTags;
-  markJobStage?: (
-    stage: (typeof JobPipelineStage)[keyof typeof JobPipelineStage],
-  ) => Promise<void>;
-  checkJobControl?: () => Promise<void>;
-  logLlmUsage?: (input: {
-    articleId: string;
-    jobId?: string;
-    taskType: string;
-    model: string;
-    usage: UsageResult | null;
-    responseTimeMs: number;
-  }) => Promise<void>;
-};
+import {
+  buildContentHash,
+  checkJobControl,
+  hasRelevanceCheck,
+  hasText,
+  markStageAndCheck,
+  persistArticlePatch,
+  requireArticleField,
+  timedLlmCall,
+  toRawMetaRecord,
+  updateArticlePatchWithFallback,
+} from "./article-pipeline-helpers";
 
 function resolveLocalizedSummaryPrompt(
   settings: Pick<LlmSettingsRecord, "summaryPromptEn" | "summaryPromptZh">,
@@ -625,134 +549,4 @@ async function processTranslateJob(input: {
     summaryZh: summaryZhResult.result,
   });
   await checkJobControl(input.dependencies);
-}
-
-function hasText(value: string | null | undefined): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function toRawMetaRecord(value: unknown) {
-  return value && typeof value === "object"
-    ? { ...(value as Record<string, unknown>) }
-    : {};
-}
-
-function hasRelevanceCheck(rawMeta: Record<string, unknown>) {
-  const relevanceCheck = rawMeta.relevanceCheck;
-
-  return Boolean(
-    relevanceCheck &&
-    typeof relevanceCheck === "object" &&
-    typeof (relevanceCheck as { relevant?: unknown }).relevant === "boolean",
-  );
-}
-
-async function markStageAndCheck(
-  dependencies: ProcessArticleJobDependencies,
-  stage: (typeof JobPipelineStage)[keyof typeof JobPipelineStage],
-) {
-  await dependencies.markJobStage?.(stage);
-  await checkJobControl(dependencies);
-}
-
-async function checkJobControl(dependencies: ProcessArticleJobDependencies) {
-  await dependencies.checkJobControl?.();
-}
-
-function requireArticleField(value: string | null | undefined, label: string) {
-  if (!hasText(value)) {
-    throw new Error(`${label} is required for this processing step.`);
-  }
-
-  return value;
-}
-
-type LlmCallResult<T> = { result: T; usage: UsageResult | null };
-
-async function timedLlmCall<T>(
-  fn: () => Promise<LlmCallResult<T>>,
-  deps: ProcessArticleJobDependencies,
-  input: {
-    articleId: string;
-    taskType: string;
-    model: string;
-  },
-): Promise<LlmCallResult<T>> {
-  const start = Date.now();
-  const response = await fn();
-  const responseTimeMs = Date.now() - start;
-
-  if (deps.logLlmUsage) {
-    await deps.logLlmUsage({
-      articleId: input.articleId,
-      taskType: input.taskType,
-      model: input.model,
-      usage: response.usage,
-      responseTimeMs,
-    });
-  }
-
-  return response;
-}
-
-async function persistArticlePatch(
-  dependencies: ProcessArticleJobDependencies,
-  article: ArticleRecord,
-  patch: ArticlePatch,
-) {
-  if (!dependencies.updateArticlePatch) {
-    return;
-  }
-
-  await dependencies.updateArticlePatch(article.id, patch);
-}
-
-async function updateArticlePatchWithFallback(
-  dependencies: ProcessArticleJobDependencies,
-  article: ArticleRecord,
-  patch: ArticlePatch,
-) {
-  try {
-    if (dependencies.updateArticlePatch) {
-      await dependencies.updateArticlePatch(article.id, patch);
-      return;
-    }
-
-    await dependencies.updateArticleContent(article.id, {
-      titleEn: patch.titleEn ?? article.titleEn,
-      titleZh: patch.titleZh ?? article.titleZh ?? "",
-      summaryEn: patch.summaryEn ?? article.summaryEn ?? "",
-      summaryZh: patch.summaryZh ?? article.summaryZh ?? "",
-      contentMdEn:
-        patch.contentMdEn ??
-        requireArticleField(article.contentMdEn, "English body"),
-      contentMdZh: patch.contentMdZh ?? article.contentMdZh ?? "",
-      ecosystem: patch.ecosystem ?? article.ecosystem,
-      riskCategory: patch.riskCategory ?? article.riskCategory,
-      tags: patch.tags ?? article.tags,
-      contentHash:
-        patch.contentHash ??
-        article.contentHash ??
-        buildContentHash(
-          patch.titleEn ?? article.titleEn,
-          patch.contentMdEn ?? article.contentMdEn ?? "",
-        ),
-      rawMeta:
-        patch.rawMeta && typeof patch.rawMeta === "object"
-          ? (patch.rawMeta as Record<string, unknown>)
-          : toRawMetaRecord(article.rawMeta),
-    });
-  } catch (error) {
-    console.error(
-      `updateArticlePatchWithFallback failed for article ${article.id}:`,
-      error,
-    );
-    throw new Error(`Failed to persist article patch for ${article.id}`, {
-      cause: error,
-    });
-  }
-}
-
-function buildContentHash(title: string, content: string) {
-  return createHash("sha256").update(`${title}\n${content}`).digest("hex");
 }
