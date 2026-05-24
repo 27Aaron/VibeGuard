@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Readable } from "node:stream";
+import { Readable, Transform, type TransformCallback } from "node:stream";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
@@ -198,6 +198,21 @@ async function defaultFetchBytes(url: string) {
   return new Uint8Array(buffer);
 }
 
+class ByteLimitTransform extends Transform {
+  private received = 0;
+  constructor(private max: number) {
+    super();
+  }
+  _transform(chunk: Buffer, _: BufferEncoding, cb: TransformCallback) {
+    this.received += chunk.length;
+    if (this.received > this.max) {
+      cb(new Error(`Download exceeded ${this.max} byte limit`));
+      return;
+    }
+    cb(null, chunk);
+  }
+}
+
 async function streamArchiveToFile(url: string, destPath: string) {
   const response = await fetch(url);
 
@@ -225,7 +240,13 @@ async function streamArchiveToFile(url: string, destPath: string) {
     response.body as unknown as NodeReadableStream<Uint8Array>,
   );
   const writable = createWriteStream(tmpPath);
-  await pipeline(readable, writable);
+  try {
+    await pipeline(readable, new ByteLimitTransform(MAX_ARCHIVE_BYTES), writable);
+  } catch {
+    writable.destroy();
+    await fs.unlink(tmpPath).catch(() => {});
+    throw new Error(`OSV archive download failed or exceeded ${MAX_ARCHIVE_BYTES} byte limit`);
+  }
   await fs.rename(tmpPath, destPath);
 
   return destPath;

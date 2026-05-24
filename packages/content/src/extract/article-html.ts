@@ -1,13 +1,12 @@
-import { DEFAULT_USER_AGENT, assertHttpUrl } from "../shared/http";
+import { DEFAULT_USER_AGENT, safeFetch } from "../shared/http";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BYTES = 2_000_000;
 
 export async function fetchArticleHtml(
   url: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: (url: string, init?: RequestInit) => Promise<Response> = safeFetch,
 ) {
-  await assertHttpUrl(url);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 

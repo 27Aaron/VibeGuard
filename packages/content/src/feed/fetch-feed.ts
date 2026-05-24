@@ -1,7 +1,7 @@
 import Parser from "rss-parser";
 
 import type { FeedItemInput } from "./normalize";
-import { DEFAULT_USER_AGENT, assertHttpUrl } from "../shared/http";
+import { DEFAULT_USER_AGENT, safeFetch } from "../shared/http";
 
 type ParsedFeed = Parser.Output<FeedItemInput>;
 
@@ -11,12 +11,11 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BYTES = 1_000_000;
 
 export async function fetchFeed(feedUrl: string): Promise<ParsedFeed> {
-  await assertHttpUrl(feedUrl);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
   try {
-    const response = await fetch(feedUrl, {
+    const response = await safeFetch(feedUrl, {
       headers: {
         "user-agent": DEFAULT_USER_AGENT,
         accept:

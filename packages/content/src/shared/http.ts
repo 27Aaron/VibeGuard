@@ -2,6 +2,8 @@ import { lookup } from "node:dns/promises";
 
 export const DEFAULT_USER_AGENT = "vibeguard-bot/0.1 (+https://vibeguard.dev)";
 
+const MAX_SAFE_REDIRECTS = 5;
+
 function isPrivateIp(ip: string): boolean {
   const parts = ip.split(".");
   if (parts.length === 4) {
@@ -34,5 +36,31 @@ export async function assertHttpUrl(url: string) {
 
   if (isPrivateIp(address)) {
     throw new Error("URL resolves to a private or reserved IP address.");
+  }
+}
+
+export async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  let currentUrl = url;
+  let redirects = 0;
+
+  while (true) {
+    await assertHttpUrl(currentUrl);
+
+    const response = await fetch(currentUrl, { ...init, redirect: "manual" });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      try { await response.body?.cancel(); } catch {}
+      if (!location) {
+        throw new Error(`Redirect response missing Location header (${response.status})`);
+      }
+      if (++redirects > MAX_SAFE_REDIRECTS) {
+        throw new Error(`Too many redirects (exceeded ${MAX_SAFE_REDIRECTS})`);
+      }
+      currentUrl = new URL(location, currentUrl).href;
+      continue;
+    }
+
+    return response;
   }
 }

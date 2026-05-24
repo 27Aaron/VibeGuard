@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Readable } from "node:stream";
+import { Readable, Transform, type TransformCallback } from "node:stream";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
@@ -76,7 +76,27 @@ export async function downloadToCache({
     response.body as unknown as NodeReadableStream<Uint8Array>,
   );
   const writable = createWriteStream(tmpPath);
-  await pipeline(readable, writable);
+  try {
+    await pipeline(
+      readable,
+      new (class extends Transform {
+        private received = 0;
+        _transform(chunk: Buffer, _: BufferEncoding, cb: TransformCallback) {
+          this.received += chunk.length;
+          if (this.received > maxBytes) {
+            cb(new Error(`Download exceeded ${maxBytes} byte limit`));
+            return;
+          }
+          cb(null, chunk);
+        }
+      })(),
+      writable,
+    );
+  } catch {
+    writable.destroy();
+    await fs.unlink(tmpPath).catch(() => {});
+    throw new Error(`Enrichment feed download failed or exceeded ${maxBytes} byte limit`);
+  }
   await fs.rename(tmpPath, target);
 
   return target;

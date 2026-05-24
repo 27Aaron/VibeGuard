@@ -11,6 +11,7 @@ vi.mock("../../packages/content/src/shared/http", async () => {
   return {
     ...actual,
     assertHttpUrl: vi.fn().mockResolvedValue(undefined),
+    safeFetch: fetch,
   };
 });
 
