@@ -14,11 +14,24 @@ const packageCheckRateLimits = new Map<
   { count: number; windowStart: number }
 >();
 
+const RATE_LIMIT_CLEANUP_INTERVAL_MS = 5 * 60_000;
+let lastCleanup = 0;
+
+function cleanupExpiredEntries(now: number) {
+  if (now - lastCleanup < RATE_LIMIT_CLEANUP_INTERVAL_MS) return;
+  lastCleanup = now;
+  for (const [ip, entry] of packageCheckRateLimits) {
+    if (now - entry.windowStart >= RATE_LIMIT_WINDOW_MS) {
+      packageCheckRateLimits.delete(ip);
+    }
+  }
+}
+
 function resolveClientIp(request: Request): string {
   const trustProxy = process.env.VIBEGUARD_TRUST_PROXY_HEADERS?.toLowerCase();
   if (trustProxy === "1" || trustProxy === "true") {
     const forwarded = request.headers.get("x-forwarded-for");
-    const candidate = forwarded?.split(",").pop()?.trim();
+    const candidate = forwarded?.split(",")[0]?.trim();
     if (candidate) return candidate;
 
     const realIp = request.headers.get("x-real-ip");
@@ -29,6 +42,7 @@ function resolveClientIp(request: Request): string {
 }
 
 function isRateLimited(ip: string, now = Date.now()): boolean {
+  cleanupExpiredEntries(now);
   const entry = packageCheckRateLimits.get(ip);
 
   if (!entry || now - entry.windowStart >= RATE_LIMIT_WINDOW_MS) {
