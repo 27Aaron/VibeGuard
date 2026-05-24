@@ -157,8 +157,6 @@ export async function listArticles(searchParams: URLSearchParams) {
       titleZh: articles.titleZh,
       summaryEn: articles.summaryEn,
       summaryZh: articles.summaryZh,
-      contentMdEn: articles.contentMdEn,
-      contentMdZh: articles.contentMdZh,
       url: articles.url,
       sourceName: feeds.name,
       ecosystem: articles.ecosystem,
