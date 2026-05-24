@@ -369,7 +369,7 @@ export async function resetStaleRunningJobs(
     )
     .returning();
 
-  const result = await db
+  const retried = await db
     .update(processingJobs)
     .set({
       status: JobStatus.QUEUED,
@@ -383,14 +383,32 @@ export async function resetStaleRunningJobs(
       and(
         eq(processingJobs.status, JobStatus.RUNNING),
         lt(processingJobs.startedAt, staleThreshold),
+        sql`${processingJobs.attempt} < ${processingJobs.maxAttempts}`,
       ),
     )
     .returning();
 
-  const resetCount = result.length + paused.length;
+  const staleFailed = await db
+    .update(processingJobs)
+    .set({
+      status: JobStatus.FAILED,
+      lastError: "任务执行超时，已达到最大尝试次数。",
+      finishedAt: now,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(processingJobs.status, JobStatus.RUNNING),
+        lt(processingJobs.startedAt, staleThreshold),
+        sql`${processingJobs.attempt} >= ${processingJobs.maxAttempts}`,
+      ),
+    )
+    .returning();
+
+  const resetCount = retried.length + paused.length;
 
   return {
     resetCount,
-    failedCount: cancelled.length,
+    failedCount: cancelled.length + staleFailed.length,
   };
 }

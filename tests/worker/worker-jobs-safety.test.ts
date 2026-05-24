@@ -18,6 +18,11 @@ describe("resetStaleRunningJobs", () => {
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([{ id: "job-1" }, { id: "job-2" }]),
     };
+    const staleFailedChain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([{ id: "job-3" }]),
+    };
     const deleteChain = {
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([{ id: "cancelled-job" }]),
@@ -27,7 +32,8 @@ describe("resetStaleRunningJobs", () => {
       update: vi
         .fn()
         .mockReturnValueOnce(pauseChain)
-        .mockReturnValueOnce(runningChain),
+        .mockReturnValueOnce(runningChain)
+        .mockReturnValueOnce(staleFailedChain),
       delete: vi.fn().mockReturnValue(deleteChain),
     } as never;
 
@@ -39,7 +45,7 @@ describe("resetStaleRunningJobs", () => {
       staleAfterMinutes: 3,
     });
 
-    expect(mockDb.update).toHaveBeenCalledTimes(2);
+    expect(mockDb.update).toHaveBeenCalledTimes(3);
     expect(mockDb.delete).toHaveBeenCalledTimes(1);
 
     expect(pauseChain.set).toHaveBeenCalledWith(
@@ -53,12 +59,18 @@ describe("resetStaleRunningJobs", () => {
         pipelineStage: "waiting",
       }),
     );
+    expect(staleFailedChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: JobStatus.FAILED,
+      }),
+    );
 
     expect(pauseChain.where).toHaveBeenCalledTimes(1);
     expect(runningChain.where).toHaveBeenCalledTimes(1);
+    expect(staleFailedChain.where).toHaveBeenCalledTimes(1);
     expect(deleteChain.where).toHaveBeenCalledTimes(1);
     expect(result.resetCount).toBe(3);
-    expect(result.failedCount).toBe(1);
+    expect(result.failedCount).toBe(2);
   });
 
   it("returns zero counts when no stale jobs exist", async () => {
@@ -72,6 +84,11 @@ describe("resetStaleRunningJobs", () => {
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([]),
     };
+    const staleFailedChain = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([]),
+    };
     const deleteChain = {
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([]),
@@ -81,7 +98,8 @@ describe("resetStaleRunningJobs", () => {
       update: vi
         .fn()
         .mockReturnValueOnce(pauseChain)
-        .mockReturnValueOnce(runningChain),
+        .mockReturnValueOnce(runningChain)
+        .mockReturnValueOnce(staleFailedChain),
       delete: vi.fn().mockReturnValue(deleteChain),
     } as never;
 
