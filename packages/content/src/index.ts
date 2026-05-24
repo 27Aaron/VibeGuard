@@ -10,7 +10,3 @@ export * from "./osv/query";
 export * from "./osv/store";
 export * from "./security/enrichment";
 export * from "./security/risk";
-export * from "./project-security/types";
-export * from "./project-security/discover-dependency-files";
-export * from "./project-security/scan-dependencies";
-export * from "./project-security/check-project";

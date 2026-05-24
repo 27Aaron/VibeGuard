@@ -7,7 +7,6 @@ import { stripJsonFence, tryParseJsonCandidates, resolvePrompt } from "../../pac
 
 import { parseModifiedIdCsv, buildModifiedIdCsvUrl } from "../../packages/content/src/osv/sync"
 import { normalizeFeedItem, resolvePublishedAt, type FeedItemInput } from "../../packages/content/src/feed/normalize"
-import { parseRustDependencyFile } from "../../packages/content/src/project-security/parsers/rust"
 
 // ---------------------------------------------------------------------------
 // I06: chat.ts — lastError default value
@@ -210,25 +209,6 @@ describe("I07: osv/sync.ts — no unused execFile import", () => {
 })
 
 // ---------------------------------------------------------------------------
-// I08: check-project.ts — colon separator in package key
-// ---------------------------------------------------------------------------
-
-describe("I08: check-project.ts — colon separator for package keys", () => {
-  // The buildForwardedPackageKey function is internal, so we verify
-  // through the public API that deduplication works correctly with
-  // colon-separated keys.
-  it("verifies no null bytes exist in the source file", async () => {
-    const fs = await import("node:fs/promises")
-    const content = await fs.readFile(
-      new URL("../../packages/content/src/project-security/check-project.ts", import.meta.url),
-      "utf8",
-    )
-    // Source should not contain the null byte escape   as a separator
-    expect(content).not.toContain("\\u0000")
-  })
-})
-
-// ---------------------------------------------------------------------------
 // I22: feed/normalize.ts — tighter FeedItemInput index signature
 // ---------------------------------------------------------------------------
 
@@ -278,90 +258,6 @@ describe("I24: osv/sync.ts — nextIndex safety documentation", () => {
   it("parseModifiedIdCsv respects limit=0", () => {
     const rows = parseModifiedIdCsv("modified,id\n2024-01-01T00:00:00Z,CVE-1", 0)
     expect(rows).toHaveLength(0)
-  })
-})
-
-// ---------------------------------------------------------------------------
-// I25: rust.ts — sparse+ prefix support in isRegistryCargoSource
-// ---------------------------------------------------------------------------
-
-describe("I25: isRegistryCargoSource — sparse+ prefix support", () => {
-  it("recognizes registry+ crates.io source in Cargo.lock", async () => {
-    const result = await parseRustDependencyFile({
-      rootDir: "/repo",
-      file: {
-        ecosystem: "crates-io",
-        kind: "lockfile",
-        path: "Cargo.lock",
-        confidence: "high",
-        note: "lockfile",
-      },
-      content: [
-        "[[package]]",
-        'name = "serde"',
-        'version = "1.0.217"',
-        'source = "registry+https://github.com/rust-lang/crates.io-index"',
-      ].join("\n"),
-    })
-    expect(result.packages).toHaveLength(1)
-    expect(result.packages[0].name).toBe("serde")
-  })
-
-  it("recognizes sparse+ crates.io source in Cargo.lock", async () => {
-    const result = await parseRustDependencyFile({
-      rootDir: "/repo",
-      file: {
-        ecosystem: "crates-io",
-        kind: "lockfile",
-        path: "Cargo.lock",
-        confidence: "high",
-        note: "lockfile",
-      },
-      content: [
-        "[[package]]",
-        'name = "serde"',
-        'version = "1.0.217"',
-        'source = "sparse+https://index.crates.io/"',
-      ].join("\n"),
-    })
-    expect(result.packages).toHaveLength(1)
-    expect(result.packages[0].name).toBe("serde")
-  })
-
-  it("rejects non-crates.io sources", async () => {
-    const result = await parseRustDependencyFile({
-      rootDir: "/repo",
-      file: {
-        ecosystem: "crates-io",
-        kind: "lockfile",
-        path: "Cargo.lock",
-        confidence: "high",
-        note: "lockfile",
-      },
-      content: [
-        "[[package]]",
-        'name = "my-local"',
-        'version = "0.1.0"',
-        'source = "registry+https://my-private-registry.com/index"',
-      ].join("\n"),
-    })
-    expect(result.packages).toHaveLength(0)
-  })
-})
-
-// ---------------------------------------------------------------------------
-// I26: scan-dependencies.ts — Cargo.toml read caching
-// ---------------------------------------------------------------------------
-
-describe("I26: scan-dependencies.ts — Cargo.toml cache", () => {
-  it("verify manifestCache is passed to parseDependencyFile by reading source", async () => {
-    const fs = await import("node:fs/promises")
-    const content = await fs.readFile(
-      new URL("../../packages/content/src/project-security/scan-dependencies.ts", import.meta.url),
-      "utf8",
-    )
-    expect(content).toContain("manifestCache")
-    expect(content).toContain("manifestCache.set(manifestPath, manifestPromise)")
   })
 })
 

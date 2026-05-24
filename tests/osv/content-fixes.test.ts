@@ -6,8 +6,6 @@ import { describe, expect, it } from "vitest"
 import { deleteCachedOsvFile, buildOsvCachePath, assertSafeFileName } from "../../packages/content/src/osv/cache"
 import { parseDate } from "../../packages/content/src/osv/normalize"
 import { stripHtmlTags } from "../../packages/content/src/feed/store"
-import { extractNodePackageName } from "../../packages/content/src/project-security/parsers/node"
-import { parsePyprojectArrayEntries } from "../../packages/content/src/project-security/parsers/python"
 import { parseSimpleNumericVersion } from "../../packages/content/src/osv/version-match"
 
 // W15: deleteCachedOsvFile should only delete a single file, not a directory tree
@@ -201,92 +199,5 @@ describe("W53: PyPI pre-release version comparison", () => {
     expect(v1).not.toBeNull()
     expect(v2).not.toBeNull()
     expect(v1!.compareTo(v2!)).toBeLessThan(0)
-  })
-})
-
-// W54: Regex TOML parsing edge cases
-describe("W54: parsePyprojectArrayEntries handles edge cases", () => {
-  it("parses single-line arrays with double-quoted strings", () => {
-    const content = `
-[project]
-dependencies = ["requests>=2.0", "flask"]
-`.trim()
-    const result = parsePyprojectArrayEntries(content, "dependencies")
-    expect(result).toEqual(["requests>=2.0", "flask"])
-  })
-
-  it("parses multi-line arrays", () => {
-    const content = `
-[project]
-dependencies = [
-    "requests>=2.0",
-    "flask",
-]
-`.trim()
-    const result = parsePyprojectArrayEntries(content, "dependencies")
-    expect(result).toEqual(["requests>=2.0", "flask"])
-  })
-
-  it("handles single-quoted strings", () => {
-    const content = `
-[project]
-dependencies = ['requests>=2.0', 'flask']
-`.trim()
-    const result = parsePyprojectArrayEntries(content, "dependencies")
-    expect(result).toEqual(["requests>=2.0", "flask"])
-  })
-
-  it("returns empty array when key not found", () => {
-    const content = "[project]\nname = 'test'"
-    const result = parsePyprojectArrayEntries(content, "dependencies")
-    expect(result).toEqual([])
-  })
-
-  it("handles keys with special regex characters (e.g. dots in key name)", () => {
-    const content = `
-[project]
-project.optional-dependencies = ["pytest"]
-`.trim()
-    const result = parsePyprojectArrayEntries(content, "project.optional-dependencies")
-    expect(result).toEqual(["pytest"])
-  })
-})
-
-// W55: extractNodePackageName handles scoped packages
-describe("W55: extractNodePackageName handles scoped packages", () => {
-  it("extracts scoped package name from nested node_modules path", () => {
-    expect(
-      extractNodePackageName("node_modules/@babel/core")
-    ).toBe("@babel/core")
-  })
-
-  it("extracts scoped package from deeply nested path", () => {
-    expect(
-      extractNodePackageName("packages/app/node_modules/@scope/pkg")
-    ).toBe("@scope/pkg")
-  })
-
-  it("extracts regular package name", () => {
-    expect(
-      extractNodePackageName("node_modules/lodash")
-    ).toBe("lodash")
-  })
-
-  it("handles deeply nested node_modules for scoped packages", () => {
-    expect(
-      extractNodePackageName("node_modules/foo/node_modules/@scope/pkg")
-    ).toBe("@scope/pkg")
-  })
-
-  it("handles scoped package with subpath (only takes scope/name)", () => {
-    expect(
-      extractNodePackageName("node_modules/@scope/pkg/sub/dir")
-    ).toBe("@scope/pkg")
-  })
-
-  it("handles regular package with subpath", () => {
-    expect(
-      extractNodePackageName("node_modules/lodash/fp")
-    ).toBe("lodash")
   })
 })
