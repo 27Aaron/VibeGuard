@@ -27,23 +27,25 @@ import {
 // ---------------------------------------------------------------------------
 
 describe("createChatCompletionTextWithRetry lastError default", () => {
-  it("throws a meaningful error when maxAttempts <= 0", async () => {
+  it("falls back to default attempts when maxAttempts <= 0", async () => {
+    const create = async () => {
+      throw new Error("fail");
+    };
     const result = createChatCompletionTextWithRetry({
       client: {
         chat: {
           completions: {
-            create: async () => {
-              throw new Error("fail");
-            },
+            create,
           },
         },
       },
       model: "test",
       userContent: "test",
       maxAttempts: 0,
+      retryDelayMs: 1,
     });
 
-    await expect(result).rejects.toThrow("Unknown error");
+    await expect(result).rejects.toThrow("network_error: fail");
   });
 
   it("throws the last caught error when all retries fail", async () => {
