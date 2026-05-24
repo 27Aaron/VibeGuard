@@ -25,6 +25,16 @@ const advisory = {
   modifiedAt: new Date("2026-05-21T23:01:37Z"),
   withdrawnAt: null,
   references: [],
+  maliciousOrigins: [
+    {
+      id: "RLMA-2026-00001",
+      source: "reversing-labs",
+      importTime: "2026-05-22T01:02:03Z",
+      modifiedTime: "2026-05-21T21:15:38Z",
+      versions: ["1.0.0", "1.0.1"],
+      sha256: "ca03d48324ae2eb5f990ffb012ceca9f24805e940675010c516a2ce7e8c2a76a",
+    },
+  ],
 }
 
 const affectedPackage = {
@@ -46,6 +56,12 @@ describe("OSV store payload builders", () => {
       rawHash: "sha256:test",
       riskType: "malicious-package",
       summary: "Malicious code in cryptoco-auth (npm)",
+      maliciousOrigins: [
+        expect.objectContaining({
+          id: "RLMA-2026-00001",
+          source: "reversing-labs",
+        }),
+      ],
     })
   })
 
@@ -154,7 +170,11 @@ describe("upsertNormalizedOsvRecord", () => {
             {
               id: "advisory-1",
               externalId: "MAL-2026-4230",
+              sourceUrl:
+                "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
               rawHash: "sha256:test",
+              details: "The package shipped malicious install behavior.",
+              maliciousOrigins: advisory.maliciousOrigins,
             },
           ]),
         })),
@@ -176,6 +196,59 @@ describe("upsertNormalizedOsvRecord", () => {
     })
     expect(db.insert).not.toHaveBeenCalled()
     expect(db.delete).not.toHaveBeenCalled()
+  })
+
+  it("refreshes derived advisory fields when the raw OSV hash is unchanged", async () => {
+    const db = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-1",
+              externalId: "MAL-2026-4230",
+              sourceUrl:
+                "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
+              rawHash: "sha256:test",
+              details:
+                "\n---\n_-= Per source details. Do not edit below this line.=-_\n",
+              maliciousOrigins: [],
+            },
+          ]),
+        })),
+      })),
+      insert: vi.fn((table) => ({
+        values: vi.fn(() => ({
+          onConflictDoUpdate: vi.fn(() => ({
+            returning: vi.fn().mockResolvedValue([
+              { id: "advisory-1", externalId: "MAL-2026-4230" },
+            ]),
+          })),
+          onConflictDoNothing: vi.fn(() => ({
+            returning: vi.fn().mockResolvedValue([]),
+          })),
+        })),
+      })),
+      delete: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue(undefined),
+      })),
+    } as never
+
+    const result = await upsertNormalizedOsvRecord(db, {
+      advisory: {
+        ...advisory,
+        details: null,
+      },
+      affectedPackages: [affectedPackage],
+    })
+
+    expect(result).toEqual({
+      advisoryId: "advisory-1",
+      affectedPackageCount: 1,
+      skipped: false,
+      writeKind: "changed",
+    })
+    expect(db.insert).toHaveBeenCalled()
+    expect(db.delete).toHaveBeenCalled()
   })
 })
 
@@ -205,12 +278,20 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
             {
               id: "advisory-changed",
               externalId: "GHSA-changed",
+              sourceUrl:
+                "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
               rawHash: "sha256:old",
+              details: advisory.details,
+              maliciousOrigins: advisory.maliciousOrigins,
             },
             {
               id: "advisory-unchanged",
               externalId: "GHSA-unchanged",
+              sourceUrl:
+                "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
               rawHash: "sha256:same",
+              details: advisory.details,
+              maliciousOrigins: advisory.maliciousOrigins,
             },
           ]),
         })),

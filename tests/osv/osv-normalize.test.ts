@@ -16,6 +16,18 @@ describe("normalizeOsvRecord", () => {
         modified: "2026-05-21T23:01:37.118219322Z",
         summary: "Malicious code in cryptoco-auth (npm)",
         details: "The package shipped malicious install behavior.",
+        database_specific: {
+          "malicious-packages-origins": [
+            {
+              id: "RLMA-2026-00001",
+              source: "reversing-labs",
+              import_time: "2026-05-22T01:02:03Z",
+              modified_time: "2026-05-21T21:15:38Z",
+              versions: ["1.0.0", "1.0.1"],
+              sha256: "ca03d48324ae2eb5f990ffb012ceca9f24805e940675010c516a2ce7e8c2a76a",
+            },
+          ],
+        },
         affected: [
           {
             package: {
@@ -45,6 +57,16 @@ describe("normalizeOsvRecord", () => {
     })
     expect(result.advisory).not.toHaveProperty("rawJson")
     expect(result.advisory.riskType).toBe("malicious-package")
+    expect(result.advisory.maliciousOrigins).toEqual([
+      {
+        id: "RLMA-2026-00001",
+        source: "reversing-labs",
+        importTime: "2026-05-22T01:02:03Z",
+        modifiedTime: "2026-05-21T21:15:38Z",
+        versions: ["1.0.0", "1.0.1"],
+        sha256: "ca03d48324ae2eb5f990ffb012ceca9f24805e940675010c516a2ce7e8c2a76a",
+      },
+    ])
     expect(result.affectedPackages[0]).toMatchObject({
       ecosystem: "npm",
       packageName: "cryptoco-auth",
@@ -105,6 +127,33 @@ describe("normalizeOsvRecord", () => {
       fixedVersions: ["1.11.1", "1.9.3"],
     })
     expect(result.affectedPackages[0]?.ranges).toHaveLength(2)
+  })
+
+  it("drops source marker only details from sparse malicious package records", () => {
+    const result = normalizeOsvRecord(
+      {
+        schema_version: "1.7.5",
+        id: "MAL-2024-2316",
+        summary: "Malicious code in es7.object.get-own-property-descriptors (npm)",
+        details: "\n---\n_-= Per source details. Do not edit below this line.=-_\n",
+        affected: [
+          {
+            package: {
+              name: "es7.object.get-own-property-descriptors",
+              ecosystem: "npm",
+            },
+            versions: ["1.0.0"],
+          },
+        ],
+      },
+      {
+        sourceUrl:
+          "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2024-2316.json",
+        rawHash: "sha256:test",
+      },
+    )
+
+    expect(result.advisory.details).toBeNull()
   })
 })
 

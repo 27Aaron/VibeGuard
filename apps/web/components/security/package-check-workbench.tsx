@@ -187,12 +187,29 @@ function affectedRangeBadgeClassName() {
   return "h-6 px-2.5"
 }
 
-function findingMetricBadges(finding: SecurityFinding) {
+function riskTypeLabel(riskType: string, lang: AppLang) {
+  if (riskType === "malicious-package") {
+    return lang === "zh" ? "恶意包" : "Malicious package"
+  }
+
+  return null
+}
+
+function findingMetricBadges(finding: SecurityFinding, lang: AppLang) {
   const primaryCve = primaryCveLabel(finding)
   const enrichment = primaryCveEnrichment(finding)
   const epssPercentile = formatPercent(enrichment?.epssPercentile)
+  const riskType = riskTypeLabel(finding.advisory.riskType, lang)
 
   return [
+    riskType
+      ? {
+          key: "risk-type",
+          label: riskType,
+          variant: "outline" as const,
+          className: "border-red-500/25 bg-red-50 text-red-700 dark:border-red-300/20 dark:bg-red-400/10 dark:text-red-200",
+        }
+      : null,
     primaryCve
       ? {
           key: "cve",
@@ -220,6 +237,61 @@ function findingMetricBadges(finding: SecurityFinding) {
   ].filter((badge): badge is NonNullable<typeof badge> => Boolean(badge))
 }
 
+function maliciousPackageOrigins(finding: SecurityFinding) {
+  return finding.advisory.maliciousOrigins ?? []
+}
+
+function truncateSha256(value: string) {
+  return value.length > 18 ? `${value.slice(0, 12)}...${value.slice(-6)}` : value
+}
+
+function maliciousPackageInfo(finding: SecurityFinding, lang: AppLang) {
+  if (finding.advisory.riskType !== "malicious-package") {
+    return null
+  }
+
+  const origins = maliciousPackageOrigins(finding)
+  const sourceLabels = Array.from(
+    new Set(origins.flatMap((origin) => (origin.source ? [origin.source] : []))),
+  )
+
+  return {
+    title: lang === "zh" ? "恶意包信息" : "Malicious package info",
+    action:
+      lang === "zh"
+        ? "建议移除依赖，并检查 lockfile、构建日志和凭据使用。"
+        : "Remove the dependency and review lockfiles, build logs, and credential use.",
+    sourceLabel: sourceLabels.length > 0 ? sourceLabels.join(" / ") : "OSV",
+    origins,
+  }
+}
+
+function findingReferenceItems(finding: SecurityFinding) {
+  const references = [...finding.advisory.references]
+  const sourceUrl = finding.advisory.sourceUrl
+
+  if (!sourceUrl) {
+    return references
+  }
+
+  const normalizedSourceUrl = (() => {
+    try {
+      return new URL(sourceUrl).toString()
+    } catch {
+      return null
+    }
+  })()
+
+  if (
+    normalizedSourceUrl &&
+    !references.some((reference) => reference.url === normalizedSourceUrl)
+  ) {
+    references.push({ type: "ADVISORY", url: normalizedSourceUrl })
+  }
+
+  return references
+}
+
 function referenceLabel(
   reference: SecurityFinding["advisory"]["references"][number],
   lang: AppLang,
@@ -235,6 +307,12 @@ function referenceLabel(
 
   const path = url.pathname
 
+  if (
+    url.hostname === "storage.googleapis.com" &&
+    path.includes("/osv-vulnerabilities/")
+  ) {
+    return lang === "zh" ? "OSV 原始记录" : "OSV record"
+  }
   if (url.hostname === "nvd.nist.gov") return "NVD"
   if (url.hostname === "github.com" && path.includes("/security/advisories/")) {
     return "GitHub Advisory"
@@ -725,7 +803,7 @@ export function PackageCheckWorkbench({
               publishedAt ? `${lang === "zh" ? "发布" : "Published"} ${publishedAt}` : null,
               updatedAt ? `${lang === "zh" ? "更新" : "Updated"} ${updatedAt}` : null,
             ].filter((part): part is string => Boolean(part))
-            const metricBadges = findingMetricBadges(finding)
+            const metricBadges = findingMetricBadges(finding, lang)
             const tone = toneLabel(finding, lang)
             const cvssLevel = cvssLevelFromScore(
               primaryCveEnrichment(finding)?.bestCvssScore,
@@ -737,6 +815,8 @@ export function PackageCheckWorkbench({
             const hasRemediationInfo =
               affectedRangeLabels.length > 0 ||
               finding.affectedPackage.fixedVersions.length > 0
+            const maliciousInfo = maliciousPackageInfo(finding, lang)
+            const referenceItems = findingReferenceItems(finding)
 
             return (
               <article
@@ -828,6 +908,43 @@ export function PackageCheckWorkbench({
                   </div>
                 ) : null}
 
+                {maliciousInfo ? (
+                  <div className="space-y-2 rounded-2xl border border-red-500/15 bg-red-50/45 px-4 py-3 dark:border-red-300/15 dark:bg-red-400/5">
+                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                      {maliciousInfo.title}
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <Badge variant="outline" className="h-6 px-2.5">
+                        {lang === "zh" ? "来源" : "Source"} · {maliciousInfo.sourceLabel}
+                      </Badge>
+                      {maliciousInfo.origins.flatMap((origin, originIndex) => [
+                        origin.id ? (
+                          <Badge
+                            key={`${originIndex}-id-${origin.id}`}
+                            variant="outline"
+                            className="h-6 px-2.5"
+                          >
+                            {origin.id}
+                          </Badge>
+                        ) : null,
+                        origin.sha256 ? (
+                          <Badge
+                            key={`${originIndex}-sha-${origin.sha256}`}
+                            variant="outline"
+                            title={origin.sha256}
+                            className="h-6 px-2.5 font-mono"
+                          >
+                            SHA256 {truncateSha256(origin.sha256)}
+                          </Badge>
+                        ) : null,
+                      ])}
+                    </div>
+                    <p className="text-xs leading-5 text-zinc-600 dark:text-stone-300">
+                      {maliciousInfo.action}
+                    </p>
+                  </div>
+                ) : null}
+
                 {finding.advisory.details ? (
                   <ExpandableMarkdownBlock
                     label={copy.publicCheckDetailsLabel}
@@ -838,13 +955,13 @@ export function PackageCheckWorkbench({
                   />
                 ) : null}
 
-                {finding.advisory.references.length > 0 ? (
+                {referenceItems.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {lang === "zh" ? "参考链接" : "References"} · {finding.advisory.references.length}
+                      {lang === "zh" ? "参考链接" : "References"} · {referenceItems.length}
                     </p>
                     <ul className="flex flex-wrap gap-2 text-xs">
-                      {finding.advisory.references.map((reference: SecurityFinding["advisory"]["references"][number], referenceIndex: number) => (
+                      {referenceItems.map((reference: SecurityFinding["advisory"]["references"][number], referenceIndex: number) => (
                         <li key={`${reference.url}-${referenceIndex}`}>
                           <a
                             href={reference.url}

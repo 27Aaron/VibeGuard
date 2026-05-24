@@ -45,6 +45,7 @@ const advisoryConflictUpdateSet = {
   modifiedAt: sql`excluded.modified_at`,
   withdrawnAt: sql`excluded.withdrawn_at`,
   references: sql`excluded.references`,
+  maliciousOrigins: sql`excluded.malicious_origins`,
 }
 
 const DEFAULT_AFFECTED_PACKAGE_INSERT_CHUNK_SIZE = 1000
@@ -101,6 +102,7 @@ export function buildSecurityAdvisoryInsert(advisory: NormalizedOsvAdvisory) {
     modifiedAt: advisory.modifiedAt,
     withdrawnAt: advisory.withdrawnAt,
     references: advisory.references,
+    maliciousOrigins: advisory.maliciousOrigins,
   }
 }
 
@@ -203,7 +205,10 @@ export async function upsertNormalizedOsvRecordsBatch(
     .select({
       id: advisoriesTable.id,
       externalId: advisoriesTable.externalId,
+      sourceUrl: advisoriesTable.sourceUrl,
       rawHash: advisoriesTable.rawHash,
+      details: advisoriesTable.details,
+      maliciousOrigins: advisoriesTable.maliciousOrigins,
     })
     .from(advisoriesTable)
     .where(
@@ -227,7 +232,11 @@ export async function upsertNormalizedOsvRecordsBatch(
       existing?.id &&
       existing.rawHash &&
       record.advisory.rawHash &&
-      existing.rawHash === record.advisory.rawHash
+      existing.rawHash === record.advisory.rawHash &&
+      existing.sourceUrl === record.advisory.sourceUrl &&
+      existing.details === record.advisory.details &&
+      JSON.stringify(existing.maliciousOrigins ?? []) ===
+        JSON.stringify(record.advisory.maliciousOrigins)
     ) {
       skippedCount += 1
       resultsByExternalId.set(record.advisory.externalId, {

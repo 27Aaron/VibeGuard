@@ -89,6 +89,18 @@ function isRangeEntry(value: unknown) {
   )
 }
 
+function isMaliciousOriginEntry(value: unknown) {
+  return (
+    isRecord(value) &&
+    (typeof value.id === "string" || value.id === undefined) &&
+    (typeof value.source === "string" || value.source === undefined) &&
+    (typeof value.importTime === "string" || value.importTime === undefined) &&
+    (typeof value.modifiedTime === "string" || value.modifiedTime === undefined) &&
+    isStringArray(value.versions) &&
+    (typeof value.sha256 === "string" || value.sha256 === undefined)
+  )
+}
+
 function isRiskEntry(value: unknown) {
   return (
     isRecord(value) &&
@@ -166,6 +178,9 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
     isRecord(value.advisory) &&
     typeof value.advisory.id === "string" &&
     typeof value.advisory.source === "string" &&
+    (typeof value.advisory.sourceUrl === "string" ||
+      value.advisory.sourceUrl === null ||
+      value.advisory.sourceUrl === undefined) &&
     typeof value.advisory.riskType === "string" &&
     (typeof value.advisory.summary === "string" || value.advisory.summary === null) &&
     (typeof value.advisory.details === "string" || value.advisory.details === null) &&
@@ -174,6 +189,9 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
     value.advisory.severity.every(isSeverityEntry) &&
     Array.isArray(value.advisory.references) &&
     value.advisory.references.every(isReferenceEntry) &&
+    (value.advisory.maliciousOrigins === undefined ||
+      (Array.isArray(value.advisory.maliciousOrigins) &&
+        value.advisory.maliciousOrigins.every(isMaliciousOriginEntry))) &&
     (typeof value.advisory.publishedAt === "string" ||
       value.advisory.publishedAt === null ||
       value.advisory.publishedAt === undefined) &&

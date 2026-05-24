@@ -45,6 +45,7 @@ export type OsvVulnerability = {
   severity?: OsvSeverity[]
   affected?: OsvAffected[]
   references?: OsvReference[]
+  database_specific?: Record<string, unknown>
 }
 
 type NormalizeOsvRecordOptions = {
@@ -66,6 +67,16 @@ export type NormalizedOsvAdvisory = {
   modifiedAt: Date | null
   withdrawnAt: Date | null
   references: Array<{ type?: string; url: string }>
+  maliciousOrigins: NormalizedMaliciousPackageOrigin[]
+}
+
+export type NormalizedMaliciousPackageOrigin = {
+  id?: string
+  source?: string
+  importTime?: string
+  modifiedTime?: string
+  versions: string[]
+  sha256?: string
 }
 
 export type NormalizedOsvAffectedPackage = {
@@ -175,6 +186,61 @@ function fixedVersionsFromRanges(ranges: OsvRange[] | undefined) {
   )
 }
 
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined
+}
+
+function normalizeDetails(value: string | undefined) {
+  const details = value?.trim()
+
+  if (!details) {
+    return null
+  }
+
+  const withoutSourceMarker = details
+    .replace(/^---\s*/u, "")
+    .replace(/_-= Per source details\. Do not edit below this line\.=-_/gu, "")
+    .trim()
+
+  return withoutSourceMarker ? details : null
+}
+
+function normalizeMaliciousOrigins(
+  databaseSpecific: Record<string, unknown> | undefined,
+): NormalizedMaliciousPackageOrigin[] {
+  const origins = databaseSpecific?.["malicious-packages-origins"]
+
+  if (!Array.isArray(origins)) {
+    return []
+  }
+
+  return origins.flatMap((origin) => {
+    if (!origin || typeof origin !== "object" || Array.isArray(origin)) {
+      return []
+    }
+
+    const record = origin as Record<string, unknown>
+    const versions = uniqueStrings(
+      Array.isArray(record.versions)
+        ? record.versions.map((version) =>
+            typeof version === "string" ? version : undefined,
+          )
+        : [],
+    )
+
+    return [
+      {
+        id: stringValue(record.id),
+        source: stringValue(record.source),
+        importTime: stringValue(record.import_time),
+        modifiedTime: stringValue(record.modified_time),
+        versions,
+        sha256: stringValue(record.sha256),
+      },
+    ]
+  })
+}
+
 function normalizeAffectedPackages(affected: OsvAffected[] | undefined) {
   const packagesByKey = new Map<string, NormalizedOsvAffectedPackage>()
 
@@ -242,13 +308,14 @@ export function normalizeOsvRecord(
       rawHash: options.rawHash ?? null,
       riskType: inferRiskType(vulnerability),
       summary: vulnerability.summary ?? "",
-      details: vulnerability.details ?? null,
+      details: normalizeDetails(vulnerability.details),
       aliases: uniqueStrings(vulnerability.aliases ?? []),
       severity: vulnerability.severity ?? [],
       publishedAt: parseDate(vulnerability.published),
       modifiedAt: parseDate(vulnerability.modified),
       withdrawnAt: parseDate(vulnerability.withdrawn),
       references: normalizeReferences(vulnerability.references),
+      maliciousOrigins: normalizeMaliciousOrigins(vulnerability.database_specific),
     },
     affectedPackages: normalizeAffectedPackages(vulnerability.affected),
   }

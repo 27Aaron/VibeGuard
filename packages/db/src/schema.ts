@@ -322,6 +322,19 @@ export const securityAdvisories = pgTable(
       .$type<Array<{ type?: string; url: string }>>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    maliciousOrigins: jsonb("malicious_origins")
+      .$type<
+        Array<{
+          id?: string
+          source?: string
+          importTime?: string
+          modifiedTime?: string
+          versions: string[]
+          sha256?: string
+        }>
+      >()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -96,12 +96,25 @@ describe("checkPackagesAgainstLocalDb", () => {
               id: "advisory-1",
               source: "osv",
               externalId: "MAL-2026-4230",
+              sourceUrl:
+                "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
               riskType: "malicious-package",
               summary: "Malicious code in cryptoco-auth (npm)",
               details: "The package shipped malicious install behavior.",
               aliases: [],
               severity: [],
               references: [],
+              maliciousOrigins: [
+                {
+                  id: "RLMA-2026-00001",
+                  source: "reversing-labs",
+                  importTime: "2026-05-22T01:02:03Z",
+                  modifiedTime: "2026-05-21T21:15:38Z",
+                  versions: ["1.0.0", "1.0.1"],
+                  sha256:
+                    "ca03d48324ae2eb5f990ffb012ceca9f24805e940675010c516a2ce7e8c2a76a",
+                },
+              ],
               withdrawnAt: null,
               modifiedAt: new Date("2026-05-21T23:01:37Z"),
             },
@@ -126,6 +139,14 @@ describe("checkPackagesAgainstLocalDb", () => {
       advisory: {
         id: "MAL-2026-4230",
         riskType: "malicious-package",
+        sourceUrl:
+          "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
+        maliciousOrigins: [
+          expect.objectContaining({
+            id: "RLMA-2026-00001",
+            source: "reversing-labs",
+          }),
+        ],
       },
       package: {
         ecosystem: "npm",
