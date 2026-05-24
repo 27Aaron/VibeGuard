@@ -3,7 +3,7 @@ import { Suspense } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { ArticleBulkDeleteButton } from "@/components/admin/article-bulk-delete-button"
+import { ArticleBulkActions } from "@/components/admin/article-bulk-actions"
 import { ArticleSearchForm } from "@/components/admin/article-search-form"
 import { SoftLink } from "@/components/admin/soft-link"
 import { ArticleTable } from "@/components/admin/article-table"
@@ -19,7 +19,7 @@ import {
   ADMIN_ARTICLE_PAGE_SIZE_OPTIONS,
   parseAdminArticleListParams,
 } from "@/lib/admin-article-pagination"
-import { deleteSelectedArticlesAction } from "@/lib/actions/articles"
+import { selectedArticlesAction } from "@/lib/actions/articles"
 import { getArticleRows } from "@/lib/admin-data"
 import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
 import { resolveLang, type AppLang } from "@/lib/i18n"
@@ -107,13 +107,13 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <form id="selected-articles-form" action={deleteSelectedArticlesAction}>
+            <form id="selected-articles-form" action={selectedArticlesAction}>
               <input type="hidden" name="lang" value={lang} />
               <input type="hidden" name="page" value={String(pagination.page)} />
               <input type="hidden" name="pageSize" value={String(pagination.pageSize)} />
               <input type="hidden" name="q" value={searchQuery} />
             </form>
-            <ArticleBulkDeleteButton
+            <ArticleBulkActions
               formId="selected-articles-form"
               inputName="ids"
               lang={lang}
