@@ -332,6 +332,18 @@ describe("security workbench helpers", () => {
     ).toBe("hit")
   })
 
+  it("maps withdrawn advisories to a non-applicable tone", () => {
+    expect(
+      getSecurityFindingTone({
+        affected: true,
+        matchReason: "explicit_affected_version",
+        advisory: {
+          withdrawnAt: "2026-05-22T01:00:00.000Z",
+        },
+      }),
+    ).toBe("withdrawn")
+  })
+
   it("maps the live package-match-without-version case to an inconclusive tone", async () => {
     const payload = await buildPackageMatchWithoutVersionPayload()
 
@@ -456,6 +468,26 @@ describe("security workbench helpers", () => {
       highestCvssScore: "9.8",
       latestUpdatedAt: "2026-05-22T08:00:00.000Z",
       recommendedFixedVersions: ["2.0.0", "2.0.1"],
+    })
+
+    const withdrawnFinding = {
+      ...latestFinding,
+      advisory: {
+        ...latestFinding.advisory,
+        withdrawnAt: "2026-05-23T01:00:00.000Z",
+      },
+      risk: {
+        level: "critical",
+        score: 100,
+        signals: ["affected_version_match"],
+      },
+    } satisfies typeof finding
+
+    expect(buildSecurityResultSummary([olderFinding, withdrawnFinding])).toMatchObject({
+      count: 2,
+      affectedCount: 1,
+      highestRisk: { level: "high", score: 72 },
+      recommendedFixedVersions: ["1.2.0"],
     })
   })
 

@@ -185,6 +185,8 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
     (typeof value.advisory.summary === "string" || value.advisory.summary === null) &&
     (typeof value.advisory.details === "string" || value.advisory.details === null) &&
     isStringArray(value.advisory.aliases) &&
+    (value.advisory.related === undefined || isStringArray(value.advisory.related)) &&
+    (value.advisory.upstream === undefined || isStringArray(value.advisory.upstream)) &&
     Array.isArray(value.advisory.severity) &&
     value.advisory.severity.every(isSeverityEntry) &&
     Array.isArray(value.advisory.references) &&
@@ -196,6 +198,9 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
       value.advisory.publishedAt === null ||
       value.advisory.publishedAt === undefined) &&
     (typeof value.advisory.modifiedAt === "string" || value.advisory.modifiedAt === null) &&
+    (typeof value.advisory.withdrawnAt === "string" ||
+      value.advisory.withdrawnAt === null ||
+      value.advisory.withdrawnAt === undefined) &&
     isRecord(value.affectedPackage) &&
     isStringArray(value.affectedPackage.affectedVersions) &&
     Array.isArray(value.affectedPackage.ranges) &&
@@ -258,8 +263,14 @@ export function parseSecurityCheckPayload(value: unknown) {
 }
 
 export function getSecurityFindingTone(
-  input: Pick<SecurityFinding, "affected" | "matchReason">,
+  input: Pick<SecurityFinding, "affected" | "matchReason"> & {
+    advisory?: Pick<SecurityFinding["advisory"], "withdrawnAt">
+  },
 ) {
+  if (input.advisory?.withdrawnAt) {
+    return "withdrawn"
+  }
+
   if (input.affected) {
     return "hit"
   }
@@ -382,6 +393,7 @@ function numberFromDecimal(value: string | number | null | undefined) {
 
 export function getSecurityFindingLatestUpdatedAt(finding: SecurityFinding) {
   const latestTimestamp = Math.max(
+    timestampFromIso(finding.advisory.withdrawnAt),
     timestampFromIso(finding.advisory.modifiedAt),
     timestampFromIso(finding.advisory.publishedAt),
     ...finding.cveEnrichments.flatMap((cve) => [
@@ -394,7 +406,8 @@ export function getSecurityFindingLatestUpdatedAt(finding: SecurityFinding) {
 }
 
 export function buildSecurityResultSummary(findings: SecurityFinding[]) {
-  const highestRisk = findings.reduce<{
+  const activeFindings = findings.filter((finding) => !finding.advisory.withdrawnAt)
+  const highestRisk = activeFindings.reduce<{
     level: SecurityFinding["risk"]["level"]
     score: number
   }>(
@@ -406,7 +419,7 @@ export function buildSecurityResultSummary(findings: SecurityFinding[]) {
   )
   const highestCvss = Math.max(
     0,
-    ...findings.flatMap((finding) =>
+    ...activeFindings.flatMap((finding) =>
       finding.cveEnrichments.flatMap((cve) => {
         const parsed = numberFromDecimal(cve.bestCvssScore)
         return parsed === null ? [] : [parsed]
@@ -420,7 +433,7 @@ export function buildSecurityResultSummary(findings: SecurityFinding[]) {
       return latest ? [timestampFromIso(latest)] : []
     }),
   )
-  const latestFixedVersions = findings.reduce<{
+  const latestFixedVersions = activeFindings.reduce<{
     timestamp: number
     versions: string[]
   }>(
@@ -437,7 +450,7 @@ export function buildSecurityResultSummary(findings: SecurityFinding[]) {
 
   return {
     count: findings.length,
-    affectedCount: findings.filter((finding) => finding.affected).length,
+    affectedCount: activeFindings.filter((finding) => finding.affected).length,
     highestRisk,
     highestCvssScore: highestCvss > 0 ? String(highestCvss) : null,
     latestUpdatedAt: latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null,

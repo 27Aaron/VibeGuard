@@ -78,6 +78,8 @@ function toneBadgeVariant(finding: SecurityFinding) {
   switch (getSecurityFindingTone(finding)) {
     case "hit":
       return "destructive"
+    case "withdrawn":
+      return "secondary"
     case "inconclusive":
       return "outline"
     case "clear":
@@ -91,6 +93,8 @@ function toneLabel(finding: SecurityFinding, lang: AppLang) {
   switch (getSecurityFindingTone(finding)) {
     case "hit":
       return lang === "zh" ? "已命中" : "Match"
+    case "withdrawn":
+      return lang === "zh" ? "已撤回" : "Withdrawn"
     case "inconclusive":
       return lang === "zh" ? "待确认" : "Inconclusive"
     case "clear":
@@ -235,6 +239,65 @@ function findingMetricBadges(finding: SecurityFinding, lang: AppLang) {
         }
       : null,
   ].filter((badge): badge is NonNullable<typeof badge> => Boolean(badge))
+}
+
+function withdrawnLabel(finding: SecurityFinding, lang: AppLang) {
+  const withdrawnAt = formatFindingTime(finding.advisory.withdrawnAt, lang)
+
+  if (!withdrawnAt) {
+    return null
+  }
+
+  return lang === "zh"
+    ? `已撤回 · 不再适用 · 撤回 ${withdrawnAt}`
+    : `Withdrawn · No longer applicable · Withdrawn ${withdrawnAt}`
+}
+
+function relationKindLabel(kind: "alias" | "related" | "upstream", lang: AppLang) {
+  if (lang === "zh") {
+    return {
+      alias: "别名",
+      related: "相关",
+      upstream: "上游",
+    }[kind]
+  }
+
+  return {
+    alias: "Alias",
+    related: "Related",
+    upstream: "Upstream",
+  }[kind]
+}
+
+function advisoryRelationItems(finding: SecurityFinding) {
+  const primaryCve = primaryCveLabel(finding)?.toUpperCase()
+  const ignoredIds = new Set(
+    [finding.advisory.id.toUpperCase(), primaryCve].filter(
+      (id): id is string => Boolean(id),
+    ),
+  )
+  const seenIds = new Set<string>()
+  const items: Array<{ id: string; kind: "alias" | "related" | "upstream" }> = []
+
+  function add(kind: "alias" | "related" | "upstream", ids: string[] | undefined) {
+    for (const id of ids ?? []) {
+      const trimmedId = id.trim()
+      const normalizedId = trimmedId.toUpperCase()
+
+      if (!trimmedId || ignoredIds.has(normalizedId) || seenIds.has(normalizedId)) {
+        continue
+      }
+
+      seenIds.add(normalizedId)
+      items.push({ id: trimmedId, kind })
+    }
+  }
+
+  add("upstream", finding.advisory.upstream)
+  add("related", finding.advisory.related)
+  add("alias", finding.advisory.aliases)
+
+  return items
 }
 
 function maliciousPackageOrigins(finding: SecurityFinding) {
@@ -817,6 +880,8 @@ export function PackageCheckWorkbench({
               finding.affectedPackage.fixedVersions.length > 0
             const maliciousInfo = maliciousPackageInfo(finding, lang)
             const referenceItems = findingReferenceItems(finding)
+            const withdrawnInfo = withdrawnLabel(finding, lang)
+            const relationItems = advisoryRelationItems(finding)
 
             return (
               <article
@@ -866,6 +931,12 @@ export function PackageCheckWorkbench({
                   ) : null}
                 </div>
 
+                {withdrawnInfo ? (
+                  <div className="rounded-2xl border border-zinc-900/8 bg-zinc-50/70 px-4 py-3 text-xs leading-5 text-zinc-600 dark:border-white/10 dark:bg-white/[0.035] dark:text-stone-300">
+                    {withdrawnInfo}
+                  </div>
+                ) : null}
+
                 {hasRemediationInfo ? (
                   <div className="grid gap-4 md:grid-cols-2">
                     {affectedRangeLabels.length > 0 ? (
@@ -905,6 +976,25 @@ export function PackageCheckWorkbench({
                         </div>
                       </div>
                     ) : null}
+                  </div>
+                ) : null}
+
+                {relationItems.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                      {lang === "zh" ? "关联记录" : "Related records"}
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {relationItems.map((item) => (
+                        <Badge
+                          key={`${item.kind}-${item.id}`}
+                          variant="outline"
+                          className="h-6 px-2.5"
+                        >
+                          {relationKindLabel(item.kind, lang)} · {item.id}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
 
