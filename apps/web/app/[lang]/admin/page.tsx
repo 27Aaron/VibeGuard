@@ -243,10 +243,7 @@ export default async function AdminHomePage({
             <CardDescription>{copy.operationsBody}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
-              <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
-              <OsvSyncButton lang={lang} />
-            </div>
+            <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
             <Separator />
             <div className="grid grid-cols-2 gap-2.5">
               {copy.entries.map((entry) => {
