@@ -203,32 +203,49 @@ export async function runOsvSyncCycle(logger: WorkerLogger = console) {
       "nvd",
       "full",
     ));
+
+    logger.log(
+      `[security-sync] 开始安全数据同步（OSV=${shouldBootstrapOsv ? "全量引导" : "增量"}，NVD=${shouldBootstrapNvd ? "全量引导" : "增量"}）`,
+    );
+
     const { bootstrapAllOsvEcosystems, syncAllOsvEcosystems } =
       await import("@vibeguard/content/osv/sync");
     const { syncAllSecurityEnrichmentSources } =
       await import("@vibeguard/content/security/enrichment");
+
+    logger.log(
+      `[security-sync] 正在${shouldBootstrapOsv ? "全量引导" : "增量同步"} OSV 漏洞数据库…`,
+    );
     const results = shouldBootstrapOsv
       ? await bootstrapAllOsvEcosystems({ db, concurrency: 2 })
       : await syncAllOsvEcosystems({ db });
     for (const result of results) {
       logger.log(
-        `osv ${shouldBootstrapOsv ? "bootstrap" : "sync"} ${result.ecosystem}: imported=${result.recordsImported} new=${result.recordsNew} changed=${result.recordsChanged} failed=${result.recordsFailed}`,
+        `[security-sync]   OSV/${result.ecosystem}: 导入=${result.recordsImported} 新增=${result.recordsNew} 变更=${result.recordsChanged} 跳过=${result.recordsSkipped} 失败=${result.recordsFailed}`,
       );
     }
     if (shouldBootstrapOsv) {
       await markOsvFullSyncMarker(db, results);
+      logger.log("[security-sync] OSV 全量引导标记已写入。");
     }
+
+    const enrichmentMode = shouldBootstrapNvd ? "bootstrap" : "incremental";
+    logger.log(
+      `[security-sync] 正在${shouldBootstrapNvd ? "全量引导" : "增量同步"}安全增强数据源（NVD, CISA KEV, EPSS）…`,
+    );
     const enrichmentResults = await syncAllSecurityEnrichmentSources(db, {
-      mode: shouldBootstrapNvd ? "bootstrap" : "incremental",
+      mode: enrichmentMode,
     });
     for (const result of enrichmentResults) {
       logger.log(
-        `security enrichment sync ${result.source}/${result.scope}: imported=${result.recordsImported} failed=${result.recordsFailed}`,
+        `[security-sync]   ${result.source}/${result.scope}: 导入=${result.recordsImported} 失败=${result.recordsFailed}`,
       );
     }
+
+    logger.log("[security-sync] 安全数据同步完成。");
     return results;
   } catch (error) {
-    logger.error("osv sync failed:", error);
+    logger.error("[security-sync] 同步失败:", error);
     return null;
   }
 }

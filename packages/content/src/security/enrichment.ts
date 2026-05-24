@@ -640,8 +640,12 @@ export async function syncCisaKevCatalog({
   db: ContentDb;
   fetchText?: typeof defaultFetchText;
 }) {
+  console.log("[enrichment] 正在下载 CISA KEV 漏洞目录…");
   const rawJson = await fetchText(CISA_KEV_JSON_URL, MAX_CISA_KEV_JSON_BYTES);
   const patches = parseKevCatalog(rawJson);
+  console.log(
+    `[enrichment] CISA KEV: 解析到 ${patches.length} 条漏洞，开始写入…`,
+  );
   return syncPatches({
     db,
     source: "cisa-kev",
@@ -661,6 +665,7 @@ export async function syncFirstEpssScores({
   db: ContentDb;
   fetchBytes?: typeof defaultFetchBytes;
 }) {
+  console.log("[enrichment] 正在下载 FIRST EPSS 评分数据…");
   const bytes = await fetchBytes(
     FIRST_EPSS_CURRENT_CSV_GZ_URL,
     MAX_EPSS_CSV_GZ_BYTES,
@@ -671,6 +676,7 @@ export async function syncFirstEpssScores({
     MAX_EPSS_CSV_TEXT_BYTES,
   );
   const patches = parseEpssCsv(csv);
+  console.log(`[enrichment] EPSS: 解析到 ${patches.length} 条评分，开始写入…`);
   const scoreDate = patches.find((patch) => patch.epssScoreDate)?.epssScoreDate;
   const modelVersion = patches.find(
     (patch) => patch.epssModelVersion,
@@ -696,6 +702,7 @@ export async function syncNvdModifiedFeed({
   db: ContentDb;
   fetchBytes?: typeof defaultFetchBytes;
 }) {
+  console.log("[enrichment] 正在下载 NVD 增量数据（modified feed）…");
   const bytes = await fetchBytes(
     buildNvdModifiedFeedUrl(),
     MAX_NVD_FEED_GZ_BYTES,
@@ -708,6 +715,9 @@ export async function syncNvdModifiedFeed({
     ),
   );
   const patches = parseNvdModifiedFeed(payload);
+  console.log(
+    `[enrichment] NVD modified: 解析到 ${patches.length} 条 CVE，开始写入…`,
+  );
   return syncPatches({
     db,
     source: "nvd",
@@ -737,6 +747,7 @@ export async function syncNvdYearFeed({
     ),
   );
   const patches = parseNvdModifiedFeed(payload);
+  console.log(`[enrichment] NVD ${year}: 解析到 ${patches.length} 条 CVE，开始写入…`);
   return syncPatches({
     db,
     source: "nvd",
@@ -793,8 +804,12 @@ export async function syncNvdFullHistory({
   });
 
   try {
+    console.log(
+      `[enrichment] 开始 NVD 全量引导，共 ${resolvedYears.length} 个年份（${resolvedYears[0]}–${resolvedYears[resolvedYears.length - 1]}）`,
+    );
     const results: SecurityEnrichmentSyncSummary[] = [];
     for (const year of resolvedYears) {
+      console.log(`[enrichment]   正在下载 NVD ${year} 年数据…`);
       results.push(
         await syncYear({
           db,
@@ -815,6 +830,9 @@ export async function syncNvdFullHistory({
     const recordsFailed = results.reduce(
       (total, result) => total + result.recordsFailed,
       0,
+    );
+    console.log(
+      `[enrichment] NVD 全量引导完成：${resolvedYears.length} 个年份，共 ${recordsSeen} 条（导入=${recordsImported} 失败=${recordsFailed}）`,
     );
     const completedAt = now();
 

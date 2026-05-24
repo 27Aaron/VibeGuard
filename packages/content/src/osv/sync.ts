@@ -387,6 +387,7 @@ export async function syncOsvEcosystem({
     now: syncedAt,
   });
 
+  console.log(`[osv/sync] 开始增量同步 ${ecosystem}，下载 modified_id.csv…`);
   const modifiedCsv = await fetchText(
     buildModifiedIdCsvUrl(ecosystem),
     MAX_VULNERABILITY_TEXT_BYTES,
@@ -396,6 +397,9 @@ export async function syncOsvEcosystem({
     MAX_MODIFIED_ID_ROW_LIMIT,
   );
   const rows = parseModifiedIdCsv(modifiedCsv, Math.max(0, effectiveLimit));
+  console.log(
+    `[osv/sync] ${ecosystem}: 解析到 ${rows.length} 条变更记录，开始逐条处理…`,
+  );
   const fetchTextForVulnerability = (url: string) =>
     fetchText(url, MAX_VULNERABILITY_TEXT_BYTES);
   let recordsImported = 0;
@@ -508,6 +512,9 @@ export async function bootstrapOsvEcosystem({
     now: syncedAt,
   });
 
+  console.log(
+    `[osv/bootstrap] 开始全量引导 ${ecosystem}，下载 all.zip 压缩包…`,
+  );
   const archivePath = assertSafeArchivePath(
     await downloadArchive({
       repoRoot,
@@ -516,6 +523,7 @@ export async function bootstrapOsvEcosystem({
       url: buildOsvBootstrapArchiveUrl(ecosystem),
     }),
   );
+  console.log(`[osv/bootstrap] ${ecosystem}: 压缩包已下载，开始逐条解析…`);
 
   let recordsSeen = 0;
   let recordsImported = 0;
@@ -540,6 +548,12 @@ export async function bootstrapOsvEcosystem({
       recordsImported += result.importedCount;
       recordsNew += result.newCount;
       recordsChanged += result.changedCount;
+      recordsSkipped += result.skippedCount;
+      if (recordsSeen > 0 && recordsSeen % 2000 === 0) {
+        console.log(
+          `[osv/bootstrap] ${ecosystem}: 已处理 ${recordsSeen} 条（导入=${recordsImported} 新增=${recordsNew} 跳过=${recordsSkipped} 失败=${recordsFailed}）`,
+        );
+      }
       recordsSkipped += result.skippedCount;
       return;
     } catch {
@@ -603,6 +617,9 @@ export async function bootstrapOsvEcosystem({
     }
 
     await flushPendingRecords();
+    console.log(
+      `[osv/bootstrap] ${ecosystem}: 全量引导完成，共 ${recordsSeen} 条（导入=${recordsImported} 新增=${recordsNew} 变更=${recordsChanged} 失败=${recordsFailed}）`,
+    );
   } finally {
     await deleteCachedFile(archivePath);
   }
