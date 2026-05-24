@@ -10,6 +10,10 @@ describe("web build boundaries", () => {
       "utf8",
     );
     const osvSync = fs.readFileSync("packages/content/src/osv/sync.ts", "utf8");
+    const osvSyncTypes = fs.readFileSync(
+      "packages/content/src/osv/sync-types.ts",
+      "utf8",
+    );
 
     expect(workerIndex).not.toContain('from "@vibeguard/content/osv/sync"');
     expect(adminOsvRoute).not.toContain('from "@vibeguard/content/osv/sync"');
@@ -20,6 +24,6 @@ describe("web build boundaries", () => {
       'await import("@vibeguard/content/osv/sync")',
     );
     expect(osvSync).not.toContain('import("yauzl-promise")');
-    expect(osvSync).toContain("loadYauzlPromise");
+    expect(osvSyncTypes).toContain("loadYauzlPromise");
   });
 });
