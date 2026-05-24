@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import { Readable, Writable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import zlib from "node:zlib";
@@ -8,6 +9,7 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { schema, securityCveEnrichments } from "@vibeguard/db";
 import { SecuritySyncStatus } from "@vibeguard/shared";
 
+import { deleteCacheFile, downloadToCache } from "./cache";
 import {
   buildSecuritySyncStateUpdate,
   upsertSecuritySyncState,
@@ -103,14 +105,12 @@ export type SecurityEnrichmentSyncMode = "bootstrap" | "incremental";
 type SyncNvdYearFeedInput = {
   db: ContentDb;
   year: number;
-  fetchBytes?: typeof defaultFetchBytes;
 };
 
 type SyncNvdFullHistoryInput = {
   db: ContentDb;
   years?: number[];
   now?: () => Date;
-  fetchBytes?: typeof defaultFetchBytes;
   syncNvdYearFeed?: (
     input: SyncNvdYearFeedInput,
   ) => Promise<SecurityEnrichmentSyncSummary>;
@@ -124,8 +124,6 @@ type SyncNvdFullHistoryInput = {
 type SyncAllSecurityEnrichmentSourcesOptions = {
   mode?: SecurityEnrichmentSyncMode;
   nvdYears?: number[];
-  fetchText?: typeof defaultFetchText;
-  fetchBytes?: typeof defaultFetchBytes;
   syncCisaKevCatalog?: typeof syncCisaKevCatalog;
   syncFirstEpssScores?: typeof syncFirstEpssScores;
   syncNvdModifiedFeed?: typeof syncNvdModifiedFeed;
@@ -567,20 +565,6 @@ export async function gunzipSecurityFeedText(
   return Buffer.concat(chunks, total).toString("utf8");
 }
 
-async function defaultFetchText(
-  url: string,
-  maxBytes = MAX_CISA_KEV_JSON_BYTES,
-) {
-  return fetchSecurityFeedText(url, maxBytes);
-}
-
-async function defaultFetchBytes(
-  url: string,
-  maxBytes = MAX_NVD_FEED_GZ_BYTES,
-) {
-  return fetchSecurityFeedBytes(url, maxBytes);
-}
-
 async function syncPatches({
   db,
   source,
@@ -635,13 +619,17 @@ async function syncPatches({
 
 export async function syncCisaKevCatalog({
   db,
-  fetchText = defaultFetchText,
 }: {
   db: ContentDb;
-  fetchText?: typeof defaultFetchText;
 }) {
   console.log("[enrichment] 正在下载 CISA KEV 漏洞目录…");
-  const rawJson = await fetchText(CISA_KEV_JSON_URL, MAX_CISA_KEV_JSON_BYTES);
+  const cached = await downloadToCache({
+    url: CISA_KEV_JSON_URL,
+    fileName: "cisa-kev.json",
+    maxBytes: MAX_CISA_KEV_JSON_BYTES,
+  });
+  const rawJson = await fs.readFile(cached, "utf8");
+  await deleteCacheFile(cached);
   const patches = parseKevCatalog(rawJson);
   console.log(
     `[enrichment] CISA KEV: 解析到 ${patches.length} 条漏洞，开始写入…`,
@@ -660,16 +648,17 @@ export async function syncCisaKevCatalog({
 
 export async function syncFirstEpssScores({
   db,
-  fetchBytes = defaultFetchBytes,
 }: {
   db: ContentDb;
-  fetchBytes?: typeof defaultFetchBytes;
 }) {
   console.log("[enrichment] 正在下载 FIRST EPSS 评分数据…");
-  const bytes = await fetchBytes(
-    FIRST_EPSS_CURRENT_CSV_GZ_URL,
-    MAX_EPSS_CSV_GZ_BYTES,
-  );
+  const cached = await downloadToCache({
+    url: FIRST_EPSS_CURRENT_CSV_GZ_URL,
+    fileName: "epss-current.csv.gz",
+    maxBytes: MAX_EPSS_CSV_GZ_BYTES,
+  });
+  const bytes = await fs.readFile(cached);
+  await deleteCacheFile(cached);
   const csv = await gunzipSecurityFeedText(
     bytes,
     "FIRST EPSS current CSV",
@@ -697,16 +686,17 @@ export async function syncFirstEpssScores({
 
 export async function syncNvdModifiedFeed({
   db,
-  fetchBytes = defaultFetchBytes,
 }: {
   db: ContentDb;
-  fetchBytes?: typeof defaultFetchBytes;
 }) {
   console.log("[enrichment] 正在下载 NVD 增量数据（modified feed）…");
-  const bytes = await fetchBytes(
-    buildNvdModifiedFeedUrl(),
-    MAX_NVD_FEED_GZ_BYTES,
-  );
+  const cached = await downloadToCache({
+    url: buildNvdModifiedFeedUrl(),
+    fileName: "nvd-modified.json.gz",
+    maxBytes: MAX_NVD_FEED_GZ_BYTES,
+  });
+  const bytes = await fs.readFile(cached);
+  await deleteCacheFile(cached);
   const payload = JSON.parse(
     await gunzipSecurityFeedText(
       bytes,
@@ -733,12 +723,14 @@ export async function syncNvdModifiedFeed({
 export async function syncNvdYearFeed({
   db,
   year,
-  fetchBytes = defaultFetchBytes,
 }: SyncNvdYearFeedInput) {
-  const bytes = await fetchBytes(
-    buildNvdYearFeedUrl(year),
-    MAX_NVD_FEED_GZ_BYTES,
-  );
+  const cached = await downloadToCache({
+    url: buildNvdYearFeedUrl(year),
+    fileName: `nvd-${year}.json.gz`,
+    maxBytes: MAX_NVD_FEED_GZ_BYTES,
+  });
+  const bytes = await fs.readFile(cached);
+  await deleteCacheFile(cached);
   const payload = JSON.parse(
     await gunzipSecurityFeedText(
       bytes,
@@ -747,7 +739,9 @@ export async function syncNvdYearFeed({
     ),
   );
   const patches = parseNvdModifiedFeed(payload);
-  console.log(`[enrichment] NVD ${year}: 解析到 ${patches.length} 条 CVE，开始写入…`);
+  console.log(
+    `[enrichment] NVD ${year}: 解析到 ${patches.length} 条 CVE，开始写入…`,
+  );
   return syncPatches({
     db,
     source: "nvd",
@@ -786,7 +780,6 @@ export async function syncNvdFullHistory({
   db,
   years,
   now = () => new Date(),
-  fetchBytes,
   syncNvdYearFeed: syncYear = syncNvdYearFeed,
   upsertSecuritySyncState: upsertSyncState = upsertSecuritySyncState,
 }: SyncNvdFullHistoryInput): Promise<SecurityEnrichmentSyncSummary> {
@@ -814,7 +807,6 @@ export async function syncNvdFullHistory({
         await syncYear({
           db,
           year,
-          ...(fetchBytes ? { fetchBytes } : {}),
         }),
       );
     }
@@ -893,24 +885,14 @@ export async function syncAllSecurityEnrichmentSources(
   const syncFull = options.syncNvdFullHistory ?? syncNvdFullHistory;
 
   return [
-    await syncKev({
-      db,
-      ...(options.fetchText ? { fetchText: options.fetchText } : {}),
-    }),
-    await syncEpss({
-      db,
-      ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),
-    }),
+    await syncKev({ db }),
+    await syncEpss({ db }),
     mode === "bootstrap"
       ? await syncFull({
           db,
           ...(options.nvdYears ? { years: options.nvdYears } : {}),
-          ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),
         })
-      : await syncModified({
-          db,
-          ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),
-        }),
+      : await syncModified({ db }),
   ];
 }
 

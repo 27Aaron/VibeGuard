@@ -36,6 +36,7 @@ Thumbs.db
 # Local databases, backups, and logs
 data/osv-cache/
 data/osv-bootstrap/
+data/enrichment-cache/
 *.bak
 *.db
 *.dump
