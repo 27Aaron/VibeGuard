@@ -9,6 +9,7 @@
     "./credentials": "./src/credentials.ts",
     "./prompts": "./src/prompts.ts",
     "./relevance": "./src/relevance.ts",
+    "./retry-policy": "./src/retry-policy.ts",
     "./tags": "./src/tags.ts",
     "./translate": "./src/translate.ts",
     "./summarize": "./src/summarize.ts"
