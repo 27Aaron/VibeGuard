@@ -136,6 +136,66 @@ describe("checkPackagesAgainstLocalDb", () => {
     expect(db.query.securityAffectedPackages.findMany).toHaveBeenCalledTimes(1)
   })
 
+  it("normalizes scheme-less advisory references before returning findings", async () => {
+    const db = {
+      query: {
+        securitySyncState: {
+          findFirst: vi.fn().mockResolvedValue({
+            lastSuccessAt: new Date("2026-05-22T07:00:00Z"),
+          }),
+        },
+        securityAffectedPackages: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "affected-1",
+              advisoryId: "advisory-1",
+              ecosystem: "go",
+              packageName: "github.com/hashicorp/vault",
+              packageKey: "github.com/hashicorp/vault",
+              purl: "pkg:golang/github.com/hashicorp/vault",
+              affectedVersions: [],
+              ranges: [
+                {
+                  type: "SEMVER",
+                  events: [{ introduced: "1.17.3" }, { fixed: "1.17.5" }],
+                },
+              ],
+              fixedVersions: ["1.17.5"],
+            },
+          ]),
+        },
+        securityAdvisories: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-1",
+              source: "osv",
+              externalId: "GHSA-test",
+              riskType: "vulnerability",
+              summary: "Go advisory with package reference",
+              details: null,
+              aliases: [],
+              severity: [],
+              references: [
+                { type: "PACKAGE", url: "github.com/hashicorp/vault" },
+                { type: "WEB", url: "javascript:alert(1)" },
+              ],
+              withdrawnAt: null,
+              modifiedAt: new Date("2026-05-21T23:01:37Z"),
+            },
+          ]),
+        },
+      },
+    } as never
+
+    const result = await checkPackagesAgainstLocalDb(db, {
+      packages: [{ ecosystem: "go", name: "github.com/hashicorp/vault" }],
+    })
+
+    expect(result.findings[0]?.advisory.references).toEqual([
+      { type: "PACKAGE", url: "https://github.com/hashicorp/vault" },
+    ])
+  })
+
   it("matches range-only affected packages and returns structured reasoning", async () => {
     const db = {
       query: {

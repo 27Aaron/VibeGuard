@@ -131,6 +131,37 @@ function dateToIso(value: Date | string | null | undefined) {
   return value.toISOString()
 }
 
+function normalizeReferenceUrl(url: string) {
+  const trimmedUrl = url.trim()
+  if (!trimmedUrl) return null
+
+  const candidate = /^[a-z][a-z\d+.-]*:/i.test(trimmedUrl)
+    ? trimmedUrl
+    : `https://${trimmedUrl}`
+
+  try {
+    const parsed = new URL(candidate)
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null
+    }
+
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
+function normalizeAdvisoryReferences(
+  references: Array<{ type?: string; url: string }>,
+) {
+  return references.flatMap((reference) => {
+    const url = normalizeReferenceUrl(reference.url)
+
+    return url ? [{ ...reference, url }] : []
+  })
+}
+
 function formatCveEnrichment(row: typeof securityCveEnrichments.$inferSelect): SecurityCveEnrichmentResult {
   return {
     cveId: row.cveId,
@@ -363,7 +394,7 @@ export async function checkPackagesAgainstLocalDb(
           details: advisory.details,
           aliases: advisory.aliases,
           severity: advisory.severity,
-          references: advisory.references,
+          references: normalizeAdvisoryReferences(advisory.references),
           publishedAt: advisory.publishedAt?.toISOString() ?? null,
           modifiedAt: advisory.modifiedAt?.toISOString() ?? null,
         },
