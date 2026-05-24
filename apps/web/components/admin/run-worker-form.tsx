@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { RefreshCw } from "lucide-react";
+import { Rss } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { AppLang } from "@/lib/i18n";
@@ -23,12 +23,10 @@ function SubmitButton({ lang }: { lang: AppLang }) {
         disabled={pending}
         variant="outline"
         size="lg"
-        className="w-full justify-between rounded-full border-emerald-900/14 bg-[#f7fbf8] text-emerald-950 shadow-[0_1px_2px_rgba(15,23,42,0.10),0_5px_12px_rgba(20,83,45,0.10)] hover:border-emerald-900/22 hover:bg-white dark:border-emerald-200/14 dark:bg-[#18241e] dark:text-emerald-100 dark:shadow-none dark:hover:border-emerald-200/24 dark:hover:bg-[#1b2a22] sm:w-auto"
+        className="w-full justify-between rounded-full border-emerald-900/14 bg-[#f7fbf8] text-emerald-950 shadow-[0_1px_2px_rgba(15,23,42,0.10),0_5px_12px_rgba(20,83,45,0.10)] hover:border-emerald-900/22 hover:bg-white dark:border-emerald-200/14 dark:bg-[#18241e] dark:text-emerald-100 dark:shadow-none dark:hover:border-emerald-200/24 dark:hover:bg-[#1b2a22]"
       >
-        <span>
-          {pending ? text.adminRunWorkerPending : text.adminRunWorker}
-        </span>
-        <RefreshCw className={pending ? "size-4 animate-spin" : "size-4"} />
+        <span>{pending ? text.adminRunWorkerPending : text.adminRunWorker}</span>
+        <Rss className={pending ? "size-4 animate-pulse" : "size-4"} />
       </Button>
       <p className="text-xs text-muted-foreground" aria-live="polite">
         {pending ? text.adminRunWorkerPendingHint : text.adminRunWorkerHint}
