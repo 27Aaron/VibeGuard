@@ -87,4 +87,37 @@ describe("extractMarkdownFromHtml", () => {
     expect(result.contentMd).toContain("Second paragraph.");
     expect(result.contentMd).not.toContain("Navigation");
   });
+
+  it("should remove sidebar call-to-action background images from extracted markdown", async () => {
+    const html = `
+      <html lang="en">
+        <head>
+          <title>Socket article</title>
+        </head>
+        <body>
+          <article>
+            <h1>Socket article</h1>
+            <p>Main body.</p>
+            <p>
+              <img
+                src="https://socket.dev/_next/image?url=%2Fimages%2Fsidebar-cta-bg.png&w=3840&q=75"
+                alt="Sidebar CTA Background"
+              />
+            </p>
+            <p>More body.</p>
+          </article>
+        </body>
+      </html>
+    `;
+
+    const result = await extractMarkdownFromHtml(
+      html,
+      "https://socket.dev/blog/example",
+    );
+
+    expect(result.contentMd).toContain("Main body.");
+    expect(result.contentMd).toContain("More body.");
+    expect(result.contentMd).not.toContain("Sidebar CTA Background");
+    expect(result.contentMd).not.toContain("sidebar-cta-bg.png");
+  });
 });
