@@ -7,6 +7,31 @@ import { classifyRelevance } from "../../packages/llm/src/relevance";
 import { generateTags } from "../../packages/llm/src/tags";
 
 describe("usage extraction from chat completion", () => {
+  it("forwards optional prompt cache controls", async () => {
+    const create = vi.fn().mockResolvedValue({
+      choices: [{ message: { content: "Hello" } }],
+    });
+
+    await createChatCompletionTextWithRetry({
+      client: { chat: { completions: { create } } },
+      model: "gpt-5-mini",
+      systemPrompt: "You are helpful.",
+      userContent: "Say hi",
+      promptCacheKey: "vibeguard:summary",
+      promptCacheRetention: "24h",
+    });
+
+    expect(create).toHaveBeenCalledWith({
+      model: "gpt-5-mini",
+      messages: [
+        { role: "system", content: "You are helpful." },
+        { role: "user", content: "Say hi" },
+      ],
+      prompt_cache_key: "vibeguard:summary",
+      prompt_cache_retention: "24h",
+    });
+  });
+
   it("should return usage when the API response includes it", async () => {
     const create = vi.fn().mockResolvedValue({
       choices: [{ message: { content: "Hello" } }],

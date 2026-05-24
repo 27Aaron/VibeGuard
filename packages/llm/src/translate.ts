@@ -2,6 +2,7 @@ import { buildTranslationSystemPrompt } from "./prompts";
 import {
   createChatCompletionTextWithRetry,
   type ChatCompletionsClient,
+  type PromptCacheOptions,
   type UsageResult,
 } from "./chat";
 
@@ -46,7 +47,7 @@ export async function translateText(input: {
   model: string;
   systemPrompt: string;
   sourceText: string;
-}) {
+} & PromptCacheOptions) {
   const protectedMarkdown = protectMarkdownCode(input.sourceText);
   const systemPrompt = buildTranslationSystemPrompt(input.systemPrompt);
   const { text, usage } = await createChatCompletionTextWithRetry({
@@ -54,6 +55,8 @@ export async function translateText(input: {
     model: input.model,
     systemPrompt,
     userContent: protectedMarkdown.protectedText,
+    promptCacheKey: input.promptCacheKey,
+    promptCacheRetention: input.promptCacheRetention,
   });
 
   return {

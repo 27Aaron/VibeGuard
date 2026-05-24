@@ -38,6 +38,20 @@ type ChatMessage = {
   content: string;
 };
 
+export type PromptCacheRetention = "in_memory" | "24h";
+
+export type PromptCacheOptions = {
+  promptCacheKey?: string;
+  promptCacheRetention?: PromptCacheRetention | null;
+};
+
+type ChatCompletionCreateInput = {
+  model: string;
+  messages: Array<ChatMessage>;
+  prompt_cache_key?: string;
+  prompt_cache_retention?: PromptCacheRetention | null;
+};
+
 type WaitFunction = (ms: number) => Promise<void>;
 
 export type UsageResult = {
@@ -51,10 +65,7 @@ export type UsageResult = {
 export type ChatCompletionsClient = {
   chat: {
     completions: {
-      create(input: {
-        model: string;
-        messages: Array<ChatMessage>;
-      }): Promise<ChatCompletionResult>;
+      create(input: ChatCompletionCreateInput): Promise<ChatCompletionResult>;
     };
   };
 };
@@ -89,7 +100,7 @@ export async function createChatCompletionTextWithRetry(input: {
   retryConfig?: LlmRetryConfig;
   wait?: WaitFunction;
   random?: () => number;
-}) {
+} & PromptCacheOptions) {
   const retryConfig =
     input.retryConfig ??
     resolveLlmRetryConfig({
@@ -107,10 +118,21 @@ export async function createChatCompletionTextWithRetry(input: {
 
   for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt += 1) {
     try {
-      const result = await input.client.chat.completions.create({
+      const request: ChatCompletionCreateInput = {
         model: input.model,
         messages,
-      });
+      };
+
+      const promptCacheKey = input.promptCacheKey?.trim();
+      if (promptCacheKey) {
+        request.prompt_cache_key = promptCacheKey;
+      }
+
+      if (input.promptCacheRetention !== undefined) {
+        request.prompt_cache_retention = input.promptCacheRetention;
+      }
+
+      const result = await input.client.chat.completions.create(request);
 
       return {
         text: extractChatCompletionText(result),

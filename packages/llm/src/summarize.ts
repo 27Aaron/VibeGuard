@@ -2,6 +2,7 @@ import { buildLocalizedSummaryPrompt } from "./prompts";
 import {
   createChatCompletionTextWithRetry,
   type ChatCompletionsClient,
+  type PromptCacheOptions,
   type UsageResult,
 } from "./chat";
 
@@ -12,7 +13,7 @@ export async function summarizeText(input: {
   model: string;
   systemPrompt: string;
   sourceText: string;
-}) {
+} & PromptCacheOptions) {
   let sourceText = input.sourceText;
 
   if (sourceText.length > MAX_SUMMARY_SOURCE_LENGTH) {
@@ -27,6 +28,8 @@ export async function summarizeText(input: {
     model: input.model,
     systemPrompt: input.systemPrompt,
     userContent: sourceText,
+    promptCacheKey: input.promptCacheKey,
+    promptCacheRetention: input.promptCacheRetention,
   });
 
   return { result: text, usage };

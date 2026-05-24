@@ -1,6 +1,7 @@
 import {
   createChatCompletionTextWithRetry,
   type ChatCompletionsClient,
+  type PromptCacheOptions,
   type UsageResult,
 } from "./chat";
 
@@ -203,7 +204,7 @@ export async function generateTags(input: {
   model: string;
   systemPrompt: string;
   sourceText: string;
-}) {
+} & PromptCacheOptions) {
   const { systemPrompt, userContent } = buildTagExtractionPrompt({
     systemPrompt: input.systemPrompt,
     sourceText: input.sourceText,
@@ -213,6 +214,8 @@ export async function generateTags(input: {
     model: input.model,
     systemPrompt,
     userContent,
+    promptCacheKey: input.promptCacheKey,
+    promptCacheRetention: input.promptCacheRetention,
   });
 
   return { result: extractGeneratedTags(text), usage };

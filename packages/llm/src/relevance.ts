@@ -1,6 +1,7 @@
 import {
   createChatCompletionTextWithRetry,
   type ChatCompletionsClient,
+  type PromptCacheOptions,
   type UsageResult,
 } from "./chat";
 
@@ -76,7 +77,10 @@ export async function classifyRelevance(input: {
   model: string;
   systemPrompt: string;
   sourceText: string;
-}): Promise<{ result: RelevanceResult; usage: UsageResult | null }> {
+} & PromptCacheOptions): Promise<{
+  result: RelevanceResult;
+  usage: UsageResult | null;
+}> {
   const { systemPrompt, userContent } = buildRelevancePrompt({
     systemPrompt: input.systemPrompt,
     sourceText: input.sourceText,
@@ -87,6 +91,8 @@ export async function classifyRelevance(input: {
     model: input.model,
     systemPrompt,
     userContent,
+    promptCacheKey: input.promptCacheKey,
+    promptCacheRetention: input.promptCacheRetention,
   });
 
   const parsed = parseRelevanceResponse(text);
