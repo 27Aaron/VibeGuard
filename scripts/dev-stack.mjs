@@ -52,6 +52,43 @@ function isPortInUse(port, host) {
   });
 }
 
+function runCommand(label, cmd, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    console.log(`[dev:stack] ${label}...`);
+    const child = spawn(cmd, args, {
+      cwd: process.cwd(),
+      env: sharedEnv,
+      stdio: "inherit",
+      ...options,
+    });
+
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(
+        new Error(
+          `${label} failed${signal ? ` with signal ${signal}` : ` with code ${code ?? 1}`}`,
+        ),
+      );
+    });
+  });
+}
+
+async function bootstrapDatabase() {
+  if (process.env.VIBEGUARD_SKIP_DB_BOOTSTRAP === "true") {
+    console.log("[dev:stack] 跳过数据库自举：VIBEGUARD_SKIP_DB_BOOTSTRAP=true");
+    return;
+  }
+
+  await runCommand("应用数据库迁移（创建/更新表）", packageManagerCommand, [
+    "db:migrate",
+  ]);
+}
+
 async function main() {
   if (await isPortInUse(webPort, webHost)) {
     console.error(
@@ -62,6 +99,8 @@ async function main() {
     );
     process.exit(1);
   }
+
+  await bootstrapDatabase();
 
   const children = processes.map((proc) => {
     const child = spawn(proc.cmd, proc.args, {
