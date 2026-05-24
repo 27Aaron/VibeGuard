@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { checkPackagesAgainstLocalDb } from "@vibeguard/content/osv/query";
@@ -369,8 +369,12 @@ export async function listSecurityAdvisories(
   searchParams: URLSearchParams,
 ) {
   const params = parseSecurityAdvisoryListParams(searchParams);
-  let packageAdvisoryIds: Set<string> | null = null;
 
+  // Build base WHERE conditions pushed to SQL
+  const conditions = [];
+
+  // Package/ecosystem filter via affected_packages join
+  let packageAdvisoryIds: Set<string> | null = null;
   if (params.ecosystem || params.packageName) {
     const packageRows = await db.query.securityAffectedPackages.findMany({
       where: (table, { and, eq: whereEq }) => {
@@ -399,110 +403,141 @@ export async function listSecurityAdvisories(
         items: [],
       };
     }
+
+    conditions.push(inArray(securityAdvisories.id, [...packageAdvisoryIds]));
   }
 
-  const rows = await db.query.securityAdvisories.findMany({
-    orderBy: [desc(securityAdvisories.modifiedAt)],
-  });
-  const cveIds = Array.from(
-    new Set(
-      rows.flatMap((row) =>
-        extractCveAliases([...row.aliases, ...row.upstreamIds]),
-      ),
-    ),
-  );
-  const cveRows =
-    cveIds.length > 0
-      ? await db.query.securityCveEnrichments.findMany({
-          where: inArray(securityCveEnrichments.cveId, cveIds),
-        })
-      : [];
-  const enrichmentByCve = new Map(
-    cveRows.map((row) => [row.cveId, formatCveEnrichment(row)]),
-  );
-  const filtered = rows
-    .filter((row) => !packageAdvisoryIds || packageAdvisoryIds.has(row.id))
-    .filter((row) =>
-      params.riskType ? row.riskType === params.riskType : true,
-    )
-    .filter((row) => {
-      if (params.withdrawn === null) return true;
-      return params.withdrawn ? !!row.withdrawnAt : !row.withdrawnAt;
-    })
-    .filter((row) => {
-      if (!params.cve) return true;
-      return extractCveAliases([...row.aliases, ...row.upstreamIds]).includes(
-        params.cve,
+  if (params.riskType) {
+    conditions.push(eq(securityAdvisories.riskType, params.riskType));
+  }
+
+  if (params.withdrawn !== null) {
+    conditions.push(
+      params.withdrawn
+        ? isNotNull(securityAdvisories.withdrawnAt)
+        : isNull(securityAdvisories.withdrawnAt),
+    );
+  }
+
+  if (params.cve) {
+    const cveJson = JSON.stringify([params.cve]);
+    conditions.push(
+      or(
+        sql`${securityAdvisories.aliases} @> ${cveJson}::jsonb`,
+        sql`${securityAdvisories.upstreamIds} @> ${cveJson}::jsonb`,
+      )!,
+    );
+  }
+
+  if (params.updatedAfter) {
+    conditions.push(
+      sql`coalesce(${securityAdvisories.modifiedAt}, ${securityAdvisories.publishedAt}) >= ${params.updatedAfter}::timestamptz`,
+    );
+  }
+
+  if (params.q) {
+    const pattern = `%${params.q}%`;
+    conditions.push(
+      or(
+        sql`${securityAdvisories.externalId} ilike ${pattern}`,
+        sql`${securityAdvisories.summary} ilike ${pattern}`,
+        sql`${securityAdvisories.details} ilike ${pattern}`,
+      )!,
+    );
+  }
+
+  // Enrichment-based filters (kev, cvssMin, epssMin): find qualifying CVE IDs first
+  let enrichmentCveIds: Set<string> | null = null;
+  if (params.kev !== null || params.cvssMin !== null || params.epssMin !== null) {
+    const enrichmentConditions = [];
+    if (params.kev === true) {
+      enrichmentConditions.push(eq(securityCveEnrichments.kevListed, true));
+    } else if (params.kev === false) {
+      enrichmentConditions.push(sql`coalesce(${securityCveEnrichments.kevListed}, false) = false`);
+    }
+    if (params.cvssMin !== null) {
+      enrichmentConditions.push(
+        sql`coalesce(${securityCveEnrichments.bestCvssScore}::numeric, 0) >= ${params.cvssMin}`,
       );
-    })
-    .filter((row) => {
-      if (!params.updatedAfter) return true;
-      return advisoryTimestamp(row) >= Date.parse(params.updatedAfter);
-    })
-    .filter((row) => {
-      const rowCves = extractCveAliases([...row.aliases, ...row.upstreamIds]);
-      const enrichments = rowCves.flatMap((cveId) => {
-        const enrichment = enrichmentByCve.get(cveId);
-        return enrichment ? [enrichment] : [];
-      });
+    }
+    if (params.epssMin !== null) {
+      enrichmentConditions.push(
+        sql`coalesce(${securityCveEnrichments.epssPercentile}::numeric, 0) >= ${params.epssMin}`,
+      );
+    }
 
-      if (
-        params.kev !== null &&
-        enrichments.some((entry) => entry.kevListed) !== params.kev
-      ) {
-        return false;
-      }
+    const qualifyingCveRows = await db
+      .select({ cveId: securityCveEnrichments.cveId })
+      .from(securityCveEnrichments)
+      .where(
+        enrichmentConditions.length === 1
+          ? enrichmentConditions[0]
+          : and(...enrichmentConditions),
+      );
+    enrichmentCveIds = new Set(qualifyingCveRows.map((r) => r.cveId));
 
-      if (
-        params.cvssMin !== null &&
-        !enrichments.some(
-          (entry) =>
-            (numberFromDecimal(entry.bestCvssScore) ?? 0) >= params.cvssMin!,
-        )
-      ) {
-        return false;
-      }
+    if (enrichmentCveIds.size === 0) {
+      return {
+        meta: { ...params, count: 0, totalCount: 0, totalPages: 1 },
+        items: [],
+      };
+    }
 
-      if (
-        params.epssMin !== null &&
-        !enrichments.some(
-          (entry) =>
-            (numberFromDecimal(entry.epssPercentile) ?? 0) >= params.epssMin!,
-        )
-      ) {
-        return false;
-      }
+    // Advisory must have at least one alias/upstreamId matching these CVE IDs
+    const cveArray = [...enrichmentCveIds];
+    conditions.push(
+      or(
+        sql`exists (select 1 from jsonb_array_elements_text(${securityAdvisories.aliases}) elem where elem = any(${cveArray}))`,
+        sql`exists (select 1 from jsonb_array_elements_text(${securityAdvisories.upstreamIds}) elem where elem = any(${cveArray}))`,
+      )!,
+    );
+  }
 
-      return true;
-    })
-    .filter((row) => {
-      if (!params.q) return true;
-      const query = params.q.toLowerCase();
-      return [
-        row.externalId,
-        row.summary,
-        row.details ?? "",
-        ...row.aliases,
-        ...row.relatedIds,
-        ...row.upstreamIds,
-      ].some((value) => value.toLowerCase().includes(query));
-    })
-    .sort((left, right) => advisoryTimestamp(right) - advisoryTimestamp(left));
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const totalCount = filtered.length;
+  // Count first, then fetch page with corrected offset
+  const [countRows] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(securityAdvisories)
+    .where(where);
+
+  const totalCount = Number(countRows?.count ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / params.limit));
   const page = Math.min(params.page, totalPages);
-  const pageRows = filtered.slice(
-    (page - 1) * params.limit,
-    page * params.limit,
-  );
-  const pageAdvisoryIds = pageRows.map((row) => row.id);
-  const packageRows =
+  const offset = (page - 1) * params.limit;
+
+  const rows = await db.query.securityAdvisories.findMany({
+    where,
+    orderBy: [desc(securityAdvisories.modifiedAt)],
+    limit: params.limit,
+    offset,
+  });
+
+  const pageAdvisoryIds = rows.map((row) => row.id);
+
+  // Fetch packages and enrichments only for the current page
+  const [packageRows, cveRows] = await Promise.all([
     pageAdvisoryIds.length > 0
-      ? await db.query.securityAffectedPackages.findMany({
+      ? db.query.securityAffectedPackages.findMany({
           where: inArray(securityAffectedPackages.advisoryId, pageAdvisoryIds),
         })
-      : [];
+      : [],
+    (async () => {
+      const cveIds = Array.from(
+        new Set(
+          rows.flatMap((row) =>
+            extractCveAliases([...row.aliases, ...row.upstreamIds]),
+          ),
+        ),
+      );
+      return cveIds.length > 0
+        ? db.query.securityCveEnrichments.findMany({
+            where: inArray(securityCveEnrichments.cveId, cveIds),
+          })
+        : [];
+    })(),
+  ]);
+
   const packagesByAdvisoryId = new Map<string, typeof packageRows>();
   for (const row of packageRows) {
     packagesByAdvisoryId.set(row.advisoryId, [
@@ -510,16 +545,19 @@ export async function listSecurityAdvisories(
       row,
     ]);
   }
+  const enrichmentByCve = new Map(
+    cveRows.map((row) => [row.cveId, formatCveEnrichment(row)]),
+  );
 
   return {
     meta: {
       ...params,
       page,
-      count: pageRows.length,
+      count: rows.length,
       totalCount,
       totalPages,
     },
-    items: pageRows.map((row) => {
+    items: rows.map((row) => {
       const rowCves = extractCveAliases([...row.aliases, ...row.upstreamIds]);
       const enrichments = rowCves.flatMap((cveId) => {
         const enrichment = enrichmentByCve.get(cveId);
@@ -578,7 +616,7 @@ export async function getSecurityCveDetail(db: ContentDb, cveId: string) {
     where: eq(securityCveEnrichments.cveId, normalizedCveId),
   });
   const advisoryRows = await db.query.securityAdvisories.findMany({
-    where: sql`${normalizedCveId} = ANY(${securityAdvisories.aliases}) OR ${normalizedCveId} = ANY(${securityAdvisories.upstreamIds})`,
+    where: sql`${securityAdvisories.aliases} @> ${JSON.stringify([normalizedCveId])}::jsonb OR ${securityAdvisories.upstreamIds} @> ${JSON.stringify([normalizedCveId])}::jsonb`,
     orderBy: [desc(securityAdvisories.modifiedAt)],
   });
   const relatedAdvisories = advisoryRows;

@@ -390,7 +390,21 @@ describe("security API routes", () => {
   });
 
   it("lists advisories with CVE enrichment and package impact", async () => {
+    const selectFromWhere = vi.fn().mockResolvedValue([
+      { cveId: "CVE-2025-62718" },
+    ]);
+    const selectFrom = vi.fn().mockReturnValue({ where: selectFromWhere });
+    const selectChain = { from: selectFrom };
+    const countSelectFromWhere = vi.fn().mockResolvedValue([{ count: 1 }]);
+    const countSelectFrom = vi.fn().mockReturnValue({ where: countSelectFromWhere });
+    const countSelectChain = { from: countSelectFrom };
+
+    let selectCallIndex = 0;
     const db = {
+      select: vi.fn().mockImplementation(() => {
+        selectCallIndex += 1;
+        return selectCallIndex === 1 ? selectChain : countSelectChain;
+      }),
       query: {
         securityAdvisories: {
           findMany: vi.fn().mockResolvedValue([
@@ -412,25 +426,6 @@ describe("security API routes", () => {
               modifiedAt: new Date("2026-05-22T04:38:00.000Z"),
               withdrawnAt: null,
               createdAt: new Date("2026-04-10T01:32:00.000Z"),
-            },
-            {
-              id: "advisory-2",
-              source: "osv",
-              externalId: "MAL-2026-1",
-              sourceUrl: "https://osv.dev/vulnerability/MAL-2026-1",
-              riskType: "malicious-package",
-              summary: "Malicious package",
-              details: null,
-              aliases: [],
-              relatedIds: [],
-              upstreamIds: [],
-              severity: [],
-              references: [],
-              maliciousOrigins: [{ source: "OSV", versions: ["1.0.0"] }],
-              publishedAt: new Date("2026-01-01T00:00:00.000Z"),
-              modifiedAt: new Date("2026-01-02T00:00:00.000Z"),
-              withdrawnAt: null,
-              createdAt: new Date("2026-01-01T00:00:00.000Z"),
             },
           ]),
         },
