@@ -28,9 +28,9 @@ import type {
 } from "@vibeguard/mcp-server/client";
 
 // ===========================================================================
-// I12 — readPackageVersion uses async fs.promises.readFile
+// readPackageVersion 使用 async fs.promises.readFile
 // ===========================================================================
-describe("I12: readPackageVersion is async", () => {
+describe("readPackageVersion is async", () => {
   const serverPath = path.resolve("packages/mcp-server/src/server.ts");
   const source = fs.readFileSync(serverPath, "utf8");
 
@@ -55,9 +55,9 @@ describe("I12: readPackageVersion is async", () => {
 });
 
 // ===========================================================================
-// I33 — ToolDefinition uses generics for inputSchema type info
+// ToolDefinition 使用泛型提供 inputSchema 类型信息
 // ===========================================================================
-describe("I33: ToolDefinition has type parameter for inputSchema", () => {
+describe("ToolDefinition has type parameter for inputSchema", () => {
   const toolsPath = path.resolve("packages/mcp-server/src/tools.ts");
   const source = fs.readFileSync(toolsPath, "utf8");
 
@@ -75,9 +75,9 @@ describe("I33: ToolDefinition has type parameter for inputSchema", () => {
 });
 
 // ===========================================================================
-// I34 — ecosystems/riskCategories extracted to shared constants
+// ecosystems/riskCategories 提取为共享常量
 // ===========================================================================
-describe("I34: ecosystems/riskCategories come from shared package", () => {
+describe("ecosystems/riskCategories come from shared package", () => {
   const toolsPath = path.resolve("packages/mcp-server/src/tools.ts");
   const source = fs.readFileSync(toolsPath, "utf8");
 
@@ -139,9 +139,9 @@ describe("I34: ecosystems/riskCategories come from shared package", () => {
 });
 
 // ===========================================================================
-// I35 — redundant "as const" removed from server.ts
+// 移除 server.ts 中多余的 "as const"
 // ===========================================================================
-describe("I35: redundant as const removed from server.ts", () => {
+describe("redundant as const removed from server.ts", () => {
   const serverPath = path.resolve("packages/mcp-server/src/server.ts");
   const source = fs.readFileSync(serverPath, "utf8");
 
@@ -155,9 +155,9 @@ describe("I35: redundant as const removed from server.ts", () => {
 });
 
 // ===========================================================================
-// I36 — key types exported from client.ts
+// 从 client.ts 导出关键类型
 // ===========================================================================
-describe("I36: client.ts exports key types", () => {
+describe("client.ts exports key types", () => {
   const clientPath = path.resolve("packages/mcp-server/src/client.ts");
   const source = fs.readFileSync(clientPath, "utf8");
 
@@ -177,9 +177,9 @@ describe("I36: client.ts exports key types", () => {
 });
 
 // ===========================================================================
-// I13 — defineStatuses callers no longer need `as const`
+// defineStatuses 调用方不再需要 `as const`
 // ===========================================================================
-describe("I13: defineStatuses callers use const type parameter, no `as const` needed", () => {
+describe("defineStatuses callers use const type parameter, no `as const` needed", () => {
   const typesPath = path.resolve("packages/shared/src/types.ts");
   const source = fs.readFileSync(typesPath, "utf8");
 
@@ -202,9 +202,9 @@ describe("I13: defineStatuses callers use const type parameter, no `as const` ne
 });
 
 // ===========================================================================
-// I14 — clarifying comment on ArticleStatus dual name pattern
+// 为 ArticleStatus 双命名模式添加说明注释
 // ===========================================================================
-describe("I14: ArticleStatus naming pattern is documented", () => {
+describe("ArticleStatus naming pattern is documented", () => {
   const typesPath = path.resolve("packages/shared/src/types.ts");
   const source = fs.readFileSync(typesPath, "utf8");
 
@@ -214,9 +214,9 @@ describe("I14: ArticleStatus naming pattern is documented", () => {
 });
 
 // ===========================================================================
-// I15 — SecurityPackageMatchConfidence "undetermined" semantics
+// SecurityPackageMatchConfidence "undetermined" 语义说明
 // ===========================================================================
-describe("I15: SecurityPackageMatchConfidence 'undetermined' semantics", () => {
+describe("SecurityPackageMatchConfidence 'undetermined' semantics", () => {
   const typesPath = path.resolve("packages/shared/src/types.ts");
   const source = fs.readFileSync(typesPath, "utf8");
 
@@ -241,9 +241,9 @@ describe("I15: SecurityPackageMatchConfidence 'undetermined' semantics", () => {
 });
 
 // ===========================================================================
-// I37 — normalizeInt early returns for empty/falsy values
+// normalizeInt 对空值和 falsy 值提前返回
 // ===========================================================================
-describe("I37: normalizeInt handles empty input with early return", () => {
+describe("normalizeInt handles empty input with early return", () => {
   const normalizePath = path.resolve("packages/shared/src/normalize.ts");
   const source = fs.readFileSync(normalizePath, "utf8");
 

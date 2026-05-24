@@ -3,11 +3,11 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 // ---------------------------------------------------------------------------
-// W11: Default HTTP not HTTPS — warn/reject non-localhost cleartext URLs
-// W12: Environment variable URL has no format validation
+// 默认 HTTP 而非 HTTPS 时拒绝非 localhost 明文 URL
+// 环境变量 URL 缺少格式校验
 // ---------------------------------------------------------------------------
 
-describe("W11/W12 — client.ts HTTPS enforcement and URL validation", () => {
+describe("client.ts HTTPS 强制校验和 URL 验证", () => {
   const source = fs.readFileSync("packages/mcp-server/src/client.ts", "utf8");
 
   it("defines a validateApiUrl function that parses the URL", () => {
@@ -40,10 +40,10 @@ describe("W11/W12 — client.ts HTTPS enforcement and URL validation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W13: Error messages leak internal error details
+// 错误信息泄露内部错误细节
 // ---------------------------------------------------------------------------
 
-describe("W13 — server.ts sanitized error messages", () => {
+describe("server.ts sanitized error messages", () => {
   const source = fs.readFileSync("packages/mcp-server/src/server.ts", "utf8");
 
   it("catch block logs the full error server-side via console.error", () => {
@@ -66,10 +66,10 @@ describe("W13 — server.ts sanitized error messages", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W14: args.id as string without UUID format validation
+// args.id 直接 as string 缺少 UUID 格式校验
 // ---------------------------------------------------------------------------
 
-describe("W14 — tools.ts UUID format validation", () => {
+describe("tools.ts UUID format validation", () => {
   const source = fs.readFileSync("packages/mcp-server/src/tools.ts", "utf8");
 
   it("defines a UUID regex pattern", () => {
@@ -93,10 +93,10 @@ describe("W14 — tools.ts UUID format validation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W37: Foreign keys should cascade delete
+// 外键应级联删除
 // ---------------------------------------------------------------------------
 
-describe("W37 — schema.ts cascade deletes", () => {
+describe("schema.ts cascade deletes", () => {
   const source = fs.readFileSync("packages/db/src/schema.ts", "utf8");
 
   it("articles.feedId references feeds with onDelete cascade", () => {
@@ -119,10 +119,10 @@ describe("W37 — schema.ts cascade deletes", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W38: Security tables lack updatedAt trigger (document only)
+// 安全表缺少 updatedAt 触发器（仅文档记录）
 // ---------------------------------------------------------------------------
 
-describe("W38 — schema.ts security tables updatedAt documentation", () => {
+describe("schema.ts security tables updatedAt documentation", () => {
   const source = fs.readFileSync("packages/db/src/schema.ts", "utf8");
 
   it("contains a comment noting the DB-level trigger limitation", () => {
