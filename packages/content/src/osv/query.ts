@@ -274,6 +274,7 @@ export async function checkPackagesAgainstLocalDb(
   input: CheckPackagesInput,
 ) {
   const syncState = await db.query.securitySyncState.findFirst({
+    where: eq(securitySyncState.source, "osv"),
     orderBy: [desc(securitySyncState.lastSuccessAt)],
   });
   const meta = buildPackageCheckMeta({
