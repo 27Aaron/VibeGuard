@@ -218,6 +218,8 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
     fetchStatus();
   }, [fetchStatus]);
 
+  const SNAPSHOT_SOURCES = new Set(["cisa-kev", "first-epss"]);
+
   function handleSyncComplete(result: SyncResult) {
     if (result.logs) setSyncLogs(result.logs);
 
@@ -226,7 +228,9 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
       map[`osv:${r.ecosystem}`] = r.imported;
     }
     for (const r of result.enrichment ?? []) {
-      map[`${r.source}:${r.scope}`] = r.imported;
+      if (!SNAPSHOT_SOURCES.has(r.source)) {
+        map[`${r.source}:${r.scope}`] = r.imported;
+      }
     }
     setNewRecords(map);
 
