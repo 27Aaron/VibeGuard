@@ -120,4 +120,35 @@ describe("extractMarkdownFromHtml", () => {
     expect(result.contentMd).not.toContain("Sidebar CTA Background");
     expect(result.contentMd).not.toContain("sidebar-cta-bg.png");
   });
+
+  it("should remove Socket dependency call-to-action ads from extracted markdown", async () => {
+    const html = `
+      <html lang="en">
+        <head>
+          <title>Socket article</title>
+        </head>
+        <body>
+          <article>
+            <p>Vibe coding at scale is reshaping package selection.</p>
+            <h4>Secure your dependencies with us</h4>
+            <p>Socket proactively blocks malicious open source packages in your code.</p>
+            <p><a href="https://socket.dev/features/github">Install</a></p>
+            <p>Real article body starts here.</p>
+          </article>
+        </body>
+      </html>
+    `;
+
+    const result = await extractMarkdownFromHtml(
+      html,
+      "https://socket.dev/blog/example",
+    );
+
+    expect(result.contentMd).toContain("Vibe coding at scale");
+    expect(result.contentMd).toContain("Real article body starts here.");
+    expect(result.contentMd).not.toContain("Secure your dependencies with us");
+    expect(result.contentMd).not.toContain("Socket proactively blocks");
+    expect(result.contentMd).not.toContain("socket.dev/features/github");
+    expect(result.contentMd).not.toContain("[Install]");
+  });
 });

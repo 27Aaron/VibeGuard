@@ -3,6 +3,10 @@ import { Defuddle } from "defuddle/node";
 
 const DECORATIVE_IMAGE_ALT_TEXTS = new Set(["sidebar cta background"]);
 const DECORATIVE_IMAGE_URL_PARTS = ["sidebar-cta-bg"];
+const SOCKET_CTA_TEXT_LINES = new Set([
+  "secure your dependencies with us",
+  "socket proactively blocks malicious open source packages in your code.",
+]);
 
 export type ExtractedArticle = {
   title: string;
@@ -37,6 +41,7 @@ function cleanExtractedMarkdown(markdown: string) {
   return markdown
     .split(/\r?\n/)
     .filter((line) => !isDecorativeMarkdownImageLine(line))
+    .filter((line) => !isSocketCtaMarkdownLine(line))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -63,6 +68,26 @@ function isDecorativeMarkdownImageLine(line: string) {
 function normalizeDecorativeImageToken(value: string) {
   return value
     .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function isSocketCtaMarkdownLine(line: string) {
+  const trimmed = line.trim();
+
+  if (SOCKET_CTA_TEXT_LINES.has(normalizeMarkdownTextLine(trimmed))) {
+    return true;
+  }
+
+  return /^\[install\]\(\s*<?https?:\/\/socket\.dev\/features\/github(?:[?#][^>\s)]*)?>?\s*(?:["'][^"']*["'])?\s*\)$/i.test(
+    trimmed,
+  );
+}
+
+function normalizeMarkdownTextLine(value: string) {
+  return value
+    .replace(/^#{1,6}\s+/, "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
