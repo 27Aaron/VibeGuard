@@ -21,9 +21,10 @@
     "@vibeguard/shared": "workspace:*"
   },
   "devDependencies": {
-    "@types/semver": "^7.7.1",
     "@types/node": "^25.9.1",
+    "@types/semver": "^7.7.1",
     "drizzle-kit": "^0.31.10",
+    "react": "19.2.6",
     "tsx": "^4.20.6",
     "vitest": "^4.1.7"
   },
