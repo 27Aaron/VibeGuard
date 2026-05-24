@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 import { NextResponse } from "next/server";
 
 import { checkPackagesAgainstLocalDb } from "@vibeguard/content/osv/query";
@@ -32,10 +34,10 @@ function resolveClientIp(request: Request): string {
   if (trustProxy === "1" || trustProxy === "true") {
     const forwarded = request.headers.get("x-forwarded-for");
     const candidate = forwarded?.split(",")[0]?.trim();
-    if (candidate) return candidate;
+    if (candidate && isIP(candidate)) return candidate;
 
-    const realIp = request.headers.get("x-real-ip");
-    if (realIp?.trim()) return realIp.trim();
+    const realIp = request.headers.get("x-real-ip")?.trim();
+    if (realIp && isIP(realIp)) return realIp;
   }
 
   return "local";
