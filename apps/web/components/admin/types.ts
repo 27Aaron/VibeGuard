@@ -27,7 +27,7 @@ export type JobPreviewRow = {
   id: string
   articleTitle: string
   jobType: "extract" | "translate" | "summarize"
-  status: "queued" | "running" | "succeeded" | "failed"
+  status: "queued" | "running" | "paused" | "pause_requested" | "cancel_requested" | "succeeded" | "failed"
   runAt: string
 }
 
@@ -37,7 +37,7 @@ export type JobRow = {
   articleTitle: string
   sourceName: string
   jobType: "extract" | "translate" | "summarize"
-  status: "queued" | "running" | "succeeded" | "failed" | "filtered"
+  status: "queued" | "running" | "paused" | "pause_requested" | "cancel_requested" | "succeeded" | "failed" | "filtered"
   pipelineStage:
     | "waiting"
     | "fetch_source"
@@ -58,7 +58,7 @@ export type JobRow = {
   lastError: string | null
 }
 
-export type JobStatusFilter = "all" | "running" | "queued" | "failed" | "filtered"
+export type JobStatusFilter = "all" | "running" | "queued" | "paused" | "failed" | "filtered"
 export type JobStageFilter = "all" | JobRow["pipelineStage"]
 
 export type JobStatusCount = {

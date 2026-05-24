@@ -13,7 +13,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { retryJobAction, retrySelectedJobsAction } from "@/lib/actions/jobs"
+import {
+  cancelSelectedJobsAction,
+  pauseSelectedJobsAction,
+  resumeSelectedJobsAction,
+  retrySelectedJobsAction,
+} from "@/lib/actions/jobs"
 import {
   ADMIN_JOB_PAGE_SIZE_OPTIONS,
   parseAdminJobListParams,
@@ -29,6 +34,7 @@ const allowedStatuses = new Set<JobStatusFilter>([
   "all",
   "running",
   "queued",
+  "paused",
   "failed",
   "filtered",
 ])
@@ -120,7 +126,7 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
         </div>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         {counts.map((item) => {
           const href = buildJobsHref({
             lang,
@@ -183,6 +189,42 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
               )}
             >
               {lang === "zh" ? "执行选中" : "Run selected"}
+            </button>
+            <button
+              type="submit"
+              form="selected-jobs-form"
+              formAction={pauseSelectedJobsAction}
+              disabled={!hasSelectableJobs}
+              className={cn(
+                buttonVariants({ size: "sm", variant: "outline" }),
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              {lang === "zh" ? "暂停" : "Pause"}
+            </button>
+            <button
+              type="submit"
+              form="selected-jobs-form"
+              formAction={resumeSelectedJobsAction}
+              disabled={!hasSelectableJobs}
+              className={cn(
+                buttonVariants({ size: "sm", variant: "outline" }),
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              {lang === "zh" ? "恢复" : "Resume"}
+            </button>
+            <button
+              type="submit"
+              form="selected-jobs-form"
+              formAction={cancelSelectedJobsAction}
+              disabled={!hasSelectableJobs}
+              className={cn(
+                buttonVariants({ size: "sm", variant: "destructive" }),
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              {lang === "zh" ? "取消" : "Cancel"}
             </button>
           </div>
         </CardHeader>

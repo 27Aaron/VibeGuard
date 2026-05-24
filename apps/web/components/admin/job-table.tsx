@@ -2,7 +2,12 @@ import Link from "next/link"
 
 import { JobSelectAllCheckbox } from "@/components/admin/job-select-all-checkbox"
 import { JobStageFilterSelect } from "@/components/admin/job-stage-filter-select"
-import { retryJobAction } from "@/lib/actions/jobs"
+import {
+  cancelJobAction,
+  pauseJobAction,
+  resumeJobAction,
+  retryJobAction,
+} from "@/lib/actions/jobs"
 import type { JobRow, JobStageFilter, JobStatusFilter } from "@/components/admin/types"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
@@ -25,7 +30,7 @@ const VIRTUALIZE_THRESHOLD = 30
 const ESTIMATED_ROW_HEIGHT = 56
 
 function statusVariant(status: JobRow["status"]) {
-  if (status === "failed") {
+  if (status === "failed" || status === "cancel_requested") {
     return "destructive" as const
   }
 
@@ -40,6 +45,9 @@ function statusClassName(status: JobRow["status"]) {
   if (status === "filtered") {
     return "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-300"
   }
+  if (status === "paused" || status === "pause_requested") {
+    return "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+  }
   return undefined
 }
 
@@ -49,6 +57,12 @@ function statusLabel(status: JobRow["status"], lang: AppLang) {
       return lang === "zh" ? "排队中" : "Queued"
     case "running":
       return lang === "zh" ? "执行中" : "Running"
+    case "paused":
+      return lang === "zh" ? "已暂停" : "Paused"
+    case "pause_requested":
+      return lang === "zh" ? "暂停中" : "Pausing"
+    case "cancel_requested":
+      return lang === "zh" ? "取消中" : "Cancelling"
     case "succeeded":
       return lang === "zh" ? "已完成" : "Succeeded"
     case "failed":
@@ -85,6 +99,12 @@ function actionLabel(status: JobRow["status"], lang: AppLang) {
       return lang === "zh" ? "立即执行" : "Run now"
     case "running":
       return lang === "zh" ? "重置执行" : "Reset"
+    case "paused":
+      return lang === "zh" ? "恢复" : "Resume"
+    case "pause_requested":
+      return lang === "zh" ? "暂停中" : "Pausing"
+    case "cancel_requested":
+      return lang === "zh" ? "取消中" : "Cancelling"
     case "succeeded":
       return lang === "zh" ? "重新执行" : "Rerun"
     case "filtered":
@@ -92,6 +112,162 @@ function actionLabel(status: JobRow["status"], lang: AppLang) {
     case "failed":
       return lang === "zh" ? "继续执行" : "Continue"
   }
+}
+
+function JobActionHiddenFields({
+  job,
+  lang,
+  status,
+  stage,
+  page,
+  pageSize,
+}: {
+  job: JobRow
+  lang: AppLang
+  status: JobStatusFilter
+  stage: JobStageFilter
+  page: number
+  pageSize: number
+}) {
+  return (
+    <>
+      <input type="hidden" name="id" value={job.id} />
+      <input type="hidden" name="lang" value={lang} />
+      <input type="hidden" name="status" value={status} />
+      <input type="hidden" name="stage" value={stage} />
+      <input type="hidden" name="page" value={String(page)} />
+      <input type="hidden" name="pageSize" value={String(pageSize)} />
+    </>
+  )
+}
+
+function JobRowActions({
+  job,
+  lang,
+  status,
+  stage,
+  page,
+  pageSize,
+}: {
+  job: JobRow
+  lang: AppLang
+  status: JobStatusFilter
+  stage: JobStageFilter
+  page: number
+  pageSize: number
+}) {
+  const canPause = job.status === "queued" || job.status === "running"
+  const canResume = job.status === "paused"
+  const canCancel =
+    job.status === "queued" ||
+    job.status === "running" ||
+    job.status === "paused" ||
+    job.status === "pause_requested"
+  const canRetry =
+    job.status === "failed" ||
+    job.status === "succeeded" ||
+    job.status === "filtered"
+
+  return (
+    <div className="flex flex-wrap justify-center gap-1.5">
+      {canRetry ? (
+        <form action={retryJobAction} className="inline-flex">
+          <JobActionHiddenFields
+            job={job}
+            lang={lang}
+            status={status}
+            stage={stage}
+            page={page}
+            pageSize={pageSize}
+          />
+          <button
+            type="submit"
+            className={cn(
+              buttonVariants({ size: "sm", variant: "outline" }),
+              "w-16 justify-center px-0",
+            )}
+          >
+            {actionLabel(job.status, lang)}
+          </button>
+        </form>
+      ) : null}
+      {canPause ? (
+        <form action={pauseJobAction} className="inline-flex">
+          <JobActionHiddenFields
+            job={job}
+            lang={lang}
+            status={status}
+            stage={stage}
+            page={page}
+            pageSize={pageSize}
+          />
+          <button
+            type="submit"
+            className={cn(
+              buttonVariants({ size: "sm", variant: "outline" }),
+              "w-14 justify-center px-0",
+            )}
+          >
+            {lang === "zh" ? "暂停" : "Pause"}
+          </button>
+        </form>
+      ) : null}
+      {canResume ? (
+        <form action={resumeJobAction} className="inline-flex">
+          <JobActionHiddenFields
+            job={job}
+            lang={lang}
+            status={status}
+            stage={stage}
+            page={page}
+            pageSize={pageSize}
+          />
+          <button
+            type="submit"
+            className={cn(
+              buttonVariants({ size: "sm", variant: "outline" }),
+              "w-14 justify-center px-0",
+            )}
+          >
+            {lang === "zh" ? "恢复" : "Resume"}
+          </button>
+        </form>
+      ) : null}
+      {job.status === "pause_requested" || job.status === "cancel_requested" ? (
+        <button
+          type="button"
+          disabled
+          className={cn(
+            buttonVariants({ size: "sm", variant: "outline" }),
+            "w-16 justify-center px-0",
+          )}
+        >
+          {actionLabel(job.status, lang)}
+        </button>
+      ) : null}
+      {canCancel ? (
+        <form action={cancelJobAction} className="inline-flex">
+          <JobActionHiddenFields
+            job={job}
+            lang={lang}
+            status={status}
+            stage={stage}
+            page={page}
+            pageSize={pageSize}
+          />
+          <button
+            type="submit"
+            className={cn(
+              buttonVariants({ size: "sm", variant: "destructive" }),
+              "w-14 justify-center px-0",
+            )}
+          >
+            {lang === "zh" ? "取消" : "Cancel"}
+          </button>
+        </form>
+      ) : null}
+    </div>
+  )
 }
 
 function JobRowItem({ job, lang, status, stage, page, pageSize, shouldVirtualize }: {
@@ -184,23 +360,14 @@ function JobRowItem({ job, lang, status, stage, page, pageSize, shouldVirtualize
         )}
       </TableCell>
       <TableCell className="px-4 py-3 text-center align-middle">
-        <form action={retryJobAction} className="inline-flex">
-          <input type="hidden" name="id" value={job.id} />
-          <input type="hidden" name="lang" value={lang} />
-          <input type="hidden" name="status" value={status} />
-          <input type="hidden" name="stage" value={stage} />
-          <input type="hidden" name="page" value={String(page)} />
-          <input type="hidden" name="pageSize" value={String(pageSize)} />
-          <button
-            type="submit"
-            className={cn(
-              buttonVariants({ size: "sm", variant: "outline" }),
-              "w-20 justify-center px-0",
-            )}
-          >
-            {actionLabel(job.status, lang)}
-          </button>
-        </form>
+        <JobRowActions
+          job={job}
+          lang={lang}
+          status={status}
+          stage={stage}
+          page={page}
+          pageSize={pageSize}
+        />
       </TableCell>
     </TableRow>
   )
@@ -264,7 +431,7 @@ export function JobTable({
             <TableHead className="w-[140px] px-3 text-center">
               {lang === "zh" ? "错误信息" : "Error"}
             </TableHead>
-            <TableHead className="w-[120px] px-4 text-center">
+            <TableHead className="w-[156px] px-4 text-center">
               {lang === "zh" ? "操作" : "Actions"}
             </TableHead>
           </TableRow>

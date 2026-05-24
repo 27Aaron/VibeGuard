@@ -1,12 +1,18 @@
-import { and, desc, eq, gte, sql } from "drizzle-orm"
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm"
 
 import { articles, feeds, getDb, processingJobs } from "@vibeguard/db"
+import { JobStatus } from "@vibeguard/shared"
 
 import { requireAdminAuth } from "@/lib/admin-api-auth"
 import { formatDateTimeInShanghai } from "@/lib/time"
 
 export const dynamic = "force-dynamic"
 const WORKER_STATUS_LIST_LIMIT = 200
+const RUNNING_JOB_STATUSES = [
+  JobStatus.RUNNING,
+  JobStatus.PAUSE_REQUESTED,
+  JobStatus.CANCEL_REQUESTED,
+] as const
 
 export async function GET() {
   const auth = await requireAdminAuth()
@@ -17,7 +23,7 @@ export async function GET() {
   const [runningCountRow] = await db
     .select({ count: sql<number>`count(*)` })
     .from(processingJobs)
-    .where(eq(processingJobs.status, "running"))
+    .where(inArray(processingJobs.status, RUNNING_JOB_STATUSES))
 
   const [queuedCountRow] = await db
     .select({ count: sql<number>`count(*)` })
@@ -39,7 +45,7 @@ export async function GET() {
     .from(processingJobs)
     .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
     .innerJoin(feeds, eq(articles.feedId, feeds.id))
-    .where(eq(processingJobs.status, "running"))
+    .where(inArray(processingJobs.status, RUNNING_JOB_STATUSES))
     .orderBy(desc(processingJobs.startedAt))
     .limit(WORKER_STATUS_LIST_LIMIT / 2)
 

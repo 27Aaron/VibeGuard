@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
 import { articles, feeds, getDb, llmSettings, processingJobs } from "@vibeguard/db"
+import { JobStatus } from "@vibeguard/shared"
 import {
   DEFAULT_ADMIN_JOB_PAGE_SIZE,
   type AdminJobStageFilter,
@@ -13,6 +14,20 @@ function formatDateTime(value: Date | null | undefined, lang: AppLang = "zh", fa
   return formatDateTimeInShanghai(value, { lang, fallback })
 }
 
+const RUNNING_JOB_STATUSES = [
+  JobStatus.RUNNING,
+  JobStatus.PAUSE_REQUESTED,
+  JobStatus.CANCEL_REQUESTED,
+] as const
+const VISIBLE_JOB_STATUSES = [
+  JobStatus.QUEUED,
+  JobStatus.RUNNING,
+  JobStatus.PAUSE_REQUESTED,
+  JobStatus.CANCEL_REQUESTED,
+  JobStatus.PAUSED,
+  JobStatus.FAILED,
+] as const
+
 export async function getDashboardOverview(lang: AppLang = "zh") {
   const db = getDb()
   const [feedCountRow, articleCountRow, queuedJobsRow, activeSettings] = await Promise.all([
@@ -21,7 +36,7 @@ export async function getDashboardOverview(lang: AppLang = "zh") {
     db
       .select({ count: sql<number>`count(*)` })
       .from(processingJobs)
-      .where(sql`${processingJobs.status} in ('queued', 'running')`),
+      .where(inArray(processingJobs.status, VISIBLE_JOB_STATUSES)),
     db.query.llmSettings.findFirst({
       where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
     }),
@@ -81,7 +96,10 @@ export async function getJobPreviewRows() {
     })
     .from(processingJobs)
     .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
-    .where(sql`${processingJobs.status} in ('queued', 'running')`)
+    .where(inArray(processingJobs.status, [
+      JobStatus.QUEUED,
+      ...RUNNING_JOB_STATUSES,
+    ]))
     .orderBy(desc(processingJobs.createdAt))
     .limit(5)
 
@@ -118,20 +136,28 @@ export async function getJobStatusCounts(lang: AppLang = "zh") {
     {
       status: "all",
       label: lang === "zh" ? "全部内容" : "All content",
-      count:
-        (countMap.get("running") ?? 0) +
-        (countMap.get("queued") ?? 0) +
-        (countMap.get("failed") ?? 0),
+      count: VISIBLE_JOB_STATUSES.reduce(
+        (total, status) => total + (countMap.get(status) ?? 0),
+        0,
+      ),
     },
     {
       status: "running",
       label: lang === "zh" ? "执行中" : "Running",
-      count: countMap.get("running") ?? 0,
+      count: RUNNING_JOB_STATUSES.reduce(
+        (total, status) => total + (countMap.get(status) ?? 0),
+        0,
+      ),
     },
     {
       status: "queued",
       label: lang === "zh" ? "排队中" : "Queued",
       count: countMap.get("queued") ?? 0,
+    },
+    {
+      status: "paused",
+      label: lang === "zh" ? "已暂停" : "Paused",
+      count: countMap.get("paused") ?? 0,
     },
     {
       status: "failed",
@@ -142,8 +168,7 @@ export async function getJobStatusCounts(lang: AppLang = "zh") {
   ] as const
 }
 
-type JobStatusInput = "all" | "running" | "queued" | "failed" | "filtered"
-const VISIBLE_JOB_STATUSES = ["queued", "running", "failed"] as const
+type JobStatusInput = "all" | "running" | "queued" | "paused" | "failed" | "filtered"
 
 export async function getJobRows(input: Partial<AdminJobListParams> & {
   status?: JobStatusInput
@@ -159,6 +184,7 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
   const filters = [
     status === "all" ? visibleJobFilter
       : status === "filtered" ? eq(articles.status, "filtered")
+      : status === "running" ? inArray(processingJobs.status, RUNNING_JOB_STATUSES)
       : eq(processingJobs.status, status),
     stage === "all"
       ? undefined
