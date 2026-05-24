@@ -274,15 +274,24 @@ export async function syncNvdFullHistory({
       `[enrichment] 开始 NVD 全量引导，共 ${resolvedYears.length} 个年份（${resolvedYears[0]}–${resolvedYears[resolvedYears.length - 1]}）`,
     );
     const results: SecurityEnrichmentSyncSummary[] = [];
-    for (const year of resolvedYears) {
-      console.log(`[enrichment]   正在下载 NVD ${year} 年数据…`);
-      results.push(
-        await syncYear({
-          db,
-          year,
-        }),
-      );
-    }
+    const concurrency = Math.max(
+      1,
+      Math.min(
+        Number(process.env.VIBEGUARD_NVD_CONCURRENCY) || 1,
+        4,
+      ),
+    );
+    const queue = [...resolvedYears];
+    const workers = Array.from({ length: concurrency }, async () => {
+      while (queue.length > 0) {
+        const year = queue.shift();
+        if (year != null) {
+          console.log(`[enrichment]   正在下载 NVD ${year} 年数据…`);
+          results.push(await syncYear({ db, year }));
+        }
+      }
+    });
+    await Promise.all(workers);
 
     const recordsSeen = results.reduce(
       (total, result) => total + result.recordsSeen,
