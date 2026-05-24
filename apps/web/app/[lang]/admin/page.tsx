@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Bot, FileText, Rss, Workflow } from "lucide-react";
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell";
-import { OsvSyncButton, OsvSyncPanel } from "@/components/admin/osv-sync-panel";
+import { SecuritySyncPanel } from "@/components/admin/osv-sync-panel";
 import { RunWorkerForm } from "@/components/admin/run-worker-form";
 import { WorkerStatusPanel } from "@/components/admin/worker-status-panel";
 import {
@@ -276,7 +276,7 @@ export default async function AdminHomePage({
               })}
             </div>
             <Separator />
-            <OsvSyncPanel lang={lang} />
+            <SecuritySyncPanel lang={lang} />
           </CardContent>
         </Card>
 

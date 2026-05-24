@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 
 import { getDb, securitySyncState } from "@vibeguard/db";
 
@@ -6,7 +6,7 @@ import { requireAdminAuth } from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
-let osvSyncInProgress = false;
+let syncInProgress = false;
 
 export async function GET() {
   const auth = await requireAdminAuth();
@@ -15,12 +15,12 @@ export async function GET() {
   const db = getDb();
 
   const rows = await db.query.securitySyncState.findMany({
-    where: eq(securitySyncState.source, "osv"),
     orderBy: [desc(securitySyncState.lastSuccessAt)],
   });
 
-  const ecosystems = rows.map((row) => ({
-    ecosystem: row.scope,
+  const sources = rows.map((row) => ({
+    source: row.source,
+    scope: row.scope,
     status: row.status,
     lastSuccessAt: row.lastSuccessAt?.toISOString() ?? null,
     lastError: row.lastError ?? null,
@@ -28,44 +28,82 @@ export async function GET() {
     recordsFailed: row.recordsFailed,
   }));
 
-  return Response.json({ ecosystems });
+  return Response.json({ sources });
 }
 
 export async function POST() {
   const auth = await requireAdminAuth();
   if (!auth.authorized) return auth.response;
 
-  if (osvSyncInProgress) {
+  if (syncInProgress) {
     return Response.json(
       {
         ok: false,
-        error: "OSV sync is already in progress. Please wait for it to finish.",
+        error:
+          "Security sync is already in progress. Please wait for it to finish.",
       },
       { status: 409 },
     );
   }
 
-  osvSyncInProgress = true;
+  syncInProgress = true;
+  const logs: string[] = [];
+
+  function log(message: string) {
+    console.log(`[security-sync] ${message}`);
+    logs.push(message);
+  }
 
   try {
+    log("开始增量同步所有安全数据源…");
+    const db = getDb();
+
+    log("正在同步 OSV 漏洞数据库…");
     const { syncAllOsvEcosystems } =
       await import("@vibeguard/content/osv/sync");
-    const results = await syncAllOsvEcosystems({ db: getDb() });
+    const osvResults = await syncAllOsvEcosystems({ db });
+    for (const r of osvResults) {
+      log(
+        `  OSV/${r.ecosystem}: 导入=${r.recordsImported} 新增=${r.recordsNew} 变更=${r.recordsChanged} 跳过=${r.recordsSkipped} 失败=${r.recordsFailed}`,
+      );
+    }
+
+    log("正在同步安全增强数据源 (NVD, CISA KEV, EPSS)…");
+    const { syncAllSecurityEnrichmentSources } =
+      await import("@vibeguard/content/security/enrichment");
+    const enrichmentResults = await syncAllSecurityEnrichmentSources(db, {
+      mode: "incremental",
+    });
+    for (const r of enrichmentResults) {
+      log(
+        `  ${r.source}/${r.scope}: 导入=${r.recordsImported} 失败=${r.recordsFailed}`,
+      );
+    }
+
+    log("所有安全数据源同步完成。");
 
     return Response.json({
       ok: true,
-      results: results.map((r) => ({
+      logs,
+      osv: osvResults.map((r) => ({
         ecosystem: r.ecosystem,
         imported: r.recordsImported,
         new: r.recordsNew,
         changed: r.recordsChanged,
         failed: r.recordsFailed,
       })),
+      enrichment: enrichmentResults.map((r) => ({
+        source: r.source,
+        scope: r.scope,
+        imported: r.recordsImported,
+        failed: r.recordsFailed,
+      })),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return Response.json({ ok: false, error: message }, { status: 500 });
+    log(`同步失败: ${message}`);
+    return Response.json({ ok: false, error: message, logs }, { status: 500 });
   } finally {
-    osvSyncInProgress = false;
+    syncInProgress = false;
   }
 }
