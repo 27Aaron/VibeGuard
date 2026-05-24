@@ -180,7 +180,11 @@ function cvssLevelBadgeClassName(level: CvssLevel) {
 }
 
 function fixedVersionBadgeClassName() {
-  return "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200"
+  return "h-6 px-2.5 border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200"
+}
+
+function affectedRangeBadgeClassName() {
+  return "h-6 px-2.5"
 }
 
 function findingMetricBadges(finding: SecurityFinding) {
@@ -725,13 +729,16 @@ export function PackageCheckWorkbench({
               formattedRanges.length > 0
                 ? formattedRanges
                 : finding.affectedPackage.affectedVersions
+            const hasRemediationInfo =
+              affectedRangeLabels.length > 0 ||
+              finding.affectedPackage.fixedVersions.length > 0
 
             return (
               <article
                 key={`${finding.advisory.id}-${finding.package.name}-${index}`}
                 className={cn("space-y-4", getAdminSubtlePanelClassName())}
               >
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
                       {findingMetaParts.join(" · ")}
@@ -757,10 +764,10 @@ export function PackageCheckWorkbench({
                     content={finding.advisory.summary || finding.matchSummary}
                     variant="public"
                     lang={lang}
-                    className="text-sm font-medium leading-6 text-zinc-950 dark:text-stone-50 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit"
+                    className="text-sm font-medium leading-6 text-zinc-950 dark:text-stone-50 [&_p]:!my-0 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit"
                   />
                   {metricBadges.length > 0 ? (
-                    <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 text-xs">
+                    <div className="flex flex-nowrap gap-2 overflow-x-auto text-xs">
                       {metricBadges.map((badge) => (
                         <Badge
                           key={badge.key}
@@ -774,50 +781,56 @@ export function PackageCheckWorkbench({
                   ) : null}
                 </div>
 
+                {hasRemediationInfo ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {affectedRangeLabels.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                          {copy.publicCheckAffectedRangesLabel}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {affectedRangeLabels.map((rangeLabel, rangeIndex) => (
+                            <Badge
+                              key={`${rangeLabel}-${rangeIndex}`}
+                              variant="outline"
+                              className={affectedRangeBadgeClassName()}
+                            >
+                              {rangeLabel}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {finding.affectedPackage.fixedVersions.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                          {lang === "zh" ? "修复版本" : "Fixed versions"}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {finding.affectedPackage.fixedVersions.map((fixedVersion: string) => (
+                            <Badge
+                              key={fixedVersion}
+                              variant="secondary"
+                              className={fixedVersionBadgeClassName()}
+                            >
+                              {fixedVersion}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {finding.advisory.details ? (
-                  <div>
-                    <ExpandableMarkdownBlock
-                      label={copy.publicCheckDetailsLabel}
-                      content={finding.advisory.details}
-                      lang={lang}
-                      expandLabel={copy.publicCheckDetailsToggle}
-                      collapseLabel={copy.publicCheckDetailsCollapse}
-                    />
-                  </div>
-                ) : null}
-
-                {affectedRangeLabels.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {copy.publicCheckAffectedRangesLabel}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {affectedRangeLabels.map((rangeLabel, rangeIndex) => (
-                        <Badge key={`${rangeLabel}-${rangeIndex}`} variant="outline">
-                          {rangeLabel}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {finding.affectedPackage.fixedVersions.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {lang === "zh" ? "修复版本" : "Fixed versions"}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {finding.affectedPackage.fixedVersions.map((fixedVersion: string) => (
-                        <Badge
-                          key={fixedVersion}
-                          variant="secondary"
-                          className={fixedVersionBadgeClassName()}
-                        >
-                          {fixedVersion}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                  <ExpandableMarkdownBlock
+                    label={copy.publicCheckDetailsLabel}
+                    content={finding.advisory.details}
+                    lang={lang}
+                    expandLabel={copy.publicCheckDetailsToggle}
+                    collapseLabel={copy.publicCheckDetailsCollapse}
+                  />
                 ) : null}
 
                 {finding.advisory.references.length > 0 ? (
