@@ -172,6 +172,22 @@ function advisoryCveEnrichmentIds(advisory: {
   ]
 }
 
+function normalizedAdvisoryRiskType(advisory: {
+  externalId: string
+  riskType: string
+  maliciousOrigins?: unknown[] | null
+}) {
+  if (
+    advisory.riskType === "malicious-package" &&
+    !/^MAL-/i.test(advisory.externalId) &&
+    (advisory.maliciousOrigins?.length ?? 0) === 0
+  ) {
+    return "vulnerability"
+  }
+
+  return advisory.riskType
+}
+
 function formatCveEnrichment(row: typeof securityCveEnrichments.$inferSelect): SecurityCveEnrichmentResult {
   return {
     cveId: row.cveId,
@@ -411,7 +427,7 @@ export async function checkPackagesAgainstLocalDb(
           id: advisory.externalId,
           source: advisory.source,
           sourceUrl: advisory.sourceUrl,
-          riskType: advisory.riskType,
+          riskType: normalizedAdvisoryRiskType(advisory),
           summary: advisory.summary,
           details: advisory.details,
           aliases: advisory.aliases,

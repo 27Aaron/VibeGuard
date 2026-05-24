@@ -159,6 +159,42 @@ describe("normalizeOsvRecord", () => {
 
     expect(result.advisory.details).toBeNull()
   })
+
+  it("does not classify ordinary vulnerability wording as a malicious package", () => {
+    const result = normalizeOsvRecord(
+      {
+        schema_version: "1.7.5",
+        id: "GHSA-43fc-jf86-j433",
+        summary:
+          "Axios is Vulnerable to Denial of Service via __proto__ Key in mergeConfig",
+        details:
+          "An attacker can trigger this by providing a malicious configuration object created via JSON.parse().",
+        aliases: ["CVE-2026-25639"],
+        affected: [
+          {
+            package: {
+              name: "axios",
+              ecosystem: "npm",
+            },
+            ranges: [
+              {
+                type: "SEMVER",
+                events: [{ introduced: "1.0.0" }, { fixed: "1.13.5" }],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        sourceUrl:
+          "https://storage.googleapis.com/osv-vulnerabilities/npm/GHSA-43fc-jf86-j433.json",
+        rawHash: "sha256:test",
+      },
+    )
+
+    expect(result.advisory.riskType).toBe("vulnerability")
+    expect(result.advisory.maliciousOrigins).toEqual([])
+  })
 })
 
 describe("OSV package normalization", () => {

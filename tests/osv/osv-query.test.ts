@@ -587,6 +587,72 @@ describe("checkPackagesAgainstLocalDb", () => {
     expect(db.query.securityCveEnrichments.findMany).not.toHaveBeenCalled()
   })
 
+  it("normalizes legacy malicious-package false positives from non-MAL advisories", async () => {
+    const db = {
+      query: {
+        securitySyncState: {
+          findFirst: vi.fn().mockResolvedValue({
+            lastSuccessAt: new Date("2026-05-22T07:00:00Z"),
+          }),
+        },
+        securityAffectedPackages: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "affected-1",
+              advisoryId: "advisory-1",
+              ecosystem: "npm",
+              packageName: "axios",
+              packageKey: "axios",
+              purl: "pkg:npm/axios",
+              affectedVersions: [],
+              ranges: [
+                {
+                  type: "SEMVER",
+                  events: [{ introduced: "1.0.0" }, { fixed: "1.13.5" }],
+                },
+              ],
+              fixedVersions: ["1.13.5"],
+            },
+          ]),
+        },
+        securityAdvisories: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-1",
+              source: "osv",
+              externalId: "GHSA-43fc-jf86-j433",
+              riskType: "malicious-package",
+              summary:
+                "Axios is Vulnerable to Denial of Service via __proto__ Key in mergeConfig",
+              details:
+                "An attacker can trigger this by providing a malicious configuration object.",
+              aliases: ["CVE-2026-25639"],
+              relatedIds: [],
+              upstreamIds: [],
+              severity: [],
+              references: [],
+              maliciousOrigins: [],
+              withdrawnAt: null,
+              modifiedAt: new Date("2026-05-22T04:13:00Z"),
+            },
+          ]),
+        },
+      },
+    } as never
+
+    const result = await checkPackagesAgainstLocalDb(db, {
+      packages: [{ ecosystem: "npm", name: "axios", version: "1.0.0" }],
+    })
+
+    expect(result.findings[0]).toMatchObject({
+      advisory: {
+        id: "GHSA-43fc-jf86-j433",
+        riskType: "vulnerability",
+        maliciousOrigins: [],
+      },
+    })
+  })
+
   it("returns withdrawn advisories with withdrawal metadata", async () => {
     const db = {
       query: {

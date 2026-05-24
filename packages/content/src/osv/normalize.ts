@@ -153,14 +153,11 @@ export function normalizeOsvPackageKey(ecosystem: string, packageName: string) {
   return trimmed
 }
 
-function inferRiskType(vulnerability: OsvVulnerability): SecurityRiskTypeValue {
-  const corpus = [
-    vulnerability.id ?? "",
-    vulnerability.summary ?? "",
-    vulnerability.details ?? "",
-  ].join("\n")
-
-  if (/^MAL-/i.test(vulnerability.id ?? "") || /\bmalicious\b/i.test(corpus)) {
+function inferRiskType(
+  vulnerability: OsvVulnerability,
+  maliciousOrigins: NormalizedMaliciousPackageOrigin[],
+): SecurityRiskTypeValue {
+  if (/^MAL-/i.test(vulnerability.id ?? "") || maliciousOrigins.length > 0) {
     return SecurityRiskType["MALICIOUS-PACKAGE"]
   }
 
@@ -304,13 +301,15 @@ export function normalizeOsvRecord(
     throw new Error("OSV vulnerability id is required")
   }
 
+  const maliciousOrigins = normalizeMaliciousOrigins(vulnerability.database_specific)
+
   return {
     advisory: {
       source: "osv",
       externalId: vulnerability.id,
       sourceUrl: options.sourceUrl,
       rawHash: options.rawHash ?? null,
-      riskType: inferRiskType(vulnerability),
+      riskType: inferRiskType(vulnerability, maliciousOrigins),
       summary: vulnerability.summary ?? "",
       details: normalizeDetails(vulnerability.details),
       aliases: uniqueStrings(vulnerability.aliases ?? []),
@@ -321,7 +320,7 @@ export function normalizeOsvRecord(
       modifiedAt: parseDate(vulnerability.modified),
       withdrawnAt: parseDate(vulnerability.withdrawn),
       references: normalizeReferences(vulnerability.references),
-      maliciousOrigins: normalizeMaliciousOrigins(vulnerability.database_specific),
+      maliciousOrigins,
     },
     affectedPackages: normalizeAffectedPackages(vulnerability.affected),
   }
