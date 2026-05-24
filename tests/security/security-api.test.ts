@@ -390,21 +390,12 @@ describe("security API routes", () => {
   });
 
   it("lists advisories with CVE enrichment and package impact", async () => {
-    const selectFromWhere = vi.fn().mockResolvedValue([
-      { cveId: "CVE-2025-62718" },
-    ]);
+    const selectFromWhere = vi.fn().mockResolvedValue([{ count: 1 }]);
     const selectFrom = vi.fn().mockReturnValue({ where: selectFromWhere });
     const selectChain = { from: selectFrom };
-    const countSelectFromWhere = vi.fn().mockResolvedValue([{ count: 1 }]);
-    const countSelectFrom = vi.fn().mockReturnValue({ where: countSelectFromWhere });
-    const countSelectChain = { from: countSelectFrom };
 
-    let selectCallIndex = 0;
     const db = {
-      select: vi.fn().mockImplementation(() => {
-        selectCallIndex += 1;
-        return selectCallIndex === 1 ? selectChain : countSelectChain;
-      }),
+      select: vi.fn().mockReturnValue(selectChain),
       query: {
         securityAdvisories: {
           findMany: vi.fn().mockResolvedValue([

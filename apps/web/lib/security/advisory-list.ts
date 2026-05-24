@@ -23,37 +23,25 @@ export async function listSecurityAdvisories(
 
   const conditions = [];
 
-  let packageAdvisoryIds: Set<string> | null = null;
   if (params.ecosystem || params.packageName) {
-    const packageRows = await db.query.securityAffectedPackages.findMany({
-      where: (table, { and, eq: whereEq }) => {
-        const filters = [
-          params.ecosystem
-            ? whereEq(table.ecosystem, params.ecosystem)
-            : undefined,
-          params.packageName && params.ecosystem
-            ? whereEq(
-                table.packageKey,
-                normalizePackageKey(params.ecosystem, params.packageName),
-              )
-            : undefined,
-        ].filter((filter): filter is NonNullable<typeof filter> =>
-          Boolean(filter),
-        );
-
-        return filters.length > 0 ? and(...filters) : undefined;
-      },
-    });
-    packageAdvisoryIds = new Set(packageRows.map((row) => row.advisoryId));
-
-    if (packageAdvisoryIds.size === 0) {
-      return {
-        meta: { ...params, count: 0, totalCount: 0, totalPages: 1 },
-        items: [],
-      };
+    const pkgParts = [];
+    if (params.ecosystem) {
+      pkgParts.push(eq(securityAffectedPackages.ecosystem, params.ecosystem));
     }
-
-    conditions.push(inArray(securityAdvisories.id, [...packageAdvisoryIds]));
+    if (params.packageName && params.ecosystem) {
+      pkgParts.push(
+        eq(
+          securityAffectedPackages.packageKey,
+          normalizePackageKey(params.ecosystem, params.packageName),
+        ),
+      );
+    }
+    const pkgCond = and(...pkgParts);
+    conditions.push(
+      pkgCond
+        ? sql`exists (select 1 from ${securityAffectedPackages} where ${securityAffectedPackages.advisoryId} = ${securityAdvisories.id} and ${pkgCond})`
+        : sql`exists (select 1 from ${securityAffectedPackages} where ${securityAffectedPackages.advisoryId} = ${securityAdvisories.id})`,
+    );
   }
 
   if (params.riskType) {
@@ -98,7 +86,6 @@ export async function listSecurityAdvisories(
     );
   }
 
-  let enrichmentCveIds: Set<string> | null = null;
   if (params.kev !== null || params.cvssMin !== null || params.epssMin !== null) {
     const enrichmentConditions = [];
     if (params.kev === true) {
@@ -117,29 +104,19 @@ export async function listSecurityAdvisories(
       );
     }
 
-    const qualifyingCveRows = await db
-      .select({ cveId: securityCveEnrichments.cveId })
-      .from(securityCveEnrichments)
-      .where(
-        enrichmentConditions.length === 1
-          ? enrichmentConditions[0]
-          : and(...enrichmentConditions),
-      );
-    enrichmentCveIds = new Set(qualifyingCveRows.map((r) => r.cveId));
+    const enrichCond = enrichmentConditions.length === 1
+      ? enrichmentConditions[0]
+      : and(...enrichmentConditions);
 
-    if (enrichmentCveIds.size === 0) {
-      return {
-        meta: { ...params, count: 0, totalCount: 0, totalPages: 1 },
-        items: [],
-      };
-    }
-
-    const cveArray = [...enrichmentCveIds];
     conditions.push(
-      or(
-        sql`exists (select 1 from jsonb_array_elements_text(${securityAdvisories.aliases}) elem where elem = any(${cveArray}))`,
-        sql`exists (select 1 from jsonb_array_elements_text(${securityAdvisories.upstreamIds}) elem where elem = any(${cveArray}))`,
-      )!,
+      sql`exists (
+        select 1 from ${securityCveEnrichments}
+        where ${enrichCond}
+        and (
+          ${securityCveEnrichments.cveId} in (select elem::text from jsonb_array_elements_text(${securityAdvisories.aliases}) elem)
+          or ${securityCveEnrichments.cveId} in (select elem::text from jsonb_array_elements_text(${securityAdvisories.upstreamIds}) elem)
+        )
+      )`,
     );
   }
 
