@@ -1,7 +1,4 @@
-import {
-  createElement,
-  isValidElement,
-} from "../../apps/web/node_modules/react/index.js";
+import { createElement, isValidElement } from "react";
 
 import { describe, expect, it } from "vitest";
 

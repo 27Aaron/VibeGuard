@@ -3,10 +3,10 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("admin OSV sync panel", () => {
-  it("renders the OsvSyncPanel on the admin home page", () => {
+  it("renders the SecuritySyncPanel on the admin home page", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8");
 
-    expect(page).toContain("OsvSyncPanel");
+    expect(page).toContain("SecuritySyncPanel");
     expect(page).toContain("lang={lang}");
   });
 
@@ -16,8 +16,8 @@ describe("admin OSV sync panel", () => {
       "utf8",
     );
 
-    expect(component).toContain("同步漏洞库");
-    expect(component).toContain("Sync Vuln DB");
+    expect(component).toContain("同步全部来源");
+    expect(component).toContain("Sync All Sources");
     expect(component).toContain("同步中…");
     expect(component).toContain("Syncing…");
   });

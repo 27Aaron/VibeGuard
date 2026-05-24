@@ -93,16 +93,16 @@ describe("W62: osv-sync-panel auto-refresh after sync", () => {
     "utf8",
   );
 
-  it("OsvSyncButton accepts onSyncComplete callback", () => {
+  it("SecuritySyncButton accepts onSyncComplete callback", () => {
     expect(src).toContain("onSyncComplete");
   });
 
-  it("calls onSyncComplete after sync finishes", () => {
-    expect(src).toContain("onSyncComplete?.()");
+  it("calls onSyncComplete with sync result after sync finishes", () => {
+    expect(src).toContain("onSyncComplete?.(data)");
   });
 
-  it("OsvSyncPanel passes fetchStatus as onSyncComplete", () => {
-    expect(src).toContain("onSyncComplete={fetchStatus}");
+  it("SecuritySyncPanel passes handleSyncComplete as onSyncComplete", () => {
+    expect(src).toContain("onSyncComplete={handleSyncComplete}");
   });
 });
 

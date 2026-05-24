@@ -328,9 +328,3 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
     </div>
   );
 }
-
-/** @deprecated Use {@link SecuritySyncButton} instead. */
-export const OsvSyncButton = SecuritySyncButton;
-
-/** @deprecated Use {@link SecuritySyncPanel} instead. */
-export const OsvSyncPanel = SecuritySyncPanel;

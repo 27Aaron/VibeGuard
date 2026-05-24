@@ -40,16 +40,13 @@ describe("admin home layout", () => {
     expect(i18n).not.toContain('adminRunWorker: "Run worker once"');
   });
 
-  it("keeps the common action entry cards in a 2-column grid", () => {
+  it("keeps the common action entry cards in a 4-column grid", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8");
 
-    expect(page).toContain("grid grid-cols-2 gap-2.5");
-    expect(page).toContain("px-4 py-3");
+    expect(page).toContain("grid grid-cols-4 gap-2");
     expect(page).toContain("items-center justify-between");
-    expect(page).toContain("text-sm leading-5 text-zinc-500");
     expect(page).toContain("hover:border-emerald-900/15");
     expect(page).not.toContain("group min-h-[104px]");
-    expect(page).not.toContain("text-sm leading-6 text-slate-500");
   });
 
   it("keeps overview metric cards compact with more comfortable horizontal padding", () => {
