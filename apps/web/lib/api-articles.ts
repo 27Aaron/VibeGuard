@@ -121,16 +121,7 @@ export async function listArticles(searchParams: URLSearchParams) {
     params.riskCategory
       ? eq(articles.riskCategory, params.riskCategory as ArticleRiskCategory)
       : undefined,
-    // TODO: 在 tags 列上创建 GIN 索引（使用 gin_toast_trgm 或 jsonb_path_ops）
-    // 可以显著加速下方的 JSONB `?` 运算符查询。
-    // 示例：CREATE INDEX idx_articles_tags_gin ON articles USING gin (tags jsonb_path_ops);
     params.tag ? sql`${articles.tags} ? ${params.tag}` : undefined,
-    // TODO: ILIKE 中前导 `%` 会导致无法使用 B-tree 索引，从而触发全表扫描。
-    // 建议启用 pg_trgm 扩展并创建 GIN 三字元索引以提升模糊搜索性能：
-    //   CREATE EXTENSION IF NOT EXISTS pg_trgm;
-    //   CREATE INDEX idx_articles_title_en_trgm ON articles USING gin (title_en gin_trgm_ops);
-    //   CREATE INDEX idx_articles_title_zh_trgm ON articles USING gin (title_zh gin_trgm_ops);
-    // 然后将 ILIKE + `%` 通配符查询替换为基于 pg_trgm 的查询以获得更好的性能。
     params.query
       ? or(
           ilike(articles.titleEn, `%${params.query}%`),
