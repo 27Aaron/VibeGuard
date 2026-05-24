@@ -15,7 +15,7 @@ function resolveClientIp(request: Request): string {
   const trustProxy = process.env.VIBEGUARD_TRUST_PROXY_HEADERS?.toLowerCase()
   if (trustProxy === "1" || trustProxy === "true") {
     const forwarded = request.headers.get("x-forwarded-for")
-    const candidate = forwarded?.split(",")[0]?.trim()
+    const candidate = forwarded?.split(",").pop()?.trim()
     if (candidate) return candidate
 
     const realIp = request.headers.get("x-real-ip")

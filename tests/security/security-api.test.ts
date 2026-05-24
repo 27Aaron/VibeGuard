@@ -166,7 +166,7 @@ describe("security API helpers", () => {
     ).toEqual({
       totalFindings: 2,
       affectedCount: 1,
-      inconclusiveCount: 1,
+      inconclusiveCount: 0,
       highestRisk: {
         level: "critical",
         score: 95,

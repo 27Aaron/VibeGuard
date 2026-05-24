@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm"
+import { desc, eq, inArray, sql } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
 import { checkPackagesAgainstLocalDb } from "@vibeguard/content/osv/query"
@@ -159,7 +159,7 @@ export function buildSecurityPackageProfileSummary(findings: SecurityFinding[]) 
     totalFindings: findings.length,
     affectedCount: findings.filter((finding) => finding.affected).length,
     inconclusiveCount: findings.filter(
-      (finding) => !finding.affected && finding.confidence !== "undetermined",
+      (finding) => !finding.affected && finding.confidence === "undetermined",
     ).length,
     highestRisk: highestRiskFinding
       ? {
@@ -544,11 +544,10 @@ export async function getSecurityCveDetail(db: ContentDb, cveId: string) {
     where: eq(securityCveEnrichments.cveId, normalizedCveId),
   })
   const advisoryRows = await db.query.securityAdvisories.findMany({
+    where: sql`${normalizedCveId} = ANY(${securityAdvisories.aliases}) OR ${normalizedCveId} = ANY(${securityAdvisories.upstreamIds})`,
     orderBy: [desc(securityAdvisories.modifiedAt)],
   })
-  const relatedAdvisories = advisoryRows.filter((row) =>
-    extractCveAliases([...row.aliases, ...row.upstreamIds]).includes(normalizedCveId),
-  )
+  const relatedAdvisories = advisoryRows
   const advisoryIds = relatedAdvisories.map((advisory) => advisory.id)
   const packageRows =
     advisoryIds.length > 0
