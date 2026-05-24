@@ -245,7 +245,7 @@ export default async function AdminHomePage({
           <CardContent className="flex flex-col gap-4">
             <RunWorkerForm action={runWorkerOnceAction} lang={lang} />
             <Separator />
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-4 gap-2">
               {copy.entries.map((entry) => {
                 const Icon = entry.icon;
 
@@ -253,24 +253,17 @@ export default async function AdminHomePage({
                   <Link
                     key={entry.href}
                     href={entry.href}
-                    className="group rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]"
+                    className="group flex items-center justify-between gap-2 rounded-[1.15rem] border border-black/5 bg-white/68 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]"
                   >
-                    <div className="flex h-full items-center justify-between gap-3">
-                      <div className="flex min-w-0 flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1.5 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
-                            <Icon className="size-3.5" />
-                          </span>
-                          <span className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
-                            {entry.title}
-                          </span>
-                        </div>
-                        <p className="text-sm leading-5 text-zinc-500 dark:text-stone-400">
-                          {entry.description}
-                        </p>
-                      </div>
-                      <ArrowRight className="size-4 shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-800 dark:text-stone-500 dark:group-hover:text-emerald-300" />
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
+                        <Icon className="size-3" />
+                      </span>
+                      <span className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
+                        {entry.title}
+                      </span>
                     </div>
+                    <ArrowRight className="size-3.5 shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-800 dark:text-stone-500 dark:group-hover:text-emerald-300" />
                   </Link>
                 );
               })}
