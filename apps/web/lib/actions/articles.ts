@@ -2,11 +2,14 @@
 
 import { redirect } from "next/navigation"
 
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm"
 
 import { articles, getDb, processingJobs, schema } from "@vibeguard/db"
 import {
+  ArticleStatus,
+  JobPipelineStage,
   JobStatus,
+  JobType,
 } from "@vibeguard/shared"
 
 import {
@@ -39,6 +42,8 @@ type ArticlesListRedirectContext = {
   pageSize?: string
   q?: string
 }
+
+type SelectedArticlesActionIntent = "delete" | "regenerate"
 
 function buildArticlesListRedirect(
   status: "success" | "error",
@@ -74,10 +79,8 @@ function getArticlesListRedirectContext(formData: FormData): ArticlesListRedirec
   }
 }
 
-export async function deleteSelectedArticlesAction(formData: FormData) {
-  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
-  const redirectContext = getArticlesListRedirectContext(formData)
-  const ids = Array.from(
+function getSelectedArticleIds(formData: FormData) {
+  return Array.from(
     new Set(
       formData
         .getAll("ids")
@@ -85,6 +88,29 @@ export async function deleteSelectedArticlesAction(formData: FormData) {
         .filter(Boolean),
     ),
   )
+}
+
+function getSelectedArticlesIntent(formData: FormData): SelectedArticlesActionIntent {
+  return String(formData.get("intent") ?? "delete") === "regenerate"
+    ? "regenerate"
+    : "delete"
+}
+
+export async function selectedArticlesAction(formData: FormData) {
+  const intent = getSelectedArticlesIntent(formData)
+
+  if (intent === "regenerate") {
+    await regenerateSelectedArticlesAction(formData)
+    return
+  }
+
+  await deleteSelectedArticlesAction(formData)
+}
+
+export async function deleteSelectedArticlesAction(formData: FormData) {
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
+  const redirectContext = getArticlesListRedirectContext(formData)
+  const ids = getSelectedArticleIds(formData)
 
   let redirectTarget = buildArticlesListRedirect(
     "error",
@@ -139,6 +165,165 @@ export async function deleteSelectedArticlesAction(formData: FormData) {
         redirectContext,
       )
     }
+  } catch (error) {
+    redirectTarget = buildArticlesListRedirect(
+      "error",
+      normalizeUserFacingError(error, lang),
+      lang,
+      redirectContext,
+    )
+  }
+
+  redirect(redirectTarget)
+}
+
+export async function regenerateSelectedArticlesAction(formData: FormData) {
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
+  const redirectContext = getArticlesListRedirectContext(formData)
+  const ids = getSelectedArticleIds(formData)
+
+  let redirectTarget = buildArticlesListRedirect(
+    "error",
+    lang === "zh"
+      ? "请先选择要重试的文章。"
+      : "Select articles to regenerate first.",
+    lang,
+    redirectContext,
+  )
+
+  if (ids.length === 0) {
+    redirect(redirectTarget)
+  }
+
+  try {
+    const db = getDb()
+    const now = new Date()
+    const queuedArticleIds = await db.transaction(async (tx) => {
+      const existingRows = await tx.query.articles.findMany({
+        where: inArray(articles.id, ids),
+        columns: { id: true },
+      })
+      const existingIds = existingRows.map((article) => article.id)
+
+      if (existingIds.length === 0) {
+        return [] as string[]
+      }
+
+      const activeJobs = await tx.query.processingJobs.findMany({
+        where: and(
+          inArray(processingJobs.articleId, existingIds),
+          inArray(processingJobs.status, [JobStatus.QUEUED, JobStatus.RUNNING]),
+        ),
+        columns: { articleId: true },
+      })
+      const activeArticleIds = new Set(activeJobs.map((job) => job.articleId))
+      const candidateIds = existingIds.filter((id) => !activeArticleIds.has(id))
+
+      if (candidateIds.length === 0) {
+        return [] as string[]
+      }
+
+      const existingExtractJobs = await tx.query.processingJobs.findMany({
+        where: and(
+          inArray(processingJobs.articleId, candidateIds),
+          eq(processingJobs.jobType, JobType.EXTRACT),
+        ),
+        columns: { id: true, articleId: true },
+      })
+      const existingExtractArticleIds = new Set(
+        existingExtractJobs.map((job) => job.articleId),
+      )
+      const requeuedJobIds = existingExtractJobs.map((job) => job.id)
+
+      if (requeuedJobIds.length > 0) {
+        await tx
+          .update(processingJobs)
+          .set({
+            status: JobStatus.QUEUED,
+            pipelineStage: JobPipelineStage.WAITING,
+            maxAttempts: sql`${processingJobs.maxAttempts} + 3`,
+            runAfter: now,
+            startedAt: null,
+            finishedAt: null,
+            lastError: null,
+          })
+          .where(inArray(processingJobs.id, requeuedJobIds))
+      }
+
+      const withoutExistingJobIds = candidateIds.filter(
+        (articleId) => !existingExtractArticleIds.has(articleId),
+      )
+      const insertedJobs = withoutExistingJobIds.length > 0
+        ? await tx
+          .insert(processingJobs)
+          .values(
+            withoutExistingJobIds.map((articleId) => ({
+              articleId,
+              jobType: JobType.EXTRACT,
+              status: JobStatus.QUEUED,
+              pipelineStage: JobPipelineStage.WAITING,
+              attempt: 0,
+              maxAttempts: 3,
+              runAfter: now,
+            })),
+          )
+          .onConflictDoNothing()
+          .returning({ articleId: processingJobs.articleId })
+        : []
+
+      const queuedArticleIds = [
+        ...existingExtractJobs.map((job) => job.articleId),
+        ...insertedJobs.map((job) => job.articleId),
+      ]
+
+      if (queuedArticleIds.length > 0) {
+        await tx
+          .update(articles)
+          .set({
+            status: ArticleStatus.PENDING,
+            titleZh: null,
+            summaryEn: null,
+            summaryZh: null,
+            contentMdEn: null,
+            contentMdZh: null,
+            ecosystem: "unknown",
+            riskCategory: "unknown",
+            tags: [],
+            contentHash: null,
+            rawMeta: sql`CASE
+              WHEN ${articles.rawMeta} IS NULL THEN NULL
+              ELSE ${articles.rawMeta} - 'processingError' - 'extraction' - 'relevanceFilter'
+            END`,
+          })
+          .where(inArray(articles.id, queuedArticleIds))
+      }
+
+      return queuedArticleIds
+    })
+
+    revalidateLocalizedPaths(
+      "/admin",
+      "/admin/articles",
+      "/admin/jobs",
+      "/",
+      ...queuedArticleIds.flatMap((articleId) => [
+        `/admin/articles/${articleId}`,
+        `/articles/${articleId}`,
+      ]),
+    )
+
+    redirectTarget = buildArticlesListRedirect(
+      queuedArticleIds.length > 0 ? "success" : "error",
+      queuedArticleIds.length > 0
+        ? lang === "zh"
+          ? `已将 ${queuedArticleIds.length} 篇文章加入重试队列。`
+          : `${queuedArticleIds.length} article${queuedArticleIds.length === 1 ? "" : "s"} queued for regeneration.`
+        : lang === "zh"
+          ? "选中的文章不存在，或已经在排队/处理中。"
+          : "The selected articles were not found or are already queued/processing.",
+      lang,
+      redirectContext,
+    )
   } catch (error) {
     redirectTarget = buildArticlesListRedirect(
       "error",
