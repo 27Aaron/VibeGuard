@@ -129,14 +129,60 @@ export async function POST() {
     }
 
     log("正在同步安全增强数据源 (NVD, CISA KEV, EPSS)…");
+
+    const kevBefore =
+      Number(
+        (
+          await db
+            .select({ count: sql<number>`count(*)` })
+            .from(securityCveEnrichments)
+            .where(sql`kev_listed = true`)
+        )[0]?.count ?? 0,
+      );
+    const epssBefore =
+      Number(
+        (
+          await db
+            .select({ count: sql<number>`count(*)` })
+            .from(securityCveEnrichments)
+            .where(sql`epss IS NOT NULL`)
+        )[0]?.count ?? 0,
+      );
+
     const { syncAllSecurityEnrichmentSources } =
       await import("@vibeguard/content/security/enrichment");
     const enrichmentResults = await syncAllSecurityEnrichmentSources(db, {
       mode: "incremental",
     });
+
+    const kevAfter =
+      Number(
+        (
+          await db
+            .select({ count: sql<number>`count(*)` })
+            .from(securityCveEnrichments)
+            .where(sql`kev_listed = true`)
+        )[0]?.count ?? 0,
+      );
+    const epssAfter =
+      Number(
+        (
+          await db
+            .select({ count: sql<number>`count(*)` })
+            .from(securityCveEnrichments)
+            .where(sql`epss IS NOT NULL`)
+        )[0]?.count ?? 0,
+      );
+
+    const snapshotDiff: Record<string, number> = {
+      "cisa-kev:global": Math.max(0, kevAfter - kevBefore),
+      "first-epss:current": Math.max(0, epssAfter - epssBefore),
+    };
+
     for (const r of enrichmentResults) {
+      const diff = snapshotDiff[`${r.source}:${r.scope}`];
       log(
-        `  ${r.source}/${r.scope}: 导入=${r.recordsImported} 失败=${r.recordsFailed}`,
+        `  ${r.source}/${r.scope}: 导入=${r.recordsImported}${diff != null && diff > 0 ? ` 新增=${diff}` : ""} 失败=${r.recordsFailed}`,
       );
     }
 
@@ -152,12 +198,15 @@ export async function POST() {
         changed: r.recordsChanged,
         failed: r.recordsFailed,
       })),
-      enrichment: enrichmentResults.map((r) => ({
-        source: r.source,
-        scope: r.scope,
-        imported: r.recordsImported,
-        failed: r.recordsFailed,
-      })),
+      enrichment: enrichmentResults.map((r) => {
+        const diff = snapshotDiff[`${r.source}:${r.scope}`];
+        return {
+          source: r.source,
+          scope: r.scope,
+          imported: diff != null ? diff : r.recordsImported,
+          failed: r.recordsFailed,
+        };
+      }),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
