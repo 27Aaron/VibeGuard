@@ -123,7 +123,7 @@ export default async function StatsPage({ params }: StatsPageProps) {
       : "0.0";
 
   const labels = {
-    title: lang === "zh" ? "LLM 调用统计" : "LLM Usage Statistics",
+    title: lang === "zh" ? "调用统计" : "Usage Statistics",
     description:
       lang === "zh"
         ? "查看模型调用量、Token 消耗、缓存命中和响应耗时。"
