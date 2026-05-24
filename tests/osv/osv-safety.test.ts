@@ -46,11 +46,11 @@ describe("SEC-06: OSV cache fetch size limits", () => {
     expect(fetchTextThatRejects).toHaveBeenCalledTimes(1);
   });
 
-  it("downloadOsvArchiveToCache propagates size-limit errors from the injected fetchBytes", async () => {
+  it("downloadOsvArchiveToCache propagates size-limit errors from the injected streamTo", async () => {
     const sizeError = new Error(
-      "Response too large: 200000000 bytes exceeds 52428800 limit",
+      "Archive too large: 600000000 bytes exceeds 524288000 limit",
     );
-    const fetchBytesThatRejects = vi.fn().mockRejectedValue(sizeError);
+    const streamToThatRejects = vi.fn().mockRejectedValue(sizeError);
 
     await expect(
       downloadOsvArchiveToCache({
@@ -58,11 +58,11 @@ describe("SEC-06: OSV cache fetch size limits", () => {
         ecosystem: "npm",
         fileName: "all.zip",
         url: "https://example.com/huge.zip",
-        fetchBytes: fetchBytesThatRejects,
+        streamTo: streamToThatRejects,
       }),
-    ).rejects.toThrow("Response too large");
+    ).rejects.toThrow("Archive too large");
 
-    expect(fetchBytesThatRejects).toHaveBeenCalledTimes(1);
+    expect(streamToThatRejects).toHaveBeenCalledTimes(1);
   });
 
   it("allows normal-sized text responses to pass through", async () => {

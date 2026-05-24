@@ -1,5 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { Readable } from "node:stream";
+import { createWriteStream } from "node:fs";
+import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 
 export const OSV_VULNERABILITIES_BASE_URL =
@@ -39,7 +42,7 @@ type DownloadOsvArchiveToCacheInput = ResolveOsvBootstrapDirInput & {
   ecosystem: OsvDumpEcosystem;
   fileName: string;
   url: string;
-  fetchBytes?: (url: string) => Promise<Uint8Array>;
+  streamTo?: (url: string, destPath: string) => Promise<string>;
 };
 
 const DEFAULT_REPO_ROOT = path.resolve(
@@ -141,6 +144,7 @@ export function buildOsvBootstrapArchiveUrl(ecosystem: OsvDumpEcosystem) {
 }
 
 const MAX_RESPONSE_BYTES = 50 * 1024 * 1024; // 50MB
+const MAX_ARCHIVE_BYTES = 500 * 1024 * 1024; // 500MB
 
 async function defaultFetchText(url: string) {
   const response = await fetch(url);
@@ -193,6 +197,37 @@ async function defaultFetchBytes(url: string) {
   return new Uint8Array(buffer);
 }
 
+async function streamArchiveToFile(url: string, destPath: string) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to download OSV archive: ${response.status} ${url}`,
+    );
+  }
+
+  const contentLength = Number(response.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > MAX_ARCHIVE_BYTES) {
+    throw new Error(
+      `Archive too large: ${contentLength} bytes exceeds ${MAX_ARCHIVE_BYTES} limit`,
+    );
+  }
+
+  if (!response.body) {
+    throw new Error("Response body is null, cannot stream archive");
+  }
+
+  const tmpPath = `${destPath}.tmp`;
+  await fs.mkdir(path.dirname(tmpPath), { recursive: true });
+
+  const readable = Readable.fromWeb(response.body);
+  const writable = createWriteStream(tmpPath);
+  await pipeline(readable, writable);
+  await fs.rename(tmpPath, destPath);
+
+  return destPath;
+}
+
 export async function downloadOsvTextToCache({
   repoRoot,
   env,
@@ -216,14 +251,10 @@ export async function downloadOsvArchiveToCache({
   ecosystem,
   fileName,
   url,
-  fetchBytes = defaultFetchBytes,
+  streamTo = streamArchiveToFile,
 }: DownloadOsvArchiveToCacheInput) {
   const target = buildOsvBootstrapPath({ repoRoot, env, ecosystem, fileName });
-  const bytes = await fetchBytes(url);
-
-  await fs.mkdir(path.dirname(target), { recursive: true });
-  await fs.writeFile(target, bytes);
-
+  await streamTo(url, target);
   return target;
 }
 

@@ -31,7 +31,6 @@ import { normalizeInt } from "../shared/normalize";
 type ContentDb = NodePgDatabase<typeof schema>;
 
 type FetchText = (url: string, maxBytes?: number) => Promise<string>;
-type FetchBytes = (url: string) => Promise<Uint8Array>;
 
 const UNZIP_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 const DEFAULT_BOOTSTRAP_BATCH_SIZE = 200;
@@ -65,7 +64,6 @@ type BootstrapOsvEcosystemInput = {
   limit?: number;
   batchSize?: number;
   now?: () => Date;
-  fetchBytes?: FetchBytes;
   downloadArchiveToCache?: typeof downloadOsvArchiveToCache;
   iterateArchiveEntries?: (
     archivePath: string,
@@ -494,7 +492,6 @@ export async function bootstrapOsvEcosystem({
   limit,
   batchSize = DEFAULT_BOOTSTRAP_BATCH_SIZE,
   now = () => new Date(),
-  fetchBytes,
   downloadArchiveToCache: downloadArchive = downloadOsvArchiveToCache,
   iterateArchiveEntries = defaultIterateArchiveEntries,
   deleteCachedFile = deleteCachedOsvFile,
@@ -517,7 +514,6 @@ export async function bootstrapOsvEcosystem({
       ecosystem,
       fileName: "all.zip",
       url: buildOsvBootstrapArchiveUrl(ecosystem),
-      ...(fetchBytes ? { fetchBytes } : {}),
     }),
   );
 
