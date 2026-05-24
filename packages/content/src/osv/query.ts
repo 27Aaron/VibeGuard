@@ -162,6 +162,16 @@ function normalizeAdvisoryReferences(
   })
 }
 
+function advisoryCveEnrichmentIds(advisory: {
+  aliases: string[]
+  upstreamIds?: string[] | null
+}) {
+  return [
+    ...advisory.aliases,
+    ...(advisory.upstreamIds ?? []),
+  ]
+}
+
 function formatCveEnrichment(row: typeof securityCveEnrichments.$inferSelect): SecurityCveEnrichmentResult {
   return {
     cveId: row.cveId,
@@ -195,10 +205,15 @@ function timestampFromIso(value: string | null | undefined) {
 }
 
 function findingLatestTimestamp(finding: {
-  advisory: { publishedAt: string | null; modifiedAt: string | null }
+  advisory: {
+    publishedAt: string | null
+    modifiedAt: string | null
+    withdrawnAt: string | null
+  }
   cveEnrichments: SecurityCveEnrichmentResult[]
 }) {
   return Math.max(
+    timestampFromIso(finding.advisory.withdrawnAt),
     timestampFromIso(finding.advisory.modifiedAt),
     timestampFromIso(finding.advisory.publishedAt),
     ...finding.cveEnrichments.flatMap((cve) => [
@@ -311,7 +326,11 @@ export async function checkPackagesAgainstLocalDb(
   })
   const advisoryById = new Map(allAdvisories.map((a) => [a.id, a]))
   const cveIds = Array.from(
-    new Set(allAdvisories.flatMap((advisory) => extractCveAliases(advisory.aliases))),
+    new Set(
+      allAdvisories.flatMap((advisory) =>
+        extractCveAliases(advisoryCveEnrichmentIds(advisory)),
+      ),
+    ),
   )
   const cveEnrichmentQuery = (
     db.query as typeof db.query & {
@@ -341,7 +360,7 @@ export async function checkPackagesAgainstLocalDb(
     for (const affectedPackage of matchedAffectedPackages) {
       const advisory = advisoryById.get(affectedPackage.advisoryId)
 
-      if (!advisory || advisory.withdrawnAt) {
+      if (!advisory) {
         continue
       }
 
@@ -356,7 +375,9 @@ export async function checkPackagesAgainstLocalDb(
         continue
       }
 
-      const advisoryCveIds = extractCveAliases(advisory.aliases)
+      const advisoryCveIds = extractCveAliases(
+        advisoryCveEnrichmentIds(advisory),
+      )
       const cveEnrichments = advisoryCveIds.flatMap((cveId) => {
         const enrichment = enrichmentByCve.get(cveId)
         return enrichment ? [enrichment] : []
@@ -394,11 +415,14 @@ export async function checkPackagesAgainstLocalDb(
           summary: advisory.summary,
           details: advisory.details,
           aliases: advisory.aliases,
+          related: advisory.relatedIds ?? [],
+          upstream: advisory.upstreamIds ?? [],
           severity: advisory.severity,
           references: normalizeAdvisoryReferences(advisory.references),
           maliciousOrigins: advisory.maliciousOrigins ?? [],
           publishedAt: advisory.publishedAt?.toISOString() ?? null,
           modifiedAt: advisory.modifiedAt?.toISOString() ?? null,
+          withdrawnAt: advisory.withdrawnAt?.toISOString() ?? null,
         },
         affectedPackage: {
           affectedVersions: affectedPackage.affectedVersions,

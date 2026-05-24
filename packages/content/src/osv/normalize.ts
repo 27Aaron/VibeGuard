@@ -40,6 +40,8 @@ export type OsvVulnerability = {
   published?: string
   withdrawn?: string
   aliases?: string[]
+  related?: string[]
+  upstream?: string[]
   summary?: string
   details?: string
   severity?: OsvSeverity[]
@@ -66,6 +68,8 @@ export type NormalizedOsvAdvisory = {
   publishedAt: Date | null
   modifiedAt: Date | null
   withdrawnAt: Date | null
+  relatedIds: string[]
+  upstreamIds: string[]
   references: Array<{ type?: string; url: string }>
   maliciousOrigins: NormalizedMaliciousPackageOrigin[]
 }
@@ -310,6 +314,8 @@ export function normalizeOsvRecord(
       summary: vulnerability.summary ?? "",
       details: normalizeDetails(vulnerability.details),
       aliases: uniqueStrings(vulnerability.aliases ?? []),
+      relatedIds: uniqueStrings(vulnerability.related ?? []),
+      upstreamIds: uniqueStrings(vulnerability.upstream ?? []),
       severity: vulnerability.severity ?? [],
       publishedAt: parseDate(vulnerability.published),
       modifiedAt: parseDate(vulnerability.modified),

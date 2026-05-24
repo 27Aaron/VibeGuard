@@ -102,6 +102,8 @@ describe("checkPackagesAgainstLocalDb", () => {
               summary: "Malicious code in cryptoco-auth (npm)",
               details: "The package shipped malicious install behavior.",
               aliases: [],
+              relatedIds: ["GHSA-related-0001"],
+              upstreamIds: ["RUSTSEC-2026-0001"],
               severity: [],
               references: [],
               maliciousOrigins: [
@@ -141,6 +143,8 @@ describe("checkPackagesAgainstLocalDb", () => {
         riskType: "malicious-package",
         sourceUrl:
           "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
+        related: ["GHSA-related-0001"],
+        upstream: ["RUSTSEC-2026-0001"],
         maliciousOrigins: [
           expect.objectContaining({
             id: "RLMA-2026-00001",
@@ -493,7 +497,97 @@ describe("checkPackagesAgainstLocalDb", () => {
     expect(db.query.securityCveEnrichments.findMany).toHaveBeenCalledTimes(1)
   })
 
-  it("skips withdrawn advisories even when the version matches", async () => {
+  it("keeps related CVE records visible without scoring them as the current advisory", async () => {
+    const db = {
+      query: {
+        securitySyncState: {
+          findFirst: vi.fn().mockResolvedValue({
+            lastSuccessAt: new Date("2026-05-22T07:00:00Z"),
+          }),
+        },
+        securityAffectedPackages: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "affected-1",
+              advisoryId: "advisory-1",
+              ecosystem: "npm",
+              packageName: "example",
+              packageKey: "example",
+              purl: "pkg:npm/example",
+              affectedVersions: ["1.0.0"],
+              ranges: [],
+              fixedVersions: [],
+            },
+          ]),
+        },
+        securityAdvisories: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-1",
+              source: "osv",
+              externalId: "GHSA-example",
+              riskType: "vulnerability",
+              summary: "Example vulnerability",
+              details: null,
+              aliases: [],
+              relatedIds: ["CVE-2026-9999"],
+              upstreamIds: [],
+              severity: [],
+              references: [],
+              withdrawnAt: null,
+              modifiedAt: new Date("2026-05-21T23:01:37Z"),
+            },
+          ]),
+        },
+        securityCveEnrichments: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              cveId: "CVE-2026-9999",
+              title: "Related vulnerability",
+              description: "A related record, not an alias.",
+              cvssMetrics: [],
+              bestCvssScore: "9.8",
+              bestCvssSeverity: "CRITICAL",
+              cweIds: [],
+              epss: "0.42",
+              epssPercentile: "0.97",
+              epssScoreDate: null,
+              epssModelVersion: null,
+              kevListed: true,
+              kevDateAdded: null,
+              kevDueDate: null,
+              kevKnownRansomwareCampaignUse: null,
+              kevRequiredAction: null,
+              kevVendorProject: null,
+              kevProduct: null,
+              nvdPublishedAt: null,
+              nvdModifiedAt: null,
+              updatedAt: new Date("2026-05-23T13:00:00Z"),
+            },
+          ]),
+        },
+      },
+    } as never
+
+    const result = await checkPackagesAgainstLocalDb(db, {
+      packages: [{ ecosystem: "npm", name: "example", version: "1.0.0" }],
+    })
+
+    expect(result.findings[0]).toMatchObject({
+      advisory: {
+        related: ["CVE-2026-9999"],
+      },
+      cveEnrichments: [],
+      risk: {
+        level: "medium",
+        score: 48,
+        signals: ["affected_version_match", "no_fixed_version"],
+      },
+    })
+    expect(db.query.securityCveEnrichments.findMany).not.toHaveBeenCalled()
+  })
+
+  it("returns withdrawn advisories with withdrawal metadata", async () => {
     const db = {
       query: {
         securitySyncState: {
@@ -526,6 +620,8 @@ describe("checkPackagesAgainstLocalDb", () => {
               summary: "Withdrawn advisory",
               details: null,
               aliases: [],
+              relatedIds: ["GHSA-related-withdrawn"],
+              upstreamIds: ["CVE-2026-0001"],
               severity: [],
               references: [],
               withdrawnAt: new Date("2026-05-22T01:00:00Z"),
@@ -540,6 +636,15 @@ describe("checkPackagesAgainstLocalDb", () => {
       packages: [{ ecosystem: "npm", name: "left-pad", version: "1.0.0" }],
     })
 
-    expect(result.findings).toEqual([])
+    expect(result.findings).toHaveLength(1)
+    expect(result.findings[0]).toMatchObject({
+      affected: true,
+      advisory: {
+        id: "GHSA-withdrawn",
+        withdrawnAt: "2026-05-22T01:00:00.000Z",
+        related: ["GHSA-related-withdrawn"],
+        upstream: ["CVE-2026-0001"],
+      },
+    })
   })
 })

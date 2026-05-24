@@ -113,6 +113,13 @@
       "when": 1779587881350,
       "tag": "0015_yummy_marrow",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1779589674664,
+      "tag": "0016_abandoned_shaman",
+      "breakpoints": true
     }
   ]
 }

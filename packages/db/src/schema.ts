@@ -311,6 +311,14 @@ export const securityAdvisories = pgTable(
     summary: text("summary").notNull().default(""),
     details: text("details"),
     aliases: jsonb("aliases").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    relatedIds: jsonb("related_ids")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    upstreamIds: jsonb("upstream_ids")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     severity: jsonb("severity")
       .$type<Array<{ type?: string; score?: string }>>()
       .notNull()

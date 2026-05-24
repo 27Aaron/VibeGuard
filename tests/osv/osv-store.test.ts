@@ -20,6 +20,8 @@ const advisory = {
   summary: "Malicious code in cryptoco-auth (npm)",
   details: "The package shipped malicious install behavior.",
   aliases: [],
+  relatedIds: ["GHSA-related-0001"],
+  upstreamIds: ["RUSTSEC-2026-0001"],
   severity: [],
   publishedAt: new Date("2026-05-21T21:15:38Z"),
   modifiedAt: new Date("2026-05-21T23:01:37Z"),
@@ -56,6 +58,8 @@ describe("OSV store payload builders", () => {
       rawHash: "sha256:test",
       riskType: "malicious-package",
       summary: "Malicious code in cryptoco-auth (npm)",
+      relatedIds: ["GHSA-related-0001"],
+      upstreamIds: ["RUSTSEC-2026-0001"],
       maliciousOrigins: [
         expect.objectContaining({
           id: "RLMA-2026-00001",
@@ -174,6 +178,8 @@ describe("upsertNormalizedOsvRecord", () => {
                 "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
               rawHash: "sha256:test",
               details: "The package shipped malicious install behavior.",
+              relatedIds: advisory.relatedIds,
+              upstreamIds: advisory.upstreamIds,
               maliciousOrigins: advisory.maliciousOrigins,
             },
           ]),
@@ -211,6 +217,8 @@ describe("upsertNormalizedOsvRecord", () => {
               rawHash: "sha256:test",
               details:
                 "\n---\n_-= Per source details. Do not edit below this line.=-_\n",
+              relatedIds: [],
+              upstreamIds: [],
               maliciousOrigins: [],
             },
           ]),
@@ -282,6 +290,8 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
                 "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
               rawHash: "sha256:old",
               details: advisory.details,
+              relatedIds: advisory.relatedIds,
+              upstreamIds: advisory.upstreamIds,
               maliciousOrigins: advisory.maliciousOrigins,
             },
             {
@@ -291,6 +301,8 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
                 "https://storage.googleapis.com/osv-vulnerabilities/npm/MAL-2026-4230.json",
               rawHash: "sha256:same",
               details: advisory.details,
+              relatedIds: advisory.relatedIds,
+              upstreamIds: advisory.upstreamIds,
               maliciousOrigins: advisory.maliciousOrigins,
             },
           ]),

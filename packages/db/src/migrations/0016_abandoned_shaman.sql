@@ -1,0 +1,2 @@
+ALTER TABLE "security_advisories" ADD COLUMN "related_ids" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "security_advisories" ADD COLUMN "upstream_ids" jsonb DEFAULT '[]'::jsonb NOT NULL;

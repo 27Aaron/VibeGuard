@@ -19,6 +19,8 @@ describe("security intelligence schema", () => {
     expect("sourceUrl" in schema.securityAdvisories).toBe(true)
     expect("rawHash" in schema.securityAdvisories).toBe(true)
     expect("aliases" in schema.securityAdvisories).toBe(true)
+    expect("relatedIds" in schema.securityAdvisories).toBe(true)
+    expect("upstreamIds" in schema.securityAdvisories).toBe(true)
     expect("maliciousOrigins" in schema.securityAdvisories).toBe(true)
     expect("scope" in schema.securitySyncState).toBe(true)
     expect("cursorJson" in schema.securitySyncState).toBe(true)

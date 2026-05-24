@@ -289,7 +289,7 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
     expect(db.query.securityAdvisories.findMany).not.toHaveBeenCalled()
   })
 
-  it("skips withdrawn advisories in batch result", async () => {
+  it("keeps withdrawn advisories in batch result with withdrawal metadata", async () => {
     const db = {
       query: {
         securitySyncState: {
@@ -364,11 +364,25 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
       now: new Date("2026-05-22T08:00:00Z"),
     })
 
-    expect(result.findings).toHaveLength(1)
-    expect(result.findings[0]).toMatchObject({
-      affected: true,
-      advisory: { id: "GHSA-active" },
-    })
+    expect(result.findings).toHaveLength(2)
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          affected: true,
+          advisory: expect.objectContaining({
+            id: "GHSA-withdrawn",
+            withdrawnAt: "2026-05-22T01:00:00.000Z",
+          }),
+        }),
+        expect.objectContaining({
+          affected: true,
+          advisory: expect.objectContaining({
+            id: "GHSA-active",
+            withdrawnAt: null,
+          }),
+        }),
+      ]),
+    )
   })
 
   it("correctly joins packages to advisories across ecosystems in batch", async () => {

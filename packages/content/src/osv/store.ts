@@ -40,6 +40,8 @@ const advisoryConflictUpdateSet = {
   summary: sql`excluded.summary`,
   details: sql`excluded.details`,
   aliases: sql`excluded.aliases`,
+  relatedIds: sql`excluded.related_ids`,
+  upstreamIds: sql`excluded.upstream_ids`,
   severity: sql`excluded.severity`,
   publishedAt: sql`excluded.published_at`,
   modifiedAt: sql`excluded.modified_at`,
@@ -97,6 +99,8 @@ export function buildSecurityAdvisoryInsert(advisory: NormalizedOsvAdvisory) {
     summary: advisory.summary,
     details: advisory.details,
     aliases: advisory.aliases,
+    relatedIds: advisory.relatedIds,
+    upstreamIds: advisory.upstreamIds,
     severity: advisory.severity,
     publishedAt: advisory.publishedAt,
     modifiedAt: advisory.modifiedAt,
@@ -208,6 +212,8 @@ export async function upsertNormalizedOsvRecordsBatch(
       sourceUrl: advisoriesTable.sourceUrl,
       rawHash: advisoriesTable.rawHash,
       details: advisoriesTable.details,
+      relatedIds: advisoriesTable.relatedIds,
+      upstreamIds: advisoriesTable.upstreamIds,
       maliciousOrigins: advisoriesTable.maliciousOrigins,
     })
     .from(advisoriesTable)
@@ -235,6 +241,10 @@ export async function upsertNormalizedOsvRecordsBatch(
       existing.rawHash === record.advisory.rawHash &&
       existing.sourceUrl === record.advisory.sourceUrl &&
       existing.details === record.advisory.details &&
+      JSON.stringify(existing.relatedIds ?? []) ===
+        JSON.stringify(record.advisory.relatedIds) &&
+      JSON.stringify(existing.upstreamIds ?? []) ===
+        JSON.stringify(record.advisory.upstreamIds) &&
       JSON.stringify(existing.maliciousOrigins ?? []) ===
         JSON.stringify(record.advisory.maliciousOrigins)
     ) {

@@ -16,6 +16,8 @@ describe("normalizeOsvRecord", () => {
         modified: "2026-05-21T23:01:37.118219322Z",
         summary: "Malicious code in cryptoco-auth (npm)",
         details: "The package shipped malicious install behavior.",
+        related: ["GHSA-related-0001"],
+        upstream: ["RUSTSEC-2026-0001"],
         database_specific: {
           "malicious-packages-origins": [
             {
@@ -57,6 +59,8 @@ describe("normalizeOsvRecord", () => {
     })
     expect(result.advisory).not.toHaveProperty("rawJson")
     expect(result.advisory.riskType).toBe("malicious-package")
+    expect(result.advisory.relatedIds).toEqual(["GHSA-related-0001"])
+    expect(result.advisory.upstreamIds).toEqual(["RUSTSEC-2026-0001"])
     expect(result.advisory.maliciousOrigins).toEqual([
       {
         id: "RLMA-2026-00001",
