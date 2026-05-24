@@ -80,12 +80,18 @@ function formatCount(n: number) {
   return n.toLocaleString();
 }
 
+type SyncResult = {
+  logs?: string[];
+  osv?: Array<{ ecosystem: string; imported: number }>;
+  enrichment?: Array<{ source: string; scope: string; imported: number }>;
+};
+
 export function SecuritySyncButton({
   lang,
   onSyncComplete,
 }: {
   lang: AppLang;
-  onSyncComplete?: (logs?: string[]) => void;
+  onSyncComplete?: (result: SyncResult) => void;
 }) {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,13 +102,14 @@ export function SecuritySyncButton({
 
     try {
       const res = await fetch("/api/admin/osv-sync", { method: "POST" });
-      const data = await res.json();
+      const data: SyncResult & { ok?: boolean; error?: string } =
+        await res.json();
 
       if (!data.ok) {
         setError(data.error ?? "Unknown error");
       }
 
-      onSyncComplete?.(data.logs);
+      onSyncComplete?.(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
     } finally {
@@ -152,11 +159,13 @@ export function SecuritySyncButton({
 
 function SourceCard({
   src,
+  newCount,
   lang,
   icon,
   label,
 }: {
   src: SyncSource;
+  newCount?: number;
   lang: AppLang;
   icon: React.ReactNode;
   label: string;
@@ -172,11 +181,10 @@ function SourceCard({
             {label}
           </span>
           <span className="text-xs text-zinc-500 dark:text-stone-400">
-            {formatCount(src.totalRecords)}{" "}
-            {lang === "zh" ? "条" : "records"}
-            {src.recordsImported > 0 ? (
+            {formatCount(src.totalRecords)} {lang === "zh" ? "条" : "records"}
+            {newCount && newCount > 0 ? (
               <span className="ml-1 text-emerald-700 dark:text-emerald-300">
-                +{src.recordsImported}
+                +{newCount}
               </span>
             ) : null}
           </span>
@@ -187,9 +195,12 @@ function SourceCard({
   );
 }
 
+const NEW_RECORDS_TTL_MS = 60_000;
+
 export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
   const [sources, setSources] = useState<SyncSource[]>([]);
   const [syncLogs, setSyncLogs] = useState<string[] | null>(null);
+  const [newRecords, setNewRecords] = useState<Record<string, number>>({});
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -207,8 +218,19 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
     fetchStatus();
   }, [fetchStatus]);
 
-  function handleSyncComplete(logs?: string[]) {
-    if (logs) setSyncLogs(logs);
+  function handleSyncComplete(result: SyncResult) {
+    if (result.logs) setSyncLogs(result.logs);
+
+    const map: Record<string, number> = {};
+    for (const r of result.osv ?? []) {
+      map[`osv:${r.ecosystem}`] = r.imported;
+    }
+    for (const r of result.enrichment ?? []) {
+      map[`${r.source}:${r.scope}`] = r.imported;
+    }
+    setNewRecords(map);
+
+    setTimeout(() => setNewRecords({}), NEW_RECORDS_TTL_MS);
     fetchStatus();
   }
 
@@ -217,18 +239,11 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
   );
 
   const osvSources = displaySources.filter((s) => s.source === "osv");
-  const enrichmentSources = displaySources.filter(
-    (s) => s.source !== "osv",
-  );
+  const enrichmentSources = displaySources.filter((s) => s.source !== "osv");
 
   const osvTotal = osvSources.reduce((sum, s) => sum + s.totalRecords, 0);
-  const osvNew = osvSources.reduce((sum, s) => sum + s.recordsImported, 0);
   const enrichmentTotal = enrichmentSources.reduce(
     (sum, s) => sum + s.totalRecords,
-    0,
-  );
-  const enrichmentNew = enrichmentSources.reduce(
-    (sum, s) => sum + s.recordsImported,
     0,
   );
 
@@ -254,6 +269,7 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
           <SourceCard
             key={`${src.source}-${src.scope}`}
             src={src}
+            newCount={newRecords[`${src.source}:${src.scope}`]}
             lang={lang}
             icon={<Database className="size-3.5" />}
             label={ecosystemLabel(src.scope)}
@@ -263,6 +279,7 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
           <SourceCard
             key={`${src.source}-${src.scope}`}
             src={src}
+            newCount={newRecords[`${src.source}:${src.scope}`]}
             lang={lang}
             icon={<Shield className="size-3.5" />}
             label={sourceDisplayName(src.source, src.scope)}
@@ -278,23 +295,12 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
           {osvSources.length > 0 ? (
             <span>
               OSV {formatCount(osvTotal)} {lang === "zh" ? "条" : "records"}
-              {osvNew > 0 ? (
-                <span className="ml-1 text-emerald-700 dark:text-emerald-300">
-                  +{osvNew}
-                </span>
-              ) : null}
             </span>
           ) : null}
           {enrichmentSources.length > 0 ? (
             <span>
               {lang === "zh" ? "增强" : "Enrichment"}{" "}
-              {formatCount(enrichmentTotal)}{" "}
-              {lang === "zh" ? "条" : "records"}
-              {enrichmentNew > 0 ? (
-                <span className="ml-1 text-emerald-700 dark:text-emerald-300">
-                  +{enrichmentNew}
-                </span>
-              ) : null}
+              {formatCount(enrichmentTotal)} {lang === "zh" ? "条" : "records"}
             </span>
           ) : null}
         </div>
