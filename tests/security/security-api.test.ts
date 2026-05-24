@@ -507,6 +507,141 @@ describe("security API routes", () => {
     });
   });
 
+  it("matches advisories by CVE alias via q search", async () => {
+    const selectFromWhere = vi.fn().mockResolvedValue([]);
+    const selectFrom = vi.fn().mockReturnValue({ where: selectFromWhere });
+    const selectChain = { from: selectFrom };
+    const countSelectFromWhere = vi.fn().mockResolvedValue([{ count: 1 }]);
+    const countSelectFrom = vi.fn().mockReturnValue({ where: countSelectFromWhere });
+    const countSelectChain = { from: countSelectFrom };
+
+    let selectCallIndex = 0;
+    const db = {
+      select: vi.fn().mockImplementation(() => {
+        selectCallIndex += 1;
+        return selectCallIndex === 1 ? selectChain : countSelectChain;
+      }),
+      query: {
+        securityAdvisories: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-alias-match",
+              source: "osv",
+              externalId: "GHSA-xxxx-yyyy-zzzz",
+              sourceUrl: "https://osv.dev/vulnerability/GHSA-xxxx-yyyy-zzzz",
+              riskType: "vulnerability",
+              summary: "Some unrelated summary",
+              details: null,
+              aliases: ["CVE-2025-62718"],
+              relatedIds: [],
+              upstreamIds: ["GHSA-upstream-1"],
+              severity: [],
+              references: [],
+              maliciousOrigins: [],
+              publishedAt: new Date("2026-04-10T01:32:00.000Z"),
+              modifiedAt: new Date("2026-05-22T04:38:00.000Z"),
+              withdrawnAt: null,
+              createdAt: new Date("2026-04-10T01:32:00.000Z"),
+            },
+          ]),
+        },
+        securityCveEnrichments: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        securityAffectedPackages: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+      },
+    };
+    const getDb = vi.fn(() => db);
+
+    vi.doMock("@vibeguard/db", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@vibeguard/db")>()),
+      getDb,
+    }));
+
+    const { GET } =
+      await import("../../apps/web/app/api/security/advisories/route");
+    const response = await GET(
+      new Request(
+        "http://vibeguard.test/api/security/advisories?q=CVE-2025-62718",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].id).toBe("GHSA-xxxx-yyyy-zzzz");
+    expect(body.items[0].aliases).toContain("CVE-2025-62718");
+  });
+
+  it("matches advisories by upstream ID via q search", async () => {
+    const selectFromWhere = vi.fn().mockResolvedValue([]);
+    const selectFrom = vi.fn().mockReturnValue({ where: selectFromWhere });
+    const selectChain = { from: selectFrom };
+    const countSelectFromWhere = vi.fn().mockResolvedValue([{ count: 1 }]);
+    const countSelectFrom = vi.fn().mockReturnValue({ where: countSelectFromWhere });
+    const countSelectChain = { from: countSelectFrom };
+
+    let selectCallIndex = 0;
+    const db = {
+      select: vi.fn().mockImplementation(() => {
+        selectCallIndex += 1;
+        return selectCallIndex === 1 ? selectChain : countSelectChain;
+      }),
+      query: {
+        securityAdvisories: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: "advisory-upstream-match",
+              source: "osv",
+              externalId: "GHSA-aaaa-bbbb-cccc",
+              sourceUrl: "https://osv.dev/vulnerability/GHSA-aaaa-bbbb-cccc",
+              riskType: "vulnerability",
+              summary: "Unrelated summary",
+              details: null,
+              aliases: [],
+              relatedIds: [],
+              upstreamIds: ["GHSA-upstream-1"],
+              severity: [],
+              references: [],
+              maliciousOrigins: [],
+              publishedAt: new Date("2026-04-10T01:32:00.000Z"),
+              modifiedAt: new Date("2026-05-22T04:38:00.000Z"),
+              withdrawnAt: null,
+              createdAt: new Date("2026-04-10T01:32:00.000Z"),
+            },
+          ]),
+        },
+        securityCveEnrichments: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        securityAffectedPackages: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+      },
+    };
+    const getDb = vi.fn(() => db);
+
+    vi.doMock("@vibeguard/db", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@vibeguard/db")>()),
+      getDb,
+    }));
+
+    const { GET } =
+      await import("../../apps/web/app/api/security/advisories/route");
+    const response = await GET(
+      new Request(
+        "http://vibeguard.test/api/security/advisories?q=GHSA-upstream-1",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].upstream).toContain("GHSA-upstream-1");
+  });
+
   it("returns one advisory by external id", async () => {
     const db = {
       query: {

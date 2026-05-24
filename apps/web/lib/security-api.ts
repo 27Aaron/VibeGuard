@@ -442,6 +442,9 @@ export async function listSecurityAdvisories(
         sql`${securityAdvisories.externalId} ilike ${pattern}`,
         sql`${securityAdvisories.summary} ilike ${pattern}`,
         sql`${securityAdvisories.details} ilike ${pattern}`,
+        sql`exists (select 1 from jsonb_array_elements_text(${securityAdvisories.aliases}) elem where elem ilike ${pattern})`,
+        sql`exists (select 1 from jsonb_array_elements_text(${securityAdvisories.relatedIds}) elem where elem ilike ${pattern})`,
+        sql`exists (select 1 from jsonb_array_elements_text(${securityAdvisories.upstreamIds}) elem where elem ilike ${pattern})`,
       )!,
     );
   }
