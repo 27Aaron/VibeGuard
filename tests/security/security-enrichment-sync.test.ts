@@ -1,8 +1,12 @@
+import zlib from "node:zlib"
+
 import { describe, expect, it, vi } from "vitest"
 
 import {
   buildNvdModifiedFeedUrl,
   buildNvdYearFeedUrl,
+  fetchSecurityFeedText,
+  gunzipSecurityFeedText,
   parseEpssCsv,
   parseKevCatalog,
   parseNvdModifiedFeed,
@@ -117,6 +121,36 @@ describe("security enrichment parsers", () => {
         cweIds: ["CWE-79"],
       }),
     ])
+  })
+})
+
+describe("security enrichment payload limits", () => {
+  it("rejects security feed text responses that exceed the byte limit", async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response("abcdef", {
+        status: 200,
+      }),
+    ) as never
+
+    try {
+      await expect(
+        fetchSecurityFeedText("https://example.test/feed.json", 5),
+      ).rejects.toThrow(/too large/)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it("rejects decompressed security feeds that exceed the byte limit", async () => {
+    const bytes = zlib.gzipSync(Buffer.from("abcdef", "utf8"))
+
+    await expect(
+      gunzipSecurityFeedText(bytes, "test feed", 5),
+    ).rejects.toThrow(/too large/)
+    await expect(
+      gunzipSecurityFeedText(bytes, "test feed", 6),
+    ).resolves.toBe("abcdef")
   })
 })
 

@@ -1,5 +1,6 @@
+import { Readable, Writable } from "node:stream"
+import { pipeline } from "node:stream/promises"
 import zlib from "node:zlib"
-import { promisify } from "node:util"
 
 import { sql } from "drizzle-orm"
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
@@ -15,10 +16,9 @@ import {
   upsertSecuritySyncState,
   type SecuritySyncStateUpdateInput,
 } from "../osv/store"
+import { normalizeInt } from "../shared/normalize"
 
 type ContentDb = NodePgDatabase<typeof schema>
-
-const gunzip = promisify(zlib.gunzip)
 
 export const CISA_KEV_JSON_URL =
   "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
@@ -29,6 +29,34 @@ export const NVD_FEED_BASE_URL =
 export const NVD_MODIFIED_FEED_URL =
   `${NVD_FEED_BASE_URL}/nvdcve-2.0-modified.json.gz`
 export const NVD_FULL_FEED_START_YEAR = 2002
+
+const MEBIBYTE = 1024 * 1024
+export const DEFAULT_CISA_KEV_JSON_BYTES = 8 * MEBIBYTE
+export const DEFAULT_EPSS_CSV_GZ_BYTES = 16 * MEBIBYTE
+export const DEFAULT_EPSS_CSV_TEXT_BYTES = 64 * MEBIBYTE
+export const DEFAULT_NVD_FEED_GZ_BYTES = 64 * MEBIBYTE
+export const DEFAULT_NVD_FEED_JSON_BYTES = 512 * MEBIBYTE
+
+const MAX_CISA_KEV_JSON_BYTES = normalizeInt(
+  process.env.VIBEGUARD_CISA_KEV_JSON_BYTES,
+  DEFAULT_CISA_KEV_JSON_BYTES,
+)
+const MAX_EPSS_CSV_GZ_BYTES = normalizeInt(
+  process.env.VIBEGUARD_EPSS_CSV_GZ_BYTES,
+  DEFAULT_EPSS_CSV_GZ_BYTES,
+)
+const MAX_EPSS_CSV_TEXT_BYTES = normalizeInt(
+  process.env.VIBEGUARD_EPSS_CSV_TEXT_BYTES,
+  DEFAULT_EPSS_CSV_TEXT_BYTES,
+)
+const MAX_NVD_FEED_GZ_BYTES = normalizeInt(
+  process.env.VIBEGUARD_NVD_FEED_GZ_BYTES,
+  DEFAULT_NVD_FEED_GZ_BYTES,
+)
+const MAX_NVD_FEED_JSON_BYTES = normalizeInt(
+  process.env.VIBEGUARD_NVD_FEED_JSON_BYTES,
+  DEFAULT_NVD_FEED_JSON_BYTES,
+)
 
 export type SecurityCveEnrichmentPatch = {
   cveId: string
@@ -446,16 +474,105 @@ export async function upsertSecurityCveEnrichments(
   return { importedCount }
 }
 
-async function defaultFetchText(url: string) {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Failed to download ${url}: ${response.status}`)
-  return response.text()
+async function readResponseBytes(
+  response: Response,
+  url: string,
+  maxBytes: number,
+) {
+  const contentLength = Number.parseInt(
+    response.headers.get("content-length") ?? "",
+    10,
+  )
+
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new Error(
+      `Security feed ${url} is too large (${contentLength} bytes, max ${maxBytes})`,
+    )
+  }
+
+  if (!response.body) {
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    if (bytes.byteLength > maxBytes) {
+      throw new Error(
+        `Security feed ${url} is too large (${bytes.byteLength} bytes, max ${maxBytes})`,
+      )
+    }
+    return bytes
+  }
+
+  const reader = response.body.getReader()
+  const chunks: Buffer[] = []
+  let total = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) {
+      break
+    }
+
+    total += value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel()
+      throw new Error(
+        `Security feed ${url} is too large (${total} bytes, max ${maxBytes})`,
+      )
+    }
+
+    chunks.push(Buffer.from(value))
+  }
+
+  return Buffer.concat(chunks, total)
 }
 
-async function defaultFetchBytes(url: string) {
+export async function fetchSecurityFeedBytes(url: string, maxBytes: number) {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Failed to download ${url}: ${response.status}`)
-  return new Uint8Array(await response.arrayBuffer())
+  return readResponseBytes(response, url, maxBytes)
+}
+
+export async function fetchSecurityFeedText(url: string, maxBytes: number) {
+  const bytes = await fetchSecurityFeedBytes(url, maxBytes)
+  return Buffer.from(bytes).toString("utf8")
+}
+
+export async function gunzipSecurityFeedText(
+  bytes: Uint8Array,
+  label: string,
+  maxBytes: number,
+) {
+  const chunks: Buffer[] = []
+  let total = 0
+
+  await pipeline(
+    Readable.from(Buffer.from(bytes)),
+    zlib.createGunzip(),
+    new Writable({
+      write(chunk, _encoding, callback) {
+        total += chunk.byteLength
+        if (total > maxBytes) {
+          callback(
+            new Error(
+              `${label} is too large after decompression (${total} bytes, max ${maxBytes})`,
+            ),
+          )
+          return
+        }
+
+        chunks.push(Buffer.from(chunk))
+        callback()
+      },
+    }),
+  )
+
+  return Buffer.concat(chunks, total).toString("utf8")
+}
+
+async function defaultFetchText(url: string, maxBytes = MAX_CISA_KEV_JSON_BYTES) {
+  return fetchSecurityFeedText(url, maxBytes)
+}
+
+async function defaultFetchBytes(url: string, maxBytes = MAX_NVD_FEED_GZ_BYTES) {
+  return fetchSecurityFeedBytes(url, maxBytes)
 }
 
 async function syncPatches({
@@ -517,7 +634,7 @@ export async function syncCisaKevCatalog({
   db: ContentDb
   fetchText?: typeof defaultFetchText
 }) {
-  const rawJson = await fetchText(CISA_KEV_JSON_URL)
+  const rawJson = await fetchText(CISA_KEV_JSON_URL, MAX_CISA_KEV_JSON_BYTES)
   const patches = parseKevCatalog(rawJson)
   return syncPatches({
     db,
@@ -538,8 +655,15 @@ export async function syncFirstEpssScores({
   db: ContentDb
   fetchBytes?: typeof defaultFetchBytes
 }) {
-  const bytes = await fetchBytes(FIRST_EPSS_CURRENT_CSV_GZ_URL)
-  const csv = (await gunzip(Buffer.from(bytes))).toString("utf8")
+  const bytes = await fetchBytes(
+    FIRST_EPSS_CURRENT_CSV_GZ_URL,
+    MAX_EPSS_CSV_GZ_BYTES,
+  )
+  const csv = await gunzipSecurityFeedText(
+    bytes,
+    "FIRST EPSS current CSV",
+    MAX_EPSS_CSV_TEXT_BYTES,
+  )
   const patches = parseEpssCsv(csv)
   const scoreDate = patches.find((patch) => patch.epssScoreDate)?.epssScoreDate
   const modelVersion = patches.find(
@@ -566,8 +690,14 @@ export async function syncNvdModifiedFeed({
   db: ContentDb
   fetchBytes?: typeof defaultFetchBytes
 }) {
-  const bytes = await fetchBytes(buildNvdModifiedFeedUrl())
-  const payload = JSON.parse((await gunzip(Buffer.from(bytes))).toString("utf8"))
+  const bytes = await fetchBytes(buildNvdModifiedFeedUrl(), MAX_NVD_FEED_GZ_BYTES)
+  const payload = JSON.parse(
+    await gunzipSecurityFeedText(
+      bytes,
+      "NVD modified feed",
+      MAX_NVD_FEED_JSON_BYTES,
+    ),
+  )
   const patches = parseNvdModifiedFeed(payload)
   return syncPatches({
     db,
@@ -586,8 +716,14 @@ export async function syncNvdYearFeed({
   year,
   fetchBytes = defaultFetchBytes,
 }: SyncNvdYearFeedInput) {
-  const bytes = await fetchBytes(buildNvdYearFeedUrl(year))
-  const payload = JSON.parse((await gunzip(Buffer.from(bytes))).toString("utf8"))
+  const bytes = await fetchBytes(buildNvdYearFeedUrl(year), MAX_NVD_FEED_GZ_BYTES)
+  const payload = JSON.parse(
+    await gunzipSecurityFeedText(
+      bytes,
+      `NVD ${year} feed`,
+      MAX_NVD_FEED_JSON_BYTES,
+    ),
+  )
   const patches = parseNvdModifiedFeed(payload)
   return syncPatches({
     db,
