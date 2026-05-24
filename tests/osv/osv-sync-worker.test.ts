@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest";
 
-import { hasSuccessfulSyncMarker } from "../../apps/worker/src/index"
+import { hasSuccessfulSyncMarker } from "../../apps/worker/src/index";
 import {
   formatEnrichmentSyncSummaryLine,
   formatSyncSummaryLine,
   getEnrichmentSyncMode,
-} from "../../apps/worker/src/sync-osv"
+} from "../../apps/worker/src/sync-osv";
 
 describe("formatSyncSummaryLine", () => {
   it("prints new changed and skipped counts for bootstrap output", () => {
@@ -22,9 +22,9 @@ describe("formatSyncSummaryLine", () => {
       }),
     ).toBe(
       "osv bootstrap npm seen=20 imported=3 new=1 changed=2 skipped=17 failed=0",
-    )
-  })
-})
+    );
+  });
+});
 
 describe("formatEnrichmentSyncSummaryLine", () => {
   it("prints the enrichment source and compact import counts", () => {
@@ -36,34 +36,39 @@ describe("formatEnrichmentSyncSummaryLine", () => {
         recordsImported: 9,
         recordsFailed: 0,
       }),
-    ).toBe(
-      "security enrichment nvd/modified seen=10 imported=9 failed=0",
-    )
-  })
-})
+    ).toBe("security enrichment nvd/modified seen=10 imported=9 failed=0");
+  });
+});
 
 describe("getEnrichmentSyncMode", () => {
   it("keeps manual OSV bootstrap and enrichment bootstrap aligned", () => {
-    expect(getEnrichmentSyncMode("bootstrap")).toBe("bootstrap")
-    expect(getEnrichmentSyncMode("incremental")).toBe("incremental")
-  })
-})
+    expect(getEnrichmentSyncMode("bootstrap")).toBe("bootstrap");
+    expect(getEnrichmentSyncMode("incremental")).toBe("incremental");
+  });
+});
 
 describe("hasSuccessfulSyncMarker", () => {
   it("only treats a successful source/full marker as bootstrap complete", async () => {
-    const findFirst = vi.fn()
+    const findFirst = vi
+      .fn()
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ status: "failed" })
-      .mockResolvedValueOnce({ status: "success" })
+      .mockResolvedValueOnce({ status: "success" });
     const db = {
       query: {
         securitySyncState: { findFirst },
       },
-    } as never
+    } as never;
 
-    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(false)
-    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(false)
-    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(true)
-    expect(findFirst).toHaveBeenCalledTimes(3)
-  })
-})
+    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(
+      false,
+    );
+    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(
+      false,
+    );
+    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(
+      true,
+    );
+    expect(findFirst).toHaveBeenCalledTimes(3);
+  });
+});

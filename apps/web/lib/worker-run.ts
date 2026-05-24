@@ -1,15 +1,15 @@
-import type { WorkerCycleSummary } from "worker"
-import { normalizeUserFacingError } from "./errors"
+import type { WorkerCycleSummary } from "worker";
+import { normalizeUserFacingError } from "./errors";
 
 export type WorkerRunDetail = {
-  articleId: string
-  title: string
-  status: "succeeded" | "failed"
-  error?: string
-}
+  articleId: string;
+  title: string;
+  status: "succeeded" | "failed";
+  error?: string;
+};
 
 function clampMessage(value: string) {
-  return value.replace(/\s+/g, " ").trim().slice(0, 240)
+  return value.replace(/\s+/g, " ").trim().slice(0, 240);
 }
 
 function encodeDetails(details: WorkerRunDetail[]) {
@@ -18,21 +18,23 @@ function encodeDetails(details: WorkerRunDetail[]) {
       articleId: detail.articleId,
       title: clampMessage(detail.title).slice(0, 80),
       status: detail.status,
-      error: detail.error ? clampMessage(detail.error).slice(0, 120) : undefined,
+      error: detail.error
+        ? clampMessage(detail.error).slice(0, 120)
+        : undefined,
     })),
-  )
+  );
 }
 
 export function decodeWorkerRunDetails(serialized: string | undefined) {
   if (!serialized) {
-    return []
+    return [];
   }
 
   try {
-    const parsed = JSON.parse(serialized)
+    const parsed = JSON.parse(serialized);
 
     if (!Array.isArray(parsed)) {
-      return []
+      return [];
     }
 
     return parsed.filter(
@@ -41,9 +43,9 @@ export function decodeWorkerRunDetails(serialized: string | undefined) {
         typeof detail.articleId === "string" &&
         typeof detail.title === "string" &&
         (detail.status === "succeeded" || detail.status === "failed"),
-    )
+    );
   } catch {
-    return []
+    return [];
   }
 }
 
@@ -57,29 +59,34 @@ export function buildWorkerRunRedirectParams(
     succeeded: String(summary.succeeded.length),
     failed: String(summary.failed.length),
     jobs: String(summary.processedJobs.length),
-  })
+  });
 
   if (details.length > 0) {
-    params.set("details", encodeDetails(details))
+    params.set("details", encodeDetails(details));
   }
 
   if (summary.failed.length > 0) {
     params.set(
       "message",
       clampMessage(
-        summary.failed.map((failure) => `${failure.feedId}: ${normalizeUserFacingError(new Error(failure.error))}`).join("; "),
+        summary.failed
+          .map(
+            (failure) =>
+              `${failure.feedId}: ${normalizeUserFacingError(new Error(failure.error))}`,
+          )
+          .join("; "),
       ),
-    )
+    );
   }
 
-  return params
+  return params;
 }
 
 export function buildWorkerRunErrorParams(error: unknown) {
   const params = new URLSearchParams({
     run: "failed",
     message: clampMessage(normalizeUserFacingError(error)),
-  })
+  });
 
-  return params
+  return params;
 }

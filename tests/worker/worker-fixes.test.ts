@@ -71,25 +71,22 @@ describe("W23: markArticleStatus uses atomic SQL update", () => {
     // successfully decrypting the API key. The test provides valid deps so the
     // flow reaches that point, then fails on a downstream step.
     try {
-      await processArticleJob(
-        { articleId: article.id },
-        {
-          loadArticle: vi.fn().mockResolvedValue(article),
-          loadActiveLlmSettings: vi.fn().mockResolvedValue({
-            apiKeyEncrypted: "encrypted",
-            baseUrl: "https://llm.example.com/v1",
-            model: "test-model",
-          }),
-          markArticleStatus,
-          updateArticleContent: vi.fn().mockResolvedValue(undefined),
-          fetchArticleHtml: vi.fn().mockRejectedValue(new Error("network")),
-          extractMarkdownFromHtml: vi.fn(),
-          createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
-          decryptSecret: vi.fn().mockReturnValue("plain-key"),
-          translateText: vi.fn(),
-          summarizeText: vi.fn(),
-        } as never,
-      );
+      await processArticleJob({ articleId: article.id }, {
+        loadArticle: vi.fn().mockResolvedValue(article),
+        loadActiveLlmSettings: vi.fn().mockResolvedValue({
+          apiKeyEncrypted: "encrypted",
+          baseUrl: "https://llm.example.com/v1",
+          model: "test-model",
+        }),
+        markArticleStatus,
+        updateArticleContent: vi.fn().mockResolvedValue(undefined),
+        fetchArticleHtml: vi.fn().mockRejectedValue(new Error("network")),
+        extractMarkdownFromHtml: vi.fn(),
+        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
+        decryptSecret: vi.fn().mockReturnValue("plain-key"),
+        translateText: vi.fn(),
+        summarizeText: vi.fn(),
+      } as never);
     } catch {
       // Expected: fetchArticleHtml throws
     }
@@ -219,7 +216,11 @@ describe("W32: pollFeed processes items in parallel batches", () => {
 describe("W33: pollActiveFeeds processes feeds in parallel batches", () => {
   it("processes multiple feeds concurrently", async () => {
     const now = new Date("2026-05-19T08:00:00.000Z");
-    const feeds = [makeFeed({ id: "f-1" }), makeFeed({ id: "f-2" }), makeFeed({ id: "f-3" })];
+    const feeds = [
+      makeFeed({ id: "f-1" }),
+      makeFeed({ id: "f-2" }),
+      makeFeed({ id: "f-3" }),
+    ];
     const fetchFeedCalls: string[] = [];
 
     const db = {
@@ -310,31 +311,28 @@ describe("W34: processExtractJob parallelizes classify and tags", () => {
       summaryZh: "Chinese summary",
     };
 
-    await processArticleJob(
-      { articleId: article.id, jobType: "EXTRACT" },
-      {
-        loadArticle: vi.fn().mockResolvedValue(article),
-        loadActiveLlmSettings: vi.fn().mockResolvedValue({
-          apiKeyEncrypted: "encrypted",
-          baseUrl: "https://llm.example.com/v1",
-          model: "test-model",
-          translateTitlePrompt: "translate title",
-          translateContentPrompt: "translate content",
-          summaryPromptEn: "summarize en",
-          summaryPromptZh: "summarize zh",
-        }),
-        markArticleStatus: vi.fn().mockResolvedValue(undefined),
-        updateArticleContent: vi.fn().mockResolvedValue(undefined),
-        fetchArticleHtml: vi.fn(),
-        extractMarkdownFromHtml: vi.fn(),
-        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
-        decryptSecret: vi.fn().mockReturnValue("plain-key"),
-        translateText: vi.fn(),
-        summarizeText: vi.fn(),
-        generateTags,
-        markJobStage,
-      } as never,
-    );
+    await processArticleJob({ articleId: article.id, jobType: "EXTRACT" }, {
+      loadArticle: vi.fn().mockResolvedValue(article),
+      loadActiveLlmSettings: vi.fn().mockResolvedValue({
+        apiKeyEncrypted: "encrypted",
+        baseUrl: "https://llm.example.com/v1",
+        model: "test-model",
+        translateTitlePrompt: "translate title",
+        translateContentPrompt: "translate content",
+        summaryPromptEn: "summarize en",
+        summaryPromptZh: "summarize zh",
+      }),
+      markArticleStatus: vi.fn().mockResolvedValue(undefined),
+      updateArticleContent: vi.fn().mockResolvedValue(undefined),
+      fetchArticleHtml: vi.fn(),
+      extractMarkdownFromHtml: vi.fn(),
+      createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
+      decryptSecret: vi.fn().mockReturnValue("plain-key"),
+      translateText: vi.fn(),
+      summarizeText: vi.fn(),
+      generateTags,
+      markJobStage,
+    } as never);
 
     // Both classification (sync) and tags (async) should have run
     expect(generateTags).toHaveBeenCalledTimes(1);
@@ -352,7 +350,9 @@ describe("W44: shouldPollFeed rejects invalid pollIntervalMinutes", () => {
       pollIntervalMinutes: 0,
       lastPolledAt: new Date("2026-05-19T07:00:00.000Z"),
     });
-    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(false);
+    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(
+      false,
+    );
   });
 
   it("returns false when pollIntervalMinutes is negative", () => {
@@ -360,7 +360,9 @@ describe("W44: shouldPollFeed rejects invalid pollIntervalMinutes", () => {
       pollIntervalMinutes: -5,
       lastPolledAt: new Date("2026-05-19T07:00:00.000Z"),
     });
-    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(false);
+    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(
+      false,
+    );
   });
 
   it("returns false when pollIntervalMinutes is NaN", () => {
@@ -368,7 +370,9 @@ describe("W44: shouldPollFeed rejects invalid pollIntervalMinutes", () => {
       pollIntervalMinutes: NaN,
       lastPolledAt: new Date("2026-05-19T07:00:00.000Z"),
     });
-    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(false);
+    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(
+      false,
+    );
   });
 
   it("returns false when pollIntervalMinutes is Infinity", () => {
@@ -376,7 +380,9 @@ describe("W44: shouldPollFeed rejects invalid pollIntervalMinutes", () => {
       pollIntervalMinutes: Infinity,
       lastPolledAt: new Date("2026-05-19T07:00:00.000Z"),
     });
-    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(false);
+    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(
+      false,
+    );
   });
 
   it("returns true for valid positive pollIntervalMinutes when interval has elapsed", () => {
@@ -384,7 +390,9 @@ describe("W44: shouldPollFeed rejects invalid pollIntervalMinutes", () => {
       pollIntervalMinutes: 30,
       lastPolledAt: new Date("2026-05-19T07:00:00.000Z"),
     });
-    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(true);
+    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(
+      true,
+    );
   });
 
   it("returns true when lastPolledAt is null regardless of pollIntervalMinutes", () => {
@@ -392,7 +400,9 @@ describe("W44: shouldPollFeed rejects invalid pollIntervalMinutes", () => {
       pollIntervalMinutes: 0,
       lastPolledAt: null,
     });
-    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(true);
+    expect(shouldPollFeed(feed, new Date("2026-05-19T08:00:00.000Z"))).toBe(
+      true,
+    );
   });
 });
 
@@ -473,27 +483,24 @@ describe("W57: updateArticlePatchWithFallback catches errors gracefully", () => 
       .mockRejectedValue(new Error("db connection lost"));
 
     await expect(
-      processArticleJob(
-        { articleId: article.id, jobType: JobType.SUMMARIZE },
-        {
-          loadArticle: vi.fn().mockResolvedValue(article),
-          loadActiveLlmSettings: vi.fn().mockResolvedValue({
-            apiKeyEncrypted: "encrypted",
-            baseUrl: "https://llm.example.com/v1",
-            model: "test-model",
-            summaryPromptEn: "summarize en",
-            summaryPromptZh: "summarize zh",
-          }),
-          markArticleStatus: vi.fn().mockResolvedValue(undefined),
-          updateArticleContent,
-          fetchArticleHtml: vi.fn(),
-          extractMarkdownFromHtml: vi.fn(),
-          createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
-          decryptSecret: vi.fn().mockReturnValue("plain-key"),
-          translateText: vi.fn(),
-          summarizeText: vi.fn().mockResolvedValue("summary text"),
-        } as never,
-      ),
+      processArticleJob({ articleId: article.id, jobType: JobType.SUMMARIZE }, {
+        loadArticle: vi.fn().mockResolvedValue(article),
+        loadActiveLlmSettings: vi.fn().mockResolvedValue({
+          apiKeyEncrypted: "encrypted",
+          baseUrl: "https://llm.example.com/v1",
+          model: "test-model",
+          summaryPromptEn: "summarize en",
+          summaryPromptZh: "summarize zh",
+        }),
+        markArticleStatus: vi.fn().mockResolvedValue(undefined),
+        updateArticleContent,
+        fetchArticleHtml: vi.fn(),
+        extractMarkdownFromHtml: vi.fn(),
+        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
+        decryptSecret: vi.fn().mockReturnValue("plain-key"),
+        translateText: vi.fn(),
+        summarizeText: vi.fn().mockResolvedValue("summary text"),
+      } as never),
     ).rejects.toThrow("Failed to persist article patch for article-1");
     expect(updateArticleContent).toHaveBeenCalled();
   });

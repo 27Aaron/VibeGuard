@@ -14,5 +14,5 @@ export function buildSummaryPreviewText(markdown: string) {
       /^(summary|摘要|key security development|关键安全发展|core security event|核心安全事件|important|重要性)\s*[:：-]\s*/i,
       "",
     )
-    .trim()
+    .trim();
 }

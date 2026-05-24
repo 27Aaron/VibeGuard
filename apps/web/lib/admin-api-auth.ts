@@ -1,14 +1,14 @@
-import { cookies } from "next/headers"
+import { cookies } from "next/headers";
 
 import {
   ADMIN_SESSION_COOKIE,
   getAdminAuthConfig,
   verifyAdminSessionToken,
-} from "./admin-auth"
+} from "./admin-auth";
 
 export type AdminAuthResult =
   | { authorized: true }
-  | { authorized: false; response: Response }
+  | { authorized: false; response: Response };
 
 /**
  * 核心身份验证检查，可在不依赖 Next.js 请求上下文的情况下进行单元测试。
@@ -17,16 +17,19 @@ export type AdminAuthResult =
 export async function checkAdminAuthFromSession(
   sessionToken: string | undefined,
 ): Promise<AdminAuthResult> {
-  const config = getAdminAuthConfig()
+  const config = getAdminAuthConfig();
 
   if (!config) {
     return {
       authorized: false,
       response: Response.json(
-        { ok: false, message: "Admin authentication is not configured safely." },
+        {
+          ok: false,
+          message: "Admin authentication is not configured safely.",
+        },
         { status: 503 },
       ),
-    }
+    };
   }
 
   if (!(await verifyAdminSessionToken(sessionToken, config))) {
@@ -36,10 +39,10 @@ export async function checkAdminAuthFromSession(
         { ok: false, message: "Authentication required." },
         { status: 401 },
       ),
-    }
+    };
   }
 
-  return { authorized: true }
+  return { authorized: true };
 }
 
 /**
@@ -48,8 +51,8 @@ export async function checkAdminAuthFromSession(
  * 但这里提供了一层冗余的处理函数级别防护，以防止中间件被绕过的情况。
  */
 export async function requireAdminAuth(): Promise<AdminAuthResult> {
-  const cookieStore = await cookies()
-  const session = cookieStore.get(ADMIN_SESSION_COOKIE)?.value
+  const cookieStore = await cookies();
+  const session = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
 
-  return checkAdminAuthFromSession(session)
+  return checkAdminAuthFromSession(session);
 }

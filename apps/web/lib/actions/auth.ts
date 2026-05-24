@@ -1,8 +1,8 @@
-"use server"
+"use server";
 
-import { cookies } from "next/headers"
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
+import { cookies } from "next/headers";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import {
   ADMIN_SESSION_COOKIE,
@@ -15,8 +15,8 @@ import {
   resolveLoginRateLimitKey,
   sanitizeAdminReturnPath,
   verifyAdminPassword,
-} from "../admin-auth"
-import { resolveLang } from "../i18n"
+} from "../admin-auth";
+import { resolveLang } from "../i18n";
 
 function buildLoginRedirect(
   lang: "zh" | "en",
@@ -26,38 +26,38 @@ function buildLoginRedirect(
   const params = new URLSearchParams({
     error,
     from,
-  })
+  });
 
-  return `/${lang}/admin/login?${params.toString()}`
+  return `/${lang}/admin/login?${params.toString()}`;
 }
 
 export async function loginAction(formData: FormData) {
-  const password = String(formData.get("password") ?? "")
-  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
+  const password = String(formData.get("password") ?? "");
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"));
   const from = sanitizeAdminReturnPath(
     String(formData.get("from") ?? `/${lang}/admin`),
     lang,
-  )
-  const config = getAdminAuthConfig()
+  );
+  const config = getAdminAuthConfig();
 
   if (!config) {
-    redirect(buildLoginRedirect(lang, "config", from))
+    redirect(buildLoginRedirect(lang, "config", from));
   }
 
-  const headerStore = await headers()
-  const rateLimitKey = resolveLoginRateLimitKey(headerStore)
+  const headerStore = await headers();
+  const rateLimitKey = resolveLoginRateLimitKey(headerStore);
 
   if (isLoginRateLimited(rateLimitKey)) {
-    redirect(buildLoginRedirect(lang, "rate", from))
+    redirect(buildLoginRedirect(lang, "rate", from));
   }
 
   if (!(await verifyAdminPassword(password, config.password))) {
-    recordFailedLogin(rateLimitKey)
-    redirect(buildLoginRedirect(lang, "1", from))
+    recordFailedLogin(rateLimitKey);
+    redirect(buildLoginRedirect(lang, "1", from));
   }
 
-  clearLoginFailures(rateLimitKey)
-  const cookieStore = await cookies()
+  clearLoginFailures(rateLimitKey);
+  const cookieStore = await cookies();
 
   cookieStore.set(ADMIN_SESSION_COOKIE, await createAdminSessionToken(config), {
     httpOnly: true,
@@ -65,14 +65,14 @@ export async function loginAction(formData: FormData) {
     sameSite: "lax",
     path: "/",
     maxAge: ADMIN_SESSION_MAX_AGE_SECONDS,
-  })
+  });
 
-  redirect(from)
+  redirect(from);
 }
 
 export async function logoutAction(formData: FormData) {
-  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
-  const cookieStore = await cookies()
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"));
+  const cookieStore = await cookies();
 
   cookieStore.set(ADMIN_SESSION_COOKIE, "", {
     httpOnly: true,
@@ -80,7 +80,7 @@ export async function logoutAction(formData: FormData) {
     sameSite: "lax",
     path: "/",
     maxAge: 0,
-  })
+  });
 
-  redirect(`/${lang}/admin/login`)
+  redirect(`/${lang}/admin/login`);
 }

@@ -1,85 +1,89 @@
-import Link from "next/link"
-import { ArrowRight, Bot, FileText, Rss, Workflow } from "lucide-react"
+import Link from "next/link";
+import { ArrowRight, Bot, FileText, Rss, Workflow } from "lucide-react";
 
-import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { OsvSyncButton, OsvSyncPanel } from "@/components/admin/osv-sync-panel"
-import { RunWorkerForm } from "@/components/admin/run-worker-form"
-import { WorkerStatusPanel } from "@/components/admin/worker-status-panel"
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { OsvSyncButton, OsvSyncPanel } from "@/components/admin/osv-sync-panel";
+import { RunWorkerForm } from "@/components/admin/run-worker-form";
+import { WorkerStatusPanel } from "@/components/admin/worker-status-panel";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { runWorkerOnceAction } from "@/lib/actions/worker"
-import { getDashboardOverview } from "@/lib/admin-data"
-import { resolveLang } from "@/lib/i18n"
-import { decodeWorkerRunDetails } from "@/lib/worker-run"
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { runWorkerOnceAction } from "@/lib/actions/worker";
+import { getDashboardOverview } from "@/lib/admin-data";
+import { resolveLang } from "@/lib/i18n";
+import { decodeWorkerRunDetails } from "@/lib/worker-run";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 function statusTone(status: string) {
   if (status === "failed") {
-    return "text-destructive"
+    return "text-destructive";
   }
 
   if (status === "succeeded") {
-    return "text-foreground"
+    return "text-foreground";
   }
 
-  return "text-muted-foreground"
+  return "text-muted-foreground";
 }
 
 function runTone(run: string | undefined) {
   if (run === "failed") {
-    return "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10"
+    return "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10";
   }
 
   if (run === "warning") {
-    return "border-amber-900/18 bg-amber-50/70 text-amber-950 dark:border-amber-200/14 dark:bg-amber-200/8 dark:text-amber-100"
+    return "border-amber-900/18 bg-amber-50/70 text-amber-950 dark:border-amber-200/14 dark:bg-amber-200/8 dark:text-amber-100";
   }
 
-  return "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
+  return "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100";
 }
 
 type AdminEntry = {
-  title: string
-  description: string
-  href: string
-  icon: typeof Rss
-}
+  title: string;
+  description: string;
+  href: string;
+  icon: typeof Rss;
+};
 
 function buildAdminHref(lang: string, segment: string) {
-  return `/${lang}/admin/${segment}`
+  return `/${lang}/admin/${segment}`;
 }
 
 type AdminHomePageProps = {
-  params: Promise<{ lang: string }>
+  params: Promise<{ lang: string }>;
   searchParams?: Promise<{
-    run?: string
-    feeds?: string
-    succeeded?: string
-    failed?: string
-    jobs?: string
-    message?: string
-    details?: string
-  }>
-}
+    run?: string;
+    feeds?: string;
+    succeeded?: string;
+    failed?: string;
+    jobs?: string;
+    message?: string;
+    details?: string;
+  }>;
+};
 
-export default async function AdminHomePage({ params: routeParams, searchParams }: AdminHomePageProps) {
-  const { lang: rawLang } = await routeParams
-  const params = (await searchParams) ?? {}
-  const lang = resolveLang(rawLang)
-  const overviewCards = await getDashboardOverview(lang)
+export default async function AdminHomePage({
+  params: routeParams,
+  searchParams,
+}: AdminHomePageProps) {
+  const { lang: rawLang } = await routeParams;
+  const params = (await searchParams) ?? {};
+  const lang = resolveLang(rawLang);
+  const overviewCards = await getDashboardOverview(lang);
   const copy =
     lang === "zh"
       ? {
           title: "总览",
           description: "集中查看来源、文章、任务和模型配置的运行状态。",
           operationsTitle: "常用操作",
-          operationsBody: "高频入口集中在这里：抓取来源入队，或进入对应模块继续处理。",
+          operationsBody:
+            "高频入口集中在这里：抓取来源入队，或进入对应模块继续处理。",
           queueTitle: "任务执行",
           runSuccessPrefix: "本轮来源抓取已完成：",
           runSuccessSuffix: "个来源抓取成功，新任务已交给常驻 Worker。",
@@ -115,14 +119,17 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
         }
       : {
           title: "Overview",
-          description: "Review source, article, job, and model status in one place.",
+          description:
+            "Review source, article, job, and model status in one place.",
           operationsTitle: "Common actions",
           operationsBody:
             "Fetch sources into the queue or jump into the module that needs attention.",
           queueTitle: "Task execution",
           runSuccessPrefix: "Source fetch finished:",
-          runSuccessSuffix: "sources succeeded. New jobs were handed to the persistent worker.",
-          runFailed: "This source fetch failed. Check the job queue for the error.",
+          runSuccessSuffix:
+            "sources succeeded. New jobs were handed to the persistent worker.",
+          runFailed:
+            "This source fetch failed. Check the job queue for the error.",
           succeeded: "Succeeded",
           failed: "Failed",
           entries: [
@@ -134,31 +141,34 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
             },
             {
               title: "Articles",
-              description: "Review stored content and regenerate titles, bodies, or summaries.",
+              description:
+                "Review stored content and regenerate titles, bodies, or summaries.",
               href: buildAdminHref(lang, "articles"),
               icon: FileText,
             },
             {
               title: "Jobs",
-              description: "Track processing steps, inspect failures, and retry.",
+              description:
+                "Track processing steps, inspect failures, and retry.",
               href: buildAdminHref(lang, "jobs"),
               icon: Workflow,
             },
             {
               title: "Settings",
-              description: "Configure model access and maintain processing prompts.",
+              description:
+                "Configure model access and maintain processing prompts.",
               href: buildAdminHref(lang, "settings"),
               icon: Bot,
             },
           ] satisfies AdminEntry[],
-        }
-  const runDetails = decodeWorkerRunDetails(params.details)
+        };
+  const runDetails = decodeWorkerRunDetails(params.details);
   const runSummary =
     params.run && params.run !== "failed"
       ? `${copy.runSuccessPrefix}${params.succeeded ?? "0"}/${params.feeds ?? "0"} ${copy.runSuccessSuffix}`
       : params.run === "failed"
         ? copy.runFailed
-        : null
+        : null;
 
   return (
     <AdminPageShell
@@ -167,10 +177,14 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
       lang={lang}
     >
       {runSummary ? (
-        <div className={`rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none ${runTone(params.run)}`}>
+        <div
+          className={`rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none ${runTone(params.run)}`}
+        >
           <p>{runSummary}</p>
           {params.message ? (
-            <p className="mt-1 text-xs text-muted-foreground">{params.message}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {params.message}
+            </p>
           ) : null}
           {runDetails.length > 0 ? (
             <div className="mt-3 flex flex-col gap-2">
@@ -180,13 +194,19 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
                   className="rounded-[0.9rem] border border-black/5 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-sm font-medium">{detail.title}</p>
+                    <p className="truncate text-sm font-medium">
+                      {detail.title}
+                    </p>
                     <span className={`text-xs ${statusTone(detail.status)}`}>
-                      {detail.status === "succeeded" ? copy.succeeded : copy.failed}
+                      {detail.status === "succeeded"
+                        ? copy.succeeded
+                        : copy.failed}
                     </span>
                   </div>
                   {detail.error ? (
-                    <p className="mt-1 text-xs text-muted-foreground">{detail.error}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {detail.error}
+                    </p>
                   ) : null}
                 </div>
               ))}
@@ -198,10 +218,17 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
       <section className="flex flex-col gap-3">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {overviewCards.map((card) => (
-            <Card key={card.title} className="min-h-[104px] justify-center py-4">
+            <Card
+              key={card.title}
+              className="min-h-[104px] justify-center py-4"
+            >
               <CardContent className="grid min-h-[80px] content-center gap-2.5 px-5">
-                <CardDescription className="leading-none">{card.title}</CardDescription>
-                <CardTitle className="text-lg leading-none text-zinc-950 dark:text-stone-50">{card.value}</CardTitle>
+                <CardDescription className="leading-none">
+                  {card.title}
+                </CardDescription>
+                <CardTitle className="text-lg leading-none text-zinc-950 dark:text-stone-50">
+                  {card.value}
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">{card.detail}</p>
               </CardContent>
             </Card>
@@ -223,7 +250,7 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
             <Separator />
             <div className="grid grid-cols-2 gap-2.5">
               {copy.entries.map((entry) => {
-                const Icon = entry.icon
+                const Icon = entry.icon;
 
                 return (
                   <Link
@@ -248,7 +275,7 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
                       <ArrowRight className="size-4 shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-800 dark:text-stone-500 dark:group-hover:text-emerald-300" />
                     </div>
                   </Link>
-                )
+                );
               })}
             </div>
             <Separator />
@@ -272,5 +299,5 @@ export default async function AdminHomePage({ params: routeParams, searchParams 
         </Card>
       </section>
     </AdminPageShell>
-  )
+  );
 }

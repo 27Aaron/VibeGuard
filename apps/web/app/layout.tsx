@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 import { THEME_COOKIE_KEY } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata = {
   title: "VibeGuard",
@@ -16,16 +16,24 @@ export const metadata = {
   },
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const cookieStore = await cookies();
   const lang = cookieStore.get("lang")?.value === "en" ? "en" : "zh";
-  const themePreference = cookieStore.get(THEME_COOKIE_KEY)?.value
-  const resolvedTheme = themePreference === "light" ? "light" : "dark"
+  const themePreference = cookieStore.get(THEME_COOKIE_KEY)?.value;
+  const resolvedTheme = themePreference === "light" ? "light" : "dark";
 
   return (
     <html
       lang={lang === "en" ? "en" : "zh"}
-      className={cn("font-sans", geist.variable, resolvedTheme === "dark" && "dark")}
+      className={cn(
+        "font-sans",
+        geist.variable,
+        resolvedTheme === "dark" && "dark",
+      )}
       data-theme={resolvedTheme}
       suppressHydrationWarning
     >

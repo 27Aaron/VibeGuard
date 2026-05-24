@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
-import { getPublicOverview } from "@/lib/public-data"
-import { formatDateTimeInShanghai, toShanghaiIsoOffset } from "@/lib/time"
+import { getPublicOverview } from "@/lib/public-data";
+import { formatDateTimeInShanghai, toShanghaiIsoOffset } from "@/lib/time";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const overview = await getPublicOverview()
+  const overview = await getPublicOverview();
 
   return NextResponse.json({
     meta: {
@@ -14,5 +14,5 @@ export async function GET() {
       generatedAtDisplay: formatDateTimeInShanghai(new Date()),
     },
     overview,
-  })
+  });
 }

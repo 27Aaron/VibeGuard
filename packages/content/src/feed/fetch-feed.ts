@@ -19,13 +19,16 @@ export async function fetchFeed(feedUrl: string): Promise<ParsedFeed> {
     const response = await fetch(feedUrl, {
       headers: {
         "user-agent": DEFAULT_USER_AGENT,
-        accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
+        accept:
+          "application/rss+xml, application/atom+xml, application/xml, text/xml",
       },
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch feed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch feed: ${response.status} ${response.statusText}`,
+      );
     }
 
     const contentLength = Number(response.headers.get("content-length") ?? "0");

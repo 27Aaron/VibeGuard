@@ -65,32 +65,35 @@ export function assertSuccessfulWorkerCycle(
 }
 
 function resolveInt(value: string | undefined, fallback: number) {
-  const parsed = Number.parseInt(value ?? "", 10)
+  const parsed = Number.parseInt(value ?? "", 10);
 
   if (!Number.isFinite(parsed) || parsed < 1) {
-    return fallback
+    return fallback;
   }
 
-  return parsed
+  return parsed;
 }
 
-const DEFAULT_IDLE_MAX_INTERVAL_MS = 60_000
-const DEFAULT_POLL_INTERVAL_MS = 5_000
-const MIN_POLL_INTERVAL_MS = 250
+const DEFAULT_IDLE_MAX_INTERVAL_MS = 60_000;
+const DEFAULT_POLL_INTERVAL_MS = 5_000;
+const MIN_POLL_INTERVAL_MS = 250;
 
-const MAX_BACKOFF_POWER = 6
+const MAX_BACKOFF_POWER = 6;
 
-function computeIdleInterval(baseIntervalMs: number, consecutiveIdleCycles: number) {
+function computeIdleInterval(
+  baseIntervalMs: number,
+  consecutiveIdleCycles: number,
+) {
   if (consecutiveIdleCycles <= 0) {
-    return baseIntervalMs
+    return baseIntervalMs;
   }
 
   const maxIntervalMs = resolveInt(
     process.env.WORKER_MAX_IDLE_INTERVAL_MS,
     DEFAULT_IDLE_MAX_INTERVAL_MS,
-  )
-  const backoffFactor = 2 ** Math.min(consecutiveIdleCycles, MAX_BACKOFF_POWER)
-  return Math.min(baseIntervalMs * backoffFactor, maxIntervalMs)
+  );
+  const backoffFactor = 2 ** Math.min(consecutiveIdleCycles, MAX_BACKOFF_POWER);
+  return Math.min(baseIntervalMs * backoffFactor, maxIntervalMs);
 }
 
 function sleep(durationMs: number) {
@@ -101,16 +104,17 @@ function sleep(durationMs: number) {
 
 // --- OSV Sync Scheduler ---
 
-const DEFAULT_OSV_SYNC_INTERVAL_MS = 3 * 60 * 60 * 1000
+const DEFAULT_OSV_SYNC_INTERVAL_MS = 3 * 60 * 60 * 1000;
 
 function resolveOsvSyncInterval(env = process.env) {
-  const configured = env.OSV_SYNC_INTERVAL_MS?.trim()
-  if (!configured) return DEFAULT_OSV_SYNC_INTERVAL_MS
+  const configured = env.OSV_SYNC_INTERVAL_MS?.trim();
+  if (!configured) return DEFAULT_OSV_SYNC_INTERVAL_MS;
 
-  const parsed = Number.parseInt(configured, 10)
-  if (!Number.isFinite(parsed) || parsed < 60_000) return DEFAULT_OSV_SYNC_INTERVAL_MS
+  const parsed = Number.parseInt(configured, 10);
+  if (!Number.isFinite(parsed) || parsed < 60_000)
+    return DEFAULT_OSV_SYNC_INTERVAL_MS;
 
-  return parsed
+  return parsed;
 }
 
 export async function hasSuccessfulSyncMarker(
@@ -123,17 +127,17 @@ export async function hasSuccessfulSyncMarker(
       eq(securitySyncState.source, source),
       eq(securitySyncState.scope, scope),
     ),
-  })
+  });
 
-  return row?.status === SecuritySyncStatus.SUCCESS
+  return row?.status === SecuritySyncStatus.SUCCESS;
 }
 
 function summarizeOsvSyncResults(
   results: Array<{
-    ecosystem: string
-    recordsSeen: number
-    recordsImported: number
-    recordsFailed: number
+    ecosystem: string;
+    recordsSeen: number;
+    recordsImported: number;
+    recordsFailed: number;
   }>,
 ) {
   return results.reduce(
@@ -149,20 +153,20 @@ function summarizeOsvSyncResults(
       recordsImported: 0,
       recordsFailed: 0,
     },
-  )
+  );
 }
 
 async function markOsvFullSyncMarker(
   db: ContentDb,
   results: Array<{
-    ecosystem: string
-    recordsSeen: number
-    recordsImported: number
-    recordsFailed: number
+    ecosystem: string;
+    recordsSeen: number;
+    recordsImported: number;
+    recordsFailed: number;
   }>,
 ) {
-  const summary = summarizeOsvSyncResults(results)
-  const now = new Date()
+  const summary = summarizeOsvSyncResults(results);
+  const now = new Date();
 
   await upsertSecuritySyncState(db, "full", {
     source: "osv",
@@ -183,41 +187,49 @@ async function markOsvFullSyncMarker(
     recordsSeen: summary.recordsSeen,
     recordsImported: summary.recordsImported,
     recordsFailed: summary.recordsFailed,
-  })
+  });
 }
 
 export async function runOsvSyncCycle(logger: WorkerLogger = console) {
   try {
-    const db = getDb()
-    const shouldBootstrapOsv = !(await hasSuccessfulSyncMarker(db, "osv", "full"))
-    const shouldBootstrapNvd = !(await hasSuccessfulSyncMarker(db, "nvd", "full"))
+    const db = getDb();
+    const shouldBootstrapOsv = !(await hasSuccessfulSyncMarker(
+      db,
+      "osv",
+      "full",
+    ));
+    const shouldBootstrapNvd = !(await hasSuccessfulSyncMarker(
+      db,
+      "nvd",
+      "full",
+    ));
     const { bootstrapAllOsvEcosystems, syncAllOsvEcosystems } =
-      await import("@vibeguard/content/osv/sync")
+      await import("@vibeguard/content/osv/sync");
     const { syncAllSecurityEnrichmentSources } =
-      await import("@vibeguard/content/security/enrichment")
+      await import("@vibeguard/content/security/enrichment");
     const results = shouldBootstrapOsv
       ? await bootstrapAllOsvEcosystems({ db, concurrency: 2 })
-      : await syncAllOsvEcosystems({ db })
+      : await syncAllOsvEcosystems({ db });
     for (const result of results) {
       logger.log(
         `osv ${shouldBootstrapOsv ? "bootstrap" : "sync"} ${result.ecosystem}: imported=${result.recordsImported} new=${result.recordsNew} changed=${result.recordsChanged} failed=${result.recordsFailed}`,
-      )
+      );
     }
     if (shouldBootstrapOsv) {
-      await markOsvFullSyncMarker(db, results)
+      await markOsvFullSyncMarker(db, results);
     }
     const enrichmentResults = await syncAllSecurityEnrichmentSources(db, {
       mode: shouldBootstrapNvd ? "bootstrap" : "incremental",
-    })
+    });
     for (const result of enrichmentResults) {
       logger.log(
         `security enrichment sync ${result.source}/${result.scope}: imported=${result.recordsImported} failed=${result.recordsFailed}`,
-      )
+      );
     }
-    return results
+    return results;
   } catch (error) {
-    logger.error("osv sync failed:", error)
-    return null
+    logger.error("osv sync failed:", error);
+    return null;
   }
 }
 
@@ -225,23 +237,23 @@ export async function startOsvSyncScheduler(
   signal: AbortSignal,
   logger: WorkerLogger = console,
 ) {
-  const intervalMs = resolveOsvSyncInterval()
+  const intervalMs = resolveOsvSyncInterval();
 
-  await runOsvSyncCycle(logger)
+  await runOsvSyncCycle(logger);
 
   while (!signal.aborted) {
     await new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, intervalMs)
+      const timer = setTimeout(resolve, intervalMs);
       const onAbort = () => {
-        clearTimeout(timer)
-        resolve()
-      }
-      signal.addEventListener("abort", onAbort, { once: true })
-    })
+        clearTimeout(timer);
+        resolve();
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
 
-    if (signal.aborted) break
+    if (signal.aborted) break;
 
-    await runOsvSyncCycle(logger)
+    await runOsvSyncCycle(logger);
   }
 }
 
@@ -252,16 +264,16 @@ function resolvePollInterval(value: number, fallback: number) {
   const parsed =
     typeof value === "number" && Number.isFinite(value)
       ? value
-      : Number.parseInt(String(value), 10)
+      : Number.parseInt(String(value), 10);
 
   if (!Number.isFinite(parsed) || parsed < MIN_POLL_INTERVAL_MS) {
-    return fallback
+    return fallback;
   }
 
-  return parsed
+  return parsed;
 }
 
-const DEFAULT_MAX_ITERATIONS = 1000
+const DEFAULT_MAX_ITERATIONS = 1000;
 
 export async function runWorkerLoop({
   intervalMs = DEFAULT_POLL_INTERVAL_MS,
@@ -271,47 +283,50 @@ export async function runWorkerLoop({
   sleep: wait = sleep,
   maxIterations = DEFAULT_MAX_ITERATIONS,
 }: WorkerLoopOptions & { maxIterations?: number } = {}) {
-  const configuredIntervalMs = resolvePollInterval(intervalMs, DEFAULT_POLL_INTERVAL_MS)
-  const envInterval = process.env.WORKER_POLL_INTERVAL_MS
+  const configuredIntervalMs = resolvePollInterval(
+    intervalMs,
+    DEFAULT_POLL_INTERVAL_MS,
+  );
+  const envInterval = process.env.WORKER_POLL_INTERVAL_MS;
   const baseIntervalMs = resolvePollInterval(
     envInterval === undefined ? configuredIntervalMs : Number(envInterval),
     configuredIntervalMs,
-  )
-  let consecutiveIdleCycles = 0
-  let currentInterval = baseIntervalMs
-  let iterations = 0
+  );
+  let consecutiveIdleCycles = 0;
+  let currentInterval = baseIntervalMs;
+  let iterations = 0;
 
   while (!signal?.aborted) {
     if (iterations >= maxIterations) {
       logger.error(
         `Worker loop reached max iteration limit (${maxIterations}). Shutting down to prevent infinite loop without a signal.`,
-      )
-      break
+      );
+      break;
     }
 
-    iterations += 1
-    let didPerformWork = false
+    iterations += 1;
+    let didPerformWork = false;
 
     try {
       const summary = await runCycle();
       assertSuccessfulWorkerCycle(summary, logger);
 
       didPerformWork =
-        summary.activeFeedCount > 0 || summary.processedJobs.length > 0
+        summary.activeFeedCount > 0 || summary.processedJobs.length > 0;
       if (didPerformWork) {
-        consecutiveIdleCycles = 0
+        consecutiveIdleCycles = 0;
       } else {
-        consecutiveIdleCycles += 1
+        consecutiveIdleCycles += 1;
       }
     } catch (error) {
       logger.error(error);
-      consecutiveIdleCycles += 1
-      didPerformWork = false
+      consecutiveIdleCycles += 1;
+      didPerformWork = false;
     }
 
     currentInterval = didPerformWork
       ? baseIntervalMs
-      : computeIdleInterval(baseIntervalMs, consecutiveIdleCycles)
+      : computeIdleInterval(baseIntervalMs, consecutiveIdleCycles);
 
     if (signal?.aborted) {
       break;

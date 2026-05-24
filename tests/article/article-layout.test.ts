@@ -1,27 +1,32 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
 import {
   getPublicArticleSidebarClassName,
   getPublicArticleSummaryContainerClass,
-} from "../../apps/web/lib/article-layout"
-import fs from "node:fs"
+} from "../../apps/web/lib/article-layout";
+import fs from "node:fs";
 
 describe("public article layout helpers", () => {
   it("keeps the summary section full width instead of clamping it to a narrow column", () => {
-    expect(getPublicArticleSummaryContainerClass()).toBe("w-full")
-  })
+    expect(getPublicArticleSummaryContainerClass()).toBe("w-full");
+  });
 
   it("keeps the sticky summary aligned with the left column under the public header", () => {
-    expect(getPublicArticleSidebarClassName()).toBe("flex min-w-0 flex-col gap-5 lg:sticky lg:top-24 lg:self-start")
-  })
+    expect(getPublicArticleSidebarClassName()).toBe(
+      "flex min-w-0 flex-col gap-5 lg:sticky lg:top-24 lg:self-start",
+    );
+  });
 
   it("groups summary, source actions, and tags into a dedicated overview panel before the body", () => {
-    const page = fs.readFileSync("apps/web/app/[lang]/articles/[articleId]/page.tsx", "utf8")
+    const page = fs.readFileSync(
+      "apps/web/app/[lang]/articles/[articleId]/page.tsx",
+      "utf8",
+    );
 
-    expect(page).toContain("lg:grid-cols-[minmax(0,1fr)_390px]")
-    expect(page).toContain("getPublicArticleSidebarClassName()")
-    expect(page).not.toContain("lg:-mt-")
-    expect(page).toContain("summaryPanelTitle")
-    expect(page).toContain("summaryPanelTags")
-  })
-})
+    expect(page).toContain("lg:grid-cols-[minmax(0,1fr)_390px]");
+    expect(page).toContain("getPublicArticleSidebarClassName()");
+    expect(page).not.toContain("lg:-mt-");
+    expect(page).toContain("summaryPanelTitle");
+    expect(page).toContain("summaryPanelTags");
+  });
+});

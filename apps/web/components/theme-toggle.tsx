@@ -1,128 +1,137 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react";
 
-import { MoonStar, SunMedium } from "lucide-react"
+import { MoonStar, SunMedium } from "lucide-react";
 
-import { createThemeTransition, prefersReducedMotion } from "@/lib/theme-transition"
+import {
+  createThemeTransition,
+  prefersReducedMotion,
+} from "@/lib/theme-transition";
 import {
   applyResolvedTheme,
   readStoredThemePreference,
   THEME_STORAGE_KEY,
   writeStoredThemePreference,
   type ThemePreference,
-} from "@/lib/theme"
-import { cn } from "@/lib/utils"
+} from "@/lib/theme";
+import { cn } from "@/lib/utils";
 
 type ThemeToggleProps = {
-  className?: string
-}
+  className?: string;
+};
 
 function readResolvedThemeFromDom(): "light" | "dark" {
   if (typeof document === "undefined") {
-    return "dark"
+    return "dark";
   }
 
-  const resolved = document.documentElement.dataset.theme
+  const resolved = document.documentElement.dataset.theme;
   if (resolved === "light" || resolved === "dark") {
-    return resolved
+    return resolved;
   }
 
-  return document.documentElement.classList.contains("dark") ? "dark" : "light"
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
 function resolveTheme(preference: ThemePreference) {
   if (typeof window === "undefined") {
-    return "dark"
+    return "dark";
   }
 
   if (preference === "system") {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   }
 
-  return preference
+  return preference;
 }
 
 function readInitialTheme(): "light" | "dark" {
-  if (typeof document === "undefined") return "dark"
-  return document.documentElement.classList.contains("dark") ? "dark" : "light"
+  if (typeof document === "undefined") return "dark";
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<"light" | "dark">(readInitialTheme)
-  const [mounted, setMounted] = useState(false)
-  const activeTransitionRef = useRef<{ cleanup: () => void } | null>(null)
+  const [theme, setTheme] = useState<"light" | "dark">(readInitialTheme);
+  const [mounted, setMounted] = useState(false);
+  const activeTransitionRef = useRef<{ cleanup: () => void } | null>(null);
 
   useEffect(() => {
-    setMounted(true)
-    const preference: ThemePreference = readStoredThemePreference()
+    setMounted(true);
+    const preference: ThemePreference = readStoredThemePreference();
 
     const applyTheme = (nextPreference: ThemePreference) => {
-      const resolved = resolveTheme(nextPreference)
-      applyResolvedTheme(resolved)
-      setTheme(resolved)
-    }
+      const resolved = resolveTheme(nextPreference);
+      applyResolvedTheme(resolved);
+      setTheme(resolved);
+    };
 
-    applyTheme(preference)
+    applyTheme(preference);
 
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
-      const latest = window.localStorage.getItem(THEME_STORAGE_KEY)
+      const latest = window.localStorage.getItem(THEME_STORAGE_KEY);
       const latestPreference: ThemePreference =
-        latest === "light" || latest === "dark" ? latest : "system"
+        latest === "light" || latest === "dark" ? latest : "system";
 
       if (latestPreference === "system") {
-        applyTheme("system")
+        applyTheme("system");
       }
-    }
+    };
 
-    mediaQuery.addEventListener("change", onChange)
-    return () => mediaQuery.removeEventListener("change", onChange)
-  }, [])
+    mediaQuery.addEventListener("change", onChange);
+    return () => mediaQuery.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     if (!mounted) {
-      return
+      return;
     }
 
-    setTheme(readResolvedThemeFromDom())
-  }, [mounted])
+    setTheme(readResolvedThemeFromDom());
+  }, [mounted]);
 
-  const isDark = theme === "dark"
+  const isDark = theme === "dark";
 
   function toggleTheme(e: React.MouseEvent<HTMLButtonElement>) {
-    activeTransitionRef.current?.cleanup()
+    activeTransitionRef.current?.cleanup();
 
-    const next = isDark ? "light" : "dark"
-    const originX = e.clientX
-    const originY = e.clientY
+    const next = isDark ? "light" : "dark";
+    const originX = e.clientX;
+    const originY = e.clientY;
 
     const transition = createThemeTransition({
       originX,
       originY,
-      reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches || prefersReducedMotion(),
+      reducedMotion:
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+        prefersReducedMotion(),
       applyTheme: () => {
-        applyResolvedTheme(next)
-        setTheme(next)
+        applyResolvedTheme(next);
+        setTheme(next);
       },
-    })
+    });
 
-    writeStoredThemePreference(next)
-    activeTransitionRef.current = transition
+    writeStoredThemePreference(next);
+    activeTransitionRef.current = transition;
 
     transition.finished.finally(() => {
       if (activeTransitionRef.current === transition) {
-        transition.cleanup()
-        activeTransitionRef.current = null
+        transition.cleanup();
+        activeTransitionRef.current = null;
       }
-    })
+    });
   }
 
   return (
     <button
       type="button"
       onClick={toggleTheme}
-      aria-label={mounted ? (isDark ? "切换到亮色主题" : "切换到暗色主题") : "切换主题"}
+      aria-label={
+        mounted ? (isDark ? "切换到亮色主题" : "切换到暗色主题") : "切换主题"
+      }
       aria-pressed={mounted ? isDark : undefined}
       className={cn(
         "relative inline-flex h-8 w-14 items-center rounded-full border border-black/8 bg-[#eef2f7] p-[2px] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] transition-[background-color,border-color,box-shadow,transform] duration-300 ease-out hover:bg-[#e7ecf4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22]",
@@ -149,7 +158,9 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
           />
         </span>
       </span>
-      <span className="sr-only">{mounted ? (isDark ? "暗色主题" : "亮色主题") : "主题"}</span>
+      <span className="sr-only">
+        {mounted ? (isDark ? "暗色主题" : "亮色主题") : "主题"}
+      </span>
     </button>
-  )
+  );
 }

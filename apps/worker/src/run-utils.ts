@@ -1,4 +1,4 @@
-import { pathToFileURL } from "node:url"
+import { pathToFileURL } from "node:url";
 
 /**
  * 判断当前模块是否为 Node.js 进程的入口文件。
@@ -12,5 +12,5 @@ export function isDirectExecution(moduleUrl: string): boolean {
   return (
     typeof process.argv[1] === "string" &&
     moduleUrl === pathToFileURL(process.argv[1]).href
-  )
+  );
 }

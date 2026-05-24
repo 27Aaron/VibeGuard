@@ -137,12 +137,37 @@ paths:
           example: GitHub Advisory
         - name: ecosystem
           in: query
-          schema: { type: string, enum: [npm, pypi, maven, go, crates-io, github-actions, docker, multi] }
+          schema:
+            {
+              type: string,
+              enum:
+                [
+                  npm,
+                  pypi,
+                  maven,
+                  go,
+                  crates-io,
+                  github-actions,
+                  docker,
+                  multi,
+                ],
+            }
           description: 按文章涉及的主要包生态筛选。
           example: npm
         - name: riskCategory
           in: query
-          schema: { type: string, enum: [vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk] }
+          schema:
+            {
+              type: string,
+              enum:
+                [
+                  vulnerability,
+                  exploit-activity,
+                  malicious-package,
+                  supply-chain-attack,
+                  dependency-risk,
+                ],
+            }
           description: 按风险类别筛选。
           example: malicious-package
         - name: limit
@@ -337,7 +362,8 @@ paths:
           example: CVE-2026-25639
         - name: riskType
           in: query
-          schema: { type: string, enum: [unknown, vulnerability, malicious-package] }
+          schema:
+            { type: string, enum: [unknown, vulnerability, malicious-package] }
           description: 风险类型。
         - name: kev
           in: query
@@ -882,15 +908,30 @@ components:
       description: 安全公告列表分页和筛选回显。
       properties:
         q: { type: string, description: 关键词筛选回显。 }
-        ecosystem: { type: string, nullable: true, description: 生态系统筛选回显。 }
+        ecosystem:
+          { type: string, nullable: true, description: 生态系统筛选回显。 }
         packageName: { type: string, description: 包名筛选回显。 }
         cve: { type: string, nullable: true, description: CVE 筛选回显。 }
-        riskType: { type: string, nullable: true, description: 风险类型筛选回显。 }
+        riskType:
+          { type: string, nullable: true, description: 风险类型筛选回显。 }
         kev: { type: boolean, nullable: true, description: CISA KEV 筛选回显。 }
-        withdrawn: { type: boolean, nullable: true, description: 撤回状态筛选回显。 }
-        cvssMin: { type: number, nullable: true, description: CVSS 最小值筛选回显。 }
-        epssMin: { type: number, nullable: true, description: EPSS percentile 最小值筛选回显。 }
-        updatedAfter: { type: string, format: date-time, nullable: true, description: 更新时间筛选回显。 }
+        withdrawn:
+          { type: boolean, nullable: true, description: 撤回状态筛选回显。 }
+        cvssMin:
+          { type: number, nullable: true, description: CVSS 最小值筛选回显。 }
+        epssMin:
+          {
+            type: number,
+            nullable: true,
+            description: EPSS percentile 最小值筛选回显。,
+          }
+        updatedAfter:
+          {
+            type: string,
+            format: date-time,
+            nullable: true,
+            description: 更新时间筛选回显。,
+          }
         limit: { type: integer }
         page: { type: integer }
         count: { type: integer }
@@ -1038,12 +1079,21 @@ components:
         cveId: { type: string }
         title: { type: string, nullable: true, description: NVD 或来源标题。 }
         description: { type: string, nullable: true, description: CVE 描述。 }
-        cvssMetrics: { type: array, description: CVSS 指标原始结构。 , items: { type: object } }
-        bestCvssScore: { type: string, nullable: true, description: 选出的最高 CVSS 分数。 }
-        bestCvssSeverity: { type: string, nullable: true, description: 最高 CVSS 严重度。 }
-        cweIds: { type: array, description: CWE 分类。 , items: { type: string } }
+        cvssMetrics:
+          {
+            type: array,
+            description: CVSS 指标原始结构。,
+            items: { type: object },
+          }
+        bestCvssScore:
+          { type: string, nullable: true, description: 选出的最高 CVSS 分数。 }
+        bestCvssSeverity:
+          { type: string, nullable: true, description: 最高 CVSS 严重度。 }
+        cweIds:
+          { type: array, description: CWE 分类。, items: { type: string } }
         epss: { type: string, nullable: true, description: FIRST EPSS 分数。 }
-        epssPercentile: { type: string, nullable: true, description: FIRST EPSS percentile。 }
+        epssPercentile:
+          { type: string, nullable: true, description: FIRST EPSS percentile。 }
         epssScoreDate: { type: string, format: date-time, nullable: true }
         epssModelVersion: { type: string, nullable: true }
         kevListed: { type: boolean, description: 是否列入 CISA KEV。 }
@@ -1075,10 +1125,15 @@ components:
           items:
             type: object
             properties:
-              source: { type: string, description: 数据源，例如 osv、nvd、epss、kev。 }
+              source:
+                {
+                  type: string,
+                  description: 数据源，例如 osv、nvd、epss、kev。,
+                }
               scope: { type: string, description: 同步范围。 }
               status: { type: string, enum: [idle, running, success, failed] }
-              lastProcessedModifiedAt: { type: string, format: date-time, nullable: true }
+              lastProcessedModifiedAt:
+                { type: string, format: date-time, nullable: true }
               cursorJson: { type: object, description: 增量同步游标。 }
               lastStartedAt: { type: string, format: date-time, nullable: true }
               lastSuccessAt: { type: string, format: date-time, nullable: true }

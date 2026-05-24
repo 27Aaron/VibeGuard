@@ -1,11 +1,17 @@
-import { desc, sql } from "drizzle-orm"
-import { Activity, Clock3, Database, Gauge, Hash } from "lucide-react"
+import { desc, sql } from "drizzle-orm";
+import { Activity, Clock3, Database, Gauge, Hash } from "lucide-react";
 
-import { getDb, llmUsageLogs, schema } from "@vibeguard/db"
-import type { NodePgDatabase } from "drizzle-orm/node-postgres"
+import { getDb, llmUsageLogs, schema } from "@vibeguard/db";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -13,13 +19,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
-import { resolveLang } from "@/lib/i18n"
+} from "@/components/ui/table";
+import { getAdminTableSurfaceClassName } from "@/lib/admin-layout";
+import { resolveLang } from "@/lib/i18n";
 
-type ContentDb = NodePgDatabase<typeof schema>
+type ContentDb = NodePgDatabase<typeof schema>;
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 async function getStatsOverview(db: ContentDb) {
   const rows = await db
@@ -30,9 +36,9 @@ async function getStatsOverview(db: ContentDb) {
       totalCalls: sql<number>`COUNT(*)::int`,
       avgResponseTimeMs: sql<number>`COALESCE(AVG(${llmUsageLogs.responseTimeMs}), 0)::int`,
     })
-    .from(llmUsageLogs)
+    .from(llmUsageLogs);
 
-  return rows[0]
+  return rows[0];
 }
 
 async function getTaskBreakdown(db: ContentDb) {
@@ -48,7 +54,7 @@ async function getTaskBreakdown(db: ContentDb) {
     })
     .from(llmUsageLogs)
     .groupBy(llmUsageLogs.taskType)
-    .orderBy(desc(sql`COUNT(*)`))
+    .orderBy(desc(sql`COUNT(*)`));
 }
 
 async function getDailyTrend(db: ContentDb, days: number = 30) {
@@ -62,14 +68,14 @@ async function getDailyTrend(db: ContentDb, days: number = 30) {
     WHERE created_at >= NOW() - interval '${sql.raw(String(days))} days'
     GROUP BY (created_at)::date
     ORDER BY (created_at)::date
-  `)
+  `);
   return result.rows as Array<{
-    date: string
-    promptTokens: number
-    completionTokens: number
-    cachedTokens: number
-    calls: number
-  }>
+    date: string;
+    promptTokens: number;
+    completionTokens: number;
+    cachedTokens: number;
+    calls: number;
+  }>;
 }
 
 const TASK_TYPE_LABELS: Record<string, Record<string, string>> = {
@@ -79,39 +85,42 @@ const TASK_TYPE_LABELS: Record<string, Record<string, string>> = {
   summarize_en: { zh: "英文摘要", en: "English summary" },
   summarize_zh: { zh: "中文摘要", en: "Chinese summary" },
   generate_tags: { zh: "标签生成", en: "Generate tags" },
-}
+};
 
-function formatNumber(n: number | string | null | undefined, lang: "zh" | "en") {
-  const value = Number(n ?? 0)
+function formatNumber(
+  n: number | string | null | undefined,
+  lang: "zh" | "en",
+) {
+  const value = Number(n ?? 0);
 
   if (!Number.isFinite(value)) {
-    return "0"
+    return "0";
   }
 
-  return value.toLocaleString(lang === "zh" ? "zh-CN" : "en-US")
+  return value.toLocaleString(lang === "zh" ? "zh-CN" : "en-US");
 }
 
 type StatsPageProps = {
-  params: Promise<{ lang: string }>
-}
+  params: Promise<{ lang: string }>;
+};
 
 export default async function StatsPage({ params }: StatsPageProps) {
-  const { lang: rawLang } = await params
-  const lang = resolveLang(rawLang)
-  const db = getDb()
+  const { lang: rawLang } = await params;
+  const lang = resolveLang(rawLang);
+  const db = getDb();
 
   const [overview, taskBreakdown, dailyTrend] = await Promise.all([
     getStatsOverview(db),
     getTaskBreakdown(db),
     getDailyTrend(db),
-  ])
+  ]);
 
-  const totalPromptTokens = Number(overview.totalPromptTokens ?? 0)
-  const totalCachedTokens = Number(overview.totalCachedTokens ?? 0)
+  const totalPromptTokens = Number(overview.totalPromptTokens ?? 0);
+  const totalCachedTokens = Number(overview.totalCachedTokens ?? 0);
   const cacheRate =
     totalPromptTokens > 0
       ? ((totalCachedTokens / totalPromptTokens) * 100).toFixed(1)
-      : "0.0"
+      : "0.0";
 
   const labels = {
     title: lang === "zh" ? "LLM 调用统计" : "LLM Usage Statistics",
@@ -145,7 +154,7 @@ export default async function StatsPage({ params }: StatsPageProps) {
         : "Track calls and token usage by day.",
     date: lang === "zh" ? "日期" : "Date",
     noData: lang === "zh" ? "暂无数据" : "No data yet",
-  }
+  };
   const metricCards = [
     {
       label: labels.promptTokens,
@@ -177,20 +186,29 @@ export default async function StatsPage({ params }: StatsPageProps) {
       detail: lang === "zh" ? "平均端到端耗时" : "Average end-to-end time",
       icon: Clock3,
     },
-  ]
+  ];
 
   return (
-    <AdminPageShell title={labels.title} description={labels.description} lang={lang}>
+    <AdminPageShell
+      title={labels.title}
+      description={labels.description}
+      lang={lang}
+    >
       <section className="flex flex-col gap-3">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {metricCards.map((card) => {
-            const Icon = card.icon
+            const Icon = card.icon;
 
             return (
-              <Card key={card.label} className="min-h-[116px] justify-center py-4">
+              <Card
+                key={card.label}
+                className="min-h-[116px] justify-center py-4"
+              >
                 <CardContent className="grid min-h-[88px] content-center gap-3 px-5">
                   <div className="flex items-start justify-between gap-3">
-                    <CardDescription className="leading-none">{card.label}</CardDescription>
+                    <CardDescription className="leading-none">
+                      {card.label}
+                    </CardDescription>
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-emerald-900/10 bg-[#f7fbf8] text-emerald-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] dark:border-emerald-200/14 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
                       <Icon className="size-3.5" />
                     </span>
@@ -201,7 +219,7 @@ export default async function StatsPage({ params }: StatsPageProps) {
                   <p className="text-sm text-muted-foreground">{card.detail}</p>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       </section>
@@ -223,11 +241,21 @@ export default async function StatsPage({ params }: StatsPageProps) {
                 <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
                   <TableRow>
                     <TableHead className="px-4">{labels.task}</TableHead>
-                    <TableHead className="px-3 text-right">{labels.calls}</TableHead>
-                    <TableHead className="px-3 text-right">{labels.avgPrompt}</TableHead>
-                    <TableHead className="px-3 text-right">{labels.avgCompletion}</TableHead>
-                    <TableHead className="px-3 text-right">{labels.cacheCol}</TableHead>
-                    <TableHead className="px-4 text-right">{labels.avgTime}</TableHead>
+                    <TableHead className="px-3 text-right">
+                      {labels.calls}
+                    </TableHead>
+                    <TableHead className="px-3 text-right">
+                      {labels.avgPrompt}
+                    </TableHead>
+                    <TableHead className="px-3 text-right">
+                      {labels.avgCompletion}
+                    </TableHead>
+                    <TableHead className="px-3 text-right">
+                      {labels.cacheCol}
+                    </TableHead>
+                    <TableHead className="px-4 text-right">
+                      {labels.avgTime}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -255,7 +283,10 @@ export default async function StatsPage({ params }: StatsPageProps) {
                   ))}
                   {taskBreakdown.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <TableCell
+                        colSpan={6}
+                        className="px-4 py-8 text-center text-sm text-muted-foreground"
+                      >
                         {labels.noData}
                       </TableCell>
                     </TableRow>
@@ -282,16 +313,26 @@ export default async function StatsPage({ params }: StatsPageProps) {
                 <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
                   <TableRow>
                     <TableHead className="px-4">{labels.date}</TableHead>
-                    <TableHead className="px-3 text-right">{labels.calls}</TableHead>
-                    <TableHead className="px-3 text-right">{labels.promptTokens}</TableHead>
-                    <TableHead className="px-3 text-right">{labels.completionTokens}</TableHead>
-                    <TableHead className="px-4 text-right">{labels.cached}</TableHead>
+                    <TableHead className="px-3 text-right">
+                      {labels.calls}
+                    </TableHead>
+                    <TableHead className="px-3 text-right">
+                      {labels.promptTokens}
+                    </TableHead>
+                    <TableHead className="px-3 text-right">
+                      {labels.completionTokens}
+                    </TableHead>
+                    <TableHead className="px-4 text-right">
+                      {labels.cached}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {dailyTrend.map((row) => (
                     <TableRow key={row.date}>
-                      <TableCell className="px-4 py-3 tabular-nums">{row.date}</TableCell>
+                      <TableCell className="px-4 py-3 tabular-nums">
+                        {row.date}
+                      </TableCell>
                       <TableCell className="px-3 py-3 text-right tabular-nums">
                         {formatNumber(row.calls, lang)}
                       </TableCell>
@@ -308,7 +349,10 @@ export default async function StatsPage({ params }: StatsPageProps) {
                   ))}
                   {dailyTrend.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <TableCell
+                        colSpan={5}
+                        className="px-4 py-8 text-center text-sm text-muted-foreground"
+                      >
                         {labels.noData}
                       </TableCell>
                     </TableRow>
@@ -320,5 +364,5 @@ export default async function StatsPage({ params }: StatsPageProps) {
         </Card>
       </section>
     </AdminPageShell>
-  )
+  );
 }

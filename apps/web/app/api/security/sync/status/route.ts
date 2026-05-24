@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
-import { getDb } from "@vibeguard/db"
+import { getDb } from "@vibeguard/db";
 
-import { getSecuritySyncStatus } from "../../../../../lib/security-api"
+import { getSecuritySyncStatus } from "../../../../../lib/security-api";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const payload = await getSecuritySyncStatus(getDb())
+  const payload = await getSecuritySyncStatus(getDb());
 
-  return NextResponse.json(payload)
+  return NextResponse.json(payload);
 }

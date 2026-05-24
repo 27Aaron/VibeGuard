@@ -1,7 +1,7 @@
-export type AppLang = "zh" | "en"
+export type AppLang = "zh" | "en";
 
 export function resolveLang(value: string | null | undefined): AppLang {
-  return value === "en" ? "en" : "zh"
+  return value === "en" ? "en" : "zh";
 }
 
 export const uiText = {
@@ -13,7 +13,8 @@ export const uiText = {
     languageToggleAdmin: "后台",
     publicBrand: "VibeGuard",
     publicBrandBadge: "风险流",
-    publicBrandDescription: "把供应链攻击、恶意包与高危漏洞线索收进一个更清晰的阅读流里。",
+    publicBrandDescription:
+      "把供应链攻击、恶意包与高危漏洞线索收进一个更清晰的阅读流里。",
     publicEyebrowLive: "风险信号",
     publicHeroTitle: "一个更适合中文用户浏览的开源风险情报首页。",
     publicHeroBody:
@@ -45,7 +46,8 @@ export const uiText = {
     copyCode: "复制代码",
     copiedCode: "已复制",
     rssFeedTitle: "VibeGuard 中文订阅",
-    rssFeedTitleWithSource: (source: string) => `VibeGuard 中文订阅 - ${source}`,
+    rssFeedTitleWithSource: (source: string) =>
+      `VibeGuard 中文订阅 - ${source}`,
     rssFeedDescription: "面向中文用户的供应链攻击、依赖风险与开源安全内容流。",
     rssFeedDescriptionWithSource: (source: string) =>
       `面向中文用户的供应链攻击、依赖风险与开源安全内容流。当前来源：${source}。`,
@@ -69,10 +71,12 @@ export const uiText = {
     publicCheckSearchHint: "搜索你想查询的软件包，填写版本可获得更精确结果。",
     publicCheckEmpty: "选择生态并输入包名后，就可以直接查询依赖风险。",
     publicCheckNoFindings: "当前未检索到已知风险记录。",
-    publicCheckOverviewBadge: (label: string, count: number) => `${label} ${count} 条`,
+    publicCheckOverviewBadge: (label: string, count: number) =>
+      `${label} ${count} 条`,
     publicCheckMatchCountBadge: (count: number) => `匹配 ${count} 个风险`,
     publicCheckHitCountBadge: (count: number) => `命中 ${count} 个已知风险`,
-    publicCheckPageStatus: (current: number, total: number) => `第 ${current} / ${total} 页`,
+    publicCheckPageStatus: (current: number, total: number) =>
+      `第 ${current} / ${total} 页`,
     publicCheckPackageName: "包名",
     publicCheckVersion: "版本",
     publicCheckResultLabel: "查询结果",
@@ -84,10 +88,8 @@ export const uiText = {
     publicCheckAffectedRangesLabel: "影响范围",
     adminRunWorker: "抓取来源",
     adminRunWorkerPending: "抓取中...",
-    adminRunWorkerHint:
-      "手动触发一轮来源抓取，新文章自动进入处理队列。",
-    adminRunWorkerPendingHint:
-      "正在抓取来源并写入任务队列，暂时禁用重复触发。",
+    adminRunWorkerHint: "手动触发一轮来源抓取，新文章自动进入处理队列。",
+    adminRunWorkerPendingHint: "正在抓取来源并写入任务队列，暂时禁用重复触发。",
   },
   en: {
     languageName: "English",
@@ -100,7 +102,8 @@ export const uiText = {
     publicBrandDescription:
       "A calmer reading stream for supply-chain attacks, malicious packages, and critical vulnerability signals.",
     publicEyebrowLive: "Risk signals",
-    publicHeroTitle: "An open-source risk intelligence homepage built for fast scanning.",
+    publicHeroTitle:
+      "An open-source risk intelligence homepage built for fast scanning.",
     publicHeroBody:
       "Ingest security sources, structure them, and turn them into bilingual summaries so you can decide what deserves a deeper read.",
     publicEnabledSources: "Enabled sources",
@@ -151,17 +154,22 @@ export const uiText = {
     adminSecurityPackageName: "Package",
     adminSecurityVersion: "Version",
     adminSecurityEmpty: "There are no dependencies to check yet.",
-    adminSecurityNoFindings: "No known risk signals were found for the current dependencies.",
+    adminSecurityNoFindings:
+      "No known risk signals were found for the current dependencies.",
     publicCheckNav: "Check",
     publicCheckSubmit: "Run check",
     publicCheckSubmitting: "Checking...",
-    publicCheckSearchHint: "Search the package you want to check. Add a version for a more precise result.",
-    publicCheckEmpty: "Pick an ecosystem and enter a package name to start checking dependency risk.",
+    publicCheckSearchHint:
+      "Search the package you want to check. Add a version for a more precise result.",
+    publicCheckEmpty:
+      "Pick an ecosystem and enter a package name to start checking dependency risk.",
     publicCheckNoFindings: "No known risk records were found for this package.",
-    publicCheckOverviewBadge: (label: string, count: number) => `${label} ${count}`,
+    publicCheckOverviewBadge: (label: string, count: number) =>
+      `${label} ${count}`,
     publicCheckMatchCountBadge: (count: number) => `matched ${count} risks`,
     publicCheckHitCountBadge: (count: number) => `hit ${count} known risks`,
-    publicCheckPageStatus: (current: number, total: number) => `Page ${current} of ${total}`,
+    publicCheckPageStatus: (current: number, total: number) =>
+      `Page ${current} of ${total}`,
     publicCheckPackageName: "Package",
     publicCheckVersion: "Version",
     publicCheckResultLabel: "Result",
@@ -178,8 +186,8 @@ export const uiText = {
     adminRunWorkerPendingHint:
       "Sources are being fetched and queued. Repeated triggers are disabled for now.",
   },
-} as const
+} as const;
 
 export function getUiText(lang: AppLang) {
-  return uiText[lang]
+  return uiText[lang];
 }

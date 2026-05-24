@@ -1,33 +1,36 @@
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import { ChevronLeft } from "lucide-react"
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 
-import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { EditFeedForm } from "@/components/admin/edit-feed-form"
-import { buttonVariants } from "@/components/ui/button"
-import { updateFeedAction } from "@/lib/actions/feeds"
-import { getFeedDetail } from "@/lib/admin-data"
-import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
-import { resolveLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { EditFeedForm } from "@/components/admin/edit-feed-form";
+import { buttonVariants } from "@/components/ui/button";
+import { updateFeedAction } from "@/lib/actions/feeds";
+import { getFeedDetail } from "@/lib/admin-data";
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout";
+import { resolveLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type EditFeedPageProps = {
   params: Promise<{
-    lang: string
-    feedId: string
-  }>
-  searchParams?: Promise<{}>
-}
+    lang: string;
+    feedId: string;
+  }>;
+  searchParams?: Promise<{}>;
+};
 
-export default async function EditFeedPage({ params, searchParams }: EditFeedPageProps) {
-  const { lang, feedId } = await params
-  const resolvedLang = resolveLang(lang)
-  const feed = await getFeedDetail(feedId)
+export default async function EditFeedPage({
+  params,
+  searchParams,
+}: EditFeedPageProps) {
+  const { lang, feedId } = await params;
+  const resolvedLang = resolveLang(lang);
+  const feed = await getFeedDetail(feedId);
 
   if (!feed) {
-    notFound()
+    notFound();
   }
 
   return (
@@ -71,5 +74,5 @@ export default async function EditFeedPage({ params, searchParams }: EditFeedPag
         }}
       />
     </AdminPageShell>
-  )
+  );
 }

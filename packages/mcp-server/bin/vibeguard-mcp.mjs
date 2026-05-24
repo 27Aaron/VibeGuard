@@ -1,3 +1,3 @@
 #!/usr/bin/env -S node --import tsx
 
-import "../src/index.ts"
+import "../src/index.ts";

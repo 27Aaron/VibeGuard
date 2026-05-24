@@ -1,68 +1,68 @@
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   type SecurityPackageEcosystem,
-} from "@vibeguard/shared"
+} from "@vibeguard/shared";
 
 import {
   isSecurityWorkbenchResultState,
   type buildSecurityWorkbenchResultState,
-} from "./security-workbench"
+} from "./security-workbench";
 
-export const SECURITY_WORKBENCH_STATE_STORAGE_KEY = "vibeguard-check-state"
+export const SECURITY_WORKBENCH_STATE_STORAGE_KEY = "vibeguard-check-state";
 
 export type SecurityWorkbenchStorage = Pick<
   Storage,
   "getItem" | "setItem" | "removeItem"
->
+>;
 
 export type SecurityWorkbenchSubmittedQuery = {
-  version: string | null
-}
+  version: string | null;
+};
 
 export type SecurityWorkbenchResultState = ReturnType<
   typeof buildSecurityWorkbenchResultState
->
+>;
 
 export type PersistedSecurityWorkbenchState = {
-  ecosystem: SecurityPackageEcosystem
-  packageName: string
-  version: string
-  submittedQuery: SecurityWorkbenchSubmittedQuery | null
-  result: SecurityWorkbenchResultState | null
-}
+  ecosystem: SecurityPackageEcosystem;
+  packageName: string;
+  version: string;
+  submittedQuery: SecurityWorkbenchSubmittedQuery | null;
+  result: SecurityWorkbenchResultState | null;
+};
 
-let inMemoryState: PersistedSecurityWorkbenchState | null = null
+let inMemoryState: PersistedSecurityWorkbenchState | null = null;
 
 function getBrowserSessionStorage(): SecurityWorkbenchStorage | null {
   if (typeof window === "undefined") {
-    return null
+    return null;
   }
 
   try {
-    return window.sessionStorage
+    return window.sessionStorage;
   } catch {
-    return null
+    return null;
   }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value)
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 function normalizeSubmittedQuery(
   value: unknown,
 ): SecurityWorkbenchSubmittedQuery | null {
   if (!isRecord(value)) {
-    return null
+    return null;
   }
 
   return {
     version: typeof value.version === "string" ? value.version : null,
-  }
+  };
 }
 
 function normalizeResult(value: unknown): SecurityWorkbenchResultState | null {
-  return isSecurityWorkbenchResultState(value) ? value : null
+  return isSecurityWorkbenchResultState(value) ? value : null;
 }
 
 function normalizePersistedState(
@@ -74,7 +74,7 @@ function normalizePersistedState(
       value.ecosystem as SecurityPackageEcosystem,
     )
   ) {
-    return null
+    return null;
   }
 
   return {
@@ -83,41 +83,41 @@ function normalizePersistedState(
     version: typeof value.version === "string" ? value.version : "",
     submittedQuery: normalizeSubmittedQuery(value.submittedQuery),
     result: normalizeResult(value.result),
-  }
+  };
 }
 
 export function loadPersistedSecurityWorkbenchState(
   storage: SecurityWorkbenchStorage | null = getBrowserSessionStorage(),
 ) {
   try {
-    const raw = storage?.getItem(SECURITY_WORKBENCH_STATE_STORAGE_KEY)
+    const raw = storage?.getItem(SECURITY_WORKBENCH_STATE_STORAGE_KEY);
     if (!raw) {
-      return inMemoryState
+      return inMemoryState;
     }
 
-    const parsed = normalizePersistedState(JSON.parse(raw))
+    const parsed = normalizePersistedState(JSON.parse(raw));
     if (parsed) {
-      inMemoryState = parsed
-      return parsed
+      inMemoryState = parsed;
+      return parsed;
     }
   } catch {
     // 解析失败时保持内存中的降级状态，确保当前标签页会话期间的状态不丢失。
   }
 
-  return inMemoryState
+  return inMemoryState;
 }
 
 export function savePersistedSecurityWorkbenchState(
   state: PersistedSecurityWorkbenchState,
   storage: SecurityWorkbenchStorage | null = getBrowserSessionStorage(),
 ) {
-  inMemoryState = state
+  inMemoryState = state;
 
   try {
     storage?.setItem(
       SECURITY_WORKBENCH_STATE_STORAGE_KEY,
       JSON.stringify(state),
-    )
+    );
   } catch {
     // sessionStorage 写入失败时，内存中的降级副本仍然可以保持当前标签页会话期间的状态。
   }
@@ -126,10 +126,10 @@ export function savePersistedSecurityWorkbenchState(
 export function clearPersistedSecurityWorkbenchState(
   storage: SecurityWorkbenchStorage | null = getBrowserSessionStorage(),
 ) {
-  inMemoryState = null
+  inMemoryState = null;
 
   try {
-    storage?.removeItem(SECURITY_WORKBENCH_STATE_STORAGE_KEY)
+    storage?.removeItem(SECURITY_WORKBENCH_STATE_STORAGE_KEY);
   } catch {
     // 浏览器存储不可用时忽略错误，不影响内存状态的清理。
   }

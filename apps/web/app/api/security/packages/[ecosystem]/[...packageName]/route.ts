@@ -1,30 +1,35 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
-import { getDb } from "@vibeguard/db"
+import { getDb } from "@vibeguard/db";
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   type SecurityPackageEcosystem,
-} from "@vibeguard/shared"
+} from "@vibeguard/shared";
 
-import { getSecurityPackageProfile } from "../../../../../../lib/security-api"
+import { getSecurityPackageProfile } from "../../../../../../lib/security-api";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type PackageProfileRouteProps = {
   params: Promise<{
-    ecosystem: string
-    packageName: string[]
-  }>
-}
+    ecosystem: string;
+    packageName: string[];
+  }>;
+};
 
-function isSupportedEcosystem(value: string): value is SecurityPackageEcosystem {
+function isSupportedEcosystem(
+  value: string,
+): value is SecurityPackageEcosystem {
   return SECURITY_PACKAGE_ECOSYSTEM_VALUES.includes(
     value as SecurityPackageEcosystem,
-  )
+  );
 }
 
-export async function GET(request: Request, { params }: PackageProfileRouteProps) {
-  const { ecosystem, packageName } = await params
+export async function GET(
+  request: Request,
+  { params }: PackageProfileRouteProps,
+) {
+  const { ecosystem, packageName } = await params;
 
   if (!isSupportedEcosystem(ecosystem)) {
     return NextResponse.json(
@@ -33,24 +38,25 @@ export async function GET(request: Request, { params }: PackageProfileRouteProps
         message: `ecosystem must be one of ${SECURITY_PACKAGE_ECOSYSTEM_VALUES.join(", ")}.`,
       },
       { status: 400 },
-    )
+    );
   }
 
-  const name = packageName.join("/").trim()
+  const name = packageName.join("/").trim();
 
   if (!name) {
     return NextResponse.json(
       { ok: false, message: "package name is required." },
       { status: 400 },
-    )
+    );
   }
 
-  const version = new URL(request.url).searchParams.get("version")?.trim() || null
+  const version =
+    new URL(request.url).searchParams.get("version")?.trim() || null;
   const payload = await getSecurityPackageProfile(getDb(), {
     ecosystem,
     name,
     version,
-  })
+  });
 
-  return NextResponse.json(payload)
+  return NextResponse.json(payload);
 }

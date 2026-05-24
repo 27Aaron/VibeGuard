@@ -1,15 +1,15 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { parseFeedInput } from "../../apps/web/lib/feed-input"
+import { parseFeedInput } from "../../apps/web/lib/feed-input";
 
 function buildFormData(values: Record<string, string>) {
-  const formData = new FormData()
+  const formData = new FormData();
 
   Object.entries(values).forEach(([key, value]) => {
-    formData.set(key, value)
-  })
+    formData.set(key, value);
+  });
 
-  return formData
+  return formData;
 }
 
 describe("feed input parsing", () => {
@@ -23,7 +23,7 @@ describe("feed input parsing", () => {
         pollIntervalMinutes: "15",
         enabled: "on",
       }),
-    )
+    );
 
     expect(result).toEqual({
       name: "SafeDep Blog",
@@ -32,8 +32,8 @@ describe("feed input parsing", () => {
       feedType: "rss",
       pollIntervalMinutes: 15,
       enabled: true,
-    })
-  })
+    });
+  });
 
   it("rejects invalid absolute URLs", () => {
     expect(() =>
@@ -44,8 +44,8 @@ describe("feed input parsing", () => {
           feedUrl: "https://safedep.io/rss.xml",
         }),
       ),
-    ).toThrow("站点地址 必须是完整的绝对地址。")
-  })
+    ).toThrow("站点地址 必须是完整的绝对地址。");
+  });
 
   it("rejects unsupported URL protocols", () => {
     expect(() =>
@@ -56,8 +56,8 @@ describe("feed input parsing", () => {
           feedUrl: "https://safedep.io/rss.xml",
         }),
       ),
-    ).toThrow("站点地址 只支持 http 或 https 地址。")
-  })
+    ).toThrow("站点地址 只支持 http 或 https 地址。");
+  });
 
   it("rejects overlong names", () => {
     expect(() =>
@@ -68,6 +68,6 @@ describe("feed input parsing", () => {
           feedUrl: "https://safedep.io/rss.xml",
         }),
       ),
-    ).toThrow("来源名称不能超过 120 个字符。")
-  })
-})
+    ).toThrow("来源名称不能超过 120 个字符。");
+  });
+});

@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  normalizeFeedItem,
-} from "../../packages/content/src/feed/normalize";
+import { normalizeFeedItem } from "../../packages/content/src/feed/normalize";
 import {
   buildArticleInsert,
   insertFeedItem,

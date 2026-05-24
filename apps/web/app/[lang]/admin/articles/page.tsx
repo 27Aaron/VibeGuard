@@ -1,79 +1,82 @@
-import Link from "next/link"
-import { Suspense } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import Link from "next/link";
+import { Suspense } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { ArticleBulkActions } from "@/components/admin/article-bulk-actions"
-import { ArticleSearchForm } from "@/components/admin/article-search-form"
-import { SoftLink } from "@/components/admin/soft-link"
-import { ArticleTable } from "@/components/admin/article-table"
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { ArticleBulkActions } from "@/components/admin/article-bulk-actions";
+import { ArticleSearchForm } from "@/components/admin/article-search-form";
+import { SoftLink } from "@/components/admin/soft-link";
+import { ArticleTable } from "@/components/admin/article-table";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { buttonVariants } from "@/components/ui/button"
+} from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import {
   ADMIN_ARTICLE_PAGE_SIZE_OPTIONS,
   parseAdminArticleListParams,
-} from "@/lib/admin-article-pagination"
-import { selectedArticlesAction } from "@/lib/actions/articles"
-import { getArticleRows } from "@/lib/admin-data"
-import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
-import { resolveLang, type AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+} from "@/lib/admin-article-pagination";
+import { selectedArticlesAction } from "@/lib/actions/articles";
+import { getArticleRows } from "@/lib/admin-data";
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout";
+import { resolveLang, type AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type ArticlesPageProps = {
-  params: Promise<{ lang: string }>
+  params: Promise<{ lang: string }>;
   searchParams?: Promise<{
-    page?: string
-    pageSize?: string
-    q?: string
-    status?: string
-    message?: string
-  }>
-}
+    page?: string;
+    pageSize?: string;
+    q?: string;
+    status?: string;
+    message?: string;
+  }>;
+};
 
 function buildArticlesHref(input: {
-  lang: AppLang
-  page: number
-  pageSize: number
-  q?: string
+  lang: AppLang;
+  page: number;
+  pageSize: number;
+  q?: string;
 }) {
   const params = new URLSearchParams({
     page: String(input.page),
     pageSize: String(input.pageSize),
-  })
-  if (input.q) params.set("q", input.q)
+  });
+  if (input.q) params.set("q", input.q);
 
-  return `/${input.lang}/admin/articles?${params.toString()}`
+  return `/${input.lang}/admin/articles?${params.toString()}`;
 }
 
-export default async function ArticlesPage({ params: routeParams, searchParams }: ArticlesPageProps) {
-  const { lang: rawLang } = await routeParams
-  const params = (await searchParams) ?? {}
-  const lang = resolveLang(rawLang)
-  const searchQuery = params.q ?? ""
-  const paginationParams = parseAdminArticleListParams(params)
+export default async function ArticlesPage({
+  params: routeParams,
+  searchParams,
+}: ArticlesPageProps) {
+  const { lang: rawLang } = await routeParams;
+  const params = (await searchParams) ?? {};
+  const lang = resolveLang(rawLang);
+  const searchQuery = params.q ?? "";
+  const paginationParams = parseAdminArticleListParams(params);
   const { rows: articles, pagination } = await getArticleRows({
     page: paginationParams.page,
     pageSize: paginationParams.pageSize,
     lang,
     search: searchQuery,
-  })
+  });
   const rangeText =
     lang === "zh"
       ? `共 ${pagination.totalCount} 篇，当前 ${pagination.from}-${pagination.to}`
-      : `${pagination.from}-${pagination.to} of ${pagination.totalCount} articles`
-  const previousPage = Math.max(1, pagination.page - 1)
-  const nextPage = Math.min(pagination.totalPages, pagination.page + 1)
-  const hasPreviousPage = pagination.page > 1
-  const hasNextPage = pagination.page < pagination.totalPages
-  const showBanner = params.status === "success" || params.status === "error"
+      : `${pagination.from}-${pagination.to} of ${pagination.totalCount} articles`;
+  const previousPage = Math.max(1, pagination.page - 1);
+  const nextPage = Math.min(pagination.totalPages, pagination.page + 1);
+  const hasPreviousPage = pagination.page > 1;
+  const hasNextPage = pagination.page < pagination.totalPages;
+  const showBanner = params.status === "success" || params.status === "error";
 
   return (
     <AdminPageShell
@@ -99,7 +102,9 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1.5">
-            <CardTitle>{lang === "zh" ? "最近文章" : "Recent articles"}</CardTitle>
+            <CardTitle>
+              {lang === "zh" ? "最近文章" : "Recent articles"}
+            </CardTitle>
             <CardDescription>
               {lang === "zh"
                 ? "最近入库的文章，包含状态和中英文标题预览。"
@@ -109,8 +114,16 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
           <div className="flex flex-wrap items-center gap-2">
             <form id="selected-articles-form" action={selectedArticlesAction}>
               <input type="hidden" name="lang" value={lang} />
-              <input type="hidden" name="page" value={String(pagination.page)} />
-              <input type="hidden" name="pageSize" value={String(pagination.pageSize)} />
+              <input
+                type="hidden"
+                name="page"
+                value={String(pagination.page)}
+              />
+              <input
+                type="hidden"
+                name="pageSize"
+                value={String(pagination.pageSize)}
+              />
               <input type="hidden" name="q" value={searchQuery} />
             </form>
             <ArticleBulkActions
@@ -124,7 +137,12 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
           <Suspense>
             <ArticleSearchForm lang={lang} defaultValue={searchQuery} />
           </Suspense>
-          <div className={cn("mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", getAdminSubtlePanelClassName())}>
+          <div
+            className={cn(
+              "mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+              getAdminSubtlePanelClassName(),
+            )}
+          >
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
                 {rangeText}
@@ -143,16 +161,25 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
                 {ADMIN_ARTICLE_PAGE_SIZE_OPTIONS.map((option) => (
                   <SoftLink
                     key={option}
-                    href={buildArticlesHref({ lang, page: 1, pageSize: option, q: searchQuery })}
+                    href={buildArticlesHref({
+                      lang,
+                      page: 1,
+                      pageSize: option,
+                      q: searchQuery,
+                    })}
                     className={cn(
                       buttonVariants({
                         size: "xs",
                         variant:
-                          option === pagination.pageSize ? "secondary" : "ghost",
+                          option === pagination.pageSize
+                            ? "secondary"
+                            : "ghost",
                       }),
                       "min-w-8",
                     )}
-                    aria-current={option === pagination.pageSize ? "page" : undefined}
+                    aria-current={
+                      option === pagination.pageSize ? "page" : undefined
+                    }
                   >
                     {option}
                   </SoftLink>
@@ -200,5 +227,5 @@ export default async function ArticlesPage({ params: routeParams, searchParams }
         </CardContent>
       </Card>
     </AdminPageShell>
-  )
+  );
 }

@@ -193,9 +193,10 @@ export async function claimNextQueuedJob(
           created_at AS "createdAt",
           updated_at AS "updatedAt"
       `);
-      const rows = "rows" in result
-        ? (result.rows as (typeof processingJobs.$inferSelect)[])
-        : (result as unknown as (typeof processingJobs.$inferSelect)[]);
+      const rows =
+        "rows" in result
+          ? (result.rows as (typeof processingJobs.$inferSelect)[])
+          : (result as unknown as (typeof processingJobs.$inferSelect)[]);
 
       return rows[0] ?? null;
     });
@@ -306,7 +307,7 @@ export function buildJobSuccessUpdate(now = new Date()) {
 export async function markJobStage(
   db: ContentDb,
   jobId: string,
-  pipelineStage: typeof JobPipelineStage[keyof typeof JobPipelineStage],
+  pipelineStage: (typeof JobPipelineStage)[keyof typeof JobPipelineStage],
 ) {
   await db
     .update(processingJobs)
@@ -343,7 +344,9 @@ export async function resetStaleRunningJobs(
 ) {
   const now = input.now ?? new Date();
   const staleAfterMinutes = input.staleAfterMinutes ?? 3;
-  const staleThreshold = new Date(now.getTime() - staleAfterMinutes * 60 * 1000);
+  const staleThreshold = new Date(
+    now.getTime() - staleAfterMinutes * 60 * 1000,
+  );
 
   const paused = await db
     .update(processingJobs)

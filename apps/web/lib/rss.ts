@@ -1,25 +1,25 @@
-import { stripMarkdown } from "./strip-markdown"
-import { toRfc822InShanghai } from "./time"
+import { stripMarkdown } from "./strip-markdown";
+import { toRfc822InShanghai } from "./time";
 
 type RssArticle = {
-  id: string
-  title: string
-  summary: string | null
-  sourceName: string
-  publishedAt: string
-  updatedAt: string
-  url: string
-  locale: string
-}
+  id: string;
+  title: string;
+  summary: string | null;
+  sourceName: string;
+  publishedAt: string;
+  updatedAt: string;
+  url: string;
+  locale: string;
+};
 
 type BuildRssFeedXmlInput = {
-  title: string
-  description: string
-  siteUrl: string
-  feedUrl: string
-  language: string
-  articles: RssArticle[]
-}
+  title: string;
+  description: string;
+  siteUrl: string;
+  feedUrl: string;
+  language: string;
+  articles: RssArticle[];
+};
 
 function escapeXml(value: string) {
   return value
@@ -27,20 +27,20 @@ function escapeXml(value: string) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;")
+    .replaceAll("'", "&apos;");
 }
 
 export function buildRssFeedXml(input: BuildRssFeedXmlInput) {
-  const lastBuildDate = toRfc822InShanghai(new Date())
+  const lastBuildDate = toRfc822InShanghai(new Date());
 
-  const siteUrl = input.siteUrl.replace(/\/+$/, "")
+  const siteUrl = input.siteUrl.replace(/\/+$/, "");
 
   const items = input.articles
     .map((article) => {
-      const itemUrl = `${siteUrl}/${article.locale}/articles/${article.id}`
+      const itemUrl = `${siteUrl}/${article.locale}/articles/${article.id}`;
       const plainSummary = article.summary
         ? stripMarkdown(article.summary).replace(/\n+/g, " ")
-        : ""
+        : "";
 
       return [
         "    <item>",
@@ -51,9 +51,9 @@ export function buildRssFeedXml(input: BuildRssFeedXmlInput) {
         `      <author>${escapeXml(article.sourceName)}</author>`,
         `      <description>${escapeXml(plainSummary)}</description>`,
         "    </item>",
-      ].join("\n")
+      ].join("\n");
     })
-    .join("\n\n")
+    .join("\n\n");
 
   const channel = [
     "  <channel>",
@@ -72,7 +72,7 @@ export function buildRssFeedXml(input: BuildRssFeedXmlInput) {
     `    <atom:link href="${escapeXml(input.feedUrl)}" rel="self" type="application/rss+xml" />`,
     items,
     "  </channel>",
-  ].join("\n")
+  ].join("\n");
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -80,5 +80,5 @@ export function buildRssFeedXml(input: BuildRssFeedXmlInput) {
     channel,
     "</rss>",
     "",
-  ].join("\n")
+  ].join("\n");
 }

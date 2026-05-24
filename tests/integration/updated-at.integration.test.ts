@@ -24,12 +24,7 @@ describeIfDatabase("updated_at integration", () => {
           values ($1, $2, $3, $4)
           returning id, created_at, updated_at
         `,
-        [
-          "Integration Test Feed",
-          "https://example.com",
-          feedUrl,
-          "rss",
-        ],
+        ["Integration Test Feed", "https://example.com", feedUrl, "rss"],
       );
 
       expect(insertResult.rows).toHaveLength(1);

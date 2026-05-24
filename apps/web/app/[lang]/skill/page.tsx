@@ -1,27 +1,32 @@
-import type { Metadata } from "next"
-import { Package, ShieldCheck, Terminal } from "lucide-react"
+import type { Metadata } from "next";
+import { Package, ShieldCheck, Terminal } from "lucide-react";
 
-import { PublicHeader } from "@/components/public-header"
-import { resolveLang } from "@/lib/i18n"
+import { PublicHeader } from "@/components/public-header";
+import { resolveLang } from "@/lib/i18n";
 import {
   getBackgroundClassName,
   getBackdropClassName,
   getSectionInnerClassName,
   getSectionOuterClassName,
   getShellClassName,
-} from "@/lib/layout-tokens"
+} from "@/lib/layout-tokens";
 
-import { CopyButton } from "@/components/ui/copy-button"
+import { CopyButton } from "@/components/ui/copy-button";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
-  const { lang: rawLang } = await params
-  const lang = resolveLang(rawLang)
-  const title = lang === "zh" ? "Skill - VibeGuard" : "Skill - VibeGuard"
-  const description = lang === "zh"
-    ? "为 AI 编程助手安装 VibeGuard Skill，一键完成项目安全体检。"
-    : "Install the VibeGuard Skill for AI coding assistants to run project security audits."
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const { lang: rawLang } = await params;
+  const lang = resolveLang(rawLang);
+  const title = lang === "zh" ? "Skill - VibeGuard" : "Skill - VibeGuard";
+  const description =
+    lang === "zh"
+      ? "为 AI 编程助手安装 VibeGuard Skill，一键完成项目安全体检。"
+      : "Install the VibeGuard Skill for AI coding assistants to run project security audits.";
 
   return {
     title,
@@ -32,17 +37,17 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       type: "website",
       locale: lang === "zh" ? "zh_CN" : "en_US",
     },
-  }
+  };
 }
 
 type SkillPageProps = {
-  params: Promise<{ lang: string }>
-}
+  params: Promise<{ lang: string }>;
+};
 
 function getInstallCommand(lang: "zh" | "en") {
   return lang === "zh"
     ? "帮我安装这个 skill：https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard"
-    : "Install this skill: https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard"
+    : "Install this skill: https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard";
 }
 
 const features = [
@@ -62,11 +67,13 @@ const features = [
     zh: "过期依赖排查：区分「只是旧」和「有漏洞」",
     en: 'Outdated dependency audit: distinguish between "old" and "vulnerable"',
   },
-]
+];
 
-export default async function SkillPage({ params: routeParams }: SkillPageProps) {
-  const { lang: rawLang } = await routeParams
-  const lang = resolveLang(rawLang)
+export default async function SkillPage({
+  params: routeParams,
+}: SkillPageProps) {
+  const { lang: rawLang } = await routeParams;
+  const lang = resolveLang(rawLang);
 
   return (
     <main className={getBackgroundClassName()}>
@@ -148,5 +155,5 @@ export default async function SkillPage({ params: routeParams }: SkillPageProps)
         </section>
       </div>
     </main>
-  )
+  );
 }

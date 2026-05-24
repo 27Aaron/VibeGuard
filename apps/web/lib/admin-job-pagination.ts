@@ -1,7 +1,7 @@
-import { parsePositiveInteger, parsePageSize } from "./parse"
+import { parsePositiveInteger, parsePageSize } from "./parse";
 
-export const ADMIN_JOB_PAGE_SIZE_OPTIONS = [10, 20, 50] as const
-export const DEFAULT_ADMIN_JOB_PAGE_SIZE = 10
+export const ADMIN_JOB_PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
+export const DEFAULT_ADMIN_JOB_PAGE_SIZE = 10;
 export const ADMIN_JOB_STAGE_FILTERS = [
   "all",
   "waiting",
@@ -14,27 +14,27 @@ export const ADMIN_JOB_STAGE_FILTERS = [
   "summarize_zh",
   "generate_tags",
   "completed",
-] as const
+] as const;
 
-export type AdminJobPageSize = (typeof ADMIN_JOB_PAGE_SIZE_OPTIONS)[number]
-export type AdminJobStageFilter = (typeof ADMIN_JOB_STAGE_FILTERS)[number]
+export type AdminJobPageSize = (typeof ADMIN_JOB_PAGE_SIZE_OPTIONS)[number];
+export type AdminJobStageFilter = (typeof ADMIN_JOB_STAGE_FILTERS)[number];
 
 export type AdminJobListParams = {
-  page: number
-  pageSize: AdminJobPageSize
-  stage: AdminJobStageFilter
-}
+  page: number;
+  pageSize: AdminJobPageSize;
+  stage: AdminJobStageFilter;
+};
 
 type RawAdminJobListParams = {
-  page?: string | null
-  pageSize?: string | null
-  stage?: string | null
-}
+  page?: string | null;
+  pageSize?: string | null;
+  stage?: string | null;
+};
 
 function parseStage(value: string | null | undefined): AdminJobStageFilter {
   return ADMIN_JOB_STAGE_FILTERS.includes(value as AdminJobStageFilter)
     ? (value as AdminJobStageFilter)
-    : "all"
+    : "all";
 }
 
 export function parseAdminJobListParams(
@@ -42,7 +42,11 @@ export function parseAdminJobListParams(
 ): AdminJobListParams {
   return {
     page: parsePositiveInteger(input.page, 1),
-    pageSize: parsePageSize(input.pageSize, ADMIN_JOB_PAGE_SIZE_OPTIONS, DEFAULT_ADMIN_JOB_PAGE_SIZE),
+    pageSize: parsePageSize(
+      input.pageSize,
+      ADMIN_JOB_PAGE_SIZE_OPTIONS,
+      DEFAULT_ADMIN_JOB_PAGE_SIZE,
+    ),
     stage: parseStage(input.stage),
-  }
+  };
 }

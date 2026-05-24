@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
 import {
   calculateSecurityFindingRisk,
   extractCveAliases,
-} from "../../packages/content/src/security/risk"
+} from "../../packages/content/src/security/risk";
 
 describe("security finding risk", () => {
   it("extracts only CVE aliases from mixed OSV aliases", () => {
@@ -14,8 +14,8 @@ describe("security finding risk", () => {
         "PYSEC-2026-1",
         "CVE-2026-42044",
       ]),
-    ).toEqual(["CVE-2025-62718", "CVE-2026-42044"])
-  })
+    ).toEqual(["CVE-2025-62718", "CVE-2026-42044"]);
+  });
 
   it("prioritizes known exploitation over static severity", () => {
     expect(
@@ -43,8 +43,8 @@ describe("security finding risk", () => {
         "cisa_kev",
         "ransomware_campaign",
       ]),
-    })
-  })
+    });
+  });
 
   it("keeps low-confidence package-only matches below confirmed version hits", () => {
     expect(
@@ -72,6 +72,6 @@ describe("security finding risk", () => {
         "cvss_critical",
         "no_fixed_version",
       ]),
-    })
-  })
-})
+    });
+  });
+});

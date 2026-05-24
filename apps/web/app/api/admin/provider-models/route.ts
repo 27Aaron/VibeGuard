@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
+import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 
-import { getDb, llmSettings } from "@vibeguard/db"
-import { createOpenAIClient } from "@vibeguard/llm/client"
-import { decryptSecret } from "@vibeguard/llm/credentials"
+import { getDb, llmSettings } from "@vibeguard/db";
+import { createOpenAIClient } from "@vibeguard/llm/client";
+import { decryptSecret } from "@vibeguard/llm/credentials";
 
-import { requireAdminAuth } from "@/lib/admin-api-auth"
-import { resolveLang } from "@/lib/i18n"
-import { normalizeProviderErrorMessage } from "@/lib/provider-models"
+import { requireAdminAuth } from "@/lib/admin-api-auth";
+import { resolveLang } from "@/lib/i18n";
+import { normalizeProviderErrorMessage } from "@/lib/provider-models";
 
 /**
  * 从 PROVIDER_PRESETS 派生的允许服务商主机名白名单。
@@ -24,27 +24,28 @@ const ALLOWED_PROVIDER_HOSTNAMES: ReadonlySet<string> = new Set([
   "api.z.ai",
   "open.bigmodel.cn",
   "openrouter.ai",
-])
+]);
 
 const LOCALHOST_HOSTNAMES: ReadonlySet<string> = new Set([
   "localhost",
   "127.0.0.1",
-  "::1",  "[::1]",
-])
+  "::1",
+  "[::1]",
+]);
 
 function isAllowedProviderUrl(baseUrl: string): boolean {
-  let parsed: URL
+  let parsed: URL;
 
   try {
-    parsed = new URL(baseUrl)
+    parsed = new URL(baseUrl);
   } catch {
-    return false
+    return false;
   }
 
-  const hostname = parsed.hostname.toLowerCase()
+  const hostname = parsed.hostname.toLowerCase();
 
   if (ALLOWED_PROVIDER_HOSTNAMES.has(hostname)) {
-    return true
+    return true;
   }
 
   // 仅在开发环境下允许 localhost 及本地回环地址
@@ -52,33 +53,33 @@ function isAllowedProviderUrl(baseUrl: string): boolean {
     LOCALHOST_HOSTNAMES.has(hostname) &&
     process.env.NODE_ENV === "development"
   ) {
-    return true
+    return true;
   }
 
-  return false
+  return false;
 }
 
 export async function POST(request: Request) {
-  const auth = await requireAdminAuth()
-  if (!auth.authorized) return auth.response
+  const auth = await requireAdminAuth();
+  if (!auth.authorized) return auth.response;
 
-  let resolvedBaseUrl = ""
-  let resolvedLang = resolveLang("zh")
+  let resolvedBaseUrl = "";
+  let resolvedLang = resolveLang("zh");
 
   try {
     const body = (await request.json()) as {
-      profileId?: string
-      baseUrl?: string
-      apiKey?: string
-      lang?: string
-    }
+      profileId?: string;
+      baseUrl?: string;
+      apiKey?: string;
+      lang?: string;
+    };
 
-    const profileId = String(body.profileId ?? "").trim()
-    const baseUrl = String(body.baseUrl ?? "").trim()
-    resolvedBaseUrl = baseUrl
-    const inputApiKey = String(body.apiKey ?? "").trim()
-    const lang = resolveLang(body.lang)
-    resolvedLang = lang
+    const profileId = String(body.profileId ?? "").trim();
+    const baseUrl = String(body.baseUrl ?? "").trim();
+    resolvedBaseUrl = baseUrl;
+    const inputApiKey = String(body.apiKey ?? "").trim();
+    const lang = resolveLang(body.lang);
+    resolvedLang = lang;
 
     if (!baseUrl) {
       return NextResponse.json(
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
               : "Please enter the model service base URL first.",
         },
         { status: 400 },
-      )
+      );
     }
 
     if (!isAllowedProviderUrl(baseUrl)) {
@@ -103,19 +104,19 @@ export async function POST(request: Request) {
               : "Base URL is not allowed. Please use a known provider or check the URL.",
         },
         { status: 400 },
-      )
+      );
     }
 
-    let apiKey = inputApiKey
+    let apiKey = inputApiKey;
 
     if (!apiKey && profileId) {
-      const db = getDb()
+      const db = getDb();
       const row = await db.query.llmSettings.findFirst({
         where: eq(llmSettings.id, profileId),
-      })
+      });
 
       if (row?.apiKeyEncrypted) {
-        apiKey = decryptSecret(row.apiKeyEncrypted)
+        apiKey = decryptSecret(row.apiKeyEncrypted);
       }
     }
 
@@ -129,14 +130,14 @@ export async function POST(request: Request) {
               : "Enter an API key first, or save this profile before loading models.",
         },
         { status: 400 },
-      )
+      );
     }
 
     const client = createOpenAIClient({
       baseUrl,
       apiKey,
-    })
-    const models = await client.models.list()
+    });
+    const models = await client.models.list();
 
     return NextResponse.json({
       ok: true,
@@ -144,7 +145,7 @@ export async function POST(request: Request) {
         .map((model) => model.id)
         .filter(Boolean)
         .sort((left, right) => left.localeCompare(right)),
-    })
+    });
   } catch (error) {
     return NextResponse.json(
       {
@@ -157,6 +158,6 @@ export async function POST(request: Request) {
         }),
       },
       { status: 500 },
-    )
+    );
   }
 }

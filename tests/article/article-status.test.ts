@@ -52,11 +52,7 @@ describe("shared status enums", () => {
     ]);
     expect(Object.values(JobStatus)).toEqual(JOB_STATUS_VALUES);
 
-    expect(JOB_TYPE_VALUES).toEqual([
-      "extract",
-      "translate",
-      "summarize",
-    ]);
+    expect(JOB_TYPE_VALUES).toEqual(["extract", "translate", "summarize"]);
     expect(Object.values(JobType)).toEqual(JOB_TYPE_VALUES);
   });
 

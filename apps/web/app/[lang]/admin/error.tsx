@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useEffect } from "react";
+import { useParams } from "next/navigation";
 
-import { buttonVariants } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button";
 import {
   getAdminBackgroundClassName,
   getAdminBackdropClassName,
   getAdminShellClassName,
-} from "@/lib/admin-layout"
-import type { AppLang } from "@/lib/i18n"
+} from "@/lib/admin-layout";
+import type { AppLang } from "@/lib/i18n";
 
 export default function AdminError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
-  const lang = (useParams().lang as AppLang) || "zh"
+  const lang = (useParams().lang as AppLang) || "zh";
 
   useEffect(() => {
-    console.error(error)
-  }, [error])
+    console.error(error);
+  }, [error]);
 
   return (
     <main className={getAdminBackgroundClassName()}>
@@ -50,5 +50,5 @@ export default function AdminError({
         </div>
       </div>
     </main>
-  )
+  );
 }

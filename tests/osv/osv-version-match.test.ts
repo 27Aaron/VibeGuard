@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { evaluateAffectedPackageVersion } from "../../packages/content/src/osv/version-match"
+import { evaluateAffectedPackageVersion } from "../../packages/content/src/osv/version-match";
 
 describe("evaluateAffectedPackageVersion", () => {
   it("returns a high-confidence hit for explicit affected versions", () => {
@@ -15,8 +15,8 @@ describe("evaluateAffectedPackageVersion", () => {
       affected: true,
       confidence: "high",
       matchReason: "explicit_affected_version",
-    })
-  })
+    });
+  });
 
   it("matches an introduced-fixed ecosystem range", () => {
     expect(
@@ -35,8 +35,8 @@ describe("evaluateAffectedPackageVersion", () => {
       affected: true,
       confidence: "high",
       matchReason: "version_in_ecosystem_range",
-    })
-  })
+    });
+  });
 
   it("matches a semver range used by npm advisories", () => {
     expect(
@@ -55,8 +55,8 @@ describe("evaluateAffectedPackageVersion", () => {
       affected: true,
       confidence: "high",
       matchReason: "version_in_ecosystem_range",
-    })
-  })
+    });
+  });
 
   it("returns a high-confidence miss when a version is outside all supported ranges", () => {
     expect(
@@ -75,8 +75,8 @@ describe("evaluateAffectedPackageVersion", () => {
       affected: false,
       confidence: "undetermined",
       matchReason: "version_outside_ecosystem_range",
-    })
-  })
+    });
+  });
 
   it("returns an inconclusive result for unsupported or unparseable versions", () => {
     expect(
@@ -95,6 +95,6 @@ describe("evaluateAffectedPackageVersion", () => {
       affected: false,
       confidence: "medium",
       matchReason: "range_present_but_inconclusive",
-    })
-  })
-})
+    });
+  });
+});

@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { JobStatus, JobType } from "@vibeguard/shared"
+import { JobStatus, JobType } from "@vibeguard/shared";
 
 // ---------------------------------------------------------------------------
 // Test 1: resetStaleRunningJobs keeps control-requested jobs bounded
@@ -12,94 +12,91 @@ describe("resetStaleRunningJobs", () => {
       set: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([{ id: "paused-job" }]),
-    }
+    };
     const runningChain = {
       set: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockResolvedValue([
-        { id: "job-1" },
-        { id: "job-2" },
-      ]),
-    }
+      returning: vi.fn().mockResolvedValue([{ id: "job-1" }, { id: "job-2" }]),
+    };
     const deleteChain = {
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([{ id: "cancelled-job" }]),
-    }
+    };
 
     const mockDb = {
-      update: vi.fn()
+      update: vi
+        .fn()
         .mockReturnValueOnce(pauseChain)
         .mockReturnValueOnce(runningChain),
       delete: vi.fn().mockReturnValue(deleteChain),
-    } as never
+    } as never;
 
-    const { resetStaleRunningJobs } = await import(
-      "../../apps/worker/src/jobs"
-    )
+    const { resetStaleRunningJobs } =
+      await import("../../apps/worker/src/jobs");
 
     const result = await resetStaleRunningJobs(mockDb, {
       now: new Date("2026-05-20T12:00:00Z"),
       staleAfterMinutes: 3,
-    })
+    });
 
-    expect(mockDb.update).toHaveBeenCalledTimes(2)
-    expect(mockDb.delete).toHaveBeenCalledTimes(1)
+    expect(mockDb.update).toHaveBeenCalledTimes(2);
+    expect(mockDb.delete).toHaveBeenCalledTimes(1);
 
     expect(pauseChain.set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: JobStatus.PAUSED,
       }),
-    )
+    );
     expect(runningChain.set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: JobStatus.QUEUED,
         pipelineStage: "waiting",
       }),
-    )
+    );
 
-    expect(pauseChain.where).toHaveBeenCalledTimes(1)
-    expect(runningChain.where).toHaveBeenCalledTimes(1)
-    expect(deleteChain.where).toHaveBeenCalledTimes(1)
-    expect(result.resetCount).toBe(3)
-    expect(result.failedCount).toBe(1)
-  })
+    expect(pauseChain.where).toHaveBeenCalledTimes(1);
+    expect(runningChain.where).toHaveBeenCalledTimes(1);
+    expect(deleteChain.where).toHaveBeenCalledTimes(1);
+    expect(result.resetCount).toBe(3);
+    expect(result.failedCount).toBe(1);
+  });
 
   it("returns zero counts when no stale jobs exist", async () => {
     const pauseChain = {
       set: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([]),
-    }
+    };
     const runningChain = {
       set: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([]),
-    }
+    };
     const deleteChain = {
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([]),
-    }
+    };
 
     const mockDb = {
-      update: vi.fn()
+      update: vi
+        .fn()
         .mockReturnValueOnce(pauseChain)
         .mockReturnValueOnce(runningChain),
       delete: vi.fn().mockReturnValue(deleteChain),
-    } as never
+    } as never;
 
-    const { resetStaleRunningJobs } = await import(
-      "../../apps/worker/src/jobs"
-    )
+    const { resetStaleRunningJobs } =
+      await import("../../apps/worker/src/jobs");
 
     const result = await resetStaleRunningJobs(mockDb, {
       now: new Date("2026-05-20T12:00:00Z"),
       staleAfterMinutes: 3,
-    })
+    });
 
-    expect(result.resetCount).toBe(0)
-    expect(result.failedCount).toBe(0)
-  })
-})
+    expect(result.resetCount).toBe(0);
+    expect(result.failedCount).toBe(0);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 2: processClaimedJob catch block handles secondary failures gracefully
@@ -117,40 +114,42 @@ describe("resetStaleRunningJobs", () => {
  * chain object itself thenable.
  */
 function buildMockDb(options: {
-  fakeJob: Record<string, unknown>
+  fakeJob: Record<string, unknown>;
   /** Index (1-based) of the update whose .where() should throw. */
-  throwOnWhereIndex?: number
+  throwOnWhereIndex?: number;
   /** If true, all .where() calls succeed. */
-  allSucceed?: boolean
+  allSucceed?: boolean;
 }) {
-  let updateIndex = 0
+  let updateIndex = 0;
 
   // We use a real object so we can make it thenable
   const chain: Record<string, unknown> = {
     set: vi.fn().mockReturnThis(),
     where: vi.fn().mockImplementation(() => {
-      updateIndex++
+      updateIndex++;
       // If this is the claimQueuedJobById update, returning() follows.
       // For others, the chain is awaited directly.
-      return chain
+      return chain;
     }),
     returning: vi.fn().mockImplementation(() => {
       // claimQueuedJobById always succeeds
-      return Promise.resolve([options.fakeJob])
+      return Promise.resolve([options.fakeJob]);
     }),
-  }
+  };
 
   // Make the chain thenable so `await db.update().set().where()` resolves
   // for markArticleStatus and markJobFailed.
-  ;(chain as any).then = vi.fn().mockImplementation(
-    (resolve: (v: undefined) => void, reject: (e: Error) => void) => {
-      if (!options.allSucceed && options.throwOnWhereIndex === updateIndex) {
-        reject(new Error(`DB error on update #${updateIndex}`))
-      } else {
-        resolve(undefined)
-      }
-    },
-  )
+  (chain as any).then = vi
+    .fn()
+    .mockImplementation(
+      (resolve: (v: undefined) => void, reject: (e: Error) => void) => {
+        if (!options.allSucceed && options.throwOnWhereIndex === updateIndex) {
+          reject(new Error(`DB error on update #${updateIndex}`));
+        } else {
+          resolve(undefined);
+        }
+      },
+    );
 
   const mockDb = {
     update: vi.fn().mockReturnValue(chain),
@@ -168,9 +167,9 @@ function buildMockDb(options: {
         findFirst: vi.fn().mockResolvedValue({ apiKeyEncrypted: "key" }),
       },
     },
-  }
+  };
 
-  return { mockDb: mockDb as never, getUpdateIndex: () => updateIndex }
+  return { mockDb: mockDb as never, getUpdateIndex: () => updateIndex };
 }
 
 describe("processClaimedJob catch block", () => {
@@ -181,19 +180,19 @@ describe("processClaimedJob catch block", () => {
     status: JobStatus.RUNNING,
     attempt: 1,
     maxAttempts: 3,
-  }
+  };
 
   afterEach(() => {
-    vi.restoreAllMocks()
-    vi.resetModules()
-  })
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
 
   it("returns the original error even when markArticleStatus and markJobFailed both throw", async () => {
     // Both markArticleStatus (update #2) and markJobFailed (update #3) throw
     const { mockDb } = buildMockDb({
       fakeJob,
       throwOnWhereIndex: 2, // markArticleStatus throws; markJobFailed also throws because then() rejects for 3 too
-    })
+    });
 
     // Make processArticleJob throw
     vi.doMock("../../apps/worker/src/article-pipeline", () => ({
@@ -202,23 +201,22 @@ describe("processClaimedJob catch block", () => {
       processArticleJob: vi
         .fn()
         .mockRejectedValue(new Error("LLM processing failed")),
-    }))
-    vi.resetModules()
+    }));
+    vi.resetModules();
 
-    const { processQueuedJobById } = await import(
-      "../../apps/worker/src/process-article"
-    )
+    const { processQueuedJobById } =
+      await import("../../apps/worker/src/process-article");
 
-    const result = await processQueuedJobById(mockDb, "job-1")
+    const result = await processQueuedJobById(mockDb, "job-1");
 
     // The function must return a failed result with the ORIGINAL error message
     // even though both secondary operations (markArticleStatus, markJobFailed) threw
-    expect(result).not.toBeNull()
-    expect(result!.status).toBe("failed")
-    expect(result!.error).toBe("LLM processing failed")
-    expect(result!.jobId).toBe("job-1")
-    expect(result!.articleId).toBe("article-1")
-  })
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe("failed");
+    expect(result!.error).toBe("LLM processing failed");
+    expect(result!.jobId).toBe("job-1");
+    expect(result!.articleId).toBe("article-1");
+  });
 
   it("still attempts markJobFailed even when markArticleStatus throws", async () => {
     // markArticleStatus (update #2) throws, markJobFailed (update #3) succeeds
@@ -226,36 +224,33 @@ describe("processClaimedJob catch block", () => {
       fakeJob,
       allSucceed: false,
       throwOnWhereIndex: 2,
-    })
+    });
 
     vi.doMock("../../apps/worker/src/article-pipeline", () => ({
       JobPausedSignal: class JobPausedSignal extends Error {},
       JobCancelledSignal: class JobCancelledSignal extends Error {},
-      processArticleJob: vi
-        .fn()
-        .mockRejectedValue(new Error("pipeline crash")),
-    }))
-    vi.resetModules()
+      processArticleJob: vi.fn().mockRejectedValue(new Error("pipeline crash")),
+    }));
+    vi.resetModules();
 
-    const { processQueuedJobById } = await import(
-      "../../apps/worker/src/process-article"
-    )
+    const { processQueuedJobById } =
+      await import("../../apps/worker/src/process-article");
 
-    const result = await processQueuedJobById(mockDb, "job-2")
+    const result = await processQueuedJobById(mockDb, "job-2");
 
     // markJobFailed should still have been attempted.
     // We had 3 update calls: claim (#1), markArticleStatus (#2), markJobFailed (#3).
-    expect(getUpdateIndex()).toBeGreaterThanOrEqual(3)
-    expect(result!.status).toBe("failed")
-    expect(result!.error).toBe("pipeline crash")
-  })
+    expect(getUpdateIndex()).toBeGreaterThanOrEqual(3);
+    expect(result!.status).toBe("failed");
+    expect(result!.error).toBe("pipeline crash");
+  });
 
   it("returns the original error when only markJobFailed throws", async () => {
     // markArticleStatus (#2) succeeds, markJobFailed (#3) throws
     const { mockDb } = buildMockDb({
       fakeJob,
       throwOnWhereIndex: 3,
-    })
+    });
 
     vi.doMock("../../apps/worker/src/article-pipeline", () => ({
       JobPausedSignal: class JobPausedSignal extends Error {},
@@ -263,17 +258,16 @@ describe("processClaimedJob catch block", () => {
       processArticleJob: vi
         .fn()
         .mockRejectedValue(new Error("timeout exceeded")),
-    }))
-    vi.resetModules()
+    }));
+    vi.resetModules();
 
-    const { processQueuedJobById } = await import(
-      "../../apps/worker/src/process-article"
-    )
+    const { processQueuedJobById } =
+      await import("../../apps/worker/src/process-article");
 
-    const result = await processQueuedJobById(mockDb, "job-3")
+    const result = await processQueuedJobById(mockDb, "job-3");
 
-    expect(result).not.toBeNull()
-    expect(result!.status).toBe("failed")
-    expect(result!.error).toBe("timeout exceeded")
-  })
-})
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe("failed");
+    expect(result!.error).toBe("timeout exceeded");
+  });
+});

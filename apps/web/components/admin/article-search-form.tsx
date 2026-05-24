@@ -1,50 +1,57 @@
-"use client"
+"use client";
 
-import { useRouter, useSearchParams } from "next/navigation"
-import { Search, X } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation";
+import { Search, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+import type { AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 type ArticleSearchFormProps = {
-  lang: AppLang
-  defaultValue: string
-}
+  lang: AppLang;
+  defaultValue: string;
+};
 
-export function ArticleSearchForm({ lang, defaultValue }: ArticleSearchFormProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [value, setValue] = useState(defaultValue)
+export function ArticleSearchForm({
+  lang,
+  defaultValue,
+}: ArticleSearchFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [value, setValue] = useState(defaultValue);
 
   useEffect(() => {
-    setValue(defaultValue)
-  }, [defaultValue])
+    setValue(defaultValue);
+  }, [defaultValue]);
 
-  const updateSearch = useCallback((q: string) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (q) {
-      params.set("q", q)
-    } else {
-      params.delete("q")
-    }
-    params.set("page", "1")
-    router.push(`/${lang}/admin/articles?${params.toString()}`)
-  }, [router, searchParams, lang])
+  const updateSearch = useCallback(
+    (q: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (q) {
+        params.set("q", q);
+      } else {
+        params.delete("q");
+      }
+      params.set("page", "1");
+      router.push(`/${lang}/admin/articles?${params.toString()}`);
+    },
+    [router, searchParams, lang],
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateSearch(value.trim())
-  }
+    e.preventDefault();
+    updateSearch(value.trim());
+  };
 
   const handleClear = () => {
-    setValue("")
-    updateSearch("")
-    inputRef.current?.focus()
-  }
+    setValue("");
+    updateSearch("");
+    inputRef.current?.focus();
+  };
 
-  const placeholder = lang === "zh" ? "搜索文章标题..." : "Search article titles..."
+  const placeholder =
+    lang === "zh" ? "搜索文章标题..." : "Search article titles...";
 
   return (
     <form onSubmit={handleSubmit} className="mb-3">
@@ -71,5 +78,5 @@ export function ArticleSearchForm({ lang, defaultValue }: ArticleSearchFormProps
         ) : null}
       </div>
     </form>
-  )
+  );
 }

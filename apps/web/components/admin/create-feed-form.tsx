@@ -1,39 +1,54 @@
-"use client"
+"use client";
 
-import { useActionState } from "react"
-import { useFormStatus } from "react-dom"
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 
 import {
   IDLE_FORM_ACTION_RESULT,
   type FormActionResult,
-} from "@/lib/action-result"
-import type { AppLang } from "@/lib/i18n"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { getAdminSelectClassName, getAdminSubtlePanelClassName } from "@/lib/admin-layout"
-import { cn } from "@/lib/utils"
+} from "@/lib/action-result";
+import type { AppLang } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  getAdminSelectClassName,
+  getAdminSubtlePanelClassName,
+} from "@/lib/admin-layout";
+import { cn } from "@/lib/utils";
 
 type CreateFeedFormProps = {
-  lang: AppLang
+  lang: AppLang;
   action: (
     previousState: FormActionResult,
     formData: FormData,
-  ) => Promise<FormActionResult>
-}
+  ) => Promise<FormActionResult>;
+};
 
 function SubmitButton({ lang }: { lang: AppLang }) {
-  const { pending } = useFormStatus()
+  const { pending } = useFormStatus();
 
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? (lang === "zh" ? "创建中..." : "Creating...") : lang === "zh" ? "新增来源" : "Add source"}
+      {pending
+        ? lang === "zh"
+          ? "创建中..."
+          : "Creating..."
+        : lang === "zh"
+          ? "新增来源"
+          : "Add source"}
     </Button>
-  )
+  );
 }
 
 export function CreateFeedForm({ action, lang }: CreateFeedFormProps) {
-  const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT)
+  const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT);
 
   return (
     <form action={formAction}>
@@ -93,8 +108,13 @@ export function CreateFeedForm({ action, lang }: CreateFeedFormProps) {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label htmlFor="pollIntervalMinutes" className="text-sm font-medium">
-              {lang === "zh" ? "抓取间隔（分钟）" : "Polling interval (minutes)"}
+            <label
+              htmlFor="pollIntervalMinutes"
+              className="text-sm font-medium"
+            >
+              {lang === "zh"
+                ? "抓取间隔（分钟）"
+                : "Polling interval (minutes)"}
             </label>
             <Input
               id="pollIntervalMinutes"
@@ -105,7 +125,12 @@ export function CreateFeedForm({ action, lang }: CreateFeedFormProps) {
               required
             />
           </div>
-          <label className={cn("flex min-h-16 items-center justify-between gap-4 text-sm transition-colors hover:bg-white dark:hover:bg-white/[0.065]", getAdminSubtlePanelClassName())}>
+          <label
+            className={cn(
+              "flex min-h-16 items-center justify-between gap-4 text-sm transition-colors hover:bg-white dark:hover:bg-white/[0.065]",
+              getAdminSubtlePanelClassName(),
+            )}
+          >
             <span className="flex flex-col gap-1">
               <span className="font-medium">
                 {lang === "zh" ? "创建后立即启用" : "Enable after creation"}
@@ -141,5 +166,5 @@ export function CreateFeedForm({ action, lang }: CreateFeedFormProps) {
         </CardFooter>
       </Card>
     </form>
-  )
+  );
 }

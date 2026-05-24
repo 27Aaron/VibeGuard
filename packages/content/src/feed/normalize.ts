@@ -40,7 +40,15 @@ export type FeedItemInput = {
   id?: string | null;
   creator?: string | null;
   categories?: string[] | null;
-  [key: string]: string | number | Date | string[] | number[] | boolean | null | undefined;
+  [key: string]:
+    | string
+    | number
+    | Date
+    | string[]
+    | number[]
+    | boolean
+    | null
+    | undefined;
 };
 
 export type NormalizedFeedItem = {

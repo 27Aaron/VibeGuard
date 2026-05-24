@@ -1,63 +1,63 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function AdminSelectAllCheckbox({
   formId,
   inputName,
   label,
 }: {
-  formId: string
-  inputName: string
-  label: string
+  formId: string;
+  inputName: string;
+  label: string;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const formRef = useRef<HTMLFormElement | null>(null)
-  const [checked, setChecked] = useState(false)
-  const [disabled, setDisabled] = useState(true)
+  const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const [checked, setChecked] = useState(false);
+  const [disabled, setDisabled] = useState(true);
 
   const getCheckboxes = useCallback(() => {
-    const form = formRef.current
-    if (!form) return []
+    const form = formRef.current;
+    if (!form) return [];
 
     return Array.from(form.elements).filter(
       (element): element is HTMLInputElement =>
         element instanceof HTMLInputElement &&
         element.type === "checkbox" &&
         element.name === inputName,
-    )
-  }, [inputName])
+    );
+  }, [inputName]);
 
   const syncState = useCallback(() => {
-    const checkboxes = getCheckboxes()
-    const count = checkboxes.filter((cb) => cb.checked).length
-    const hasRows = checkboxes.length > 0
+    const checkboxes = getCheckboxes();
+    const count = checkboxes.filter((cb) => cb.checked).length;
+    const hasRows = checkboxes.length > 0;
 
-    setChecked(hasRows && count === checkboxes.length)
-    setDisabled(!hasRows)
+    setChecked(hasRows && count === checkboxes.length);
+    setDisabled(!hasRows);
 
     if (inputRef.current) {
-      inputRef.current.indeterminate = count > 0 && count < checkboxes.length
+      inputRef.current.indeterminate = count > 0 && count < checkboxes.length;
     }
-  }, [getCheckboxes])
+  }, [getCheckboxes]);
 
   useEffect(() => {
-    formRef.current = document.getElementById(formId) as HTMLFormElement | null
-    syncState()
+    formRef.current = document.getElementById(formId) as HTMLFormElement | null;
+    syncState();
 
     function handleChange(event: Event) {
-      const target = event.target
-      if (!(target instanceof HTMLInputElement)) return
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
       if (target.form?.id === formId && target.name === inputName) {
-        syncState()
+        syncState();
       }
     }
 
-    document.addEventListener("change", handleChange)
+    document.addEventListener("change", handleChange);
     return () => {
-      document.removeEventListener("change", handleChange)
-    }
-  }, [formId, inputName, syncState])
+      document.removeEventListener("change", handleChange);
+    };
+  }, [formId, inputName, syncState]);
 
   return (
     <label className="flex cursor-pointer items-center justify-center">
@@ -68,20 +68,20 @@ export function AdminSelectAllCheckbox({
         disabled={disabled}
         type="checkbox"
         onChange={(event) => {
-          const nextChecked = event.currentTarget.checked
-          const checkboxes = getCheckboxes()
+          const nextChecked = event.currentTarget.checked;
+          const checkboxes = getCheckboxes();
 
           checkboxes.forEach((checkbox) => {
-            checkbox.checked = nextChecked
-            checkbox.dispatchEvent(new Event("change", { bubbles: true }))
-          })
+            checkbox.checked = nextChecked;
+            checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+          });
 
-          setChecked(nextChecked)
+          setChecked(nextChecked);
           if (inputRef.current) {
-            inputRef.current.indeterminate = false
+            inputRef.current.indeterminate = false;
           }
         }}
       />
     </label>
-  )
+  );
 }

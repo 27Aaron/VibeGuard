@@ -1,16 +1,16 @@
-"use server"
+"use server";
 
-import { redirect } from "next/navigation"
+import { redirect } from "next/navigation";
 
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm";
 
-import { articles, getDb, processingJobs, schema } from "@vibeguard/db"
+import { articles, getDb, processingJobs, schema } from "@vibeguard/db";
 import {
   ArticleStatus,
   JobPipelineStage,
   JobStatus,
   JobType,
-} from "@vibeguard/shared"
+} from "@vibeguard/shared";
 
 import {
   ARTICLE_REGENERATION_TARGETS,
@@ -18,10 +18,10 @@ import {
   regenerateArticleTarget,
   defaultDependencies,
   type ArticleRegenerationTarget,
-} from "../article-regeneration"
-import { normalizeUserFacingError } from "../errors"
-import { resolveLang } from "../i18n"
-import { revalidateLocalizedPaths } from "../revalidate"
+} from "../article-regeneration";
+import { normalizeUserFacingError } from "../errors";
+import { resolveLang } from "../i18n";
+import { revalidateLocalizedPaths } from "../revalidate";
 
 function buildArticleDetailRedirect(
   articleId: string,
@@ -32,18 +32,18 @@ function buildArticleDetailRedirect(
   const params = new URLSearchParams({
     status,
     message,
-  })
+  });
 
-  return `/${lang}/admin/articles/${articleId}?${params.toString()}`
+  return `/${lang}/admin/articles/${articleId}?${params.toString()}`;
 }
 
 type ArticlesListRedirectContext = {
-  page?: string
-  pageSize?: string
-  q?: string
-}
+  page?: string;
+  pageSize?: string;
+  q?: string;
+};
 
-type SelectedArticlesActionIntent = "delete" | "regenerate"
+type SelectedArticlesActionIntent = "delete" | "regenerate";
 
 function buildArticlesListRedirect(
   status: "success" | "error",
@@ -54,29 +54,31 @@ function buildArticlesListRedirect(
   const params = new URLSearchParams({
     status,
     message,
-  })
+  });
 
   if (context.page) {
-    params.set("page", context.page)
+    params.set("page", context.page);
   }
 
   if (context.pageSize) {
-    params.set("pageSize", context.pageSize)
+    params.set("pageSize", context.pageSize);
   }
 
   if (context.q?.trim()) {
-    params.set("q", context.q.trim())
+    params.set("q", context.q.trim());
   }
 
-  return `/${lang}/admin/articles?${params.toString()}`
+  return `/${lang}/admin/articles?${params.toString()}`;
 }
 
-function getArticlesListRedirectContext(formData: FormData): ArticlesListRedirectContext {
+function getArticlesListRedirectContext(
+  formData: FormData,
+): ArticlesListRedirectContext {
   return {
     page: String(formData.get("page") ?? "1"),
     pageSize: String(formData.get("pageSize") ?? "10"),
     q: String(formData.get("q") ?? ""),
-  }
+  };
 }
 
 function getSelectedArticleIds(formData: FormData) {
@@ -87,30 +89,32 @@ function getSelectedArticleIds(formData: FormData) {
         .map((id) => String(id).trim())
         .filter(Boolean),
     ),
-  )
+  );
 }
 
-function getSelectedArticlesIntent(formData: FormData): SelectedArticlesActionIntent {
+function getSelectedArticlesIntent(
+  formData: FormData,
+): SelectedArticlesActionIntent {
   return String(formData.get("intent") ?? "delete") === "regenerate"
     ? "regenerate"
-    : "delete"
+    : "delete";
 }
 
 export async function selectedArticlesAction(formData: FormData) {
-  const intent = getSelectedArticlesIntent(formData)
+  const intent = getSelectedArticlesIntent(formData);
 
   if (intent === "regenerate") {
-    await regenerateSelectedArticlesAction(formData)
-    return
+    await regenerateSelectedArticlesAction(formData);
+    return;
   }
 
-  await deleteSelectedArticlesAction(formData)
+  await deleteSelectedArticlesAction(formData);
 }
 
 export async function deleteSelectedArticlesAction(formData: FormData) {
-  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
-  const redirectContext = getArticlesListRedirectContext(formData)
-  const ids = getSelectedArticleIds(formData)
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"));
+  const redirectContext = getArticlesListRedirectContext(formData);
+  const ids = getSelectedArticleIds(formData);
 
   let redirectTarget = buildArticlesListRedirect(
     "error",
@@ -119,19 +123,19 @@ export async function deleteSelectedArticlesAction(formData: FormData) {
       : "Select articles to delete first.",
     lang,
     redirectContext,
-  )
+  );
 
   if (ids.length === 0) {
-    redirect(redirectTarget)
+    redirect(redirectTarget);
   }
 
   try {
-    const db = getDb()
+    const db = getDb();
     const existingRows = await db.query.articles.findMany({
       where: inArray(articles.id, ids),
       columns: { id: true },
-    })
-    const existingIds = existingRows.map((article) => article.id)
+    });
+    const existingIds = existingRows.map((article) => article.id);
 
     if (existingIds.length === 0) {
       redirectTarget = buildArticlesListRedirect(
@@ -141,9 +145,9 @@ export async function deleteSelectedArticlesAction(formData: FormData) {
           : "The selected articles were not found or were already deleted.",
         lang,
         redirectContext,
-      )
+      );
     } else {
-      await db.delete(articles).where(inArray(articles.id, existingIds))
+      await db.delete(articles).where(inArray(articles.id, existingIds));
 
       revalidateLocalizedPaths(
         "/admin",
@@ -154,7 +158,7 @@ export async function deleteSelectedArticlesAction(formData: FormData) {
           `/admin/articles/${articleId}`,
           `/articles/${articleId}`,
         ]),
-      )
+      );
 
       redirectTarget = buildArticlesListRedirect(
         "success",
@@ -163,7 +167,7 @@ export async function deleteSelectedArticlesAction(formData: FormData) {
           : `${existingIds.length} article${existingIds.length === 1 ? "" : "s"} deleted.`,
         lang,
         redirectContext,
-      )
+      );
     }
   } catch (error) {
     redirectTarget = buildArticlesListRedirect(
@@ -171,16 +175,16 @@ export async function deleteSelectedArticlesAction(formData: FormData) {
       normalizeUserFacingError(error, lang),
       lang,
       redirectContext,
-    )
+    );
   }
 
-  redirect(redirectTarget)
+  redirect(redirectTarget);
 }
 
 export async function regenerateSelectedArticlesAction(formData: FormData) {
-  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
-  const redirectContext = getArticlesListRedirectContext(formData)
-  const ids = getSelectedArticleIds(formData)
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"));
+  const redirectContext = getArticlesListRedirectContext(formData);
+  const ids = getSelectedArticleIds(formData);
 
   let redirectTarget = buildArticlesListRedirect(
     "error",
@@ -189,24 +193,24 @@ export async function regenerateSelectedArticlesAction(formData: FormData) {
       : "Select articles to regenerate first.",
     lang,
     redirectContext,
-  )
+  );
 
   if (ids.length === 0) {
-    redirect(redirectTarget)
+    redirect(redirectTarget);
   }
 
   try {
-    const db = getDb()
-    const now = new Date()
+    const db = getDb();
+    const now = new Date();
     const queuedArticleIds = await db.transaction(async (tx) => {
       const existingRows = await tx.query.articles.findMany({
         where: inArray(articles.id, ids),
         columns: { id: true },
-      })
-      const existingIds = existingRows.map((article) => article.id)
+      });
+      const existingIds = existingRows.map((article) => article.id);
 
       if (existingIds.length === 0) {
-        return [] as string[]
+        return [] as string[];
       }
 
       const activeJobs = await tx.query.processingJobs.findMany({
@@ -215,12 +219,14 @@ export async function regenerateSelectedArticlesAction(formData: FormData) {
           inArray(processingJobs.status, [JobStatus.QUEUED, JobStatus.RUNNING]),
         ),
         columns: { articleId: true },
-      })
-      const activeArticleIds = new Set(activeJobs.map((job) => job.articleId))
-      const candidateIds = existingIds.filter((id) => !activeArticleIds.has(id))
+      });
+      const activeArticleIds = new Set(activeJobs.map((job) => job.articleId));
+      const candidateIds = existingIds.filter(
+        (id) => !activeArticleIds.has(id),
+      );
 
       if (candidateIds.length === 0) {
-        return [] as string[]
+        return [] as string[];
       }
 
       const existingExtractJobs = await tx.query.processingJobs.findMany({
@@ -229,11 +235,11 @@ export async function regenerateSelectedArticlesAction(formData: FormData) {
           eq(processingJobs.jobType, JobType.EXTRACT),
         ),
         columns: { id: true, articleId: true },
-      })
+      });
       const existingExtractArticleIds = new Set(
         existingExtractJobs.map((job) => job.articleId),
-      )
-      const requeuedJobIds = existingExtractJobs.map((job) => job.id)
+      );
+      const requeuedJobIds = existingExtractJobs.map((job) => job.id);
 
       if (requeuedJobIds.length > 0) {
         await tx
@@ -247,34 +253,35 @@ export async function regenerateSelectedArticlesAction(formData: FormData) {
             finishedAt: null,
             lastError: null,
           })
-          .where(inArray(processingJobs.id, requeuedJobIds))
+          .where(inArray(processingJobs.id, requeuedJobIds));
       }
 
       const withoutExistingJobIds = candidateIds.filter(
         (articleId) => !existingExtractArticleIds.has(articleId),
-      )
-      const insertedJobs = withoutExistingJobIds.length > 0
-        ? await tx
-          .insert(processingJobs)
-          .values(
-            withoutExistingJobIds.map((articleId) => ({
-              articleId,
-              jobType: JobType.EXTRACT,
-              status: JobStatus.QUEUED,
-              pipelineStage: JobPipelineStage.WAITING,
-              attempt: 0,
-              maxAttempts: 3,
-              runAfter: now,
-            })),
-          )
-          .onConflictDoNothing()
-          .returning({ articleId: processingJobs.articleId })
-        : []
+      );
+      const insertedJobs =
+        withoutExistingJobIds.length > 0
+          ? await tx
+              .insert(processingJobs)
+              .values(
+                withoutExistingJobIds.map((articleId) => ({
+                  articleId,
+                  jobType: JobType.EXTRACT,
+                  status: JobStatus.QUEUED,
+                  pipelineStage: JobPipelineStage.WAITING,
+                  attempt: 0,
+                  maxAttempts: 3,
+                  runAfter: now,
+                })),
+              )
+              .onConflictDoNothing()
+              .returning({ articleId: processingJobs.articleId })
+          : [];
 
       const queuedArticleIds = [
         ...existingExtractJobs.map((job) => job.articleId),
         ...insertedJobs.map((job) => job.articleId),
-      ]
+      ];
 
       if (queuedArticleIds.length > 0) {
         await tx
@@ -295,11 +302,11 @@ export async function regenerateSelectedArticlesAction(formData: FormData) {
               ELSE ${articles.rawMeta} - 'processingError' - 'extraction' - 'relevanceFilter'
             END`,
           })
-          .where(inArray(articles.id, queuedArticleIds))
+          .where(inArray(articles.id, queuedArticleIds));
       }
 
-      return queuedArticleIds
-    })
+      return queuedArticleIds;
+    });
 
     revalidateLocalizedPaths(
       "/admin",
@@ -310,7 +317,7 @@ export async function regenerateSelectedArticlesAction(formData: FormData) {
         `/admin/articles/${articleId}`,
         `/articles/${articleId}`,
       ]),
-    )
+    );
 
     redirectTarget = buildArticlesListRedirect(
       queuedArticleIds.length > 0 ? "success" : "error",
@@ -323,109 +330,122 @@ export async function regenerateSelectedArticlesAction(formData: FormData) {
           : "The selected articles were not found or are already queued/processing.",
       lang,
       redirectContext,
-    )
+    );
   } catch (error) {
     redirectTarget = buildArticlesListRedirect(
       "error",
       normalizeUserFacingError(error, lang),
       lang,
       redirectContext,
-    )
+    );
   }
 
-  redirect(redirectTarget)
+  redirect(redirectTarget);
 }
 
 export async function reprocessArticleAction(formData: FormData) {
-  const lang = resolveLang(String(formData.get("lang") ?? "zh"))
-  const articleId = String(formData.get("id") ?? "").trim()
-  const target = resolveRegenerationTarget(formData.get("target"))
+  const lang = resolveLang(String(formData.get("lang") ?? "zh"));
+  const articleId = String(formData.get("id") ?? "").trim();
+  const target = resolveRegenerationTarget(formData.get("target"));
 
   if (!articleId) {
-    redirect(`/${lang}/admin/articles`)
+    redirect(`/${lang}/admin/articles`);
   }
 
-  let redirectMessage = ""
-  let redirectStatus: "success" | "error" = "success"
+  let redirectMessage = "";
+  let redirectStatus: "success" | "error" = "success";
 
   try {
-    const db = getDb()
+    const db = getDb();
     const article = await db.query.articles.findFirst({
       where: eq(articles.id, articleId),
-    })
+    });
 
     if (!article) {
-      redirectMessage = lang === "zh" ? "未找到对应文章。" : "Article not found."
-      redirectStatus = "error"
+      redirectMessage =
+        lang === "zh" ? "未找到对应文章。" : "Article not found.";
+      redirectStatus = "error";
     } else {
       const activeJob = await db.query.processingJobs.findFirst({
         where: and(
           eq(processingJobs.articleId, articleId),
           inArray(processingJobs.status, [JobStatus.QUEUED, JobStatus.RUNNING]),
         ),
-      })
+      });
 
       if (activeJob) {
         redirectMessage =
           lang === "zh"
             ? "当前文章已经在排队或处理中。"
-            : "This article is already queued or processing."
-        redirectStatus = "error"
+            : "This article is already queued or processing.";
+        redirectStatus = "error";
       } else {
-        const requirementError = getRegenerationRequirementError(article, target, lang)
+        const requirementError = getRegenerationRequirementError(
+          article,
+          target,
+          lang,
+        );
 
         if (requirementError) {
-          redirectMessage = requirementError
-          redirectStatus = "error"
+          redirectMessage = requirementError;
+          redirectStatus = "error";
         } else {
-          const needsLlm = target !== "extract-content"
+          const needsLlm = target !== "extract-content";
           const activeSettings = needsLlm
             ? await db.query.llmSettings.findFirst({
-                where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
+                where: (table, { eq: whereEq }) =>
+                  whereEq(table.isActive, true),
               })
-            : null
+            : null;
 
           if (!activeSettings && needsLlm) {
-            throw new Error("No active LLM settings found for article processing.")
+            throw new Error(
+              "No active LLM settings found for article processing.",
+            );
           }
 
-          const result = await regenerateArticleTarget({
-            article,
-            settings: activeSettings!,
-            target,
-          }, {
-            ...defaultDependencies,
-            logLlmUsage: async (input) => {
-              if (!input.usage) return
-              await db.insert(schema.llmUsageLogs).values({
-                articleId: input.articleId,
-                jobId: null,
-                taskType: input.taskType,
-                model: input.model,
-                promptTokens: input.usage.promptTokens,
-                completionTokens: input.usage.completionTokens,
-                totalTokens: input.usage.totalTokens,
-                cachedTokens: input.usage.cachedTokens ?? null,
-                finishReason: input.usage.finishReason ?? null,
-                responseTimeMs: input.responseTimeMs,
-              })
+          const result = await regenerateArticleTarget(
+            {
+              article,
+              settings: activeSettings!,
+              target,
             },
-          })
+            {
+              ...defaultDependencies,
+              logLlmUsage: async (input) => {
+                if (!input.usage) return;
+                await db.insert(schema.llmUsageLogs).values({
+                  articleId: input.articleId,
+                  jobId: null,
+                  taskType: input.taskType,
+                  model: input.model,
+                  promptTokens: input.usage.promptTokens,
+                  completionTokens: input.usage.completionTokens,
+                  totalTokens: input.usage.totalTokens,
+                  cachedTokens: input.usage.cachedTokens ?? null,
+                  finishReason: input.usage.finishReason ?? null,
+                  responseTimeMs: input.responseTimeMs,
+                });
+              },
+            },
+          );
 
           const baseRawMeta =
             article.rawMeta && typeof article.rawMeta === "object"
               ? { ...(article.rawMeta as Record<string, unknown>) }
-              : {}
+              : {};
           if ("processingError" in baseRawMeta) {
-            delete baseRawMeta.processingError
+            delete baseRawMeta.processingError;
           }
 
-          const patchRawMeta = result.patch.rawMeta as Record<string, unknown> | undefined
+          const patchRawMeta = result.patch.rawMeta as
+            | Record<string, unknown>
+            | undefined;
           const mergedRawMeta = patchRawMeta
             ? { ...baseRawMeta, ...patchRawMeta }
-            : baseRawMeta
+            : baseRawMeta;
 
-          const { rawMeta: _, ...patchWithoutRawMeta } = result.patch
+          const { rawMeta: _, ...patchWithoutRawMeta } = result.patch;
 
           // 在 UPDATE 中使用状态守卫来关闭 TOCTOU（Time-of-check to time-of-use）竞态窗口：
           // 仅当文章状态未被并发请求修改时才应用变更，防止覆盖其他请求的结果。
@@ -433,7 +453,7 @@ export async function reprocessArticleAction(formData: FormData) {
             const current = await tx.query.articles.findFirst({
               where: eq(articles.id, articleId),
               columns: { status: true },
-            })
+            });
 
             if (current && current.status === article.status) {
               await tx
@@ -443,12 +463,12 @@ export async function reprocessArticleAction(formData: FormData) {
                   rawMeta: mergedRawMeta,
                   status: result.nextStatus,
                 })
-                .where(eq(articles.id, articleId))
+                .where(eq(articles.id, articleId));
             }
-          })
+          });
 
-          redirectMessage = buildSuccessMessage(target, lang)
-          redirectStatus = "success"
+          redirectMessage = buildSuccessMessage(target, lang);
+          redirectStatus = "success";
         }
       }
 
@@ -460,71 +480,81 @@ export async function reprocessArticleAction(formData: FormData) {
           `/admin/articles/${articleId}`,
           `/articles/${articleId}`,
           "/",
-        )
+        );
       }
     }
   } catch (error) {
-    redirectMessage = normalizeUserFacingError(error, lang)
-    redirectStatus = "error"
+    redirectMessage = normalizeUserFacingError(error, lang);
+    redirectStatus = "error";
   }
 
   redirect(
-    buildArticleDetailRedirect(articleId, redirectMessage, redirectStatus, lang),
-  )
+    buildArticleDetailRedirect(
+      articleId,
+      redirectMessage,
+      redirectStatus,
+      lang,
+    ),
+  );
 }
 
-function resolveRegenerationTarget(value: FormDataEntryValue | null): ArticleRegenerationTarget {
-  const normalized = String(value ?? "full").trim()
+function resolveRegenerationTarget(
+  value: FormDataEntryValue | null,
+): ArticleRegenerationTarget {
+  const normalized = String(value ?? "full").trim();
 
   return ARTICLE_REGENERATION_TARGETS.includes(
     normalized as ArticleRegenerationTarget,
   )
     ? (normalized as ArticleRegenerationTarget)
-    : "fetch-source"
+    : "fetch-source";
 }
 
-function buildSuccessMessage(target: ArticleRegenerationTarget, lang: "zh" | "en") {
+function buildSuccessMessage(
+  target: ArticleRegenerationTarget,
+  lang: "zh" | "en",
+) {
   if (lang === "zh") {
     switch (target) {
       case "fetch-source":
-        return "已重新抓取原文。"
+        return "已重新抓取原文。";
       case "extract-content":
-        return "已重新提取正文。"
+        return "已重新提取正文。";
       case "classify-relevance":
-        return "已重新判断相关性。"
+        return "已重新判断相关性。";
       case "skip-relevance":
-        return "已跳过相关性判断。"
+        return "已跳过相关性判断。";
       case "title-zh":
-        return "已重新生成中文标题。"
+        return "已重新生成中文标题。";
       case "content-zh":
-        return "已重新生成中文正文。"
+        return "已重新生成中文正文。";
       case "summary-en":
-        return "已重新生成英文摘要。"
+        return "已重新生成英文摘要。";
       case "summary-zh":
-        return "已重新生成中文摘要。"
+        return "已重新生成中文摘要。";
       case "tags":
-        return "已重新生成标签。"
+        return "已重新生成标签。";
     }
   }
 
   switch (target) {
     case "fetch-source":
-      return "Source has been re-fetched."
+      return "Source has been re-fetched.";
     case "extract-content":
-      return "Content has been re-extracted."
+      return "Content has been re-extracted.";
     case "classify-relevance":
-      return "Relevance has been re-classified."
+      return "Relevance has been re-classified.";
     case "skip-relevance":
-      return "Relevance has been skipped."
+      return "Relevance has been skipped.";
     case "title-zh":
-      return "The Chinese title has been regenerated."
+      return "The Chinese title has been regenerated.";
     case "content-zh":
-      return "The Chinese body has been regenerated."
+      return "The Chinese body has been regenerated.";
     case "summary-en":
-      return "The English summary has been regenerated."
+      return "The English summary has been regenerated.";
     case "summary-zh":
-      return "The Chinese summary has been regenerated."
+      return "The Chinese summary has been regenerated.";
     case "tags":
-      return "Tags have been regenerated."
+      return "Tags have been regenerated.";
   }
 }

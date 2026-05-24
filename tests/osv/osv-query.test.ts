@@ -1,14 +1,14 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildPackageMatchSummary,
   buildPackageCheckMeta,
   checkPackagesAgainstLocalDb,
-} from "../../packages/content/src/osv/query"
+} from "../../packages/content/src/osv/query";
 
 describe("buildPackageCheckMeta", () => {
   it("marks stale local mirrors without triggering network fallback", () => {
-    const now = new Date("2026-05-22T08:00:00Z")
+    const now = new Date("2026-05-22T08:00:00Z");
 
     expect(
       buildPackageCheckMeta({
@@ -19,7 +19,7 @@ describe("buildPackageCheckMeta", () => {
     ).toMatchObject({
       source: "local-osv-mirror",
       stale: false,
-    })
+    });
 
     expect(
       buildPackageCheckMeta({
@@ -30,9 +30,9 @@ describe("buildPackageCheckMeta", () => {
     ).toMatchObject({
       source: "local-osv-mirror",
       stale: true,
-    })
-  })
-})
+    });
+  });
+});
 
 describe("buildPackageMatchSummary", () => {
   it("describes explicit version hits in plain language", () => {
@@ -47,8 +47,8 @@ describe("buildPackageMatchSummary", () => {
       }),
     ).toBe(
       "cryptoco-auth@1.0.1 is explicitly listed as affected in the local OSV advisory data.",
-    )
-  })
+    );
+  });
 
   it("describes range-based hits in plain language", () => {
     expect(
@@ -62,9 +62,9 @@ describe("buildPackageMatchSummary", () => {
       }),
     ).toBe(
       "example.com/mod@v1.1.0 falls inside an affected Go version range in the local OSV advisory data.",
-    )
-  })
-})
+    );
+  });
+});
 
 describe("checkPackagesAgainstLocalDb", () => {
   it("queries local tables only and matches explicitly affected versions", async () => {
@@ -123,15 +123,15 @@ describe("checkPackagesAgainstLocalDb", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [{ ecosystem: "npm", name: "cryptoco-auth", version: "1.0.1" }],
       now: new Date("2026-05-22T08:00:00Z"),
-    })
+    });
 
-    expect(result.meta.source).toBe("local-osv-mirror")
-    expect(result.findings).toHaveLength(1)
+    expect(result.meta.source).toBe("local-osv-mirror");
+    expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatchObject({
       affected: true,
       confidence: "high",
@@ -157,9 +157,9 @@ describe("checkPackagesAgainstLocalDb", () => {
         name: "cryptoco-auth",
         version: "1.0.1",
       },
-    })
-    expect(db.query.securityAffectedPackages.findMany).toHaveBeenCalledTimes(1)
-  })
+    });
+    expect(db.query.securityAffectedPackages.findMany).toHaveBeenCalledTimes(1);
+  });
 
   it("normalizes scheme-less advisory references before returning findings", async () => {
     const db = {
@@ -210,16 +210,16 @@ describe("checkPackagesAgainstLocalDb", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [{ ecosystem: "go", name: "github.com/hashicorp/vault" }],
-    })
+    });
 
     expect(result.findings[0]?.advisory.references).toEqual([
       { type: "PACKAGE", url: "https://github.com/hashicorp/vault" },
-    ])
-  })
+    ]);
+  });
 
   it("matches range-only affected packages and returns structured reasoning", async () => {
     const db = {
@@ -267,13 +267,15 @@ describe("checkPackagesAgainstLocalDb", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
-      packages: [{ ecosystem: "go", name: "example.com/mod", version: "v1.1.0" }],
-    })
+      packages: [
+        { ecosystem: "go", name: "example.com/mod", version: "v1.1.0" },
+      ],
+    });
 
-    expect(result.findings).toHaveLength(1)
+    expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatchObject({
       affected: true,
       confidence: "high",
@@ -285,8 +287,8 @@ describe("checkPackagesAgainstLocalDb", () => {
         name: "example.com/mod",
         version: "v1.1.0",
       },
-    })
-  })
+    });
+  });
 
   it("sorts findings by advisory update time and exposes advisory timestamps", async () => {
     const db = {
@@ -365,21 +367,21 @@ describe("checkPackagesAgainstLocalDb", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [{ ecosystem: "npm", name: "axios", version: "0.21.1" }],
-    })
+    });
 
     expect(result.findings.map((finding) => finding.advisory.id)).toEqual([
       "GHSA-new",
       "GHSA-old",
-    ])
+    ]);
     expect(result.findings[0]?.advisory).toMatchObject({
       publishedAt: "2026-04-09T15:16:08.000Z",
       modifiedAt: "2026-05-21T20:38:54.000Z",
-    })
-  })
+    });
+  });
 
   it("enriches advisory CVE aliases with local KEV, EPSS, NVD, and risk signals", async () => {
     const db = {
@@ -462,13 +464,13 @@ describe("checkPackagesAgainstLocalDb", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [{ ecosystem: "npm", name: "axios", version: "1.6.0" }],
-    })
+    });
 
-    expect(result.findings).toHaveLength(1)
+    expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatchObject({
       advisory: {
         aliases: ["GHSA-axios", "CVE-2026-42044"],
@@ -493,9 +495,9 @@ describe("checkPackagesAgainstLocalDb", () => {
           "cvss_critical",
         ]),
       },
-    })
-    expect(db.query.securityCveEnrichments.findMany).toHaveBeenCalledTimes(1)
-  })
+    });
+    expect(db.query.securityCveEnrichments.findMany).toHaveBeenCalledTimes(1);
+  });
 
   it("keeps related CVE records visible without scoring them as the current advisory", async () => {
     const db = {
@@ -567,11 +569,11 @@ describe("checkPackagesAgainstLocalDb", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [{ ecosystem: "npm", name: "example", version: "1.0.0" }],
-    })
+    });
 
     expect(result.findings[0]).toMatchObject({
       advisory: {
@@ -583,9 +585,9 @@ describe("checkPackagesAgainstLocalDb", () => {
         score: 48,
         signals: ["affected_version_match", "no_fixed_version"],
       },
-    })
-    expect(db.query.securityCveEnrichments.findMany).not.toHaveBeenCalled()
-  })
+    });
+    expect(db.query.securityCveEnrichments.findMany).not.toHaveBeenCalled();
+  });
 
   it("normalizes legacy malicious-package false positives from non-MAL advisories", async () => {
     const db = {
@@ -638,11 +640,11 @@ describe("checkPackagesAgainstLocalDb", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [{ ecosystem: "npm", name: "axios", version: "1.0.0" }],
-    })
+    });
 
     expect(result.findings[0]).toMatchObject({
       advisory: {
@@ -650,8 +652,8 @@ describe("checkPackagesAgainstLocalDb", () => {
         riskType: "vulnerability",
         maliciousOrigins: [],
       },
-    })
-  })
+    });
+  });
 
   it("returns withdrawn advisories with withdrawal metadata", async () => {
     const db = {
@@ -696,13 +698,13 @@ describe("checkPackagesAgainstLocalDb", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [{ ecosystem: "npm", name: "left-pad", version: "1.0.0" }],
-    })
+    });
 
-    expect(result.findings).toHaveLength(1)
+    expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatchObject({
       affected: true,
       advisory: {
@@ -711,6 +713,6 @@ describe("checkPackagesAgainstLocalDb", () => {
         related: ["GHSA-related-withdrawn"],
         upstream: ["CVE-2026-0001"],
       },
-    })
-  })
-})
+    });
+  });
+});

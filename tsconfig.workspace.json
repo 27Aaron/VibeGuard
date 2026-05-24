@@ -1,15 +1,8 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
   },
-  "include": [
-    "drizzle.config.ts",
-    "packages/**/*.ts",
-    "apps/worker/**/*.ts"
-  ],
-  "exclude": [
-    "apps/web",
-    "node_modules"
-  ]
+  "include": ["drizzle.config.ts", "packages/**/*.ts", "apps/worker/**/*.ts"],
+  "exclude": ["apps/web", "node_modules"],
 }

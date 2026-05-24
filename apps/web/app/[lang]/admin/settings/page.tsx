@@ -1,34 +1,37 @@
-import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { LlmSettingsForm } from "@/components/admin/llm-settings-form"
-import { getLlmSettingsDetail, getLlmSettingsRows } from "@/lib/admin-data"
-import { saveLlmSettingsAction } from "@/lib/actions/settings"
-import { resolveLang } from "@/lib/i18n"
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { LlmSettingsForm } from "@/components/admin/llm-settings-form";
+import { getLlmSettingsDetail, getLlmSettingsRows } from "@/lib/admin-data";
+import { saveLlmSettingsAction } from "@/lib/actions/settings";
+import { resolveLang } from "@/lib/i18n";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type SettingsPageProps = {
-  params: Promise<{ lang: string }>
+  params: Promise<{ lang: string }>;
   searchParams?: Promise<{
-    profile?: string
-    status?: string
-    message?: string
-    preset?: string
-  }>
-}
+    profile?: string;
+    status?: string;
+    message?: string;
+    preset?: string;
+  }>;
+};
 
-export default async function SettingsPage({ params: routeParams, searchParams }: SettingsPageProps) {
-  const { lang: rawLang } = await routeParams
-  const params = (await searchParams) ?? {}
-  const lang = resolveLang(rawLang)
+export default async function SettingsPage({
+  params: routeParams,
+  searchParams,
+}: SettingsPageProps) {
+  const { lang: rawLang } = await routeParams;
+  const params = (await searchParams) ?? {};
+  const lang = resolveLang(rawLang);
   const [profiles, settings] = await Promise.all([
     getLlmSettingsRows(),
     getLlmSettingsDetail(params.profile),
-  ])
-  const isNewProfile = params.profile === "new"
+  ]);
+  const isNewProfile = params.profile === "new";
   const selectedProfileId = isNewProfile
     ? "new"
-    : (params.profile ?? settings.id)
-  const showBanner = params.status === "success" || params.status === "error"
+    : (params.profile ?? settings.id);
+  const showBanner = params.status === "success" || params.status === "error";
 
   return (
     <AdminPageShell
@@ -76,5 +79,5 @@ export default async function SettingsPage({ params: routeParams, searchParams }
         action={saveLlmSettingsAction}
       />
     </AdminPageShell>
-  )
+  );
 }

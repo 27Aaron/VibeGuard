@@ -22,7 +22,10 @@ export type InsertFeedItemResult = {
 };
 
 export function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function buildArticleInsert({
@@ -32,7 +35,8 @@ export function buildArticleInsert({
   fetchedAt = new Date(),
 }: ToArticleInsertInput) {
   const normalized = normalizeFeedItem(item, fetchedAt);
-  const rawContent = typeof item.content === "string" ? item.content : undefined;
+  const rawContent =
+    typeof item.content === "string" ? item.content : undefined;
   const summaryText =
     typeof item.contentSnippet === "string"
       ? item.contentSnippet
@@ -45,7 +49,7 @@ export function buildArticleInsert({
     title: normalized.titleEn,
     summary: summaryText,
     categories: item.categories,
-  })
+  });
 
   return {
     feedId,
@@ -86,7 +90,9 @@ export async function insertFeedItem(
   });
 
   if (!existing) {
-    throw new Error(`Unable to load article after insert attempt: ${article.url}`);
+    throw new Error(
+      `Unable to load article after insert attempt: ${article.url}`,
+    );
   }
 
   return {

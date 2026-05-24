@@ -6,4 +6,4 @@ export {
   getTableSurfaceClassName as getAdminTableSurfaceClassName,
   getSelectClassName as getAdminSelectClassName,
   getFilterSelectClassName as getAdminFilterSelectClassName,
-} from "./layout-tokens"
+} from "./layout-tokens";

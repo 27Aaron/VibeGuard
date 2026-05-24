@@ -48,11 +48,7 @@ export const JOB_STATUS_VALUES = jobStatuses.values;
 export const JobStatus = jobStatuses.map;
 export type JobStatus = (typeof JOB_STATUS_VALUES)[number];
 
-const jobTypes = defineStatuses([
-  "extract",
-  "translate",
-  "summarize",
-]);
+const jobTypes = defineStatuses(["extract", "translate", "summarize"]);
 
 export const JOB_TYPE_VALUES = jobTypes.values;
 export const JobType = jobTypes.map;
@@ -102,8 +98,7 @@ const articleRiskCategories = defineStatuses([
 
 export const ARTICLE_RISK_CATEGORY_VALUES = articleRiskCategories.values;
 export const ArticleRiskCategory = articleRiskCategories.map;
-export type ArticleRiskCategory =
-  (typeof ARTICLE_RISK_CATEGORY_VALUES)[number];
+export type ArticleRiskCategory = (typeof ARTICLE_RISK_CATEGORY_VALUES)[number];
 
 const securityPackageEcosystems = defineStatuses([
   "npm",
@@ -127,8 +122,7 @@ const securitySyncStatuses = defineStatuses([
 
 export const SECURITY_SYNC_STATUS_VALUES = securitySyncStatuses.values;
 export const SecuritySyncStatus = securitySyncStatuses.map;
-export type SecuritySyncStatus =
-  (typeof SECURITY_SYNC_STATUS_VALUES)[number];
+export type SecuritySyncStatus = (typeof SECURITY_SYNC_STATUS_VALUES)[number];
 
 const securityRiskTypes = defineStatuses([
   "unknown",

@@ -1,18 +1,13 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import {
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  X,
-} from "lucide-react"
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 
-import { PageSelect } from "@/components/page-select"
-import { PublicHeader } from "@/components/public-header"
-import { PublicTagFilter } from "@/components/public-tag-filter"
-import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
-import { getUiText, resolveLang, type AppLang } from "@/lib/i18n"
+import { PageSelect } from "@/components/page-select";
+import { PublicHeader } from "@/components/public-header";
+import { PublicTagFilter } from "@/components/public-tag-filter";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { getUiText, resolveLang, type AppLang } from "@/lib/i18n";
 import {
   getBackgroundClassName,
   getBackdropClassName,
@@ -20,22 +15,30 @@ import {
   getSectionInnerClassName,
   getSectionOuterClassName,
   getShellClassName,
-} from "@/lib/layout-tokens"
-import { getPublicArticleFeed, getPublicTags } from "@/lib/public-data"
-import { buildPublicTagFilterModel } from "@/lib/public-tag-filters"
-import { buildSummaryPreviewText } from "@/lib/summary-preview"
-import { formatDateTimeInShanghai } from "@/lib/time"
-import { cn } from "@/lib/utils"
+} from "@/lib/layout-tokens";
+import { getPublicArticleFeed, getPublicTags } from "@/lib/public-data";
+import { buildPublicTagFilterModel } from "@/lib/public-tag-filters";
+import { buildSummaryPreviewText } from "@/lib/summary-preview";
+import { formatDateTimeInShanghai } from "@/lib/time";
+import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
-  const { lang: rawLang } = await params
-  const lang = resolveLang(rawLang)
-  const title = lang === "zh" ? "VibeGuard - 供应链安全情报" : "VibeGuard - Supply-chain Security Intelligence"
-  const description = lang === "zh"
-    ? "聚合供应链攻击、恶意包与高危漏洞情报，提供双语摘要的开源安全内容流。"
-    : "Aggregated supply-chain attack, malicious package, and vulnerability intelligence with bilingual summaries."
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const { lang: rawLang } = await params;
+  const lang = resolveLang(rawLang);
+  const title =
+    lang === "zh"
+      ? "VibeGuard - 供应链安全情报"
+      : "VibeGuard - Supply-chain Security Intelligence";
+  const description =
+    lang === "zh"
+      ? "聚合供应链攻击、恶意包与高危漏洞情报，提供双语摘要的开源安全内容流。"
+      : "Aggregated supply-chain attack, malicious package, and vulnerability intelligence with bilingual summaries.";
 
   return {
     title,
@@ -46,101 +49,103 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       type: "website",
       locale: lang === "zh" ? "zh_CN" : "en_US",
     },
-  }
+  };
 }
 
 type PublicHomePageProps = {
-  params: Promise<{ lang: string }>
+  params: Promise<{ lang: string }>;
   searchParams?: Promise<{
-    q?: string
-    tag?: string
-    page?: string
-  }>
-}
+    q?: string;
+    tag?: string;
+    page?: string;
+  }>;
+};
 
-export default async function PublicHomePage({ params: routeParams, searchParams }: PublicHomePageProps) {
-  const { lang: langParam } = await routeParams
-  const lang = resolveLang(langParam)
-  const text = getUiText(lang)
-  const sp = (await searchParams) ?? {}
-  const query = sp.q?.trim() ?? ""
-  const tag = sp.tag?.trim().toLowerCase() ?? ""
-  const page = sp.page?.trim() ?? "1"
+export default async function PublicHomePage({
+  params: routeParams,
+  searchParams,
+}: PublicHomePageProps) {
+  const { lang: langParam } = await routeParams;
+  const lang = resolveLang(langParam);
+  const text = getUiText(lang);
+  const sp = (await searchParams) ?? {};
+  const query = sp.q?.trim() ?? "";
+  const tag = sp.tag?.trim().toLowerCase() ?? "";
+  const page = sp.page?.trim() ?? "1";
 
   const urlSearchParams = new URLSearchParams({
     limit: "15",
     page,
     lang,
-  })
+  });
 
-  if (query) urlSearchParams.set("q", query)
-  if (tag) urlSearchParams.set("tag", tag)
+  if (query) urlSearchParams.set("q", query);
+  if (tag) urlSearchParams.set("tag", tag);
 
   const [feed, tagCounts] = await Promise.all([
     getPublicArticleFeed(urlSearchParams),
     getPublicTags(),
-  ])
+  ]);
 
-  const requestedPage = feed.meta.page
-  const totalPages = feed.meta.totalPages
-  const currentPage = Math.min(requestedPage, totalPages)
-  const hasPreviousPage = currentPage > 1
-  const hasNextPage = currentPage < totalPages
-  const hasActiveFilters = Boolean(query || tag)
-  const tagFilterModel = buildPublicTagFilterModel(tagCounts, tag, 12)
+  const requestedPage = feed.meta.page;
+  const totalPages = feed.meta.totalPages;
+  const currentPage = Math.min(requestedPage, totalPages);
+  const hasPreviousPage = currentPage > 1;
+  const hasNextPage = currentPage < totalPages;
+  const hasActiveFilters = Boolean(query || tag);
+  const tagFilterModel = buildPublicTagFilterModel(tagCounts, tag, 12);
 
   function buildListHref(next: {
-    lang?: string
-    q?: string
-    tag?: string
-    page?: number
+    lang?: string;
+    q?: string;
+    tag?: string;
+    page?: number;
   }) {
-    const targetLang = next.lang ?? lang
-    const hrefParams = new URLSearchParams()
+    const targetLang = next.lang ?? lang;
+    const hrefParams = new URLSearchParams();
 
     if (next.q ?? query) {
-      hrefParams.set("q", next.q ?? query)
+      hrefParams.set("q", next.q ?? query);
     }
     if (next.tag ?? tag) {
-      hrefParams.set("tag", next.tag ?? tag)
+      hrefParams.set("tag", next.tag ?? tag);
     }
 
-    const nextPage = next.page ?? requestedPage
+    const nextPage = next.page ?? requestedPage;
     if (nextPage > 1) {
-      hrefParams.set("page", String(nextPage))
+      hrefParams.set("page", String(nextPage));
     }
 
-    const serialized = hrefParams.toString()
-    return serialized ? `/${targetLang}?${serialized}` : `/${targetLang}`
+    const serialized = hrefParams.toString();
+    return serialized ? `/${targetLang}?${serialized}` : `/${targetLang}`;
   }
 
   function buildArticleHref(articleId: string) {
-    const hrefParams = new URLSearchParams()
-    if (query) hrefParams.set("q", query)
-    if (tag) hrefParams.set("tag", tag)
-    if (currentPage > 1) hrefParams.set("page", String(currentPage))
-    const serialized = hrefParams.toString()
-    return serialized ? `/${lang}/articles/${articleId}?${serialized}` : `/${lang}/articles/${articleId}`
+    const hrefParams = new URLSearchParams();
+    if (query) hrefParams.set("q", query);
+    if (tag) hrefParams.set("tag", tag);
+    if (currentPage > 1) hrefParams.set("page", String(currentPage));
+    const serialized = hrefParams.toString();
+    return serialized
+      ? `/${lang}/articles/${articleId}?${serialized}`
+      : `/${lang}/articles/${articleId}`;
   }
 
   const visibleTagLinks = tagFilterModel.visibleTags.map((item) => ({
     ...item,
     href: buildListHref({ tag: item.active ? "" : item.tag, page: 1 }),
-  }))
+  }));
   const overflowTagLinks = tagFilterModel.overflowTags.map((item) => ({
     ...item,
     href: buildListHref({ tag: item.tag, page: 1 }),
-  }))
+  }));
 
   return (
     <main className={getBackgroundClassName()}>
       <div className={getBackdropClassName()} />
 
       <div className={getShellClassName()}>
-        <PublicHeader
-          homeHref={`/${lang}`}
-          currentLang={lang}
-        />
+        <PublicHeader homeHref={`/${lang}`} currentLang={lang} />
 
         <section className={getSectionOuterClassName()}>
           <div className={getSectionInnerClassName()}>
@@ -166,7 +171,10 @@ export default async function PublicHomePage({ params: routeParams, searchParams
             </div>
 
             <div className="mt-4 rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
-              <form action={`/${lang}`} className="flex flex-wrap items-center gap-2">
+              <form
+                action={`/${lang}`}
+                className="flex flex-wrap items-center gap-2"
+              >
                 {tag ? <input type="hidden" name="tag" value={tag} /> : null}
                 <input
                   type="search"
@@ -268,7 +276,10 @@ export default async function PublicHomePage({ params: routeParams, searchParams
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500 dark:text-stone-400">
-                      <Badge variant="outline" className="border-black/6 bg-white/70 text-[11px] font-semibold tracking-[0.18em] text-zinc-600 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-300">
+                      <Badge
+                        variant="outline"
+                        className="border-black/6 bg-white/70 text-[11px] font-semibold tracking-[0.18em] text-zinc-600 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-300"
+                      >
                         {article.sourceName.toUpperCase()}
                       </Badge>
                     </div>
@@ -331,7 +342,7 @@ export default async function PublicHomePage({ params: routeParams, searchParams
         </footer>
       </div>
     </main>
-  )
+  );
 }
 
 function PaginationControls({
@@ -347,17 +358,17 @@ function PaginationControls({
   query,
   tag,
 }: {
-  currentPage: number
-  totalPages: number
-  hasPreviousPage: boolean
-  hasNextPage: boolean
-  previousHref: string
-  nextHref: string
-  previousLabel: string
-  nextLabel: string
-  lang: AppLang
-  query: string
-  tag: string
+  currentPage: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  previousHref: string;
+  nextHref: string;
+  previousLabel: string;
+  nextLabel: string;
+  lang: AppLang;
+  query: string;
+  tag: string;
 }) {
   return (
     <nav
@@ -401,5 +412,5 @@ function PaginationControls({
         <ChevronRight className="size-3.5" />
       </Link>
     </nav>
-  )
+  );
 }

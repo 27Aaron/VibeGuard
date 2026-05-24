@@ -15,21 +15,24 @@ export function stripJsonFence(value: string) {
 export function tryParseJsonCandidates(candidates: string[]): unknown | null {
   for (const candidate of candidates) {
     try {
-      return JSON.parse(candidate)
+      return JSON.parse(candidate);
     } catch {
       // 当前候选字符串解析失败，继续尝试下一个候选字符串
     }
   }
 
-  return null
+  return null;
 }
 
-export function resolvePrompt(value: string | null | undefined, fallback: string) {
-  const normalized = String(value ?? "").trim()
+export function resolvePrompt(
+  value: string | null | undefined,
+  fallback: string,
+) {
+  const normalized = String(value ?? "").trim();
 
   if (!normalized) {
-    return fallback
+    return fallback;
   }
 
-  return normalized
+  return normalized;
 }

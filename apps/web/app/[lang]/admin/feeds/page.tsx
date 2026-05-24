@@ -1,33 +1,36 @@
-import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { CreateFeedForm } from "@/components/admin/create-feed-form"
-import { FeedTable } from "@/components/admin/feed-table"
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { CreateFeedForm } from "@/components/admin/create-feed-form";
+import { FeedTable } from "@/components/admin/feed-table";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { createFeedAction } from "@/lib/actions/feeds"
-import { getFeedRows } from "@/lib/admin-data"
-import { resolveLang } from "@/lib/i18n"
+} from "@/components/ui/card";
+import { createFeedAction } from "@/lib/actions/feeds";
+import { getFeedRows } from "@/lib/admin-data";
+import { resolveLang } from "@/lib/i18n";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type FeedsPageProps = {
-  params: Promise<{ lang: string }>
+  params: Promise<{ lang: string }>;
   searchParams?: Promise<{
-    status?: string
-    message?: string
-  }>
-}
+    status?: string;
+    message?: string;
+  }>;
+};
 
-export default async function FeedsPage({ params: routeParams, searchParams }: FeedsPageProps) {
-  const { lang: rawLang } = await routeParams
-  const params = (await searchParams) ?? {}
-  const lang = resolveLang(rawLang)
-  const feeds = await getFeedRows(lang)
-  const showBanner = params.status === "success" || params.status === "error"
+export default async function FeedsPage({
+  params: routeParams,
+  searchParams,
+}: FeedsPageProps) {
+  const { lang: rawLang } = await routeParams;
+  const params = (await searchParams) ?? {};
+  const lang = resolveLang(rawLang);
+  const feeds = await getFeedRows(lang);
+  const showBanner = params.status === "success" || params.status === "error";
 
   return (
     <AdminPageShell
@@ -53,7 +56,9 @@ export default async function FeedsPage({ params: routeParams, searchParams }: F
       <CreateFeedForm action={createFeedAction} lang={lang} />
       <Card>
         <CardHeader>
-          <CardTitle>{lang === "zh" ? "已配置来源" : "Configured sources"}</CardTitle>
+          <CardTitle>
+            {lang === "zh" ? "已配置来源" : "Configured sources"}
+          </CardTitle>
           <CardDescription>
             {lang === "zh"
               ? "当前已保存、可供抓取 Worker 使用的 RSS / Atom 来源。"
@@ -65,5 +70,5 @@ export default async function FeedsPage({ params: routeParams, searchParams }: F
         </CardContent>
       </Card>
     </AdminPageShell>
-  )
+  );
 }

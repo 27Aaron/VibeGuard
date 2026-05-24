@@ -1,24 +1,36 @@
-"use client"
+"use client";
 
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react"
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   type SecurityPackageEcosystem,
-} from "@vibeguard/shared"
-import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Search } from "lucide-react"
+} from "@vibeguard/shared";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Search,
+} from "lucide-react";
 
 import {
   MarkdownRenderer,
   MarkdownSummary,
-} from "@/components/content/markdown-renderer"
-import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
-import type { AppLang } from "@/lib/i18n"
-import { getUiText } from "@/lib/i18n"
-import type { SecurityOverviewTotals } from "@/lib/security-overview"
+} from "@/components/content/markdown-renderer";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout";
+import type { AppLang } from "@/lib/i18n";
+import { getUiText } from "@/lib/i18n";
+import type { SecurityOverviewTotals } from "@/lib/security-overview";
 import {
   buildSecurityCheckRequestBody,
   buildSecurityResultSummary,
@@ -28,128 +40,138 @@ import {
   parseSecurityCheckPayload,
   buildSecurityWorkbenchResultState,
   type SecurityFinding,
-} from "@/lib/security-workbench"
+} from "@/lib/security-workbench";
 import {
   clearPersistedSecurityWorkbenchState,
   loadPersistedSecurityWorkbenchState,
   savePersistedSecurityWorkbenchState,
   type PersistedSecurityWorkbenchState,
-} from "@/lib/security-workbench-state"
-import { buildSummaryPreviewText } from "@/lib/summary-preview"
-import { formatDateTimeInShanghai } from "@/lib/time"
-import { cn } from "@/lib/utils"
+} from "@/lib/security-workbench-state";
+import { buildSummaryPreviewText } from "@/lib/summary-preview";
+import { formatDateTimeInShanghai } from "@/lib/time";
+import { cn } from "@/lib/utils";
 
 type PackageCheckWorkbenchProps = {
-  lang: AppLang
-  initialOverviewTotals: SecurityOverviewTotals
-  lastSyncTime: string | null
-}
+  lang: AppLang;
+  initialOverviewTotals: SecurityOverviewTotals;
+  lastSyncTime: string | null;
+};
 
-type PackageCheckWorkbenchResult = ReturnType<typeof buildSecurityWorkbenchResultState>
+type PackageCheckWorkbenchResult = ReturnType<
+  typeof buildSecurityWorkbenchResultState
+>;
 
 type ExpandableMarkdownBlockProps = {
-  label: string
-  content: string
-  lang: AppLang
-  expandLabel: string
-  collapseLabel: string
-}
+  label: string;
+  content: string;
+  lang: AppLang;
+  expandLabel: string;
+  collapseLabel: string;
+};
 
-type SubmittedQuery = NonNullable<PersistedSecurityWorkbenchState["submittedQuery"]>
+type SubmittedQuery = NonNullable<
+  PersistedSecurityWorkbenchState["submittedQuery"]
+>;
 
-const findingsPerPage = 3
+const findingsPerPage = 3;
 
-type CvssLevel = "critical" | "high" | "medium" | "low"
+type CvssLevel = "critical" | "high" | "medium" | "low";
 
 function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
   switch (ecosystem) {
     case "pypi":
-      return "PyPI"
+      return "PyPI";
     case "go":
-      return "Go"
+      return "Go";
     case "crates-io":
-      return "crates.io"
+      return "crates.io";
     default:
-      return ecosystem
+      return ecosystem;
   }
 }
 
 function toneBadgeVariant(finding: SecurityFinding) {
   switch (getSecurityFindingTone(finding)) {
     case "hit":
-      return "destructive"
+      return "destructive";
     case "withdrawn":
-      return "secondary"
+      return "secondary";
     case "inconclusive":
-      return "outline"
+      return "outline";
     case "clear":
-      return "secondary"
+      return "secondary";
     default:
-      return "outline"
+      return "outline";
   }
 }
 
 function toneLabel(finding: SecurityFinding, lang: AppLang) {
   switch (getSecurityFindingTone(finding)) {
     case "hit":
-      return lang === "zh" ? "已命中" : "Match"
+      return lang === "zh" ? "已命中" : "Match";
     case "withdrawn":
-      return lang === "zh" ? "已撤回" : "Withdrawn"
+      return lang === "zh" ? "已撤回" : "Withdrawn";
     case "inconclusive":
-      return lang === "zh" ? "待确认" : "Inconclusive"
+      return lang === "zh" ? "待确认" : "Inconclusive";
     case "clear":
-      return lang === "zh" ? "未命中" : "Clear"
+      return lang === "zh" ? "未命中" : "Clear";
     default:
-      return lang === "zh" ? "结果" : "Result"
+      return lang === "zh" ? "结果" : "Result";
   }
 }
 
 function formatPercent(value: string | number | null | undefined) {
-  if (!value) return null
-  const parsed = typeof value === "number" ? value : Number.parseFloat(value)
-  return Number.isFinite(parsed) ? `${Math.round(parsed * 100)}%` : null
+  if (!value) return null;
+  const parsed = typeof value === "number" ? value : Number.parseFloat(value);
+  return Number.isFinite(parsed) ? `${Math.round(parsed * 100)}%` : null;
 }
 
 function numberFromDecimal(value: string | number | null | undefined) {
   if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null
+    return Number.isFinite(value) ? value : null;
   }
 
   if (typeof value !== "string" || !value.trim()) {
-    return null
+    return null;
   }
 
-  const parsed = Number.parseFloat(value)
+  const parsed = Number.parseFloat(value);
 
-  return Number.isFinite(parsed) ? parsed : null
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function formatFindingTime(value: string | null | undefined, lang: AppLang) {
-  return value ? formatDateTimeInShanghai(value, { lang }) : null
+  return value ? formatDateTimeInShanghai(value, { lang }) : null;
 }
 
 function primaryCveLabel(finding: SecurityFinding) {
-  return finding.cveEnrichments[0]?.cveId ?? finding.advisory.aliases.find((alias) => alias.startsWith("CVE-")) ?? null
+  return (
+    finding.cveEnrichments[0]?.cveId ??
+    finding.advisory.aliases.find((alias) => alias.startsWith("CVE-")) ??
+    null
+  );
 }
 
 function primaryCveEnrichment(finding: SecurityFinding) {
-  const primaryCve = primaryCveLabel(finding)
+  const primaryCve = primaryCveLabel(finding);
 
   return (
     finding.cveEnrichments.find((cve) => cve.cveId === primaryCve) ??
     finding.cveEnrichments[0]
-  )
+  );
 }
 
-function cvssLevelFromScore(value: string | number | null | undefined): CvssLevel | null {
-  const score = numberFromDecimal(value)
+function cvssLevelFromScore(
+  value: string | number | null | undefined,
+): CvssLevel | null {
+  const score = numberFromDecimal(value);
 
-  if (score === null || score <= 0) return null
-  if (score >= 9) return "critical"
-  if (score >= 7) return "high"
-  if (score >= 4) return "medium"
+  if (score === null || score <= 0) return null;
+  if (score >= 9) return "critical";
+  if (score >= 7) return "high";
+  if (score >= 4) return "medium";
 
-  return "low"
+  return "low";
 }
 
 function cvssLevelLabel(level: CvssLevel, lang: AppLang) {
@@ -165,45 +187,45 @@ function cvssLevelLabel(level: CvssLevel, lang: AppLang) {
         high: "HIGH",
         medium: "MEDIUM",
         low: "LOW",
-      }[level]
+      }[level];
 }
 
 function cvssLevelBadgeClassName(level: CvssLevel) {
   switch (level) {
     case "critical":
-      return "border-red-500/30 bg-red-50 text-red-700 dark:border-red-300/25 dark:bg-red-400/10 dark:text-red-200"
+      return "border-red-500/30 bg-red-50 text-red-700 dark:border-red-300/25 dark:bg-red-400/10 dark:text-red-200";
     case "high":
-      return "border-orange-500/30 bg-orange-50 text-orange-700 dark:border-orange-300/25 dark:bg-orange-400/10 dark:text-orange-200"
+      return "border-orange-500/30 bg-orange-50 text-orange-700 dark:border-orange-300/25 dark:bg-orange-400/10 dark:text-orange-200";
     case "medium":
-      return "border-amber-500/30 bg-amber-50 text-amber-700 dark:border-amber-300/25 dark:bg-amber-400/10 dark:text-amber-200"
+      return "border-amber-500/30 bg-amber-50 text-amber-700 dark:border-amber-300/25 dark:bg-amber-400/10 dark:text-amber-200";
     case "low":
-      return "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200"
+      return "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200";
     default:
-      return ""
+      return "";
   }
 }
 
 function fixedVersionBadgeClassName() {
-  return "h-6 px-2.5 border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200"
+  return "h-6 px-2.5 border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-400/10 dark:text-emerald-200";
 }
 
 function affectedRangeBadgeClassName() {
-  return "h-6 px-2.5"
+  return "h-6 px-2.5";
 }
 
 function riskTypeLabel(riskType: string, lang: AppLang) {
   if (riskType === "malicious-package") {
-    return lang === "zh" ? "恶意包" : "Malicious package"
+    return lang === "zh" ? "恶意包" : "Malicious package";
   }
 
-  return null
+  return null;
 }
 
 function findingMetricBadges(finding: SecurityFinding, lang: AppLang) {
-  const primaryCve = primaryCveLabel(finding)
-  const enrichment = primaryCveEnrichment(finding)
-  const epssPercentile = formatPercent(enrichment?.epssPercentile)
-  const riskType = riskTypeLabel(finding.advisory.riskType, lang)
+  const primaryCve = primaryCveLabel(finding);
+  const enrichment = primaryCveEnrichment(finding);
+  const epssPercentile = formatPercent(enrichment?.epssPercentile);
+  const riskType = riskTypeLabel(finding.advisory.riskType, lang);
 
   return [
     riskType
@@ -211,7 +233,8 @@ function findingMetricBadges(finding: SecurityFinding, lang: AppLang) {
           key: "risk-type",
           label: riskType,
           variant: "outline" as const,
-          className: "border-red-500/25 bg-red-50 text-red-700 dark:border-red-300/20 dark:bg-red-400/10 dark:text-red-200",
+          className:
+            "border-red-500/25 bg-red-50 text-red-700 dark:border-red-300/20 dark:bg-red-400/10 dark:text-red-200",
         }
       : null,
     primaryCve
@@ -238,138 +261,149 @@ function findingMetricBadges(finding: SecurityFinding, lang: AppLang) {
           className: "",
         }
       : null,
-  ].filter((badge): badge is NonNullable<typeof badge> => Boolean(badge))
+  ].filter((badge): badge is NonNullable<typeof badge> => Boolean(badge));
 }
 
 function withdrawnLabel(finding: SecurityFinding, lang: AppLang) {
-  const withdrawnAt = formatFindingTime(finding.advisory.withdrawnAt, lang)
+  const withdrawnAt = formatFindingTime(finding.advisory.withdrawnAt, lang);
 
   if (!withdrawnAt) {
-    return null
+    return null;
   }
 
   return lang === "zh"
     ? `已撤回 · 不再适用 · 撤回 ${withdrawnAt}`
-    : `Withdrawn · No longer applicable · Withdrawn ${withdrawnAt}`
+    : `Withdrawn · No longer applicable · Withdrawn ${withdrawnAt}`;
 }
 
-function relationKindLabel(kind: "alias" | "related" | "upstream", lang: AppLang) {
+function relationKindLabel(
+  kind: "alias" | "related" | "upstream",
+  lang: AppLang,
+) {
   if (lang === "zh") {
     return {
       alias: "别名",
       related: "相关",
       upstream: "上游",
-    }[kind]
+    }[kind];
   }
 
   return {
     alias: "Alias",
     related: "Related",
     upstream: "Upstream",
-  }[kind]
+  }[kind];
 }
 
 function advisoryRelationItems(finding: SecurityFinding) {
-  const primaryCve = primaryCveLabel(finding)?.toUpperCase()
+  const primaryCve = primaryCveLabel(finding)?.toUpperCase();
   const ignoredIds = new Set(
-    [finding.advisory.id.toUpperCase(), primaryCve].filter(
-      (id): id is string => Boolean(id),
+    [finding.advisory.id.toUpperCase(), primaryCve].filter((id): id is string =>
+      Boolean(id),
     ),
-  )
-  const seenIds = new Set<string>()
-  const items: Array<{ id: string; kind: "alias" | "related" | "upstream" }> = []
+  );
+  const seenIds = new Set<string>();
+  const items: Array<{ id: string; kind: "alias" | "related" | "upstream" }> =
+    [];
 
-  function add(kind: "alias" | "related" | "upstream", ids: string[] | undefined) {
+  function add(
+    kind: "alias" | "related" | "upstream",
+    ids: string[] | undefined,
+  ) {
     for (const id of ids ?? []) {
-      const trimmedId = id.trim()
-      const normalizedId = trimmedId.toUpperCase()
+      const trimmedId = id.trim();
+      const normalizedId = trimmedId.toUpperCase();
 
-      if (!trimmedId || ignoredIds.has(normalizedId) || seenIds.has(normalizedId)) {
-        continue
+      if (
+        !trimmedId ||
+        ignoredIds.has(normalizedId) ||
+        seenIds.has(normalizedId)
+      ) {
+        continue;
       }
 
-      seenIds.add(normalizedId)
-      items.push({ id: trimmedId, kind })
+      seenIds.add(normalizedId);
+      items.push({ id: trimmedId, kind });
     }
   }
 
-  add("upstream", finding.advisory.upstream)
-  add("related", finding.advisory.related)
-  add("alias", finding.advisory.aliases)
+  add("upstream", finding.advisory.upstream);
+  add("related", finding.advisory.related);
+  add("alias", finding.advisory.aliases);
 
-  return items
+  return items;
 }
 
 function findingReferenceItems(finding: SecurityFinding) {
-  const references = [...finding.advisory.references]
-  const sourceUrl = finding.advisory.sourceUrl
+  const references = [...finding.advisory.references];
+  const sourceUrl = finding.advisory.sourceUrl;
 
   if (!sourceUrl) {
-    return references
+    return references;
   }
 
   const normalizedSourceUrl = (() => {
     try {
-      return new URL(sourceUrl).toString()
+      return new URL(sourceUrl).toString();
     } catch {
-      return null
+      return null;
     }
-  })()
+  })();
 
   if (
     normalizedSourceUrl &&
     !references.some((reference) => reference.url === normalizedSourceUrl)
   ) {
-    references.push({ type: "ADVISORY", url: normalizedSourceUrl })
+    references.push({ type: "ADVISORY", url: normalizedSourceUrl });
   }
 
-  return references
+  return references;
 }
 
 function referenceLabel(
   reference: SecurityFinding["advisory"]["references"][number],
   lang: AppLang,
 ) {
-  const type = reference.type?.toUpperCase()
-  let url: URL | null = null
+  const type = reference.type?.toUpperCase();
+  let url: URL | null = null;
 
   try {
-    url = new URL(reference.url)
+    url = new URL(reference.url);
   } catch {
-    return type || reference.url
+    return type || reference.url;
   }
 
-  const path = url.pathname
+  const path = url.pathname;
 
   if (
     url.hostname === "storage.googleapis.com" &&
     path.includes("/osv-vulnerabilities/")
   ) {
-    return lang === "zh" ? "OSV 原始记录" : "OSV record"
+    return lang === "zh" ? "OSV 原始记录" : "OSV record";
   }
-  if (url.hostname === "nvd.nist.gov") return "NVD"
+  if (url.hostname === "nvd.nist.gov") return "NVD";
   if (url.hostname === "github.com" && path.includes("/security/advisories/")) {
-    return "GitHub Advisory"
+    return "GitHub Advisory";
   }
   if (url.hostname === "github.com" && path.includes("/pull/")) {
-    return lang === "zh" ? "修复 PR" : "Fix PR"
+    return lang === "zh" ? "修复 PR" : "Fix PR";
   }
   if (url.hostname === "github.com" && path.includes("/commit/")) {
-    return lang === "zh" ? "修复 Commit" : "Fix commit"
+    return lang === "zh" ? "修复 Commit" : "Fix commit";
   }
   if (url.hostname === "github.com" && path.includes("/releases/tag/")) {
-    return lang === "zh" ? "版本发布" : "Release"
+    return lang === "zh" ? "版本发布" : "Release";
   }
-  if (type === "PACKAGE") return lang === "zh" ? "项目主页" : "Package"
-  if (type === "ADVISORY") return lang === "zh" ? "公告" : "Advisory"
+  if (type === "PACKAGE") return lang === "zh" ? "项目主页" : "Package";
+  if (type === "ADVISORY") return lang === "zh" ? "公告" : "Advisory";
 
-  return url.hostname.replace(/^www\./, "")
+  return url.hostname.replace(/^www\./, "");
 }
 
 async function parseCheckResponse(response: Response) {
-  const payload = await response.json().catch(() => null) as
+  const payload = (await response.json().catch(() => null)) as
     | { message?: string }
-    | unknown
+    | unknown;
 
   if (!response.ok) {
     const message =
@@ -378,12 +412,12 @@ async function parseCheckResponse(response: Response) {
       "message" in payload &&
       typeof payload.message === "string"
         ? payload.message
-        : `Request failed with status ${response.status}.`
+        : `Request failed with status ${response.status}.`;
 
-    throw new Error(message)
+    throw new Error(message);
   }
 
-  return parseSecurityCheckPayload(payload)
+  return parseSecurityCheckPayload(payload);
 }
 
 function ExpandableMarkdownBlock({
@@ -393,44 +427,45 @@ function ExpandableMarkdownBlock({
   expandLabel,
   collapseLabel,
 }: ExpandableMarkdownBlockProps) {
-  const [expanded, setExpanded] = useState(false)
-  const [canExpand, setCanExpand] = useState(false)
-  const measureRef = useRef<HTMLDivElement | null>(null)
-  const previewText = buildSummaryPreviewText(content)
+  const [expanded, setExpanded] = useState(false);
+  const [canExpand, setCanExpand] = useState(false);
+  const measureRef = useRef<HTMLDivElement | null>(null);
+  const previewText = buildSummaryPreviewText(content);
 
   useEffect(() => {
-    const measureElement = measureRef.current
+    const measureElement = measureRef.current;
 
     if (!measureElement) {
-      return
+      return;
     }
 
-    setCanExpand(false)
+    setCanExpand(false);
 
     const measureOverflow = () => {
-      const styles = window.getComputedStyle(measureElement)
-      const lineHeight = Number.parseFloat(styles.lineHeight)
-      const collapsedHeight = (Number.isFinite(lineHeight) ? lineHeight : 24) * 2
-      const nextCanExpand = measureElement.scrollHeight > collapsedHeight + 1
-      setCanExpand(nextCanExpand)
-    }
+      const styles = window.getComputedStyle(measureElement);
+      const lineHeight = Number.parseFloat(styles.lineHeight);
+      const collapsedHeight =
+        (Number.isFinite(lineHeight) ? lineHeight : 24) * 2;
+      const nextCanExpand = measureElement.scrollHeight > collapsedHeight + 1;
+      setCanExpand(nextCanExpand);
+    };
 
-    measureOverflow()
+    measureOverflow();
 
     if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", measureOverflow)
-      return () => window.removeEventListener("resize", measureOverflow)
+      window.addEventListener("resize", measureOverflow);
+      return () => window.removeEventListener("resize", measureOverflow);
     }
 
-    const observer = new ResizeObserver(measureOverflow)
-    observer.observe(measureElement)
-    window.addEventListener("resize", measureOverflow)
+    const observer = new ResizeObserver(measureOverflow);
+    observer.observe(measureElement);
+    window.addEventListener("resize", measureOverflow);
 
     return () => {
-      observer.disconnect()
-      window.removeEventListener("resize", measureOverflow)
-    }
-  }, [previewText])
+      observer.disconnect();
+      window.removeEventListener("resize", measureOverflow);
+    };
+  }, [previewText]);
 
   return (
     <div className="space-y-2">
@@ -446,7 +481,11 @@ function ExpandableMarkdownBlock({
             className="h-7 shrink-0 px-2 text-xs text-zinc-500 hover:text-zinc-950 dark:text-stone-400 dark:hover:text-stone-50"
             onClick={() => setExpanded((current) => !current)}
           >
-            {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+            {expanded ? (
+              <ChevronDown className="size-3.5" />
+            ) : (
+              <ChevronRight className="size-3.5" />
+            )}
             {expanded ? collapseLabel : expandLabel}
           </Button>
         ) : null}
@@ -474,7 +513,7 @@ function ExpandableMarkdownBlock({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export function PackageCheckWorkbench({
@@ -482,30 +521,34 @@ export function PackageCheckWorkbench({
   initialOverviewTotals,
   lastSyncTime,
 }: PackageCheckWorkbenchProps) {
-  const copy = getUiText(lang)
-  const [ecosystem, setEcosystem] = useState<SecurityPackageEcosystem>("npm")
-  const [packageName, setPackageName] = useState("")
-  const [version, setVersion] = useState("")
-  const [selectOpen, setSelectOpen] = useState(false)
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [submittedQuery, setSubmittedQuery] = useState<SubmittedQuery | null>(null)
-  const [storageReady, setStorageReady] = useState(false)
-  const selectRef = useRef<HTMLDivElement | null>(null)
+  const copy = getUiText(lang);
+  const [ecosystem, setEcosystem] = useState<SecurityPackageEcosystem>("npm");
+  const [packageName, setPackageName] = useState("");
+  const [version, setVersion] = useState("");
+  const [selectOpen, setSelectOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<PackageCheckWorkbenchResult | null>(
+    null,
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [submittedQuery, setSubmittedQuery] = useState<SubmittedQuery | null>(
+    null,
+  );
+  const [storageReady, setStorageReady] = useState(false);
+  const selectRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const saved = loadPersistedSecurityWorkbenchState()
+    const saved = loadPersistedSecurityWorkbenchState();
     if (saved) {
-      setEcosystem(saved.ecosystem)
-      setPackageName(saved.packageName)
-      setVersion(saved.version)
-      if (saved.result) setResult(saved.result)
-      if (saved.submittedQuery) setSubmittedQuery(saved.submittedQuery)
+      setEcosystem(saved.ecosystem);
+      setPackageName(saved.packageName);
+      setVersion(saved.version);
+      if (saved.result) setResult(saved.result);
+      if (saved.submittedQuery) setSubmittedQuery(saved.submittedQuery);
     }
-    setStorageReady(true)
-  }, [])
+    setStorageReady(true);
+  }, []);
 
   const persistState = useCallback(
     (
@@ -521,22 +564,22 @@ export function PackageCheckWorkbench({
         version: ver,
         submittedQuery: query,
         result: res,
-      })
+      });
     },
     [],
-  )
+  );
 
   useEffect(() => {
     if (!storageReady || pending) {
-      return
+      return;
     }
 
     if (!packageName.trim() && !version.trim() && !submittedQuery && !result) {
-      clearPersistedSecurityWorkbenchState()
-      return
+      clearPersistedSecurityWorkbenchState();
+      return;
     }
 
-    persistState(ecosystem, packageName, version, submittedQuery, result)
+    persistState(ecosystem, packageName, version, submittedQuery, result);
   }, [
     ecosystem,
     packageName,
@@ -546,81 +589,86 @@ export function PackageCheckWorkbench({
     storageReady,
     submittedQuery,
     version,
-  ])
+  ]);
 
   useEffect(() => {
     if (!selectOpen) {
-      return
+      return;
     }
 
     function handlePointerDown(event: MouseEvent) {
       if (!selectRef.current?.contains(event.target as Node)) {
-        setSelectOpen(false)
+        setSelectOpen(false);
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setSelectOpen(false)
+        setSelectOpen(false);
       }
     }
 
-    window.addEventListener("mousedown", handlePointerDown)
-    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener("mousedown", handlePointerDown)
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [selectOpen])
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectOpen]);
 
-  const matchedCount = result?.findings.length ?? 0
-  const pageCount = result ? Math.max(1, Math.ceil(result.findings.length / findingsPerPage)) : 1
-  const pageStart = (currentPage - 1) * findingsPerPage
-  const pageEnd = pageStart + findingsPerPage
-  const pagedFindings = result ? result.findings.slice(pageStart, pageEnd) : []
-  const resultSummary = result && !result.empty
-    ? buildSecurityResultSummary(result.findings)
-    : null
+  const matchedCount = result?.findings.length ?? 0;
+  const pageCount = result
+    ? Math.max(1, Math.ceil(result.findings.length / findingsPerPage))
+    : 1;
+  const pageStart = (currentPage - 1) * findingsPerPage;
+  const pageEnd = pageStart + findingsPerPage;
+  const pagedFindings = result ? result.findings.slice(pageStart, pageEnd) : [];
+  const resultSummary =
+    result && !result.empty
+      ? buildSecurityResultSummary(result.findings)
+      : null;
   const overviewBadge = copy.publicCheckOverviewBadge(
     ecosystemLabel(ecosystem),
     initialOverviewTotals[ecosystem] ?? 0,
-  )
+  );
   const summaryRiskCount = resultSummary
     ? submittedQuery?.version
       ? copy.publicCheckHitCountBadge(resultSummary.affectedCount)
       : copy.publicCheckMatchCountBadge(matchedCount)
-    : null
+    : null;
   const latestUpdatedAt = resultSummary?.latestUpdatedAt
     ? formatDateTimeInShanghai(resultSummary.latestUpdatedAt, { lang })
-    : null
+    : null;
   const summaryLineParts = [
     copy.publicCheckResultLabel,
-    latestUpdatedAt ? `${lang === "zh" ? "最近漏洞更新" : "Latest vulnerability update"} ${latestUpdatedAt}` : null,
-  ].filter((part): part is string => Boolean(part))
-  const summaryPackageLabel = `${packageName.trim()}${submittedQuery?.version ? `@${submittedQuery.version}` : ""}`
+    latestUpdatedAt
+      ? `${lang === "zh" ? "最近漏洞更新" : "Latest vulnerability update"} ${latestUpdatedAt}`
+      : null,
+  ].filter((part): part is string => Boolean(part));
+  const summaryPackageLabel = `${packageName.trim()}${submittedQuery?.version ? `@${submittedQuery.version}` : ""}`;
 
   function resetSearchState(nextEcosystem: SecurityPackageEcosystem) {
-    setEcosystem(nextEcosystem)
-    setPackageName("")
-    setVersion("")
-    setError(null)
-    setResult(null)
-    setCurrentPage(1)
-    setSubmittedQuery(null)
-    clearPersistedSecurityWorkbenchState()
+    setEcosystem(nextEcosystem);
+    setPackageName("");
+    setVersion("");
+    setError(null);
+    setResult(null);
+    setCurrentPage(1);
+    setSubmittedQuery(null);
+    clearPersistedSecurityWorkbenchState();
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
-    setPending(true)
-    setError(null)
-    setResult(null)
-    setCurrentPage(1)
+    setPending(true);
+    setError(null);
+    setResult(null);
+    setCurrentPage(1);
 
     try {
-      const normalizedVersion = version.trim() || null
+      const normalizedVersion = version.trim() || null;
       const payload = await parseCheckResponse(
         await fetch("/api/security/check/packages", {
           method: "POST",
@@ -635,32 +683,36 @@ export function PackageCheckWorkbench({
             }),
           ),
         }),
-      )
+      );
 
-      const resultState = buildSecurityWorkbenchResultState(payload)
-      const query = { version: normalizedVersion }
-      setResult(resultState)
-      setSubmittedQuery(query)
-      persistState(ecosystem, packageName, version, query, resultState)
+      const resultState = buildSecurityWorkbenchResultState(payload);
+      const query = { version: normalizedVersion };
+      setResult(resultState);
+      setSubmittedQuery(query);
+      persistState(ecosystem, packageName, version, query, resultState);
     } catch (submitError) {
-      setResult(null)
-      setSubmittedQuery(null)
+      setResult(null);
+      setSubmittedQuery(null);
       setError(
         submitError instanceof Error
           ? submitError.message
           : lang === "zh"
             ? "查询失败，请稍后再试。"
             : "The check failed. Please try again.",
-      )
+      );
     } finally {
-      setPending(false)
+      setPending(false);
     }
   }
 
   return (
     <div className="space-y-5">
       <div className="rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
-        <form action="#" className="flex flex-col gap-3" onSubmit={handleSubmit}>
+        <form
+          action="#"
+          className="flex flex-col gap-3"
+          onSubmit={handleSubmit}
+        >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <p className="px-1 text-sm leading-6 text-zinc-600 dark:text-stone-300">
               {copy.publicCheckSearchHint}
@@ -671,7 +723,8 @@ export function PackageCheckWorkbench({
               </Badge>
               {lastSyncTime ? (
                 <Badge variant="outline" className="h-7 px-3">
-                  {lang === "zh" ? "数据更新于" : "Data updated"} {formatDateTimeInShanghai(lastSyncTime, { lang })}
+                  {lang === "zh" ? "数据更新于" : "Data updated"}{" "}
+                  {formatDateTimeInShanghai(lastSyncTime, { lang })}
                 </Badge>
               ) : null}
             </div>
@@ -699,7 +752,7 @@ export function PackageCheckWorkbench({
                   className="absolute left-0 top-[calc(100%+0.45rem)] z-20 flex w-full flex-col gap-1.5 rounded-[1.1rem] border border-black/8 bg-[#fcfcfa] p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-[#1b2028]"
                 >
                   {SECURITY_PACKAGE_ECOSYSTEM_VALUES.map((option) => {
-                    const active = option === ecosystem
+                    const active = option === ecosystem;
 
                     return (
                       <button
@@ -714,13 +767,13 @@ export function PackageCheckWorkbench({
                             : "text-zinc-700 hover:bg-black/[0.03] dark:text-stone-200 dark:hover:bg-white/[0.05]",
                         )}
                         onClick={() => {
-                          resetSearchState(option)
-                          setSelectOpen(false)
+                          resetSearchState(option);
+                          setSelectOpen(false);
                         }}
                       >
                         {ecosystemLabel(option)}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               ) : null}
@@ -733,10 +786,18 @@ export function PackageCheckWorkbench({
               type="search"
               value={packageName}
               onChange={(event) => {
-                setPackageName(event.target.value)
-                persistState(ecosystem, event.target.value, version, submittedQuery, result)
+                setPackageName(event.target.value);
+                persistState(
+                  ecosystem,
+                  event.target.value,
+                  version,
+                  submittedQuery,
+                  result,
+                );
               }}
-              placeholder={ecosystem === "npm" ? "@scope/package" : "package-name"}
+              placeholder={
+                ecosystem === "npm" ? "@scope/package" : "package-name"
+              }
               className="h-11 min-w-0 flex-1 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
               disabled={pending}
               required
@@ -748,8 +809,14 @@ export function PackageCheckWorkbench({
               id="security-package-version"
               value={version}
               onChange={(event) => {
-                setVersion(event.target.value)
-                persistState(ecosystem, packageName, event.target.value, submittedQuery, result)
+                setVersion(event.target.value);
+                persistState(
+                  ecosystem,
+                  packageName,
+                  event.target.value,
+                  submittedQuery,
+                  result,
+                );
               }}
               placeholder="1.0.0"
               className="h-11 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 lg:w-[180px] dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
@@ -757,8 +824,12 @@ export function PackageCheckWorkbench({
             />
             <Button
               type="submit"
-              aria-label={pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit}
-              title={pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit}
+              aria-label={
+                pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit
+              }
+              title={
+                pending ? copy.publicCheckSubmitting : copy.publicCheckSubmit
+              }
               disabled={pending || !packageName.trim()}
               className={cn(
                 buttonVariants({ size: "icon", variant: "outline" }),
@@ -819,222 +890,256 @@ export function PackageCheckWorkbench({
         </section>
       ) : null}
 
-      {result ? result.empty ? (
-        <section className={cn("space-y-2", getAdminSubtlePanelClassName())}>
-          <p className="text-sm text-zinc-700 dark:text-stone-200">{copy.publicCheckNoFindings}</p>
-        </section>
-      ) : (
-        <section className="space-y-3">
-          {pagedFindings.map((finding, index) => {
-            const formattedRanges = formatAffectedRanges(
-              finding.affectedPackage.ranges,
-            )
-            const latestUpdatedAt = getSecurityFindingLatestUpdatedAt(finding)
-            const publishedAt = formatFindingTime(finding.advisory.publishedAt, lang)
-            const updatedAt = formatFindingTime(latestUpdatedAt, lang)
-            const findingMetaParts = [
-              finding.advisory.id,
-              publishedAt ? `${lang === "zh" ? "发布" : "Published"} ${publishedAt}` : null,
-              updatedAt ? `${lang === "zh" ? "更新" : "Updated"} ${updatedAt}` : null,
-            ].filter((part): part is string => Boolean(part))
-            const metricBadges = findingMetricBadges(finding, lang)
-            const tone = toneLabel(finding, lang)
-            const cvssLevel = cvssLevelFromScore(
-              primaryCveEnrichment(finding)?.bestCvssScore,
-            )
-            const affectedRangeLabels =
-              formattedRanges.length > 0
-                ? formattedRanges
-                : finding.affectedPackage.affectedVersions
-            const hasRemediationInfo =
-              affectedRangeLabels.length > 0 ||
-              finding.affectedPackage.fixedVersions.length > 0
-            const referenceItems = findingReferenceItems(finding)
-            const withdrawnInfo = withdrawnLabel(finding, lang)
-            const relationItems = advisoryRelationItems(finding)
+      {result ? (
+        result.empty ? (
+          <section className={cn("space-y-2", getAdminSubtlePanelClassName())}>
+            <p className="text-sm text-zinc-700 dark:text-stone-200">
+              {copy.publicCheckNoFindings}
+            </p>
+          </section>
+        ) : (
+          <section className="space-y-3">
+            {pagedFindings.map((finding, index) => {
+              const formattedRanges = formatAffectedRanges(
+                finding.affectedPackage.ranges,
+              );
+              const latestUpdatedAt =
+                getSecurityFindingLatestUpdatedAt(finding);
+              const publishedAt = formatFindingTime(
+                finding.advisory.publishedAt,
+                lang,
+              );
+              const updatedAt = formatFindingTime(latestUpdatedAt, lang);
+              const findingMetaParts = [
+                finding.advisory.id,
+                publishedAt
+                  ? `${lang === "zh" ? "发布" : "Published"} ${publishedAt}`
+                  : null,
+                updatedAt
+                  ? `${lang === "zh" ? "更新" : "Updated"} ${updatedAt}`
+                  : null,
+              ].filter((part): part is string => Boolean(part));
+              const metricBadges = findingMetricBadges(finding, lang);
+              const tone = toneLabel(finding, lang);
+              const cvssLevel = cvssLevelFromScore(
+                primaryCveEnrichment(finding)?.bestCvssScore,
+              );
+              const affectedRangeLabels =
+                formattedRanges.length > 0
+                  ? formattedRanges
+                  : finding.affectedPackage.affectedVersions;
+              const hasRemediationInfo =
+                affectedRangeLabels.length > 0 ||
+                finding.affectedPackage.fixedVersions.length > 0;
+              const referenceItems = findingReferenceItems(finding);
+              const withdrawnInfo = withdrawnLabel(finding, lang);
+              const relationItems = advisoryRelationItems(finding);
 
-            return (
-              <article
-                key={`${finding.advisory.id}-${finding.package.name}-${index}`}
-                className={cn("space-y-4", getAdminSubtlePanelClassName())}
-              >
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
-                      {findingMetaParts.join(" · ")}
-                    </p>
-                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                      {cvssLevel ? (
+              return (
+                <article
+                  key={`${finding.advisory.id}-${finding.package.name}-${index}`}
+                  className={cn("space-y-4", getAdminSubtlePanelClassName())}
+                >
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
+                        {findingMetaParts.join(" · ")}
+                      </p>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                        {cvssLevel ? (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "h-7 px-2.5",
+                              cvssLevelBadgeClassName(cvssLevel),
+                            )}
+                          >
+                            {cvssLevelLabel(cvssLevel, lang)}
+                          </Badge>
+                        ) : null}
                         <Badge
-                          variant="outline"
-                          className={cn("h-7 px-2.5", cvssLevelBadgeClassName(cvssLevel))}
+                          variant={toneBadgeVariant(finding)}
+                          className="h-7 px-2.5"
                         >
-                          {cvssLevelLabel(cvssLevel, lang)}
+                          {tone}
                         </Badge>
-                      ) : null}
-                      <Badge
-                        variant={toneBadgeVariant(finding)}
-                        className="h-7 px-2.5"
-                      >
-                        {tone}
-                      </Badge>
+                      </div>
                     </div>
+                    <MarkdownSummary
+                      content={finding.advisory.summary || finding.matchSummary}
+                      variant="public"
+                      lang={lang}
+                      className="text-sm font-medium leading-6 text-zinc-950 dark:text-stone-50 [&_p]:!my-0 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit"
+                    />
+                    {metricBadges.length > 0 ? (
+                      <div className="flex flex-nowrap gap-2 overflow-x-auto text-xs">
+                        {metricBadges.map((badge) => (
+                          <Badge
+                            key={badge.key}
+                            variant={badge.variant}
+                            className={cn(
+                              "h-7 shrink-0 whitespace-nowrap px-2.5",
+                              badge.className,
+                            )}
+                          >
+                            {badge.label}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                  <MarkdownSummary
-                    content={finding.advisory.summary || finding.matchSummary}
-                    variant="public"
-                    lang={lang}
-                    className="text-sm font-medium leading-6 text-zinc-950 dark:text-stone-50 [&_p]:!my-0 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit"
-                  />
-                  {metricBadges.length > 0 ? (
-                    <div className="flex flex-nowrap gap-2 overflow-x-auto text-xs">
-                      {metricBadges.map((badge) => (
-                        <Badge
-                          key={badge.key}
-                          variant={badge.variant}
-                          className={cn("h-7 shrink-0 whitespace-nowrap px-2.5", badge.className)}
-                        >
-                          {badge.label}
-                        </Badge>
-                      ))}
+
+                  {withdrawnInfo ? (
+                    <div className="rounded-2xl border border-zinc-900/8 bg-zinc-50/70 px-4 py-3 text-xs leading-5 text-zinc-600 dark:border-white/10 dark:bg-white/[0.035] dark:text-stone-300">
+                      {withdrawnInfo}
                     </div>
                   ) : null}
-                </div>
 
-                {withdrawnInfo ? (
-                  <div className="rounded-2xl border border-zinc-900/8 bg-zinc-50/70 px-4 py-3 text-xs leading-5 text-zinc-600 dark:border-white/10 dark:bg-white/[0.035] dark:text-stone-300">
-                    {withdrawnInfo}
-                  </div>
-                ) : null}
-
-                {hasRemediationInfo ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {affectedRangeLabels.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                          {copy.publicCheckAffectedRangesLabel}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {affectedRangeLabels.map((rangeLabel, rangeIndex) => (
-                            <Badge
-                              key={`${rangeLabel}-${rangeIndex}`}
-                              variant="outline"
-                              className={affectedRangeBadgeClassName()}
-                            >
-                              {rangeLabel}
-                            </Badge>
-                          ))}
+                  {hasRemediationInfo ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {affectedRangeLabels.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                            {copy.publicCheckAffectedRangesLabel}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {affectedRangeLabels.map(
+                              (rangeLabel, rangeIndex) => (
+                                <Badge
+                                  key={`${rangeLabel}-${rangeIndex}`}
+                                  variant="outline"
+                                  className={affectedRangeBadgeClassName()}
+                                >
+                                  {rangeLabel}
+                                </Badge>
+                              ),
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ) : null}
+                      ) : null}
 
-                    {finding.affectedPackage.fixedVersions.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                          {lang === "zh" ? "修复版本" : "Fixed versions"}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {finding.affectedPackage.fixedVersions.map((fixedVersion: string) => (
-                            <Badge
-                              key={fixedVersion}
-                              variant="secondary"
-                              className={fixedVersionBadgeClassName()}
-                            >
-                              {fixedVersion}
-                            </Badge>
-                          ))}
+                      {finding.affectedPackage.fixedVersions.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                            {lang === "zh" ? "修复版本" : "Fixed versions"}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {finding.affectedPackage.fixedVersions.map(
+                              (fixedVersion: string) => (
+                                <Badge
+                                  key={fixedVersion}
+                                  variant="secondary"
+                                  className={fixedVersionBadgeClassName()}
+                                >
+                                  {fixedVersion}
+                                </Badge>
+                              ),
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {relationItems.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {lang === "zh" ? "关联记录" : "Related records"}
-                    </p>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      {relationItems.map((item) => (
-                        <Badge
-                          key={`${item.kind}-${item.id}`}
-                          variant="outline"
-                          className="h-6 px-2.5"
-                        >
-                          {relationKindLabel(item.kind, lang)} · {item.id}
-                        </Badge>
-                      ))}
+                      ) : null}
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
 
-                {finding.advisory.details ? (
-                  <ExpandableMarkdownBlock
-                    label={copy.publicCheckDetailsLabel}
-                    content={finding.advisory.details}
-                    lang={lang}
-                    expandLabel={copy.publicCheckDetailsToggle}
-                    collapseLabel={copy.publicCheckDetailsCollapse}
-                  />
-                ) : null}
-
-                {referenceItems.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
-                      {lang === "zh" ? "参考链接" : "References"} · {referenceItems.length}
-                    </p>
-                    <ul className="flex flex-wrap gap-2 text-xs">
-                      {referenceItems.map((reference: SecurityFinding["advisory"]["references"][number], referenceIndex: number) => (
-                        <li key={`${reference.url}-${referenceIndex}`}>
-                          <a
-                            href={reference.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            title={reference.url}
-                            className="inline-flex h-7 items-center gap-1 rounded-full border border-black/6 px-2.5 text-zinc-600 transition-colors hover:border-black/12 hover:text-zinc-950 dark:border-white/10 dark:text-stone-300 dark:hover:border-white/20 dark:hover:text-stone-50"
+                  {relationItems.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                        {lang === "zh" ? "关联记录" : "Related records"}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {relationItems.map((item) => (
+                          <Badge
+                            key={`${item.kind}-${item.id}`}
+                            variant="outline"
+                            className="h-6 px-2.5"
                           >
-                            {referenceLabel(reference, lang)}
-                            <ExternalLink className="size-3" />
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </article>
-            )
-          })}
-          {pageCount > 1 ? (
-            <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-zinc-500 dark:text-stone-400">
-              <span>{copy.publicCheckPageStatus(currentPage, pageCount)}</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-full"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                aria-label={copy.pagePrev}
-                title={copy.pagePrev}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-full"
-                disabled={currentPage === pageCount}
-                onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
-                aria-label={copy.pageNext}
-                title={copy.pageNext}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          ) : null}
-        </section>
+                            {relationKindLabel(item.kind, lang)} · {item.id}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {finding.advisory.details ? (
+                    <ExpandableMarkdownBlock
+                      label={copy.publicCheckDetailsLabel}
+                      content={finding.advisory.details}
+                      lang={lang}
+                      expandLabel={copy.publicCheckDetailsToggle}
+                      collapseLabel={copy.publicCheckDetailsCollapse}
+                    />
+                  ) : null}
+
+                  {referenceItems.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-zinc-800 dark:text-stone-100">
+                        {lang === "zh" ? "参考链接" : "References"} ·{" "}
+                        {referenceItems.length}
+                      </p>
+                      <ul className="flex flex-wrap gap-2 text-xs">
+                        {referenceItems.map(
+                          (
+                            reference: SecurityFinding["advisory"]["references"][number],
+                            referenceIndex: number,
+                          ) => (
+                            <li key={`${reference.url}-${referenceIndex}`}>
+                              <a
+                                href={reference.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={reference.url}
+                                className="inline-flex h-7 items-center gap-1 rounded-full border border-black/6 px-2.5 text-zinc-600 transition-colors hover:border-black/12 hover:text-zinc-950 dark:border-white/10 dark:text-stone-300 dark:hover:border-white/20 dark:hover:text-stone-50"
+                              >
+                                {referenceLabel(reference, lang)}
+                                <ExternalLink className="size-3" />
+                              </a>
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+            {pageCount > 1 ? (
+              <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-zinc-500 dark:text-stone-400">
+                <span>
+                  {copy.publicCheckPageStatus(currentPage, pageCount)}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 rounded-full"
+                  disabled={currentPage === 1}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(1, page - 1))
+                  }
+                  aria-label={copy.pagePrev}
+                  title={copy.pagePrev}
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 rounded-full"
+                  disabled={currentPage === pageCount}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.min(pageCount, page + 1))
+                  }
+                  aria-label={copy.pageNext}
+                  title={copy.pageNext}
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            ) : null}
+          </section>
+        )
       ) : null}
     </div>
-  )
+  );
 }

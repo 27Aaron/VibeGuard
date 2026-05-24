@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import { useRef, useState } from "react"
-import type { AppLang } from "@/lib/i18n"
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import type { AppLang } from "@/lib/i18n";
 
 type PageSelectProps = {
-  currentPage: number
-  totalPages: number
-  lang: AppLang
-  query: string
-  tag: string
-  label: string
-}
+  currentPage: number;
+  totalPages: number;
+  lang: AppLang;
+  query: string;
+  tag: string;
+  label: string;
+};
 
 export function PageSelect({
   currentPage,
@@ -21,40 +21,40 @@ export function PageSelect({
   tag,
   label,
 }: PageSelectProps) {
-  const router = useRouter()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [inputValue, setInputValue] = useState(String(currentPage))
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(String(currentPage));
 
   function navigateTo(page: number) {
-    const clamped = Math.max(1, Math.min(totalPages, page))
-    const params = new URLSearchParams()
-    if (query) params.set("q", query)
-    if (tag) params.set("tag", tag)
-    if (clamped !== 1) params.set("page", String(clamped))
-    window.scrollTo(0, 0)
-    router.push(`/${lang}?${params.toString()}`)
+    const clamped = Math.max(1, Math.min(totalPages, page));
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (tag) params.set("tag", tag);
+    if (clamped !== 1) params.set("page", String(clamped));
+    window.scrollTo(0, 0);
+    router.push(`/${lang}?${params.toString()}`);
   }
 
   function handleSubmit(e: { preventDefault(): void }) {
-    e.preventDefault()
-    const page = parseInt(inputValue, 10)
+    e.preventDefault();
+    const page = parseInt(inputValue, 10);
     if (!isNaN(page)) {
-      navigateTo(page)
+      navigateTo(page);
     }
-    setIsEditing(false)
+    setIsEditing(false);
   }
 
   function handleBlur() {
-    setIsEditing(false)
-    setInputValue(String(currentPage))
+    setIsEditing(false);
+    setInputValue(String(currentPage));
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") {
-      setIsEditing(false)
-      setInputValue(String(currentPage))
-      inputRef.current?.blur()
+      setIsEditing(false);
+      setInputValue(String(currentPage));
+      inputRef.current?.blur();
     }
   }
 
@@ -78,7 +78,7 @@ export function PageSelect({
           /{totalPages}
         </span>
       </form>
-    )
+    );
   }
 
   return (
@@ -87,11 +87,11 @@ export function PageSelect({
       aria-label={label}
       className="h-7 min-w-20 rounded-full border border-black/6 bg-white px-3 text-center text-[0.8rem] font-medium text-zinc-700 transition-colors hover:bg-stone-50 hover:text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-stone-200 dark:hover:bg-white/10 dark:hover:text-white"
       onClick={() => {
-        setIsEditing(true)
-        setInputValue(String(currentPage))
+        setIsEditing(true);
+        setInputValue(String(currentPage));
       }}
     >
       {currentPage} / {totalPages}
     </button>
-  )
+  );
 }

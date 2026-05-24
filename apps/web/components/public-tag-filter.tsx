@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useId, useMemo, useRef, useState } from "react"
+import Link from "next/link";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { getInteractiveChipClassName } from "@/lib/interactive-chip"
-import type { AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+import { getInteractiveChipClassName } from "@/lib/interactive-chip";
+import type { AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 type PublicTagFilterLink = {
-  tag: string
-  count: number
-  href: string
-  active: boolean
-}
+  tag: string;
+  count: number;
+  href: string;
+  active: boolean;
+};
 
 export function PublicTagFilter({
   visibleTags,
@@ -21,16 +21,16 @@ export function PublicTagFilter({
   activeTag,
   lang,
 }: {
-  visibleTags: PublicTagFilterLink[]
-  overflowTags: PublicTagFilterLink[]
-  allHref: string
-  activeTag: string
-  lang: AppLang
+  visibleTags: PublicTagFilterLink[];
+  overflowTags: PublicTagFilterLink[];
+  allHref: string;
+  activeTag: string;
+  lang: AppLang;
 }) {
-  const [query, setQuery] = useState("")
-  const [open, setOpen] = useState(false)
-  const popoverId = useId()
-  const moreTagsRef = useRef<HTMLDivElement>(null)
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const popoverId = useId();
+  const moreTagsRef = useRef<HTMLDivElement>(null);
   const labels =
     lang === "zh"
       ? {
@@ -46,52 +46,52 @@ export function PublicTagFilter({
           more: "More tags",
           search: "Search tags",
           empty: "No matching tags",
-        }
-  const normalizedQuery = query.trim().toLowerCase()
+        };
+  const normalizedQuery = query.trim().toLowerCase();
   const allTags = useMemo(
     () => [...visibleTags, ...overflowTags],
     [visibleTags, overflowTags],
-  )
+  );
   const filteredPopoverTags = useMemo(() => {
     if (!normalizedQuery) {
-      return allTags
+      return allTags;
     }
 
-    return allTags.filter((item) => item.tag.includes(normalizedQuery))
-  }, [allTags, normalizedQuery])
+    return allTags.filter((item) => item.tag.includes(normalizedQuery));
+  }, [allTags, normalizedQuery]);
 
   useEffect(() => {
     if (!open) {
-      return
+      return;
     }
 
     function handlePointerDown(event: PointerEvent) {
       if (!moreTagsRef.current) {
-        return
+        return;
       }
 
       if (!moreTagsRef.current.contains(event.target as Node)) {
-        setOpen(false)
+        setOpen(false);
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpen(false)
+        setOpen(false);
       }
     }
 
-    document.addEventListener("pointerdown", handlePointerDown)
-    document.addEventListener("keydown", handleKeyDown)
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown)
-      document.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [open])
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
 
   if (visibleTags.length === 0 && !activeTag) {
-    return null
+    return null;
   }
 
   return (
@@ -160,7 +160,7 @@ export function PublicTagFilter({
         ) : null}
       </div>
     </section>
-  )
+  );
 }
 
 function TagLink({ item }: { item: PublicTagFilterLink }) {
@@ -170,7 +170,9 @@ function TagLink({ item }: { item: PublicTagFilterLink }) {
       className={cn(getInteractiveChipClassName(item.active), "shrink-0")}
     >
       {item.tag}
-      <span className="ml-1 text-zinc-400 dark:text-stone-500">{item.count}</span>
+      <span className="ml-1 text-zinc-400 dark:text-stone-500">
+        {item.count}
+      </span>
     </Link>
-  )
+  );
 }

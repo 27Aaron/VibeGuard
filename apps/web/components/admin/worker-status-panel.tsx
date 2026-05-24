@@ -1,72 +1,72 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { Clock, Loader2 } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Clock, Loader2 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge"
-import type { AppLang } from "@/lib/i18n"
-import { ACTIVE_PIPELINE_STAGES, stageLabel } from "@/lib/pipeline-stages"
+import { Badge } from "@/components/ui/badge";
+import type { AppLang } from "@/lib/i18n";
+import { ACTIVE_PIPELINE_STAGES, stageLabel } from "@/lib/pipeline-stages";
 
 type RunningJob = {
-  id: string
-  articleTitle: string
-  sourceName: string
-  jobType: string
-  pipelineStage: string
-  attempt: number
-  maxAttempts: number
-  startedAt: string | null
-  elapsed: number | null
-}
+  id: string;
+  articleTitle: string;
+  sourceName: string;
+  jobType: string;
+  pipelineStage: string;
+  attempt: number;
+  maxAttempts: number;
+  startedAt: string | null;
+  elapsed: number | null;
+};
 
 type QueuedJob = {
-  id: string
-  articleTitle: string
-  sourceName: string
-  jobType: string
-  attempt: number
-  maxAttempts: number
-}
+  id: string;
+  articleTitle: string;
+  sourceName: string;
+  jobType: string;
+  attempt: number;
+  maxAttempts: number;
+};
 
 type WorkerStatus = {
-  running: RunningJob[]
-  queued: QueuedJob[]
-  runningCount: number
-  queuedCount: number
-  succeededCount: number
-  failedCount: number
-  totalCount: number
-}
+  running: RunningJob[];
+  queued: QueuedJob[];
+  runningCount: number;
+  queuedCount: number;
+  succeededCount: number;
+  failedCount: number;
+  totalCount: number;
+};
 
 function jobTypeLabel(type: string, lang: AppLang) {
   const labels: Record<string, { zh: string; en: string }> = {
     extract: { zh: "提取", en: "Extract" },
     translate: { zh: "翻译", en: "Translate" },
     summarize: { zh: "摘要", en: "Summarize" },
-  }
-  return labels[type]?.[lang] ?? type
+  };
+  return labels[type]?.[lang] ?? type;
 }
 
 function formatElapsed(seconds: number | null) {
-  if (seconds === null) return "--"
-  if (seconds < 60) return `${seconds}s`
-  const min = Math.floor(seconds / 60)
-  const sec = seconds % 60
-  return `${min}m${sec}s`
+  if (seconds === null) return "--";
+  if (seconds < 60) return `${seconds}s`;
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  return `${min}m${sec}s`;
 }
 
 /** 进度阶段列表 —— 仅包含活跃的处理阶段（排除 waiting 和 completed） */
-const PIPELINE_STAGES: readonly string[] = ACTIVE_PIPELINE_STAGES
+const PIPELINE_STAGES: readonly string[] = ACTIVE_PIPELINE_STAGES;
 
 function stagePercent(stage: string): number {
-  const idx = PIPELINE_STAGES.indexOf(stage)
-  if (idx < 0) return 0
-  return Math.round(((idx + 1) / PIPELINE_STAGES.length) * 100)
+  const idx = PIPELINE_STAGES.indexOf(stage);
+  if (idx < 0) return 0;
+  return Math.round(((idx + 1) / PIPELINE_STAGES.length) * 100);
 }
 
 /** 单条任务的分步圆点进度 —— 用圆点颜色标识当前执行到流水线的哪一步 */
 function TaskStepDots({ stage }: { stage: string }) {
-  const currentIdx = PIPELINE_STAGES.indexOf(stage)
+  const currentIdx = PIPELINE_STAGES.indexOf(stage);
 
   return (
     <div className="flex items-center gap-1">
@@ -83,36 +83,37 @@ function TaskStepDots({ stage }: { stage: string }) {
         />
       ))}
     </div>
-  )
+  );
 }
 
-
 export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
-  const [status, setStatus] = useState<WorkerStatus | null>(null)
-  const [view, setView] = useState<"running" | "queued">("running")
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [status, setStatus] = useState<WorkerStatus | null>(null);
+  const [view, setView] = useState<"running" | "queued">("running");
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/worker-status", { cache: "no-store" })
+      const res = await fetch("/api/admin/worker-status", {
+        cache: "no-store",
+      });
       if (res.ok) {
-        const data = await res.json()
-        setStatus(data)
+        const data = await res.json();
+        setStatus(data);
       }
     } catch {
       // silent
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchStatus()
-    timerRef.current = setInterval(fetchStatus, 5000)
+    fetchStatus();
+    timerRef.current = setInterval(fetchStatus, 5000);
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [fetchStatus])
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [fetchStatus]);
 
-  if (!status) return null
+  if (!status) return null;
 
   return (
     <section className="flex flex-col gap-3">
@@ -205,7 +206,9 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
       {view === "running" && status.running.length === 0 && (
         <div className="rounded-[1rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 text-center dark:border-white/10 dark:bg-white/[0.04]">
           <p className="text-sm text-muted-foreground">
-            {lang === "zh" ? "当前没有运行中的任务" : "No tasks currently running"}
+            {lang === "zh"
+              ? "当前没有运行中的任务"
+              : "No tasks currently running"}
           </p>
         </div>
       )}
@@ -235,10 +238,12 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
       {view === "queued" && status.queued.length === 0 && (
         <div className="rounded-[1rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 text-center dark:border-white/10 dark:bg-white/[0.04]">
           <p className="text-sm text-muted-foreground">
-            {lang === "zh" ? "当前没有排队中的任务" : "No tasks currently queued"}
+            {lang === "zh"
+              ? "当前没有排队中的任务"
+              : "No tasks currently queued"}
           </p>
         </div>
       )}
     </section>
-  )
+  );
 }

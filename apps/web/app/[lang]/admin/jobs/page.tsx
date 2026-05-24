@@ -1,34 +1,34 @@
-import Link from "next/link"
-import { Check, ChevronLeft, ChevronRight } from "lucide-react"
+import Link from "next/link";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
-import { AdminPageShell } from "@/components/admin/admin-page-shell"
-import { SoftLink } from "@/components/admin/soft-link"
-import { JobTable } from "@/components/admin/job-table"
-import type { JobStageFilter, JobStatusFilter } from "@/components/admin/types"
-import { buttonVariants } from "@/components/ui/button"
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { SoftLink } from "@/components/admin/soft-link";
+import { JobTable } from "@/components/admin/job-table";
+import type { JobStageFilter, JobStatusFilter } from "@/components/admin/types";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   cancelSelectedJobsAction,
   pauseSelectedJobsAction,
   resumeSelectedJobsAction,
   retrySelectedJobsAction,
-} from "@/lib/actions/jobs"
+} from "@/lib/actions/jobs";
 import {
   ADMIN_JOB_PAGE_SIZE_OPTIONS,
   parseAdminJobListParams,
-} from "@/lib/admin-job-pagination"
-import { getJobRows, getJobStatusCounts } from "@/lib/admin-data"
-import { getAdminSubtlePanelClassName } from "@/lib/admin-layout"
-import { resolveLang, type AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+} from "@/lib/admin-job-pagination";
+import { getJobRows, getJobStatusCounts } from "@/lib/admin-data";
+import { getAdminSubtlePanelClassName } from "@/lib/admin-layout";
+import { resolveLang, type AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 const allowedStatuses = new Set<JobStatusFilter>([
   "all",
@@ -37,52 +37,57 @@ const allowedStatuses = new Set<JobStatusFilter>([
   "paused",
   "failed",
   "filtered",
-])
+]);
 
 type JobsPageProps = {
-  params: Promise<{ lang: string }>
+  params: Promise<{ lang: string }>;
   searchParams?: Promise<{
-    status?: string
-    stage?: string
-    page?: string
-    pageSize?: string
-    message?: string
-    result?: string
-  }>
-}
+    status?: string;
+    stage?: string;
+    page?: string;
+    pageSize?: string;
+    message?: string;
+    result?: string;
+  }>;
+};
 
 function buildJobsHref(input: {
-  lang: AppLang
-  status: JobStatusFilter
-  stage: JobStageFilter
-  page: number
-  pageSize: number
+  lang: AppLang;
+  status: JobStatusFilter;
+  stage: JobStageFilter;
+  page: number;
+  pageSize: number;
 }) {
   const params = new URLSearchParams({
     page: String(input.page),
     pageSize: String(input.pageSize),
-  })
+  });
 
   if (input.status !== "all") {
-    params.set("status", input.status)
+    params.set("status", input.status);
   }
 
   if (input.stage !== "all") {
-    params.set("stage", input.stage)
+    params.set("stage", input.stage);
   }
 
-  return `/${input.lang}/admin/jobs?${params.toString()}`
+  return `/${input.lang}/admin/jobs?${params.toString()}`;
 }
 
-export default async function JobsPage({ params: routeParams, searchParams }: JobsPageProps) {
-  const { lang: rawLang } = await routeParams
-  const params = (await searchParams) ?? {}
-  const lang = resolveLang(rawLang)
-  const status = allowedStatuses.has((params.status as JobStatusFilter) ?? "all")
+export default async function JobsPage({
+  params: routeParams,
+  searchParams,
+}: JobsPageProps) {
+  const { lang: rawLang } = await routeParams;
+  const params = (await searchParams) ?? {};
+  const lang = resolveLang(rawLang);
+  const status = allowedStatuses.has(
+    (params.status as JobStatusFilter) ?? "all",
+  )
     ? ((params.status as JobStatusFilter) ?? "all")
-    : "all"
-  const paginationParams = parseAdminJobListParams(params)
-  const stage = paginationParams.stage
+    : "all";
+  const paginationParams = parseAdminJobListParams(params);
+  const stage = paginationParams.stage;
   const [{ rows: jobs, pagination }, counts] = await Promise.all([
     getJobRows({
       status,
@@ -92,16 +97,16 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
       pageSize: paginationParams.pageSize,
     }),
     getJobStatusCounts(lang),
-  ])
+  ]);
   const rangeText =
     lang === "zh"
       ? `共 ${pagination.totalCount} 条，当前 ${pagination.from}-${pagination.to}`
-      : `${pagination.from}-${pagination.to} of ${pagination.totalCount} jobs`
-  const previousPage = Math.max(1, pagination.page - 1)
-  const nextPage = Math.min(pagination.totalPages, pagination.page + 1)
-  const hasPreviousPage = pagination.page > 1
-  const hasNextPage = pagination.page < pagination.totalPages
-  const hasSelectableJobs = jobs.length > 0
+      : `${pagination.from}-${pagination.to} of ${pagination.totalCount} jobs`;
+  const previousPage = Math.max(1, pagination.page - 1);
+  const nextPage = Math.min(pagination.totalPages, pagination.page + 1);
+  const hasPreviousPage = pagination.page > 1;
+  const hasNextPage = pagination.page < pagination.totalPages;
+  const hasSelectableJobs = jobs.length > 0;
 
   return (
     <AdminPageShell
@@ -134,8 +139,8 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
             stage,
             page: 1,
             pageSize: pagination.pageSize,
-          })
-          const active = status === item.status
+          });
+          const active = status === item.status;
 
           return (
             <Link
@@ -157,14 +162,16 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
               </div>
               <p className="mt-3 text-2xl font-semibold">{item.count}</p>
             </Link>
-          )
+          );
         })}
       </section>
 
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <CardTitle>{lang === "zh" ? "内容处理链路" : "Content pipeline"}</CardTitle>
+            <CardTitle>
+              {lang === "zh" ? "内容处理链路" : "Content pipeline"}
+            </CardTitle>
             <CardDescription>
               {lang === "zh"
                 ? "跟踪每篇内容从抓取到摘要的处理进度。"
@@ -176,8 +183,16 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
               <input type="hidden" name="lang" value={lang} />
               <input type="hidden" name="status" value={status} />
               <input type="hidden" name="stage" value={stage} />
-              <input type="hidden" name="page" value={String(pagination.page)} />
-              <input type="hidden" name="pageSize" value={String(pagination.pageSize)} />
+              <input
+                type="hidden"
+                name="page"
+                value={String(pagination.page)}
+              />
+              <input
+                type="hidden"
+                name="pageSize"
+                value={String(pagination.pageSize)}
+              />
             </form>
             <button
               type="submit"
@@ -229,7 +244,12 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
           </div>
         </CardHeader>
         <CardContent className="px-6 pb-5">
-          <div className={cn("mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", getAdminSubtlePanelClassName())}>
+          <div
+            className={cn(
+              "mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+              getAdminSubtlePanelClassName(),
+            )}
+          >
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
                 {rangeText}
@@ -259,11 +279,15 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
                       buttonVariants({
                         size: "xs",
                         variant:
-                          option === pagination.pageSize ? "secondary" : "ghost",
+                          option === pagination.pageSize
+                            ? "secondary"
+                            : "ghost",
                       }),
                       "min-w-8",
                     )}
-                    aria-current={option === pagination.pageSize ? "page" : undefined}
+                    aria-current={
+                      option === pagination.pageSize ? "page" : undefined
+                    }
                   >
                     {option}
                   </SoftLink>
@@ -320,5 +344,5 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
         </CardContent>
       </Card>
     </AdminPageShell>
-  )
+  );
 }

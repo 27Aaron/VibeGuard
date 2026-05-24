@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { buildArticleRegenerationOptions } from "../../apps/web/lib/article-regeneration-options"
+import { buildArticleRegenerationOptions } from "../../apps/web/lib/article-regeneration-options";
 
 describe("buildArticleRegenerationOptions", () => {
   it("returns localized labels and availability for Chinese admins", () => {
@@ -12,7 +12,7 @@ describe("buildArticleRegenerationOptions", () => {
         status: "ready",
       },
       "zh",
-    )
+    );
 
     expect(options).toEqual([
       expect.objectContaining({
@@ -69,8 +69,8 @@ describe("buildArticleRegenerationOptions", () => {
         disabled: true,
         disabledReason: "需要先有英文正文。",
       }),
-    ])
-  })
+    ]);
+  });
 
   it("returns English copy for the English admin view", () => {
     const options = buildArticleRegenerationOptions(
@@ -81,7 +81,7 @@ describe("buildArticleRegenerationOptions", () => {
         status: "ready",
       },
       "en",
-    )
+    );
 
     expect(options).toEqual([
       expect.objectContaining({
@@ -136,8 +136,8 @@ describe("buildArticleRegenerationOptions", () => {
         disabled: false,
         disabledReason: null,
       }),
-    ])
-  })
+    ]);
+  });
 
   it("enables classify-relevance when title and content are present", () => {
     const options = buildArticleRegenerationOptions(
@@ -148,17 +148,19 @@ describe("buildArticleRegenerationOptions", () => {
         status: "ready",
       },
       "zh",
-    )
+    );
 
-    const classifyOption = options.find((o) => o.target === "classify-relevance")
+    const classifyOption = options.find(
+      (o) => o.target === "classify-relevance",
+    );
     expect(classifyOption).toEqual(
       expect.objectContaining({
         target: "classify-relevance",
         disabled: false,
         disabledReason: null,
       }),
-    )
-  })
+    );
+  });
 
   it("disables translation, summary and tags targets for filtered articles", () => {
     const options = buildArticleRegenerationOptions(
@@ -169,7 +171,7 @@ describe("buildArticleRegenerationOptions", () => {
         status: "filtered",
       },
       "zh",
-    )
+    );
 
     expect(options).toEqual([
       expect.objectContaining({
@@ -213,6 +215,6 @@ describe("buildArticleRegenerationOptions", () => {
         disabled: true,
         disabledReason: "文章已被过滤，无法执行后续步骤。",
       }),
-    ])
-  })
-})
+    ]);
+  });
+});

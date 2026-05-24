@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useActionState } from "react"
-import { useFormStatus } from "react-dom"
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,45 +11,58 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { getAdminSelectClassName, getAdminSubtlePanelClassName } from "@/lib/admin-layout"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  getAdminSelectClassName,
+  getAdminSubtlePanelClassName,
+} from "@/lib/admin-layout";
 import {
   IDLE_FORM_ACTION_RESULT,
   type FormActionResult,
-} from "@/lib/action-result"
-import type { AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+} from "@/lib/action-result";
+import type { AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 type EditFeedFormProps = {
-  lang: AppLang
+  lang: AppLang;
   initialValues: {
-    id: string
-    name: string
-    siteUrl: string
-    feedUrl: string
-    feedType: string
-    pollIntervalMinutes: number
-    enabled: boolean
-  }
+    id: string;
+    name: string;
+    siteUrl: string;
+    feedUrl: string;
+    feedType: string;
+    pollIntervalMinutes: number;
+    enabled: boolean;
+  };
   action: (
     previousState: FormActionResult,
     formData: FormData,
-  ) => Promise<FormActionResult>
-}
+  ) => Promise<FormActionResult>;
+};
 
 function SubmitButton({ lang }: { lang: AppLang }) {
-  const { pending } = useFormStatus()
+  const { pending } = useFormStatus();
 
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? (lang === "zh" ? "保存中..." : "Saving...") : lang === "zh" ? "保存来源" : "Save source"}
+      {pending
+        ? lang === "zh"
+          ? "保存中..."
+          : "Saving..."
+        : lang === "zh"
+          ? "保存来源"
+          : "Save source"}
     </Button>
-  )
+  );
 }
 
-export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps) {
-  const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT)
+export function EditFeedForm({
+  initialValues,
+  action,
+  lang,
+}: EditFeedFormProps) {
+  const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT);
 
   return (
     <form key={initialValues.id} action={formAction}>
@@ -69,7 +82,12 @@ export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps)
             <label htmlFor="name" className="text-sm font-medium">
               {lang === "zh" ? "名称" : "Name"}
             </label>
-            <Input id="name" name="name" defaultValue={initialValues.name} required />
+            <Input
+              id="name"
+              name="name"
+              defaultValue={initialValues.name}
+              required
+            />
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="feedType" className="text-sm font-medium">
@@ -110,8 +128,13 @@ export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps)
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label htmlFor="pollIntervalMinutes" className="text-sm font-medium">
-              {lang === "zh" ? "抓取间隔（分钟）" : "Polling interval (minutes)"}
+            <label
+              htmlFor="pollIntervalMinutes"
+              className="text-sm font-medium"
+            >
+              {lang === "zh"
+                ? "抓取间隔（分钟）"
+                : "Polling interval (minutes)"}
             </label>
             <Input
               id="pollIntervalMinutes"
@@ -122,7 +145,12 @@ export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps)
               required
             />
           </div>
-          <label className={cn("flex items-center gap-3 text-sm", getAdminSubtlePanelClassName())}>
+          <label
+            className={cn(
+              "flex items-center gap-3 text-sm",
+              getAdminSubtlePanelClassName(),
+            )}
+          >
             <input
               type="checkbox"
               name="enabled"
@@ -148,5 +176,5 @@ export function EditFeedForm({ initialValues, action, lang }: EditFeedFormProps)
         </CardFooter>
       </Card>
     </form>
-  )
+  );
 }

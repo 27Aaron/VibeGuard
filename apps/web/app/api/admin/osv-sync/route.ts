@@ -1,23 +1,23 @@
-import { desc, eq } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm";
 
-import { getDb, securitySyncState } from "@vibeguard/db"
+import { getDb, securitySyncState } from "@vibeguard/db";
 
-import { requireAdminAuth } from "@/lib/admin-api-auth"
+import { requireAdminAuth } from "@/lib/admin-api-auth";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-let osvSyncInProgress = false
+let osvSyncInProgress = false;
 
 export async function GET() {
-  const auth = await requireAdminAuth()
-  if (!auth.authorized) return auth.response
+  const auth = await requireAdminAuth();
+  if (!auth.authorized) return auth.response;
 
-  const db = getDb()
+  const db = getDb();
 
   const rows = await db.query.securitySyncState.findMany({
     where: eq(securitySyncState.source, "osv"),
     orderBy: [desc(securitySyncState.lastSuccessAt)],
-  })
+  });
 
   const ecosystems = rows.map((row) => ({
     ecosystem: row.scope,
@@ -26,27 +26,31 @@ export async function GET() {
     lastError: row.lastError ?? null,
     recordsImported: row.recordsImported,
     recordsFailed: row.recordsFailed,
-  }))
+  }));
 
-  return Response.json({ ecosystems })
+  return Response.json({ ecosystems });
 }
 
 export async function POST() {
-  const auth = await requireAdminAuth()
-  if (!auth.authorized) return auth.response
+  const auth = await requireAdminAuth();
+  if (!auth.authorized) return auth.response;
 
   if (osvSyncInProgress) {
     return Response.json(
-      { ok: false, error: "OSV sync is already in progress. Please wait for it to finish." },
+      {
+        ok: false,
+        error: "OSV sync is already in progress. Please wait for it to finish.",
+      },
       { status: 409 },
-    )
+    );
   }
 
-  osvSyncInProgress = true
+  osvSyncInProgress = true;
 
   try {
-    const { syncAllOsvEcosystems } = await import("@vibeguard/content/osv/sync")
-    const results = await syncAllOsvEcosystems({ db: getDb() })
+    const { syncAllOsvEcosystems } =
+      await import("@vibeguard/content/osv/sync");
+    const results = await syncAllOsvEcosystems({ db: getDb() });
 
     return Response.json({
       ok: true,
@@ -57,11 +61,11 @@ export async function POST() {
         changed: r.recordsChanged,
         failed: r.recordsFailed,
       })),
-    })
+    });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    return Response.json({ ok: false, error: message }, { status: 500 })
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ ok: false, error: message }, { status: 500 });
   } finally {
-    osvSyncInProgress = false
+    osvSyncInProgress = false;
   }
 }

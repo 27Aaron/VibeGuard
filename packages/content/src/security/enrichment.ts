@@ -1,174 +1,169 @@
-import { Readable, Writable } from "node:stream"
-import { pipeline } from "node:stream/promises"
-import zlib from "node:zlib"
+import { Readable, Writable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import zlib from "node:zlib";
 
-import { sql } from "drizzle-orm"
-import type { NodePgDatabase } from "drizzle-orm/node-postgres"
+import { sql } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import {
-  schema,
-  securityCveEnrichments,
-} from "@vibeguard/db"
-import { SecuritySyncStatus } from "@vibeguard/shared"
+import { schema, securityCveEnrichments } from "@vibeguard/db";
+import { SecuritySyncStatus } from "@vibeguard/shared";
 
 import {
   buildSecuritySyncStateUpdate,
   upsertSecuritySyncState,
   type SecuritySyncStateUpdateInput,
-} from "../osv/store"
-import { normalizeInt } from "../shared/normalize"
+} from "../osv/store";
+import { normalizeInt } from "../shared/normalize";
 
-type ContentDb = NodePgDatabase<typeof schema>
+type ContentDb = NodePgDatabase<typeof schema>;
 
 export const CISA_KEV_JSON_URL =
-  "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+  "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json";
 export const FIRST_EPSS_CURRENT_CSV_GZ_URL =
-  "https://epss.cyentia.com/epss_scores-current.csv.gz"
-export const NVD_FEED_BASE_URL =
-  "https://nvd.nist.gov/feeds/json/cve/2.0"
-export const NVD_MODIFIED_FEED_URL =
-  `${NVD_FEED_BASE_URL}/nvdcve-2.0-modified.json.gz`
-export const NVD_FULL_FEED_START_YEAR = 2002
+  "https://epss.cyentia.com/epss_scores-current.csv.gz";
+export const NVD_FEED_BASE_URL = "https://nvd.nist.gov/feeds/json/cve/2.0";
+export const NVD_MODIFIED_FEED_URL = `${NVD_FEED_BASE_URL}/nvdcve-2.0-modified.json.gz`;
+export const NVD_FULL_FEED_START_YEAR = 2002;
 
-const MEBIBYTE = 1024 * 1024
-export const DEFAULT_CISA_KEV_JSON_BYTES = 8 * MEBIBYTE
-export const DEFAULT_EPSS_CSV_GZ_BYTES = 16 * MEBIBYTE
-export const DEFAULT_EPSS_CSV_TEXT_BYTES = 64 * MEBIBYTE
-export const DEFAULT_NVD_FEED_GZ_BYTES = 64 * MEBIBYTE
-export const DEFAULT_NVD_FEED_JSON_BYTES = 512 * MEBIBYTE
+const MEBIBYTE = 1024 * 1024;
+export const DEFAULT_CISA_KEV_JSON_BYTES = 8 * MEBIBYTE;
+export const DEFAULT_EPSS_CSV_GZ_BYTES = 16 * MEBIBYTE;
+export const DEFAULT_EPSS_CSV_TEXT_BYTES = 64 * MEBIBYTE;
+export const DEFAULT_NVD_FEED_GZ_BYTES = 64 * MEBIBYTE;
+export const DEFAULT_NVD_FEED_JSON_BYTES = 512 * MEBIBYTE;
 
 const MAX_CISA_KEV_JSON_BYTES = normalizeInt(
   process.env.VIBEGUARD_CISA_KEV_JSON_BYTES,
   DEFAULT_CISA_KEV_JSON_BYTES,
-)
+);
 const MAX_EPSS_CSV_GZ_BYTES = normalizeInt(
   process.env.VIBEGUARD_EPSS_CSV_GZ_BYTES,
   DEFAULT_EPSS_CSV_GZ_BYTES,
-)
+);
 const MAX_EPSS_CSV_TEXT_BYTES = normalizeInt(
   process.env.VIBEGUARD_EPSS_CSV_TEXT_BYTES,
   DEFAULT_EPSS_CSV_TEXT_BYTES,
-)
+);
 const MAX_NVD_FEED_GZ_BYTES = normalizeInt(
   process.env.VIBEGUARD_NVD_FEED_GZ_BYTES,
   DEFAULT_NVD_FEED_GZ_BYTES,
-)
+);
 const MAX_NVD_FEED_JSON_BYTES = normalizeInt(
   process.env.VIBEGUARD_NVD_FEED_JSON_BYTES,
   DEFAULT_NVD_FEED_JSON_BYTES,
-)
+);
 
 export type SecurityCveEnrichmentPatch = {
-  cveId: string
-  title?: string | null
-  description?: string | null
+  cveId: string;
+  title?: string | null;
+  description?: string | null;
   cvssMetrics?: Array<{
-    source?: string
-    version?: string
-    vector?: string
-    baseScore?: string
-    baseSeverity?: string
-    exploitabilityScore?: string
-    impactScore?: string
-  }>
-  bestCvssScore?: string | null
-  bestCvssSeverity?: string | null
-  cweIds?: string[]
-  epss?: string | null
-  epssPercentile?: string | null
-  epssScoreDate?: Date | null
-  epssModelVersion?: string | null
-  kevListed?: boolean
-  kevDateAdded?: Date | null
-  kevDueDate?: Date | null
-  kevKnownRansomwareCampaignUse?: string | null
-  kevRequiredAction?: string | null
-  kevVendorProject?: string | null
-  kevProduct?: string | null
-  kevNotes?: string | null
-  nvdPublishedAt?: Date | null
-  nvdModifiedAt?: Date | null
-}
+    source?: string;
+    version?: string;
+    vector?: string;
+    baseScore?: string;
+    baseSeverity?: string;
+    exploitabilityScore?: string;
+    impactScore?: string;
+  }>;
+  bestCvssScore?: string | null;
+  bestCvssSeverity?: string | null;
+  cweIds?: string[];
+  epss?: string | null;
+  epssPercentile?: string | null;
+  epssScoreDate?: Date | null;
+  epssModelVersion?: string | null;
+  kevListed?: boolean;
+  kevDateAdded?: Date | null;
+  kevDueDate?: Date | null;
+  kevKnownRansomwareCampaignUse?: string | null;
+  kevRequiredAction?: string | null;
+  kevVendorProject?: string | null;
+  kevProduct?: string | null;
+  kevNotes?: string | null;
+  nvdPublishedAt?: Date | null;
+  nvdModifiedAt?: Date | null;
+};
 
 type UpsertSecurityCveEnrichmentsOptions = {
-  table?: typeof securityCveEnrichments
-  batchSize?: number
-}
+  table?: typeof securityCveEnrichments;
+  batchSize?: number;
+};
 
 export type SecurityEnrichmentSyncSummary = {
-  source: string
-  scope: string
-  recordsSeen: number
-  recordsImported: number
-  recordsFailed: number
-}
+  source: string;
+  scope: string;
+  recordsSeen: number;
+  recordsImported: number;
+  recordsFailed: number;
+};
 
-export type SecurityEnrichmentSyncMode = "bootstrap" | "incremental"
+export type SecurityEnrichmentSyncMode = "bootstrap" | "incremental";
 
 type SyncNvdYearFeedInput = {
-  db: ContentDb
-  year: number
-  fetchBytes?: typeof defaultFetchBytes
-}
+  db: ContentDb;
+  year: number;
+  fetchBytes?: typeof defaultFetchBytes;
+};
 
 type SyncNvdFullHistoryInput = {
-  db: ContentDb
-  years?: number[]
-  now?: () => Date
-  fetchBytes?: typeof defaultFetchBytes
+  db: ContentDb;
+  years?: number[];
+  now?: () => Date;
+  fetchBytes?: typeof defaultFetchBytes;
   syncNvdYearFeed?: (
     input: SyncNvdYearFeedInput,
-  ) => Promise<SecurityEnrichmentSyncSummary>
+  ) => Promise<SecurityEnrichmentSyncSummary>;
   upsertSecuritySyncState?: (
     db: ContentDb,
     scope: string,
     input: SecuritySyncStateUpdateInput,
-  ) => Promise<void>
-}
+  ) => Promise<void>;
+};
 
 type SyncAllSecurityEnrichmentSourcesOptions = {
-  mode?: SecurityEnrichmentSyncMode
-  nvdYears?: number[]
-  fetchText?: typeof defaultFetchText
-  fetchBytes?: typeof defaultFetchBytes
-  syncCisaKevCatalog?: typeof syncCisaKevCatalog
-  syncFirstEpssScores?: typeof syncFirstEpssScores
-  syncNvdModifiedFeed?: typeof syncNvdModifiedFeed
-  syncNvdFullHistory?: typeof syncNvdFullHistory
-}
+  mode?: SecurityEnrichmentSyncMode;
+  nvdYears?: number[];
+  fetchText?: typeof defaultFetchText;
+  fetchBytes?: typeof defaultFetchBytes;
+  syncCisaKevCatalog?: typeof syncCisaKevCatalog;
+  syncFirstEpssScores?: typeof syncFirstEpssScores;
+  syncNvdModifiedFeed?: typeof syncNvdModifiedFeed;
+  syncNvdFullHistory?: typeof syncNvdFullHistory;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function toStringOrNull(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function toDecimalString(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value)
+    return String(value);
   }
 
   if (typeof value === "string" && value.trim()) {
-    const parsed = Number.parseFloat(value)
-    return Number.isFinite(parsed) ? value.trim() : null
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? value.trim() : null;
   }
 
-  return null
+  return null;
 }
 
 function parseDate(value: unknown) {
-  const text = toStringOrNull(value)
-  if (!text) return null
+  const text = toStringOrNull(value);
+  if (!text) return null;
 
   const normalized = /^\d{4}-\d{2}-\d{2}$/.test(text)
     ? `${text}T00:00:00.000Z`
     : text.endsWith("Z")
       ? text
-      : `${text}Z`
-  const parsed = new Date(normalized)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
+      : `${text}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function uniqueStrings(values: Array<string | null | undefined>) {
@@ -178,20 +173,20 @@ function uniqueStrings(values: Array<string | null | undefined>) {
         .map((value) => value?.trim())
         .filter((value): value is string => Boolean(value)),
     ),
-  )
+  );
 }
 
 function isCveId(value: unknown): value is string {
-  return typeof value === "string" && /^CVE-\d{4}-\d{4,}$/i.test(value.trim())
+  return typeof value === "string" && /^CVE-\d{4}-\d{4,}$/i.test(value.trim());
 }
 
 function normalizeCveId(value: string) {
-  return value.trim().toUpperCase()
+  return value.trim().toUpperCase();
 }
 
 function firstEnglishDescription(value: unknown) {
   if (!Array.isArray(value)) {
-    return null
+    return null;
   }
 
   for (const item of value) {
@@ -201,30 +196,30 @@ function firstEnglishDescription(value: unknown) {
       typeof item.value === "string" &&
       item.value.trim()
     ) {
-      return item.value.trim()
+      return item.value.trim();
     }
   }
 
-  return null
+  return null;
 }
 
 export function buildNvdModifiedFeedUrl() {
-  return NVD_MODIFIED_FEED_URL
+  return NVD_MODIFIED_FEED_URL;
 }
 
 export function buildNvdYearFeedUrl(year: number) {
-  return `${NVD_FEED_BASE_URL}/nvdcve-2.0-${year}.json.gz`
+  return `${NVD_FEED_BASE_URL}/nvdcve-2.0-${year}.json.gz`;
 }
 
 export function parseKevCatalog(rawJson: string): SecurityCveEnrichmentPatch[] {
-  const parsed = JSON.parse(rawJson)
+  const parsed = JSON.parse(rawJson);
   if (!isRecord(parsed) || !Array.isArray(parsed.vulnerabilities)) {
-    throw new Error("Invalid CISA KEV catalog payload.")
+    throw new Error("Invalid CISA KEV catalog payload.");
   }
 
   return parsed.vulnerabilities.flatMap((entry) => {
     if (!isRecord(entry) || !isCveId(entry.cveID)) {
-      return []
+      return [];
     }
 
     return {
@@ -244,29 +239,31 @@ export function parseKevCatalog(rawJson: string): SecurityCveEnrichmentPatch[] {
       kevVendorProject: toStringOrNull(entry.vendorProject),
       kevProduct: toStringOrNull(entry.product),
       kevNotes: toStringOrNull(entry.notes),
-    }
-  })
+    };
+  });
 }
 
 export function parseEpssCsv(csv: string): SecurityCveEnrichmentPatch[] {
-  const lines = csv.split(/\r?\n/)
-  const firstComment = lines.find((line) => line.startsWith("#")) ?? ""
+  const lines = csv.split(/\r?\n/);
+  const firstComment = lines.find((line) => line.startsWith("#")) ?? "";
   const modelVersion =
-    firstComment.match(/model_version:([^,\s]+)/)?.[1]?.trim() ?? null
+    firstComment.match(/model_version:([^,\s]+)/)?.[1]?.trim() ?? null;
   const scoreDate = parseDate(
     firstComment.match(/score_date:([^,\s]+)/)?.[1]?.trim(),
-  )
-  const dataLines = lines.filter((line) => line.trim() && !line.startsWith("#"))
-  const header = dataLines.shift()?.trim()
+  );
+  const dataLines = lines.filter(
+    (line) => line.trim() && !line.startsWith("#"),
+  );
+  const header = dataLines.shift()?.trim();
 
   if (header !== "cve,epss,percentile") {
-    throw new Error("Invalid FIRST EPSS CSV header.")
+    throw new Error("Invalid FIRST EPSS CSV header.");
   }
 
   return dataLines.flatMap((line) => {
-    const [cve, epss, percentile] = line.split(",")
+    const [cve, epss, percentile] = line.split(",");
     if (!isCveId(cve)) {
-      return []
+      return [];
     }
 
     return {
@@ -275,63 +272,65 @@ export function parseEpssCsv(csv: string): SecurityCveEnrichmentPatch[] {
       epssPercentile: toDecimalString(percentile),
       epssScoreDate: scoreDate,
       epssModelVersion: modelVersion,
-    }
-  })
+    };
+  });
 }
 
 function normalizeCvssMetric(source: string, metric: unknown) {
   if (!isRecord(metric) || !isRecord(metric.cvssData)) {
-    return null
+    return null;
   }
 
-  const cvssData = metric.cvssData
-  const baseScore = toDecimalString(cvssData.baseScore)
-  const baseSeverity = toStringOrNull(cvssData.baseSeverity)
+  const cvssData = metric.cvssData;
+  const baseScore = toDecimalString(cvssData.baseScore);
+  const baseSeverity = toStringOrNull(cvssData.baseSeverity);
 
   return {
     source: "nvd",
-    version: toStringOrNull(cvssData.version) ?? source.replace("cvssMetricV", ""),
+    version:
+      toStringOrNull(cvssData.version) ?? source.replace("cvssMetricV", ""),
     vector: toStringOrNull(cvssData.vectorString) ?? undefined,
     baseScore: baseScore ?? undefined,
     baseSeverity: baseSeverity ?? undefined,
-    exploitabilityScore: toDecimalString(metric.exploitabilityScore) ?? undefined,
+    exploitabilityScore:
+      toDecimalString(metric.exploitabilityScore) ?? undefined,
     impactScore: toDecimalString(metric.impactScore) ?? undefined,
-  }
+  };
 }
 
 function extractCvssMetrics(metrics: unknown) {
   if (!isRecord(metrics)) {
-    return []
+    return [];
   }
 
   return Object.entries(metrics).flatMap(([key, value]) => {
     if (!Array.isArray(value) || !key.startsWith("cvssMetric")) {
-      return []
+      return [];
     }
 
-    return value.flatMap((metric) => normalizeCvssMetric(key, metric) ?? [])
-  })
+    return value.flatMap((metric) => normalizeCvssMetric(key, metric) ?? []);
+  });
 }
 
 function selectBestCvssMetric(
   cvssMetrics: ReturnType<typeof extractCvssMetrics>,
 ) {
   return [...cvssMetrics].sort((left, right) => {
-    const leftScore = Number.parseFloat(left.baseScore ?? "0")
-    const rightScore = Number.parseFloat(right.baseScore ?? "0")
-    return rightScore - leftScore
-  })[0]
+    const leftScore = Number.parseFloat(left.baseScore ?? "0");
+    const rightScore = Number.parseFloat(right.baseScore ?? "0");
+    return rightScore - leftScore;
+  })[0];
 }
 
 function extractCweIds(weaknesses: unknown) {
   if (!Array.isArray(weaknesses)) {
-    return []
+    return [];
   }
 
   return uniqueStrings(
     weaknesses.flatMap((weakness) => {
       if (!isRecord(weakness) || !Array.isArray(weakness.description)) {
-        return []
+        return [];
       }
 
       return weakness.description.flatMap((description) => {
@@ -340,32 +339,32 @@ function extractCweIds(weaknesses: unknown) {
           typeof description.value === "string" &&
           /^CWE-\d+$/i.test(description.value.trim())
         ) {
-          return description.value.trim().toUpperCase()
+          return description.value.trim().toUpperCase();
         }
 
-        return []
-      })
+        return [];
+      });
     }),
-  )
+  );
 }
 
 export function parseNvdModifiedFeed(
   payload: unknown,
 ): SecurityCveEnrichmentPatch[] {
   if (!isRecord(payload) || !Array.isArray(payload.vulnerabilities)) {
-    throw new Error("Invalid NVD modified feed payload.")
+    throw new Error("Invalid NVD modified feed payload.");
   }
 
   return payload.vulnerabilities.flatMap((entry) => {
     if (!isRecord(entry) || !isRecord(entry.cve) || !isCveId(entry.cve.id)) {
-      return []
+      return [];
     }
 
-    const cve = entry.cve
-    const cveId = typeof cve.id === "string" ? cve.id : ""
-    const cvssMetrics = extractCvssMetrics(cve.metrics)
-    const bestCvss = selectBestCvssMetric(cvssMetrics)
-    const description = firstEnglishDescription(cve.descriptions)
+    const cve = entry.cve;
+    const cveId = typeof cve.id === "string" ? cve.id : "";
+    const cvssMetrics = extractCvssMetrics(cve.metrics);
+    const bestCvss = selectBestCvssMetric(cvssMetrics);
+    const description = firstEnglishDescription(cve.descriptions);
 
     return {
       cveId: normalizeCveId(cveId),
@@ -377,8 +376,8 @@ export function parseNvdModifiedFeed(
       cweIds: extractCweIds(cve.weaknesses),
       nvdPublishedAt: parseDate(cve.published),
       nvdModifiedAt: parseDate(cve.lastModified),
-    }
-  })
+    };
+  });
 }
 
 function buildSecurityCveEnrichmentInsert(patch: SecurityCveEnrichmentPatch) {
@@ -404,7 +403,7 @@ function buildSecurityCveEnrichmentInsert(patch: SecurityCveEnrichmentPatch) {
     kevNotes: patch.kevNotes,
     nvdPublishedAt: patch.nvdPublishedAt,
     nvdModifiedAt: patch.nvdModifiedAt,
-  }
+  };
 }
 
 const cveEnrichmentConflictUpdateSet = {
@@ -429,16 +428,16 @@ const cveEnrichmentConflictUpdateSet = {
   nvdPublishedAt: sql`coalesce(excluded.nvd_published_at, security_cve_enrichments.nvd_published_at)`,
   nvdModifiedAt: sql`coalesce(excluded.nvd_modified_at, security_cve_enrichments.nvd_modified_at)`,
   updatedAt: sql`now()`,
-}
+};
 
-const DEFAULT_CVE_ENRICHMENT_BATCH_SIZE = 500
+const DEFAULT_CVE_ENRICHMENT_BATCH_SIZE = 500;
 
 function resolveBatchSize(value: number | undefined) {
   if (!Number.isFinite(value) || !value || value < 1) {
-    return DEFAULT_CVE_ENRICHMENT_BATCH_SIZE
+    return DEFAULT_CVE_ENRICHMENT_BATCH_SIZE;
   }
 
-  return Math.floor(value)
+  return Math.floor(value);
 }
 
 export async function upsertSecurityCveEnrichments(
@@ -447,17 +446,17 @@ export async function upsertSecurityCveEnrichments(
   options: UpsertSecurityCveEnrichmentsOptions = {},
 ) {
   if (patches.length === 0) {
-    return { importedCount: 0 }
+    return { importedCount: 0 };
   }
 
-  const table = options.table ?? securityCveEnrichments
-  const batchSize = resolveBatchSize(options.batchSize)
-  let importedCount = 0
+  const table = options.table ?? securityCveEnrichments;
+  const batchSize = resolveBatchSize(options.batchSize);
+  let importedCount = 0;
 
   for (let index = 0; index < patches.length; index += batchSize) {
     const values = patches
       .slice(index, index + batchSize)
-      .map(buildSecurityCveEnrichmentInsert)
+      .map(buildSecurityCveEnrichmentInsert);
 
     await db
       .insert(table)
@@ -466,12 +465,12 @@ export async function upsertSecurityCveEnrichments(
         target: table.cveId,
         set: cveEnrichmentConflictUpdateSet,
       })
-      .returning()
+      .returning();
 
-    importedCount += values.length
+    importedCount += values.length;
   }
 
-  return { importedCount }
+  return { importedCount };
 }
 
 async function readResponseBytes(
@@ -482,57 +481,58 @@ async function readResponseBytes(
   const contentLength = Number.parseInt(
     response.headers.get("content-length") ?? "",
     10,
-  )
+  );
 
   if (Number.isFinite(contentLength) && contentLength > maxBytes) {
     throw new Error(
       `Security feed ${url} is too large (${contentLength} bytes, max ${maxBytes})`,
-    )
+    );
   }
 
   if (!response.body) {
-    const bytes = new Uint8Array(await response.arrayBuffer())
+    const bytes = new Uint8Array(await response.arrayBuffer());
     if (bytes.byteLength > maxBytes) {
       throw new Error(
         `Security feed ${url} is too large (${bytes.byteLength} bytes, max ${maxBytes})`,
-      )
+      );
     }
-    return bytes
+    return bytes;
   }
 
-  const reader = response.body.getReader()
-  const chunks: Buffer[] = []
-  let total = 0
+  const reader = response.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
 
   while (true) {
-    const { done, value } = await reader.read()
+    const { done, value } = await reader.read();
     if (done) {
-      break
+      break;
     }
 
-    total += value.byteLength
+    total += value.byteLength;
     if (total > maxBytes) {
-      await reader.cancel()
+      await reader.cancel();
       throw new Error(
         `Security feed ${url} is too large (${total} bytes, max ${maxBytes})`,
-      )
+      );
     }
 
-    chunks.push(Buffer.from(value))
+    chunks.push(Buffer.from(value));
   }
 
-  return Buffer.concat(chunks, total)
+  return Buffer.concat(chunks, total);
 }
 
 export async function fetchSecurityFeedBytes(url: string, maxBytes: number) {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Failed to download ${url}: ${response.status}`)
-  return readResponseBytes(response, url, maxBytes)
+  const response = await fetch(url);
+  if (!response.ok)
+    throw new Error(`Failed to download ${url}: ${response.status}`);
+  return readResponseBytes(response, url, maxBytes);
 }
 
 export async function fetchSecurityFeedText(url: string, maxBytes: number) {
-  const bytes = await fetchSecurityFeedBytes(url, maxBytes)
-  return Buffer.from(bytes).toString("utf8")
+  const bytes = await fetchSecurityFeedBytes(url, maxBytes);
+  return Buffer.from(bytes).toString("utf8");
 }
 
 export async function gunzipSecurityFeedText(
@@ -540,39 +540,45 @@ export async function gunzipSecurityFeedText(
   label: string,
   maxBytes: number,
 ) {
-  const chunks: Buffer[] = []
-  let total = 0
+  const chunks: Buffer[] = [];
+  let total = 0;
 
   await pipeline(
     Readable.from(Buffer.from(bytes)),
     zlib.createGunzip(),
     new Writable({
       write(chunk, _encoding, callback) {
-        total += chunk.byteLength
+        total += chunk.byteLength;
         if (total > maxBytes) {
           callback(
             new Error(
               `${label} is too large after decompression (${total} bytes, max ${maxBytes})`,
             ),
-          )
-          return
+          );
+          return;
         }
 
-        chunks.push(Buffer.from(chunk))
-        callback()
+        chunks.push(Buffer.from(chunk));
+        callback();
       },
     }),
-  )
+  );
 
-  return Buffer.concat(chunks, total).toString("utf8")
+  return Buffer.concat(chunks, total).toString("utf8");
 }
 
-async function defaultFetchText(url: string, maxBytes = MAX_CISA_KEV_JSON_BYTES) {
-  return fetchSecurityFeedText(url, maxBytes)
+async function defaultFetchText(
+  url: string,
+  maxBytes = MAX_CISA_KEV_JSON_BYTES,
+) {
+  return fetchSecurityFeedText(url, maxBytes);
 }
 
-async function defaultFetchBytes(url: string, maxBytes = MAX_NVD_FEED_GZ_BYTES) {
-  return fetchSecurityFeedBytes(url, maxBytes)
+async function defaultFetchBytes(
+  url: string,
+  maxBytes = MAX_NVD_FEED_GZ_BYTES,
+) {
+  return fetchSecurityFeedBytes(url, maxBytes);
 }
 
 async function syncPatches({
@@ -582,21 +588,21 @@ async function syncPatches({
   patches,
   cursorJson,
 }: {
-  db: ContentDb
-  source: string
-  scope: string
-  patches: SecurityCveEnrichmentPatch[]
-  cursorJson?: Record<string, unknown>
+  db: ContentDb;
+  source: string;
+  scope: string;
+  patches: SecurityCveEnrichmentPatch[];
+  cursorJson?: Record<string, unknown>;
 }): Promise<SecurityEnrichmentSyncSummary> {
-  const now = new Date()
+  const now = new Date();
   await upsertSecuritySyncState(db, scope, {
     source,
     status: SecuritySyncStatus.RUNNING,
     now,
-  })
+  });
 
   try {
-    const result = await upsertSecurityCveEnrichments(db, patches)
+    const result = await upsertSecurityCveEnrichments(db, patches);
     await upsertSecuritySyncState(db, scope, {
       source,
       status: SecuritySyncStatus.SUCCESS,
@@ -605,14 +611,14 @@ async function syncPatches({
       recordsSeen: patches.length,
       recordsImported: result.importedCount,
       recordsFailed: 0,
-    })
+    });
     return {
       source,
       scope,
       recordsSeen: patches.length,
       recordsImported: result.importedCount,
       recordsFailed: 0,
-    }
+    };
   } catch (error) {
     await upsertSecuritySyncState(db, scope, {
       source,
@@ -622,8 +628,8 @@ async function syncPatches({
       recordsSeen: patches.length,
       recordsImported: 0,
       recordsFailed: patches.length || 1,
-    })
-    throw error
+    });
+    throw error;
   }
 }
 
@@ -631,11 +637,11 @@ export async function syncCisaKevCatalog({
   db,
   fetchText = defaultFetchText,
 }: {
-  db: ContentDb
-  fetchText?: typeof defaultFetchText
+  db: ContentDb;
+  fetchText?: typeof defaultFetchText;
 }) {
-  const rawJson = await fetchText(CISA_KEV_JSON_URL, MAX_CISA_KEV_JSON_BYTES)
-  const patches = parseKevCatalog(rawJson)
+  const rawJson = await fetchText(CISA_KEV_JSON_URL, MAX_CISA_KEV_JSON_BYTES);
+  const patches = parseKevCatalog(rawJson);
   return syncPatches({
     db,
     source: "cisa-kev",
@@ -645,30 +651,30 @@ export async function syncCisaKevCatalog({
       url: CISA_KEV_JSON_URL,
     },
     patches,
-  })
+  });
 }
 
 export async function syncFirstEpssScores({
   db,
   fetchBytes = defaultFetchBytes,
 }: {
-  db: ContentDb
-  fetchBytes?: typeof defaultFetchBytes
+  db: ContentDb;
+  fetchBytes?: typeof defaultFetchBytes;
 }) {
   const bytes = await fetchBytes(
     FIRST_EPSS_CURRENT_CSV_GZ_URL,
     MAX_EPSS_CSV_GZ_BYTES,
-  )
+  );
   const csv = await gunzipSecurityFeedText(
     bytes,
     "FIRST EPSS current CSV",
     MAX_EPSS_CSV_TEXT_BYTES,
-  )
-  const patches = parseEpssCsv(csv)
-  const scoreDate = patches.find((patch) => patch.epssScoreDate)?.epssScoreDate
+  );
+  const patches = parseEpssCsv(csv);
+  const scoreDate = patches.find((patch) => patch.epssScoreDate)?.epssScoreDate;
   const modelVersion = patches.find(
     (patch) => patch.epssModelVersion,
-  )?.epssModelVersion
+  )?.epssModelVersion;
   return syncPatches({
     db,
     source: "first-epss",
@@ -680,25 +686,28 @@ export async function syncFirstEpssScores({
       ...(modelVersion ? { modelVersion } : {}),
     },
     patches,
-  })
+  });
 }
 
 export async function syncNvdModifiedFeed({
   db,
   fetchBytes = defaultFetchBytes,
 }: {
-  db: ContentDb
-  fetchBytes?: typeof defaultFetchBytes
+  db: ContentDb;
+  fetchBytes?: typeof defaultFetchBytes;
 }) {
-  const bytes = await fetchBytes(buildNvdModifiedFeedUrl(), MAX_NVD_FEED_GZ_BYTES)
+  const bytes = await fetchBytes(
+    buildNvdModifiedFeedUrl(),
+    MAX_NVD_FEED_GZ_BYTES,
+  );
   const payload = JSON.parse(
     await gunzipSecurityFeedText(
       bytes,
       "NVD modified feed",
       MAX_NVD_FEED_JSON_BYTES,
     ),
-  )
-  const patches = parseNvdModifiedFeed(payload)
+  );
+  const patches = parseNvdModifiedFeed(payload);
   return syncPatches({
     db,
     source: "nvd",
@@ -708,7 +717,7 @@ export async function syncNvdModifiedFeed({
       url: buildNvdModifiedFeedUrl(),
     },
     patches,
-  })
+  });
 }
 
 export async function syncNvdYearFeed({
@@ -716,15 +725,18 @@ export async function syncNvdYearFeed({
   year,
   fetchBytes = defaultFetchBytes,
 }: SyncNvdYearFeedInput) {
-  const bytes = await fetchBytes(buildNvdYearFeedUrl(year), MAX_NVD_FEED_GZ_BYTES)
+  const bytes = await fetchBytes(
+    buildNvdYearFeedUrl(year),
+    MAX_NVD_FEED_GZ_BYTES,
+  );
   const payload = JSON.parse(
     await gunzipSecurityFeedText(
       bytes,
       `NVD ${year} feed`,
       MAX_NVD_FEED_JSON_BYTES,
     ),
-  )
-  const patches = parseNvdModifiedFeed(payload)
+  );
+  const patches = parseNvdModifiedFeed(payload);
   return syncPatches({
     db,
     source: "nvd",
@@ -735,26 +747,28 @@ export async function syncNvdYearFeed({
       url: buildNvdYearFeedUrl(year),
     },
     patches,
-  })
+  });
 }
 
 function resolveNvdFullYears(years: number[] | undefined, now: Date) {
-  const currentYear = now.getUTCFullYear()
+  const currentYear = now.getUTCFullYear();
   const resolvedYears =
     years && years.length > 0
       ? years
       : Array.from(
           { length: currentYear - NVD_FULL_FEED_START_YEAR + 1 },
           (_value, index) => NVD_FULL_FEED_START_YEAR + index,
-        )
+        );
 
   return Array.from(
     new Set(
       resolvedYears
         .map((year) => Math.floor(year))
-        .filter((year) => year >= NVD_FULL_FEED_START_YEAR && year <= currentYear),
+        .filter(
+          (year) => year >= NVD_FULL_FEED_START_YEAR && year <= currentYear,
+        ),
     ),
-  ).sort((left, right) => left - right)
+  ).sort((left, right) => left - right);
 }
 
 export async function syncNvdFullHistory({
@@ -765,8 +779,8 @@ export async function syncNvdFullHistory({
   syncNvdYearFeed: syncYear = syncNvdYearFeed,
   upsertSecuritySyncState: upsertSyncState = upsertSecuritySyncState,
 }: SyncNvdFullHistoryInput): Promise<SecurityEnrichmentSyncSummary> {
-  const startedAt = now()
-  const resolvedYears = resolveNvdFullYears(years, startedAt)
+  const startedAt = now();
+  const resolvedYears = resolveNvdFullYears(years, startedAt);
 
   await upsertSyncState(db, "full", {
     source: "nvd",
@@ -776,10 +790,10 @@ export async function syncNvdFullHistory({
       mode: "bootstrap",
       years: resolvedYears,
     },
-  })
+  });
 
   try {
-    const results: SecurityEnrichmentSyncSummary[] = []
+    const results: SecurityEnrichmentSyncSummary[] = [];
     for (const year of resolvedYears) {
       results.push(
         await syncYear({
@@ -787,24 +801,29 @@ export async function syncNvdFullHistory({
           year,
           ...(fetchBytes ? { fetchBytes } : {}),
         }),
-      )
+      );
     }
 
-    const recordsSeen = results.reduce((total, result) => total + result.recordsSeen, 0)
+    const recordsSeen = results.reduce(
+      (total, result) => total + result.recordsSeen,
+      0,
+    );
     const recordsImported = results.reduce(
       (total, result) => total + result.recordsImported,
       0,
-    )
+    );
     const recordsFailed = results.reduce(
       (total, result) => total + result.recordsFailed,
       0,
-    )
-    const completedAt = now()
+    );
+    const completedAt = now();
 
     await upsertSyncState(db, "full", {
       source: "nvd",
       status:
-        recordsFailed > 0 ? SecuritySyncStatus.FAILED : SecuritySyncStatus.SUCCESS,
+        recordsFailed > 0
+          ? SecuritySyncStatus.FAILED
+          : SecuritySyncStatus.SUCCESS,
       now: completedAt,
       cursorJson: {
         mode: "bootstrap",
@@ -818,7 +837,7 @@ export async function syncNvdFullHistory({
       recordsSeen,
       recordsImported,
       recordsFailed,
-    })
+    });
 
     return {
       source: "nvd",
@@ -826,7 +845,7 @@ export async function syncNvdFullHistory({
       recordsSeen,
       recordsImported,
       recordsFailed,
-    }
+    };
   } catch (error) {
     await upsertSyncState(db, "full", {
       source: "nvd",
@@ -840,8 +859,8 @@ export async function syncNvdFullHistory({
       recordsSeen: 0,
       recordsImported: 0,
       recordsFailed: 1,
-    })
-    throw error
+    });
+    throw error;
   }
 }
 
@@ -849,11 +868,11 @@ export async function syncAllSecurityEnrichmentSources(
   db: ContentDb,
   options: SyncAllSecurityEnrichmentSourcesOptions = {},
 ) {
-  const mode = options.mode ?? "incremental"
-  const syncKev = options.syncCisaKevCatalog ?? syncCisaKevCatalog
-  const syncEpss = options.syncFirstEpssScores ?? syncFirstEpssScores
-  const syncModified = options.syncNvdModifiedFeed ?? syncNvdModifiedFeed
-  const syncFull = options.syncNvdFullHistory ?? syncNvdFullHistory
+  const mode = options.mode ?? "incremental";
+  const syncKev = options.syncCisaKevCatalog ?? syncCisaKevCatalog;
+  const syncEpss = options.syncFirstEpssScores ?? syncFirstEpssScores;
+  const syncModified = options.syncNvdModifiedFeed ?? syncNvdModifiedFeed;
+  const syncFull = options.syncNvdFullHistory ?? syncNvdFullHistory;
 
   return [
     await syncKev({
@@ -874,11 +893,11 @@ export async function syncAllSecurityEnrichmentSources(
           db,
           ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),
         }),
-  ]
+  ];
 }
 
 export function buildSecurityEnrichmentSyncStateUpdate(
   input: SecuritySyncStateUpdateInput,
 ) {
-  return buildSecuritySyncStateUpdate(input)
+  return buildSecuritySyncStateUpdate(input);
 }

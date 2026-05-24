@@ -1,28 +1,31 @@
-import { loginAction } from "@/lib/actions/auth"
-import { resolveLang } from "@/lib/i18n"
+import { loginAction } from "@/lib/actions/auth";
+import { resolveLang } from "@/lib/i18n";
 import {
   getAdminBackgroundClassName,
   getAdminBackdropClassName,
   getAdminShellClassName,
-} from "@/lib/admin-layout"
-import { buttonVariants } from "@/components/ui/button"
-import { getAdminAuthConfig, sanitizeAdminReturnPath } from "@/lib/admin-auth"
-import { cn } from "@/lib/utils"
+} from "@/lib/admin-layout";
+import { buttonVariants } from "@/components/ui/button";
+import { getAdminAuthConfig, sanitizeAdminReturnPath } from "@/lib/admin-auth";
+import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type LoginPageProps = {
-  params: Promise<{ lang: string }>
-  searchParams?: Promise<{ error?: string; from?: string }>
-}
+  params: Promise<{ lang: string }>;
+  searchParams?: Promise<{ error?: string; from?: string }>;
+};
 
-export default async function AdminLoginPage({ params: routeParams, searchParams }: LoginPageProps) {
-  const { lang: rawLang } = await routeParams
-  const params = (await searchParams) ?? {}
-  const lang = resolveLang(rawLang)
-  const returnPath = sanitizeAdminReturnPath(params.from, lang)
-  const isConfigured = Boolean(getAdminAuthConfig())
-  const errorMessage = resolveLoginErrorMessage(params.error, lang)
+export default async function AdminLoginPage({
+  params: routeParams,
+  searchParams,
+}: LoginPageProps) {
+  const { lang: rawLang } = await routeParams;
+  const params = (await searchParams) ?? {};
+  const lang = resolveLang(rawLang);
+  const returnPath = sanitizeAdminReturnPath(params.from, lang);
+  const isConfigured = Boolean(getAdminAuthConfig());
+  const errorMessage = resolveLoginErrorMessage(params.error, lang);
 
   return (
     <main className={getAdminBackgroundClassName()}>
@@ -55,7 +58,10 @@ export default async function AdminLoginPage({ params: routeParams, searchParams
               <input type="hidden" name="lang" value={lang} />
               <input type="hidden" name="from" value={returnPath} />
               <div className="flex flex-col gap-2">
-                <label htmlFor="password" className="text-sm font-medium text-zinc-950 dark:text-stone-100">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-zinc-950 dark:text-stone-100"
+                >
                   {lang === "zh" ? "密码" : "Password"}
                 </label>
                 <input
@@ -81,25 +87,28 @@ export default async function AdminLoginPage({ params: routeParams, searchParams
         </div>
       </div>
     </main>
-  )
+  );
 }
 
-function resolveLoginErrorMessage(error: string | undefined, lang: "zh" | "en") {
+function resolveLoginErrorMessage(
+  error: string | undefined,
+  lang: "zh" | "en",
+) {
   if (error === "rate") {
     return lang === "zh"
       ? "尝试次数过多，请稍后再试。"
-      : "Too many attempts. Try again later."
+      : "Too many attempts. Try again later.";
   }
 
   if (error === "config") {
     return lang === "zh"
       ? "后台密码或会话密钥尚未安全配置。"
-      : "Admin password or session secret is not configured safely."
+      : "Admin password or session secret is not configured safely.";
   }
 
   if (error) {
-    return lang === "zh" ? "密码错误，请重试。" : "Wrong password. Try again."
+    return lang === "zh" ? "密码错误，请重试。" : "Wrong password. Try again.";
   }
 
-  return ""
+  return "";
 }

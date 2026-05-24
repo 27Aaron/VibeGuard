@@ -34,5 +34,5 @@ export function stripMarkdown(value: string): string {
       .replace(/[ \t]+/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .trim()
-  )
+  );
 }

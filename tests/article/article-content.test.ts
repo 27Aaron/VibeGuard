@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { pickArticleLocale } from "../../apps/web/lib/article-content"
+import { pickArticleLocale } from "../../apps/web/lib/article-content";
 
 describe("article content locale selection", () => {
   const article = {
@@ -10,7 +10,7 @@ describe("article content locale selection", () => {
     summaryZh: "中文摘要",
     contentMdEn: "English content",
     contentMdZh: "中文正文",
-  }
+  };
 
   it("prefers Chinese content when requested", () => {
     expect(pickArticleLocale(article, "zh")).toEqual({
@@ -18,8 +18,8 @@ describe("article content locale selection", () => {
       title: "中文标题",
       summary: "中文摘要",
       content: "中文正文",
-    })
-  })
+    });
+  });
 
   it("falls back to English when localized fields are missing", () => {
     expect(
@@ -39,6 +39,6 @@ describe("article content locale selection", () => {
       title: "English title",
       summary: "English summary",
       content: "English content",
-    })
-  })
-})
+    });
+  });
+});

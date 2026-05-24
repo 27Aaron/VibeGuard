@@ -1,12 +1,26 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { createChatCompletionTextWithRetry } from "../../packages/llm/src/chat"
-import { classifyRelevance, resolveRelevancePrompt } from "../../packages/llm/src/relevance"
-import { protectMarkdownCode } from "../../packages/llm/src/translate"
-import { stripJsonFence, tryParseJsonCandidates, resolvePrompt } from "../../packages/llm/src/utils"
+import { createChatCompletionTextWithRetry } from "../../packages/llm/src/chat";
+import {
+  classifyRelevance,
+  resolveRelevancePrompt,
+} from "../../packages/llm/src/relevance";
+import { protectMarkdownCode } from "../../packages/llm/src/translate";
+import {
+  stripJsonFence,
+  tryParseJsonCandidates,
+  resolvePrompt,
+} from "../../packages/llm/src/utils";
 
-import { parseModifiedIdCsv, buildModifiedIdCsvUrl } from "../../packages/content/src/osv/sync"
-import { normalizeFeedItem, resolvePublishedAt, type FeedItemInput } from "../../packages/content/src/feed/normalize"
+import {
+  parseModifiedIdCsv,
+  buildModifiedIdCsvUrl,
+} from "../../packages/content/src/osv/sync";
+import {
+  normalizeFeedItem,
+  resolvePublishedAt,
+  type FeedItemInput,
+} from "../../packages/content/src/feed/normalize";
 
 // ---------------------------------------------------------------------------
 // I06: chat.ts — lastError default value
@@ -19,7 +33,7 @@ describe("I06: createChatCompletionTextWithRetry lastError default", () => {
         chat: {
           completions: {
             create: async () => {
-              throw new Error("fail")
+              throw new Error("fail");
             },
           },
         },
@@ -27,10 +41,10 @@ describe("I06: createChatCompletionTextWithRetry lastError default", () => {
       model: "test",
       userContent: "test",
       maxAttempts: 0,
-    })
+    });
 
-    await expect(result).rejects.toThrow("Unknown error")
-  })
+    await expect(result).rejects.toThrow("Unknown error");
+  });
 
   it("throws the last caught error when all retries fail", async () => {
     const result = createChatCompletionTextWithRetry({
@@ -38,7 +52,7 @@ describe("I06: createChatCompletionTextWithRetry lastError default", () => {
         chat: {
           completions: {
             create: async () => {
-              throw new Error("API rate limit exceeded")
+              throw new Error("API rate limit exceeded");
             },
           },
         },
@@ -47,11 +61,11 @@ describe("I06: createChatCompletionTextWithRetry lastError default", () => {
       userContent: "test",
       maxAttempts: 2,
       retryDelayMs: 1,
-    })
+    });
 
-    await expect(result).rejects.toThrow("API rate limit exceeded")
-  })
-})
+    await expect(result).rejects.toThrow("API rate limit exceeded");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // I19: relevance.ts — no redundant type casts
@@ -67,35 +81,37 @@ describe("I19: parseRelevanceResponse via classifyRelevance", () => {
           }),
         },
       },
-    }
+    };
   }
 
   it("parses a valid relevance JSON response", async () => {
-    const client = makeMockClient('{"relevant": true, "reason": "about vulnerabilities"}')
+    const client = makeMockClient(
+      '{"relevant": true, "reason": "about vulnerabilities"}',
+    );
     const { result } = await classifyRelevance({
       // @ts-expect-error -- simplified mock
       client,
       model: "test",
       systemPrompt: null,
       sourceText: "some text about a CVE",
-    })
-    expect(result.relevant).toBe(true)
-    expect(result.reason).toBe("about vulnerabilities")
-  })
+    });
+    expect(result.relevant).toBe(true);
+    expect(result.reason).toBe("about vulnerabilities");
+  });
 
   it("returns default relevant=false when response is unparseable", async () => {
-    const client = makeMockClient("not json at all")
+    const client = makeMockClient("not json at all");
     const { result } = await classifyRelevance({
       // @ts-expect-error -- simplified mock
       client,
       model: "test",
       systemPrompt: null,
       sourceText: "some text",
-    })
-    expect(result.relevant).toBe(false)
-    expect(result.reason).toBe("Failed to parse relevance response")
-  })
-})
+    });
+    expect(result.relevant).toBe(false);
+    expect(result.reason).toBe("Failed to parse relevance response");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // I20: translate.ts — improved fenced code block regex
@@ -109,32 +125,32 @@ describe("I20: protectMarkdownCode", () => {
       "const x = 1;",
       "```",
       "More text",
-    ].join("\n")
+    ].join("\n");
 
-    const result = protectMarkdownCode(input)
-    expect(result.protectedText).not.toContain("const x = 1;")
-    expect(result.protectedText).toContain("__CF_CODE_BLOCK_0__")
+    const result = protectMarkdownCode(input);
+    expect(result.protectedText).not.toContain("const x = 1;");
+    expect(result.protectedText).toContain("__CF_CODE_BLOCK_0__");
 
-    const restored = result.restore(result.protectedText)
-    expect(restored).toBe(input)
-  })
+    const restored = result.restore(result.protectedText);
+    expect(restored).toBe(input);
+  });
 
   it("protects inline code", () => {
-    const input = "Use the `npm install` command to install."
-    const result = protectMarkdownCode(input)
-    expect(result.protectedText).not.toContain("npm install")
-    expect(result.protectedText).toContain("__CF_INLINE_CODE_0__")
+    const input = "Use the `npm install` command to install.";
+    const result = protectMarkdownCode(input);
+    expect(result.protectedText).not.toContain("npm install");
+    expect(result.protectedText).toContain("__CF_INLINE_CODE_0__");
 
-    const restored = result.restore(result.protectedText)
-    expect(restored).toBe(input)
-  })
+    const restored = result.restore(result.protectedText);
+    expect(restored).toBe(input);
+  });
 
   it("handles fenced code without trailing newline after closing fence", () => {
-    const input = "```js\ncode here\n```"
-    const result = protectMarkdownCode(input)
-    expect(result.protectedText).toContain("__CF_CODE_BLOCK_0__")
-    expect(result.restore(result.protectedText)).toBe(input)
-  })
+    const input = "```js\ncode here\n```";
+    const result = protectMarkdownCode(input);
+    expect(result.protectedText).toContain("__CF_CODE_BLOCK_0__");
+    expect(result.restore(result.protectedText)).toBe(input);
+  });
 
   it("handles multiple fenced and inline code blocks", () => {
     const input = [
@@ -146,23 +162,23 @@ describe("I20: protectMarkdownCode", () => {
       "```python",
       "block2",
       "```",
-    ].join("\n")
+    ].join("\n");
 
-    const result = protectMarkdownCode(input)
-    expect(result.protectedText).toContain("__CF_INLINE_CODE_0__")
-    expect(result.protectedText).toContain("__CF_INLINE_CODE_1__")
-    expect(result.protectedText).toContain("__CF_CODE_BLOCK_0__")
-    expect(result.protectedText).toContain("__CF_CODE_BLOCK_1__")
-    expect(result.restore(result.protectedText)).toBe(input)
-  })
+    const result = protectMarkdownCode(input);
+    expect(result.protectedText).toContain("__CF_INLINE_CODE_0__");
+    expect(result.protectedText).toContain("__CF_INLINE_CODE_1__");
+    expect(result.protectedText).toContain("__CF_CODE_BLOCK_0__");
+    expect(result.protectedText).toContain("__CF_CODE_BLOCK_1__");
+    expect(result.restore(result.protectedText)).toBe(input);
+  });
 
   it("preserves text without any code blocks", () => {
-    const input = "Just plain text with no code."
-    const result = protectMarkdownCode(input)
-    expect(result.protectedText).toBe(input)
-    expect(result.restore(result.protectedText)).toBe(input)
-  })
-})
+    const input = "Just plain text with no code.";
+    const result = protectMarkdownCode(input);
+    expect(result.protectedText).toBe(input);
+    expect(result.restore(result.protectedText)).toBe(input);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // I21: utils.ts — resolvePrompt blank string handling
@@ -170,25 +186,27 @@ describe("I20: protectMarkdownCode", () => {
 
 describe("I21: resolvePrompt validation", () => {
   it("returns fallback for null", () => {
-    expect(resolvePrompt(null, "fallback")).toBe("fallback")
-  })
+    expect(resolvePrompt(null, "fallback")).toBe("fallback");
+  });
 
   it("returns fallback for undefined", () => {
-    expect(resolvePrompt(undefined, "fallback")).toBe("fallback")
-  })
+    expect(resolvePrompt(undefined, "fallback")).toBe("fallback");
+  });
 
   it("returns fallback for empty string", () => {
-    expect(resolvePrompt("", "fallback")).toBe("fallback")
-  })
+    expect(resolvePrompt("", "fallback")).toBe("fallback");
+  });
 
   it("returns fallback for whitespace-only string", () => {
-    expect(resolvePrompt("   ", "fallback")).toBe("fallback")
-  })
+    expect(resolvePrompt("   ", "fallback")).toBe("fallback");
+  });
 
   it("returns the trimmed value when non-empty", () => {
-    expect(resolvePrompt("  custom prompt  ", "fallback")).toBe("custom prompt")
-  })
-})
+    expect(resolvePrompt("  custom prompt  ", "fallback")).toBe(
+      "custom prompt",
+    );
+  });
+});
 
 // ---------------------------------------------------------------------------
 // I07: osv/sync.ts — unused execFile removed (compile-time check)
@@ -196,17 +214,17 @@ describe("I21: resolvePrompt validation", () => {
 
 describe("I07: osv/sync.ts — no unused execFile import", () => {
   it("buildModifiedIdCsvUrl produces expected URL", () => {
-    const url = buildModifiedIdCsvUrl("npm")
-    expect(url).toContain("npm")
-    expect(url).toContain("modified_id.csv")
-  })
+    const url = buildModifiedIdCsvUrl("npm");
+    expect(url).toContain("npm");
+    expect(url).toContain("modified_id.csv");
+  });
 
   it("parseModifiedIdCsv handles basic input", () => {
-    const rows = parseModifiedIdCsv("modified,id\n2024-01-01T00:00:00Z,CVE-1")
-    expect(rows).toHaveLength(1)
-    expect(rows[0].externalId).toBe("CVE-1")
-  })
-})
+    const rows = parseModifiedIdCsv("modified,id\n2024-01-01T00:00:00Z,CVE-1");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].externalId).toBe("CVE-1");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // I22: feed/normalize.ts — tighter FeedItemInput index signature
@@ -219,21 +237,21 @@ describe("I22: FeedItemInput type tightness", () => {
       link: "https://example.com/article",
       isoDate: "2024-01-01T00:00:00Z",
       content: "Some content",
-    }
-    const result = normalizeFeedItem(item, new Date("2024-06-01"))
-    expect(result.titleEn).toBe("Test Article")
-    expect(result.url).toBe("https://example.com/article")
-  })
+    };
+    const result = normalizeFeedItem(item, new Date("2024-06-01"));
+    expect(result.titleEn).toBe("Test Article");
+    expect(result.url).toBe("https://example.com/article");
+  });
 
   it("accepts feed item with custom string fields", () => {
     const item: FeedItemInput = {
       title: "Custom Field",
       link: "https://example.com/custom",
       customField: "custom value",
-    }
-    const result = normalizeFeedItem(item)
-    expect(result.titleEn).toBe("Custom Field")
-  })
+    };
+    const result = normalizeFeedItem(item);
+    expect(result.titleEn).toBe("Custom Field");
+  });
 
   it("rejects object values in index signature (type-level check)", () => {
     // This is a compile-time check: the following should NOT compile
@@ -245,10 +263,10 @@ describe("I22: FeedItemInput type tightness", () => {
       title: "Type Check",
       link: "https://example.com/typecheck",
       enclosures: "",
-    }
-    expect(() => normalizeFeedItem(item)).not.toThrow()
-  })
-})
+    };
+    expect(() => normalizeFeedItem(item)).not.toThrow();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // I24: osv/sync.ts — nextIndex documented as safe (verified by reading source)
@@ -256,10 +274,13 @@ describe("I22: FeedItemInput type tightness", () => {
 
 describe("I24: osv/sync.ts — nextIndex safety documentation", () => {
   it("parseModifiedIdCsv respects limit=0", () => {
-    const rows = parseModifiedIdCsv("modified,id\n2024-01-01T00:00:00Z,CVE-1", 0)
-    expect(rows).toHaveLength(0)
-  })
-})
+    const rows = parseModifiedIdCsv(
+      "modified,id\n2024-01-01T00:00:00Z,CVE-1",
+      0,
+    );
+    expect(rows).toHaveLength(0);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // resolvePublishedAt (bonus coverage for normalize.ts)
@@ -267,18 +288,18 @@ describe("I24: osv/sync.ts — nextIndex safety documentation", () => {
 
 describe("resolvePublishedAt", () => {
   it("returns fallback when input is null", () => {
-    const fallback = new Date("2024-06-01")
-    const result = resolvePublishedAt(null, fallback)
-    expect(result.publishedAt).toBe(fallback)
-    expect(result.isFallback).toBe(true)
-  })
+    const fallback = new Date("2024-06-01");
+    const result = resolvePublishedAt(null, fallback);
+    expect(result.publishedAt).toBe(fallback);
+    expect(result.isFallback).toBe(true);
+  });
 
   it("parses valid ISO date string", () => {
-    const result = resolvePublishedAt("2024-01-15T12:00:00Z", new Date())
-    expect(result.isFallback).toBe(false)
-    expect(result.publishedAt.getFullYear()).toBe(2024)
-  })
-})
+    const result = resolvePublishedAt("2024-01-15T12:00:00Z", new Date());
+    expect(result.isFallback).toBe(false);
+    expect(result.publishedAt.getFullYear()).toBe(2024);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // stripJsonFence / tryParseJsonCandidates (bonus coverage)
@@ -286,23 +307,23 @@ describe("resolvePublishedAt", () => {
 
 describe("stripJsonFence", () => {
   it("removes json code fences", () => {
-    expect(stripJsonFence('```json\n{"a":1}\n```')).toBe('{"a":1}')
-  })
+    expect(stripJsonFence('```json\n{"a":1}\n```')).toBe('{"a":1}');
+  });
 
   it("returns trimmed plain text unchanged", () => {
-    expect(stripJsonFence('{"a":1}')).toBe('{"a":1}')
-  })
-})
+    expect(stripJsonFence('{"a":1}')).toBe('{"a":1}');
+  });
+});
 
 describe("tryParseJsonCandidates", () => {
   it("returns parsed object for valid JSON", () => {
-    expect(tryParseJsonCandidates(['{"x":42}'])).toEqual({ x: 42 })
-  })
+    expect(tryParseJsonCandidates(['{"x":42}'])).toEqual({ x: 42 });
+  });
 
   it("returns null when all candidates are invalid", () => {
-    expect(tryParseJsonCandidates(["not json", "also not"])).toBeNull()
-  })
-})
+    expect(tryParseJsonCandidates(["not json", "also not"])).toBeNull();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // resolveRelevancePrompt (bonus coverage)
@@ -310,12 +331,12 @@ describe("tryParseJsonCandidates", () => {
 
 describe("resolveRelevancePrompt", () => {
   it("returns default when given null", () => {
-    const result = resolveRelevancePrompt(null)
-    expect(result).toContain("supply-chain security")
-  })
+    const result = resolveRelevancePrompt(null);
+    expect(result).toContain("supply-chain security");
+  });
 
   it("returns custom prompt when provided", () => {
-    const result = resolveRelevancePrompt("Custom prompt")
-    expect(result).toBe("Custom prompt")
-  })
-})
+    const result = resolveRelevancePrompt("Custom prompt");
+    expect(result).toBe("Custom prompt");
+  });
+});

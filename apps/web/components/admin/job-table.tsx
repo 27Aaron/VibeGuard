@@ -1,20 +1,24 @@
-import Link from "next/link"
+import Link from "next/link";
 
-import { JobSelectAllCheckbox } from "@/components/admin/job-select-all-checkbox"
-import { JobStageFilterSelect } from "@/components/admin/job-stage-filter-select"
+import { JobSelectAllCheckbox } from "@/components/admin/job-select-all-checkbox";
+import { JobStageFilterSelect } from "@/components/admin/job-stage-filter-select";
 import {
   cancelJobAction,
   pauseJobAction,
   resumeJobAction,
   retryJobAction,
-} from "@/lib/actions/jobs"
-import type { JobRow, JobStageFilter, JobStatusFilter } from "@/components/admin/types"
-import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
-import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
-import type { AppLang } from "@/lib/i18n"
-import { PIPELINE_STAGES, stageLabel } from "@/lib/pipeline-stages"
-import { cn } from "@/lib/utils"
+} from "@/lib/actions/jobs";
+import type {
+  JobRow,
+  JobStageFilter,
+  JobStatusFilter,
+} from "@/components/admin/types";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { getAdminTableSurfaceClassName } from "@/lib/admin-layout";
+import type { AppLang } from "@/lib/i18n";
+import { PIPELINE_STAGES, stageLabel } from "@/lib/pipeline-stages";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -22,95 +26,95 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
 // 当表格行数超过此阈值时启用 content-visibility: auto，
 // 利用浏览器原生虚拟化能力跳过屏幕外行的布局和绘制，提升大列表渲染性能。
-const VIRTUALIZE_THRESHOLD = 30
-const ESTIMATED_ROW_HEIGHT = 56
+const VIRTUALIZE_THRESHOLD = 30;
+const ESTIMATED_ROW_HEIGHT = 56;
 
 function statusVariant(status: JobRow["status"]) {
   if (status === "failed" || status === "cancel_requested") {
-    return "destructive" as const
+    return "destructive" as const;
   }
 
   if (status === "succeeded") {
-    return "secondary" as const
+    return "secondary" as const;
   }
 
-  return "outline" as const
+  return "outline" as const;
 }
 
 function statusClassName(status: JobRow["status"]) {
   if (status === "filtered") {
-    return "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-300"
+    return "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-300";
   }
   if (status === "paused" || status === "pause_requested") {
-    return "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+    return "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300";
   }
-  return undefined
+  return undefined;
 }
 
 function statusLabel(status: JobRow["status"], lang: AppLang) {
   switch (status) {
     case "queued":
-      return lang === "zh" ? "排队中" : "Queued"
+      return lang === "zh" ? "排队中" : "Queued";
     case "running":
-      return lang === "zh" ? "执行中" : "Running"
+      return lang === "zh" ? "执行中" : "Running";
     case "paused":
-      return lang === "zh" ? "已暂停" : "Paused"
+      return lang === "zh" ? "已暂停" : "Paused";
     case "pause_requested":
-      return lang === "zh" ? "暂停中" : "Pausing"
+      return lang === "zh" ? "暂停中" : "Pausing";
     case "cancel_requested":
-      return lang === "zh" ? "取消中" : "Cancelling"
+      return lang === "zh" ? "取消中" : "Cancelling";
     case "succeeded":
-      return lang === "zh" ? "已完成" : "Succeeded"
+      return lang === "zh" ? "已完成" : "Succeeded";
     case "failed":
-      return lang === "zh" ? "失败" : "Failed"
+      return lang === "zh" ? "失败" : "Failed";
     case "filtered":
-      return lang === "zh" ? "已过滤" : "Filtered"
+      return lang === "zh" ? "已过滤" : "Filtered";
   }
 }
 
 function displayStageLabel(job: JobRow, lang: AppLang) {
   if (job.status === "succeeded" || job.status === "filtered") {
-    return lang === "zh" ? "处理完成" : "Processing complete"
+    return lang === "zh" ? "处理完成" : "Processing complete";
   }
 
-  return stageLabel(job.pipelineStage, lang)
+  return stageLabel(job.pipelineStage, lang);
 }
 
 function pipelineProgress(job: JobRow) {
   if (job.status === "succeeded") {
-    return { current: PIPELINE_STAGES.length, total: PIPELINE_STAGES.length }
+    return { current: PIPELINE_STAGES.length, total: PIPELINE_STAGES.length };
   }
 
-  const index = PIPELINE_STAGES.indexOf(job.pipelineStage)
+  const index = PIPELINE_STAGES.indexOf(job.pipelineStage);
 
   return {
     current: index >= 0 ? index + 1 : 1,
     total: PIPELINE_STAGES.length,
-  }
+  };
 }
 
 function actionLabel(status: JobRow["status"], lang: AppLang) {
   switch (status) {
     case "queued":
-      return lang === "zh" ? "立即执行" : "Run now"
+      return lang === "zh" ? "立即执行" : "Run now";
     case "running":
-      return lang === "zh" ? "重置执行" : "Reset"
+      return lang === "zh" ? "重置执行" : "Reset";
     case "paused":
-      return lang === "zh" ? "恢复" : "Resume"
+      return lang === "zh" ? "恢复" : "Resume";
     case "pause_requested":
-      return lang === "zh" ? "暂停中" : "Pausing"
+      return lang === "zh" ? "暂停中" : "Pausing";
     case "cancel_requested":
-      return lang === "zh" ? "取消中" : "Cancelling"
+      return lang === "zh" ? "取消中" : "Cancelling";
     case "succeeded":
-      return lang === "zh" ? "重新执行" : "Rerun"
+      return lang === "zh" ? "重新执行" : "Rerun";
     case "filtered":
-      return lang === "zh" ? "重新执行" : "Rerun"
+      return lang === "zh" ? "重新执行" : "Rerun";
     case "failed":
-      return lang === "zh" ? "继续执行" : "Continue"
+      return lang === "zh" ? "继续执行" : "Continue";
   }
 }
 
@@ -122,12 +126,12 @@ function JobActionHiddenFields({
   page,
   pageSize,
 }: {
-  job: JobRow
-  lang: AppLang
-  status: JobStatusFilter
-  stage: JobStageFilter
-  page: number
-  pageSize: number
+  job: JobRow;
+  lang: AppLang;
+  status: JobStatusFilter;
+  stage: JobStageFilter;
+  page: number;
+  pageSize: number;
 }) {
   return (
     <>
@@ -138,7 +142,7 @@ function JobActionHiddenFields({
       <input type="hidden" name="page" value={String(page)} />
       <input type="hidden" name="pageSize" value={String(pageSize)} />
     </>
-  )
+  );
 }
 
 function JobRowActions({
@@ -149,24 +153,24 @@ function JobRowActions({
   page,
   pageSize,
 }: {
-  job: JobRow
-  lang: AppLang
-  status: JobStatusFilter
-  stage: JobStageFilter
-  page: number
-  pageSize: number
+  job: JobRow;
+  lang: AppLang;
+  status: JobStatusFilter;
+  stage: JobStageFilter;
+  page: number;
+  pageSize: number;
 }) {
-  const canPause = job.status === "queued" || job.status === "running"
-  const canResume = job.status === "paused"
+  const canPause = job.status === "queued" || job.status === "running";
+  const canResume = job.status === "paused";
   const canCancel =
     job.status === "queued" ||
     job.status === "running" ||
     job.status === "paused" ||
-    job.status === "pause_requested"
+    job.status === "pause_requested";
   const canRetry =
     job.status === "failed" ||
     job.status === "succeeded" ||
-    job.status === "filtered"
+    job.status === "filtered";
 
   return (
     <div className="flex flex-wrap justify-center gap-1.5">
@@ -267,27 +271,39 @@ function JobRowActions({
         </form>
       ) : null}
     </div>
-  )
+  );
 }
 
-function JobRowItem({ job, lang, status, stage, page, pageSize, shouldVirtualize }: {
-  job: JobRow
-  lang: AppLang
-  status: JobStatusFilter
-  stage: JobStageFilter
-  page: number
-  pageSize: number
-  shouldVirtualize: boolean
+function JobRowItem({
+  job,
+  lang,
+  status,
+  stage,
+  page,
+  pageSize,
+  shouldVirtualize,
+}: {
+  job: JobRow;
+  lang: AppLang;
+  status: JobStatusFilter;
+  stage: JobStageFilter;
+  page: number;
+  pageSize: number;
+  shouldVirtualize: boolean;
 }) {
-  const { current, total } = pipelineProgress(job)
-  const percent = Math.round((current / total) * 100)
+  const { current, total } = pipelineProgress(job);
+  const percent = Math.round((current / total) * 100);
 
   return (
     <TableRow
-      style={shouldVirtualize ? {
-        containIntrinsicSize: ESTIMATED_ROW_HEIGHT,
-        contentVisibility: "auto",
-      } : undefined}
+      style={
+        shouldVirtualize
+          ? {
+              containIntrinsicSize: ESTIMATED_ROW_HEIGHT,
+              contentVisibility: "auto",
+            }
+          : undefined
+      }
     >
       <TableCell className="px-4 py-3 align-middle">
         <label className="flex cursor-pointer items-center justify-center">
@@ -331,9 +347,7 @@ function JobRowItem({ job, lang, status, stage, page, pageSize, shouldVirtualize
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                job.status === "failed"
-                  ? "bg-destructive"
-                  : "bg-emerald-500",
+                job.status === "failed" ? "bg-destructive" : "bg-emerald-500",
               )}
               style={{ width: `${percent}%` }}
             />
@@ -341,18 +355,30 @@ function JobRowItem({ job, lang, status, stage, page, pageSize, shouldVirtualize
         </div>
       </TableCell>
       <TableCell className="px-3 py-3 text-center align-middle">
-        <Badge variant={statusVariant(job.status)} className={statusClassName(job.status)}>
+        <Badge
+          variant={statusVariant(job.status)}
+          className={statusClassName(job.status)}
+        >
           {statusLabel(job.status, lang)}
         </Badge>
       </TableCell>
       <TableCell className="px-3 py-3 text-center align-middle">
         {`${job.attempt}/${job.maxAttempts}`}
       </TableCell>
-      <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.runAt}</TableCell>
-      <TableCell className="px-3 py-3 text-center align-middle tabular-nums">{job.updatedAt}</TableCell>
+      <TableCell className="px-3 py-3 text-center align-middle tabular-nums">
+        {job.runAt}
+      </TableCell>
+      <TableCell className="px-3 py-3 text-center align-middle tabular-nums">
+        {job.updatedAt}
+      </TableCell>
       <TableCell className="px-3 py-3 text-center align-middle">
         {job.lastError ? (
-          <p className="line-clamp-2 text-xs text-destructive" title={job.lastError}>{job.lastError}</p>
+          <p
+            className="line-clamp-2 text-xs text-destructive"
+            title={job.lastError}
+          >
+            {job.lastError}
+          </p>
         ) : (
           <span className="text-xs text-muted-foreground">
             {lang === "zh" ? "无错误" : "No error"}
@@ -370,7 +396,7 @@ function JobRowItem({ job, lang, status, stage, page, pageSize, shouldVirtualize
         />
       </TableCell>
     </TableRow>
-  )
+  );
 }
 
 export function JobTable({
@@ -381,17 +407,20 @@ export function JobTable({
   page,
   pageSize,
 }: {
-  jobs: JobRow[]
-  lang: AppLang
-  status: JobStatusFilter
-  stage: JobStageFilter
-  page: number
-  pageSize: number
+  jobs: JobRow[];
+  lang: AppLang;
+  status: JobStatusFilter;
+  stage: JobStageFilter;
+  page: number;
+  pageSize: number;
 }) {
-  const shouldVirtualize = jobs.length > VIRTUALIZE_THRESHOLD
+  const shouldVirtualize = jobs.length > VIRTUALIZE_THRESHOLD;
 
   return (
-    <div className={getAdminTableSurfaceClassName()} style={{ overscrollBehavior: "contain" } as React.CSSProperties}>
+    <div
+      className={getAdminTableSurfaceClassName()}
+      style={{ overscrollBehavior: "contain" } as React.CSSProperties}
+    >
       <Table className="table-fixed">
         <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
@@ -399,7 +428,11 @@ export function JobTable({
               <JobSelectAllCheckbox
                 formId="selected-jobs-form"
                 inputName="ids"
-                label={lang === "zh" ? "全选当前页任务" : "Select all jobs on this page"}
+                label={
+                  lang === "zh"
+                    ? "全选当前页任务"
+                    : "Select all jobs on this page"
+                }
               />
             </TableHead>
             <TableHead className="w-[22%] px-4 text-left">
@@ -439,7 +472,10 @@ export function JobTable({
         <TableBody>
           {jobs.length === 0 ? (
             <TableRow>
-              <TableCell className="px-4 py-5 text-center text-sm text-muted-foreground" colSpan={10}>
+              <TableCell
+                className="px-4 py-5 text-center text-sm text-muted-foreground"
+                colSpan={10}
+              >
                 {lang === "zh"
                   ? "当前筛选条件下还没有任务记录。"
                   : "No jobs match the current filter."}
@@ -461,5 +497,5 @@ export function JobTable({
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

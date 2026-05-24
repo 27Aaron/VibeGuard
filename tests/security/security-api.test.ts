@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildSecurityPackageProfileSummary,
   normalizeSecurityCveId,
   parseSecurityAdvisoryListParams,
-} from "../../apps/web/lib/security-api"
+} from "../../apps/web/lib/security-api";
 
 const packageCheckPayload = {
   meta: {
@@ -43,7 +43,12 @@ const packageCheckPayload = {
       },
       affectedPackage: {
         affectedVersions: [],
-        ranges: [{ type: "SEMVER", events: [{ introduced: "1.0.0" }, { fixed: "1.15.0" }] }],
+        ranges: [
+          {
+            type: "SEMVER",
+            events: [{ introduced: "1.0.0" }, { fixed: "1.15.0" }],
+          },
+        ],
         fixedVersions: ["1.15.0", "0.31.0"],
       },
       cveEnrichments: [
@@ -118,7 +123,7 @@ const packageCheckPayload = {
       },
     },
   ],
-}
+};
 
 describe("security API helpers", () => {
   it("parses advisory list filters with safe defaults", () => {
@@ -137,7 +142,7 @@ describe("security API helpers", () => {
         limit: "500",
         page: "0",
       }),
-    )
+    );
 
     expect(params).toEqual({
       q: "axios",
@@ -152,13 +157,13 @@ describe("security API helpers", () => {
       updatedAfter: "2026-05-01T00:00:00.000Z",
       limit: 100,
       page: 1,
-    })
-  })
+    });
+  });
 
   it("normalizes CVE identifiers and rejects invalid ids", () => {
-    expect(normalizeSecurityCveId(" cve-2026-25639 ")).toBe("CVE-2026-25639")
-    expect(normalizeSecurityCveId("GHSA-43fc-jf86-j433")).toBeNull()
-  })
+    expect(normalizeSecurityCveId(" cve-2026-25639 ")).toBe("CVE-2026-25639");
+    expect(normalizeSecurityCveId("GHSA-43fc-jf86-j433")).toBeNull();
+  });
 
   it("builds package profile summary from package check findings", () => {
     expect(
@@ -173,20 +178,20 @@ describe("security API helpers", () => {
       },
       latestUpdatedAt: "2026-05-23T06:00:00.000Z",
       recommendedFixedVersions: ["1.15.0", "0.31.0", "1.13.5"],
-    })
-  })
-})
+    });
+  });
+});
 
 describe("security API routes", () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date("2026-05-24T01:00:00.000Z"))
-  })
+    vi.resetModules();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-24T01:00:00.000Z"));
+  });
 
   afterEach(() => {
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
   it("returns a package profile for ecosystem and package path", async () => {
     const db = {
@@ -266,28 +271,29 @@ describe("security API routes", () => {
           ]),
         },
       },
-    }
-    const getDb = vi.fn(() => db)
+    };
+    const getDb = vi.fn(() => db);
 
     vi.doMock("@vibeguard/db", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@vibeguard/db")>()),
       getDb,
-    }))
+    }));
 
-    const { GET } = await import(
-      "../../apps/web/app/api/security/packages/[ecosystem]/[...packageName]/route"
-    )
+    const { GET } =
+      await import("../../apps/web/app/api/security/packages/[ecosystem]/[...packageName]/route");
     const response = await GET(
-      new Request("http://vibeguard.test/api/security/packages/npm/@scope/axios?version=1.0.0"),
+      new Request(
+        "http://vibeguard.test/api/security/packages/npm/@scope/axios?version=1.0.0",
+      ),
       {
         params: Promise.resolve({
           ecosystem: "npm",
           packageName: ["@scope", "axios"],
         }),
       },
-    )
+    );
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       package: {
         ecosystem: "npm",
@@ -320,10 +326,10 @@ describe("security API routes", () => {
           ],
         },
       ],
-    })
-    expect(getDb).toHaveBeenCalledTimes(1)
-    expect(db.query.securityAffectedPackages.findMany).toHaveBeenCalledTimes(1)
-  })
+    });
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(db.query.securityAffectedPackages.findMany).toHaveBeenCalledTimes(1);
+  });
 
   it("returns sync status for all security data sources", async () => {
     const findMany = vi.fn().mockResolvedValue([
@@ -341,24 +347,23 @@ describe("security API routes", () => {
         recordsFailed: 0,
         updatedAt: new Date("2026-05-24T00:05:00.000Z"),
       },
-    ])
+    ]);
     const getDb = vi.fn(() => ({
       query: {
         securitySyncState: { findMany },
       },
-    }))
+    }));
 
     vi.doMock("@vibeguard/db", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@vibeguard/db")>()),
       getDb,
-    }))
+    }));
 
-    const { GET } = await import(
-      "../../apps/web/app/api/security/sync/status/route"
-    )
-    const response = await GET()
+    const { GET } =
+      await import("../../apps/web/app/api/security/sync/status/route");
+    const response = await GET();
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       meta: {
         sourceCount: 1,
@@ -381,8 +386,8 @@ describe("security API routes", () => {
           stale: false,
         },
       ],
-    })
-  })
+    });
+  });
 
   it("lists advisories with CVE enrichment and package impact", async () => {
     const db = {
@@ -472,22 +477,23 @@ describe("security API routes", () => {
           ]),
         },
       },
-    }
-    const getDb = vi.fn(() => db)
+    };
+    const getDb = vi.fn(() => db);
 
     vi.doMock("@vibeguard/db", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@vibeguard/db")>()),
       getDb,
-    }))
+    }));
 
-    const { GET } = await import(
-      "../../apps/web/app/api/security/advisories/route"
-    )
+    const { GET } =
+      await import("../../apps/web/app/api/security/advisories/route");
     const response = await GET(
-      new Request("http://vibeguard.test/api/security/advisories?riskType=vulnerability&kev=true"),
-    )
+      new Request(
+        "http://vibeguard.test/api/security/advisories?riskType=vulnerability&kev=true",
+      ),
+    );
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       meta: {
         riskType: "vulnerability",
@@ -503,8 +509,8 @@ describe("security API routes", () => {
           packageImpacts: [{ ecosystem: "npm", packageName: "axios" }],
         },
       ],
-    })
-  })
+    });
+  });
 
   it("returns one advisory by external id", async () => {
     const db = {
@@ -548,31 +554,32 @@ describe("security API routes", () => {
           findMany: vi.fn().mockResolvedValue([]),
         },
       },
-    }
-    const getDb = vi.fn(() => db)
+    };
+    const getDb = vi.fn(() => db);
 
     vi.doMock("@vibeguard/db", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@vibeguard/db")>()),
       getDb,
-    }))
+    }));
 
-    const { GET } = await import(
-      "../../apps/web/app/api/security/advisories/[advisoryId]/route"
-    )
+    const { GET } =
+      await import("../../apps/web/app/api/security/advisories/[advisoryId]/route");
     const response = await GET(
-      new Request("http://vibeguard.test/api/security/advisories/GHSA-43fc-jf86-j433"),
+      new Request(
+        "http://vibeguard.test/api/security/advisories/GHSA-43fc-jf86-j433",
+      ),
       {
         params: Promise.resolve({ advisoryId: "GHSA-43fc-jf86-j433" }),
       },
-    )
+    );
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       id: "GHSA-43fc-jf86-j433",
       aliases: ["CVE-2026-25639"],
       packageImpacts: [{ ecosystem: "npm", fixedVersions: ["1.13.5"] }],
-    })
-  })
+    });
+  });
 
   it("returns CVE enrichment with related advisories", async () => {
     const cveRow = {
@@ -597,7 +604,7 @@ describe("security API routes", () => {
       kevNotes: null,
       nvdPublishedAt: new Date("2026-02-10T00:00:00.000Z"),
       nvdModifiedAt: new Date("2026-05-22T04:13:00.000Z"),
-    }
+    };
     const db = {
       query: {
         securityCveEnrichments: {
@@ -629,25 +636,24 @@ describe("security API routes", () => {
           findMany: vi.fn().mockResolvedValue([]),
         },
       },
-    }
-    const getDb = vi.fn(() => db)
+    };
+    const getDb = vi.fn(() => db);
 
     vi.doMock("@vibeguard/db", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@vibeguard/db")>()),
       getDb,
-    }))
+    }));
 
-    const { GET } = await import(
-      "../../apps/web/app/api/security/cves/[cveId]/route"
-    )
+    const { GET } =
+      await import("../../apps/web/app/api/security/cves/[cveId]/route");
     const response = await GET(
       new Request("http://vibeguard.test/api/security/cves/CVE-2026-25639"),
       {
         params: Promise.resolve({ cveId: "cve-2026-25639" }),
       },
-    )
+    );
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       cveId: "CVE-2026-25639",
       enrichment: {
@@ -655,6 +661,6 @@ describe("security API routes", () => {
         epssPercentile: "0.82",
       },
       advisories: [{ id: "GHSA-43fc-jf86-j433" }],
-    })
-  })
-})
+    });
+  });
+});

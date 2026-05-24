@@ -66,11 +66,7 @@ function isDecorativeMarkdownImageLine(line: string) {
 }
 
 function normalizeDecorativeImageToken(value: string) {
-  return value
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+  return value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 function isSocketCtaMarkdownLine(line: string) {

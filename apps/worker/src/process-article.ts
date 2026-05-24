@@ -1,22 +1,26 @@
-import { eq, sql } from "drizzle-orm"
-import type { NodePgDatabase } from "drizzle-orm/node-postgres"
+import { eq, sql } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { articles, llmUsageLogs, schema } from "@vibeguard/db"
+import { articles, llmUsageLogs, schema } from "@vibeguard/db";
 import {
   createOpenAIClient,
   decryptSecret,
   generateTags,
   summarizeText,
   translateText,
-} from "@vibeguard/llm"
-import { ArticleEcosystem, ArticleRiskCategory, ArticleStatus } from "@vibeguard/shared"
+} from "@vibeguard/llm";
+import {
+  ArticleEcosystem,
+  ArticleRiskCategory,
+  ArticleStatus,
+} from "@vibeguard/shared";
 
 import {
   JobCancelledSignal,
   JobPausedSignal,
   processArticleJob,
   type ProcessArticleJobDependencies,
-} from "./article-pipeline"
+} from "./article-pipeline";
 import {
   claimQueuedJobById,
   claimNextQueuedJob,
@@ -26,20 +30,24 @@ import {
   markJobStage,
   markJobSucceeded,
   resetStaleRunningJobs,
-} from "./jobs"
-import { fetchArticleHtml } from "@vibeguard/content/extract/article-html"
-import { extractMarkdownFromHtml } from "@vibeguard/content"
-import { JobStatus } from "@vibeguard/shared"
+} from "./jobs";
+import { fetchArticleHtml } from "@vibeguard/content/extract/article-html";
+import { extractMarkdownFromHtml } from "@vibeguard/content";
+import { JobStatus } from "@vibeguard/shared";
 
 // 向后兼容：将 article-pipeline 模块的公共 API 重新导出，
 // 使外部依赖 process-article 模块的调用方无需修改 import 路径。
-export { buildLocalizedSummaryPrompt } from "@vibeguard/llm"
-export { JobCancelledSignal, JobPausedSignal, processArticleJob } from "./article-pipeline"
-export type { ProcessArticleJobDependencies } from "./article-pipeline"
+export { buildLocalizedSummaryPrompt } from "@vibeguard/llm";
+export {
+  JobCancelledSignal,
+  JobPausedSignal,
+  processArticleJob,
+} from "./article-pipeline";
+export type { ProcessArticleJobDependencies } from "./article-pipeline";
 
-type ContentDb = NodePgDatabase<typeof schema>
-type JobRecord = typeof schema.processingJobs.$inferSelect
-type ArticleRecord = typeof articles.$inferSelect
+type ContentDb = NodePgDatabase<typeof schema>;
+type JobRecord = typeof schema.processingJobs.$inferSelect;
+type ArticleRecord = typeof articles.$inferSelect;
 type ArticlePatch = Partial<
   Pick<
     ArticleRecord,
@@ -56,15 +64,15 @@ type ArticlePatch = Partial<
     | "status"
     | "rawMeta"
   >
->
-const CANCELLED_JOB_MESSAGE = "任务已取消。"
+>;
+const CANCELLED_JOB_MESSAGE = "任务已取消。";
 
 // --- 数据库适配层：封装所有与数据库交互的底层操作 ---
 
 async function markArticleStatus(
   db: ContentDb,
   articleId: string,
-  status: typeof ArticleStatus[keyof typeof ArticleStatus],
+  status: (typeof ArticleStatus)[keyof typeof ArticleStatus],
   error?: string,
 ) {
   if (error) {
@@ -74,12 +82,9 @@ async function markArticleStatus(
         status,
         rawMeta: sql`COALESCE(${articles.rawMeta}, '{}'::jsonb) || ${JSON.stringify({ processingError: error })}::jsonb`,
       })
-      .where(eq(articles.id, articleId))
+      .where(eq(articles.id, articleId));
   } else {
-    await db
-      .update(articles)
-      .set({ status })
-      .where(eq(articles.id, articleId))
+    await db.update(articles).set({ status }).where(eq(articles.id, articleId));
   }
 }
 
@@ -87,17 +92,17 @@ async function updateArticleContent(
   db: ContentDb,
   articleId: string,
   content: {
-    titleEn: string
-    titleZh: string
-    summaryEn: string
-    summaryZh: string
-    contentMdEn: string
-    contentMdZh: string
-    ecosystem: ArticleEcosystem
-    riskCategory: ArticleRiskCategory
-    tags: string[]
-    contentHash: string
-    rawMeta: Record<string, unknown>
+    titleEn: string;
+    titleZh: string;
+    summaryEn: string;
+    summaryZh: string;
+    contentMdEn: string;
+    contentMdZh: string;
+    ecosystem: ArticleEcosystem;
+    riskCategory: ArticleRiskCategory;
+    tags: string[];
+    contentHash: string;
+    rawMeta: Record<string, unknown>;
   },
 ) {
   await db
@@ -115,7 +120,7 @@ async function updateArticleContent(
       contentHash: content.contentHash,
       rawMeta: content.rawMeta,
     })
-    .where(eq(articles.id, articleId))
+    .where(eq(articles.id, articleId));
 }
 
 async function updateArticlePatch(
@@ -123,27 +128,27 @@ async function updateArticlePatch(
   articleId: string,
   patch: ArticlePatch,
 ) {
-  await db.update(articles).set(patch).where(eq(articles.id, articleId))
+  await db.update(articles).set(patch).where(eq(articles.id, articleId));
 }
 
 async function logLlmUsage(
   db: ContentDb,
   input: {
-    articleId: string
-    jobId?: string
-    taskType: string
-    model: string
+    articleId: string;
+    jobId?: string;
+    taskType: string;
+    model: string;
     usage: {
-      promptTokens: number
-      completionTokens: number
-      totalTokens: number
-      cachedTokens?: number
-      finishReason?: string
-    } | null
-    responseTimeMs: number
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+      cachedTokens?: number;
+      finishReason?: string;
+    } | null;
+    responseTimeMs: number;
   },
 ) {
-  if (!input.usage) return
+  if (!input.usage) return;
 
   await db.insert(schema.llmUsageLogs).values({
     articleId: input.articleId,
@@ -156,41 +161,48 @@ async function logLlmUsage(
     cachedTokens: input.usage.cachedTokens ?? null,
     finishReason: input.usage.finishReason ?? null,
     responseTimeMs: input.responseTimeMs,
-  })
+  });
 }
 
 async function deleteJob(db: ContentDb, jobId: string) {
-  await db.delete(schema.processingJobs).where(eq(schema.processingJobs.id, jobId))
+  await db
+    .delete(schema.processingJobs)
+    .where(eq(schema.processingJobs.id, jobId));
 }
 
 async function checkClaimedJobControl(
   db: ContentDb,
   input: {
-    jobId: string
-    articleId: string
+    jobId: string;
+    articleId: string;
   },
 ) {
   const current = await db.query.processingJobs.findFirst({
     where: (table, { eq: whereEq }) => whereEq(table.id, input.jobId),
-  })
+  });
 
   if (!current) {
-    throw new JobCancelledSignal()
+    throw new JobCancelledSignal();
   }
 
   if (current.status === JobStatus.PAUSE_REQUESTED) {
-    await markArticleStatus(db, input.articleId, ArticleStatus.PENDING)
+    await markArticleStatus(db, input.articleId, ArticleStatus.PENDING);
     await db
       .update(schema.processingJobs)
       .set(buildJobPausedUpdate(new Date()))
-      .where(eq(schema.processingJobs.id, input.jobId))
-    throw new JobPausedSignal()
+      .where(eq(schema.processingJobs.id, input.jobId));
+    throw new JobPausedSignal();
   }
 
   if (current.status === JobStatus.CANCEL_REQUESTED) {
-    await markArticleStatus(db, input.articleId, ArticleStatus.FAILED, CANCELLED_JOB_MESSAGE)
-    await deleteJob(db, input.jobId)
-    throw new JobCancelledSignal()
+    await markArticleStatus(
+      db,
+      input.articleId,
+      ArticleStatus.FAILED,
+      CANCELLED_JOB_MESSAGE,
+    );
+    await deleteJob(db, input.jobId);
+    throw new JobCancelledSignal();
   }
 }
 
@@ -199,7 +211,7 @@ async function checkClaimedJobControl(
 async function processClaimedJob(db: ContentDb, job: JobRecord) {
   try {
     const checkJobControl = () =>
-      checkClaimedJobControl(db, { jobId: job.id, articleId: job.articleId })
+      checkClaimedJobControl(db, { jobId: job.id, articleId: job.articleId });
 
     await processArticleJob(job, {
       loadArticle: (articleId: string) =>
@@ -218,7 +230,8 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
         updateArticlePatch(db, articleId, patch),
       markJobStage: (stage) => markJobStage(db, job.id, stage),
       checkJobControl,
-      logLlmUsage: (input) => logLlmUsage(db, { ...input, jobId: input.jobId ?? job.id }),
+      logLlmUsage: (input) =>
+        logLlmUsage(db, { ...input, jobId: input.jobId ?? job.id }),
       fetchArticleHtml,
       extractMarkdownFromHtml,
       createOpenAIClient,
@@ -226,23 +239,23 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
       translateText,
       summarizeText,
       generateTags,
-    })
+    });
 
-    await checkJobControl()
-    await markJobSucceeded(db, job.id)
+    await checkJobControl();
+    await markJobSucceeded(db, job.id);
 
     return {
       jobId: job.id,
       articleId: job.articleId,
       status: "succeeded" as const,
-    }
+    };
   } catch (error) {
     if (error instanceof JobPausedSignal) {
       return {
         jobId: job.id,
         articleId: job.articleId,
         status: "paused" as const,
-      }
+      };
     }
 
     if (error instanceof JobCancelledSignal) {
@@ -250,20 +263,23 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
         jobId: job.id,
         articleId: job.articleId,
         status: "cancelled" as const,
-      }
+      };
     }
 
-    const message = error instanceof Error ? error.message : String(error)
+    const message = error instanceof Error ? error.message : String(error);
 
     try {
-      await checkClaimedJobControl(db, { jobId: job.id, articleId: job.articleId })
+      await checkClaimedJobControl(db, {
+        jobId: job.id,
+        articleId: job.articleId,
+      });
     } catch (secondary) {
       if (secondary instanceof JobPausedSignal) {
         return {
           jobId: job.id,
           articleId: job.articleId,
           status: "paused" as const,
-        }
+        };
       }
 
       if (secondary instanceof JobCancelledSignal) {
@@ -271,12 +287,12 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
           jobId: job.id,
           articleId: job.articleId,
           status: "cancelled" as const,
-        }
+        };
       }
     }
 
     try {
-      await markArticleStatus(db, job.articleId, ArticleStatus.FAILED, message)
+      await markArticleStatus(db, job.articleId, ArticleStatus.FAILED, message);
     } catch (secondary) {
       // 仅记录日志，不抛出异常，避免掩盖原始错误信息
     }
@@ -287,7 +303,7 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
         attempt: job.attempt,
         maxAttempts: job.maxAttempts,
         error: message,
-      })
+      });
     } catch (secondary) {
       // 仅记录日志，不抛出异常，避免掩盖原始错误信息
     }
@@ -297,158 +313,160 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
       articleId: job.articleId,
       status: "failed" as const,
       error: message,
-    }
+    };
   }
 }
 
 // --- 任务调度编排函数：负责从队列中领取任务并驱动处理流程 ---
 
 export async function processNextQueuedJob(db: ContentDb) {
-  const job = await claimNextQueuedJob(db)
+  const job = await claimNextQueuedJob(db);
 
   if (!job) {
-    return null
+    return null;
   }
 
-  return processClaimedJob(db, job)
+  return processClaimedJob(db, job);
 }
 
 export async function processNextAvailableQueuedJob(
   db: ContentDb,
   maxRunningJobs: number,
 ) {
-  const job = await claimNextQueuedJob(db, new Date(), { maxRunningJobs })
+  const job = await claimNextQueuedJob(db, new Date(), { maxRunningJobs });
 
   if (!job) {
-    return null
+    return null;
   }
 
-  return processClaimedJob(db, job)
+  return processClaimedJob(db, job);
 }
 
 export async function processQueuedJobById(db: ContentDb, jobId: string) {
-  const job = await claimQueuedJobById(db, jobId)
+  const job = await claimQueuedJobById(db, jobId);
 
   if (!job) {
-    return null
+    return null;
   }
 
-  return processClaimedJob(db, job)
+  return processClaimedJob(db, job);
 }
 
-type ProcessedJobResult = NonNullable<Awaited<ReturnType<typeof processNextQueuedJob>>>
+type ProcessedJobResult = NonNullable<
+  Awaited<ReturnType<typeof processNextQueuedJob>>
+>;
 
 export type ProcessQueuedJobsOptions = {
-  batchSize?: number
-  countRunningJobs?: typeof countRunningJobs
-  processNextJob?: typeof processNextQueuedJob
-  processJobById?: typeof processQueuedJobById
-  resetStaleJobs?: typeof resetStaleRunningJobs
-}
+  batchSize?: number;
+  countRunningJobs?: typeof countRunningJobs;
+  processNextJob?: typeof processNextQueuedJob;
+  processJobById?: typeof processQueuedJobById;
+  resetStaleJobs?: typeof resetStaleRunningJobs;
+};
 
-const DEFAULT_WORKER_BATCH_SIZE = 5
-const MAX_WORKER_BATCH_SIZE = 20
+const DEFAULT_WORKER_BATCH_SIZE = 5;
+const MAX_WORKER_BATCH_SIZE = 20;
 
 export function resolveWorkerBatchSize(batchSize?: number) {
   if (!Number.isFinite(batchSize) || !batchSize || batchSize < 1) {
-    return DEFAULT_WORKER_BATCH_SIZE
+    return DEFAULT_WORKER_BATCH_SIZE;
   }
 
-  return Math.min(Math.floor(batchSize), MAX_WORKER_BATCH_SIZE)
+  return Math.min(Math.floor(batchSize), MAX_WORKER_BATCH_SIZE);
 }
 
 export async function processQueuedJobs(
   db: ContentDb,
   options: ProcessQueuedJobsOptions = {},
 ) {
-  const results: ProcessedJobResult[] = []
-  const batchSize = resolveWorkerBatchSize(options.batchSize)
-  const concurrency = Math.min(batchSize, 5)
-  const processNextJob = options.processNextJob ?? processNextQueuedJob
-  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
-  let claimedSlots = 0
+  const results: ProcessedJobResult[] = [];
+  const batchSize = resolveWorkerBatchSize(options.batchSize);
+  const concurrency = Math.min(batchSize, 5);
+  const processNextJob = options.processNextJob ?? processNextQueuedJob;
+  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs;
+  let claimedSlots = 0;
 
-  await resetStaleJobs(db)
+  await resetStaleJobs(db);
 
   while (claimedSlots < batchSize) {
-    const slotCount = Math.min(concurrency, batchSize - claimedSlots)
-    claimedSlots += slotCount
+    const slotCount = Math.min(concurrency, batchSize - claimedSlots);
+    claimedSlots += slotCount;
     const roundResults = await Promise.all(
       Array.from({ length: slotCount }, () => processNextJob(db)),
-    )
+    );
     const processed = roundResults.filter(
       (result): result is ProcessedJobResult => Boolean(result),
-    )
+    );
 
-    results.push(...processed)
+    results.push(...processed);
 
     if (processed.length < slotCount) {
-      break
+      break;
     }
   }
 
-  return results
+  return results;
 }
 
 async function drainQueuedJobs(input: {
-  db: ContentDb
-  concurrency: number
-  processNextJob: typeof processNextQueuedJob
+  db: ContentDb;
+  concurrency: number;
+  processNextJob: typeof processNextQueuedJob;
 }) {
-  const results: ProcessedJobResult[] = []
+  const results: ProcessedJobResult[] = [];
 
   if (input.concurrency < 1) {
-    return results
+    return results;
   }
 
   const workers = Array.from({ length: input.concurrency }, async () => {
     while (true) {
-      const result = await input.processNextJob(input.db)
+      const result = await input.processNextJob(input.db);
 
       if (!result) {
-        break
+        break;
       }
 
-      results.push(result)
+      results.push(result);
     }
-  })
+  });
 
-  await Promise.all(workers)
+  await Promise.all(workers);
 
-  return results
+  return results;
 }
 
 export async function processAllRemainingJobs(
   db: ContentDb,
   options: ProcessQueuedJobsOptions = {},
 ) {
-  const concurrency = Math.min(resolveWorkerBatchSize(options.batchSize), 5)
-  const processNextJob = options.processNextJob ?? processNextQueuedJob
-  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
+  const concurrency = Math.min(resolveWorkerBatchSize(options.batchSize), 5);
+  const processNextJob = options.processNextJob ?? processNextQueuedJob;
+  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs;
 
-  await resetStaleJobs(db)
+  await resetStaleJobs(db);
 
-  return drainQueuedJobs({ db, concurrency, processNextJob })
+  return drainQueuedJobs({ db, concurrency, processNextJob });
 }
 
 export async function processAvailableQueuedJobs(
   db: ContentDb,
   options: ProcessQueuedJobsOptions = {},
 ) {
-  const maxConcurrency = Math.min(resolveWorkerBatchSize(options.batchSize), 5)
-  const readRunningCount = options.countRunningJobs ?? countRunningJobs
+  const maxConcurrency = Math.min(resolveWorkerBatchSize(options.batchSize), 5);
+  const readRunningCount = options.countRunningJobs ?? countRunningJobs;
   const processNextJob =
     options.processNextJob ??
     ((nextDb: ContentDb) =>
-      processNextAvailableQueuedJob(nextDb, maxConcurrency))
-  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
+      processNextAvailableQueuedJob(nextDb, maxConcurrency));
+  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs;
 
-  await resetStaleJobs(db)
+  await resetStaleJobs(db);
 
-  const runningCount = await readRunningCount(db)
-  const concurrency = Math.max(0, maxConcurrency - runningCount)
+  const runningCount = await readRunningCount(db);
+  const concurrency = Math.max(0, maxConcurrency - runningCount);
 
-  return drainQueuedJobs({ db, concurrency, processNextJob })
+  return drainQueuedJobs({ db, concurrency, processNextJob });
 }
 
 export async function processQueuedJobsByIds(
@@ -456,29 +474,33 @@ export async function processQueuedJobsByIds(
   jobIds: string[],
   options: ProcessQueuedJobsOptions = {},
 ) {
-  const results: ProcessedJobResult[] = []
-  const batchSize = resolveWorkerBatchSize(options.batchSize)
-  const concurrency = Math.min(batchSize, 5)
-  const processJobById = options.processJobById ?? processQueuedJobById
-  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs
-  let cursor = 0
+  const results: ProcessedJobResult[] = [];
+  const batchSize = resolveWorkerBatchSize(options.batchSize);
+  const concurrency = Math.min(batchSize, 5);
+  const processJobById = options.processJobById ?? processQueuedJobById;
+  const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs;
+  let cursor = 0;
 
-  await resetStaleJobs(db)
+  await resetStaleJobs(db);
 
   while (cursor < jobIds.length && results.length < batchSize) {
-    const remainingSlots = batchSize - results.length
-    const chunkSize = Math.min(concurrency, remainingSlots, jobIds.length - cursor)
-    const chunk = jobIds.slice(cursor, cursor + chunkSize)
-    cursor += chunkSize
+    const remainingSlots = batchSize - results.length;
+    const chunkSize = Math.min(
+      concurrency,
+      remainingSlots,
+      jobIds.length - cursor,
+    );
+    const chunk = jobIds.slice(cursor, cursor + chunkSize);
+    cursor += chunkSize;
     const roundResults = await Promise.all(
       chunk.map((jobId) => processJobById(db, jobId)),
-    )
+    );
     const processed = roundResults.filter(
       (result): result is ProcessedJobResult => Boolean(result),
-    )
+    );
 
-    results.push(...processed)
+    results.push(...processed);
   }
 
-  return results
+  return results;
 }

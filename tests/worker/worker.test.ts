@@ -28,7 +28,10 @@ import {
   shouldPollFeed,
   type ActiveFeed,
 } from "../../apps/worker/src/poll-feeds";
-import { assertSuccessfulWorkerCycle, runWorkerLoop } from "../../apps/worker/src/index";
+import {
+  assertSuccessfulWorkerCycle,
+  runWorkerLoop,
+} from "../../apps/worker/src/index";
 
 function createRelevantChatClient() {
   return {
@@ -109,26 +112,56 @@ describe("processArticleJob pipeline stages", () => {
         }),
         createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
         decryptSecret: vi.fn().mockReturnValue("plain-key"),
-        translateText: vi.fn().mockResolvedValue({ result: "中文", usage: null }),
-        summarizeText: vi.fn().mockResolvedValue({ result: "summary", usage: null }),
+        translateText: vi
+          .fn()
+          .mockResolvedValue({ result: "中文", usage: null }),
+        summarizeText: vi
+          .fn()
+          .mockResolvedValue({ result: "summary", usage: null }),
         markJobStage,
       } as never,
     );
 
-    expect(markJobStage).toHaveBeenNthCalledWith(1, JobPipelineStage.FETCH_SOURCE);
-    expect(markJobStage).toHaveBeenNthCalledWith(2, JobPipelineStage.EXTRACT_CONTENT);
-    expect(markJobStage).toHaveBeenNthCalledWith(3, JobPipelineStage.CLASSIFY_RELEVANCE);
-    expect(markJobStage).toHaveBeenNthCalledWith(4, JobPipelineStage.TRANSLATE_TITLE);
-    expect(markJobStage).toHaveBeenNthCalledWith(5, JobPipelineStage.TRANSLATE_CONTENT);
-    expect(markJobStage).toHaveBeenNthCalledWith(6, JobPipelineStage.SUMMARIZE_EN);
-    expect(markJobStage).toHaveBeenNthCalledWith(7, JobPipelineStage.SUMMARIZE_ZH);
-    expect(markJobStage).toHaveBeenNthCalledWith(8, JobPipelineStage.GENERATE_TAGS);
+    expect(markJobStage).toHaveBeenNthCalledWith(
+      1,
+      JobPipelineStage.FETCH_SOURCE,
+    );
+    expect(markJobStage).toHaveBeenNthCalledWith(
+      2,
+      JobPipelineStage.EXTRACT_CONTENT,
+    );
+    expect(markJobStage).toHaveBeenNthCalledWith(
+      3,
+      JobPipelineStage.CLASSIFY_RELEVANCE,
+    );
+    expect(markJobStage).toHaveBeenNthCalledWith(
+      4,
+      JobPipelineStage.TRANSLATE_TITLE,
+    );
+    expect(markJobStage).toHaveBeenNthCalledWith(
+      5,
+      JobPipelineStage.TRANSLATE_CONTENT,
+    );
+    expect(markJobStage).toHaveBeenNthCalledWith(
+      6,
+      JobPipelineStage.SUMMARIZE_EN,
+    );
+    expect(markJobStage).toHaveBeenNthCalledWith(
+      7,
+      JobPipelineStage.SUMMARIZE_ZH,
+    );
+    expect(markJobStage).toHaveBeenNthCalledWith(
+      8,
+      JobPipelineStage.GENERATE_TAGS,
+    );
   });
 
   it("stops at a checkpoint after persisted extraction when pause is requested", async () => {
     const markJobStage = vi.fn().mockResolvedValue(undefined);
     const updateArticlePatch = vi.fn().mockResolvedValue(undefined);
-    const translateText = vi.fn().mockResolvedValue({ result: "中文", usage: null });
+    const translateText = vi
+      .fn()
+      .mockResolvedValue({ result: "中文", usage: null });
     const article = {
       id: "article-1",
       url: "https://example.com/article",
@@ -153,31 +186,30 @@ describe("processArticleJob pipeline stages", () => {
     });
 
     await expect(
-      processArticleJob(
-        { articleId: article.id, jobType: JobType.EXTRACT },
-        {
-          loadArticle: vi.fn().mockResolvedValue(article),
-          loadActiveLlmSettings: vi.fn().mockResolvedValue(activeSettings),
-          markArticleStatus: vi.fn().mockResolvedValue(undefined),
-          updateArticleContent: vi.fn().mockResolvedValue(undefined),
-          updateArticlePatch,
-          fetchArticleHtml: vi.fn().mockResolvedValue("<article>hello</article>"),
-          extractMarkdownFromHtml: vi.fn().mockResolvedValue({
-            title: "English title",
-            contentMd: "English body",
-            description: "Description",
-            author: "Author",
-            publishedAt: "2026-05-20T00:00:00.000Z",
-            siteName: "Example",
-          }),
-          createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
-          decryptSecret: vi.fn().mockReturnValue("plain-key"),
-          translateText,
-          summarizeText: vi.fn().mockResolvedValue({ result: "summary", usage: null }),
-          markJobStage,
-          checkJobControl,
-        } as never,
-      ),
+      processArticleJob({ articleId: article.id, jobType: JobType.EXTRACT }, {
+        loadArticle: vi.fn().mockResolvedValue(article),
+        loadActiveLlmSettings: vi.fn().mockResolvedValue(activeSettings),
+        markArticleStatus: vi.fn().mockResolvedValue(undefined),
+        updateArticleContent: vi.fn().mockResolvedValue(undefined),
+        updateArticlePatch,
+        fetchArticleHtml: vi.fn().mockResolvedValue("<article>hello</article>"),
+        extractMarkdownFromHtml: vi.fn().mockResolvedValue({
+          title: "English title",
+          contentMd: "English body",
+          description: "Description",
+          author: "Author",
+          publishedAt: "2026-05-20T00:00:00.000Z",
+          siteName: "Example",
+        }),
+        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
+        decryptSecret: vi.fn().mockReturnValue("plain-key"),
+        translateText,
+        summarizeText: vi
+          .fn()
+          .mockResolvedValue({ result: "summary", usage: null }),
+        markJobStage,
+        checkJobControl,
+      } as never),
     ).rejects.toBeInstanceOf(JobPausedSignal);
 
     expect(updateArticlePatch).toHaveBeenCalledWith(
@@ -237,8 +269,12 @@ describe("processArticleJob pipeline stages", () => {
         extractMarkdownFromHtml: vi.fn(),
         createOpenAIClient: vi.fn().mockReturnValue(client),
         decryptSecret: vi.fn().mockReturnValue("plain-key"),
-        translateText: vi.fn().mockResolvedValue({ result: "中文", usage: null }),
-        summarizeText: vi.fn().mockResolvedValue({ result: "summary", usage: null }),
+        translateText: vi
+          .fn()
+          .mockResolvedValue({ result: "中文", usage: null }),
+        summarizeText: vi
+          .fn()
+          .mockResolvedValue({ result: "summary", usage: null }),
         generateTags: vi.fn().mockResolvedValue({ result: [], usage: null }),
         markJobStage: vi.fn().mockResolvedValue(undefined),
       } as never,
@@ -261,72 +297,70 @@ describe("processArticleJob pipeline stages", () => {
 
 describe("processQueuedJobs", () => {
   it("limits one worker cycle to five jobs by default", async () => {
-    let callCount = 0
+    let callCount = 0;
     const processNextJob = vi.fn().mockImplementation(() => {
-      callCount += 1
-      if (callCount > 10) return Promise.resolve(null)
+      callCount += 1;
+      if (callCount > 10) return Promise.resolve(null);
       return Promise.resolve({
         jobId: `job-${callCount}`,
         articleId: `article-${callCount}`,
         status: "succeeded" as const,
-      })
-    })
-    const resetStaleJobs = vi.fn().mockResolvedValue(undefined)
+      });
+    });
+    const resetStaleJobs = vi.fn().mockResolvedValue(undefined);
 
     const results = await processQueuedJobs({} as never, {
       processNextJob,
       resetStaleJobs,
-    })
+    });
 
-    expect(results).toHaveLength(5)
-    expect(processNextJob).toHaveBeenCalledTimes(5)
-    expect(resetStaleJobs).toHaveBeenCalledTimes(1)
-  })
+    expect(results).toHaveLength(5);
+    expect(processNextJob).toHaveBeenCalledTimes(5);
+    expect(resetStaleJobs).toHaveBeenCalledTimes(1);
+  });
 
   it("allows callers to run a smaller manual batch", async () => {
-    let callCount = 0
+    let callCount = 0;
     const processNextJob = vi.fn().mockImplementation(() => {
-      callCount += 1
+      callCount += 1;
       return Promise.resolve({
         jobId: `job-${callCount}`,
         articleId: `article-${callCount}`,
         status: "succeeded" as const,
-      })
-    })
+      });
+    });
 
     const results = await processQueuedJobs({} as never, {
       batchSize: 2,
       processNextJob,
       resetStaleJobs: vi.fn(),
-    })
+    });
 
-    expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"])
-    expect(processNextJob).toHaveBeenCalledTimes(2)
-  })
+    expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"]);
+    expect(processNextJob).toHaveBeenCalledTimes(2);
+  });
 
   it("stops when no jobs are available", async () => {
-    const processNextJob = vi.fn().mockResolvedValue(null)
-    const resetStaleJobs = vi.fn().mockResolvedValue(undefined)
+    const processNextJob = vi.fn().mockResolvedValue(null);
+    const resetStaleJobs = vi.fn().mockResolvedValue(undefined);
 
     const results = await processQueuedJobs({} as never, {
       processNextJob,
       resetStaleJobs,
-    })
+    });
 
-    expect(results).toHaveLength(0)
-    expect(processNextJob).toHaveBeenCalledTimes(5) // one round
-  })
+    expect(results).toHaveLength(0);
+    expect(processNextJob).toHaveBeenCalledTimes(5); // one round
+  });
 
   it("processes selected job ids directly in batch order", async () => {
-    const processJobById = vi
-      .fn()
-      .mockImplementation((_db, jobId: string) =>
-        Promise.resolve({
-          jobId,
-          articleId: `article-${jobId}`,
-          status: "succeeded" as const,
-        }),
-      )
+    const processJobById = vi.fn().mockImplementation((_db, jobId: string) =>
+      Promise.resolve({
+        jobId,
+        articleId: `article-${jobId}`,
+        status: "succeeded" as const,
+      }),
+    );
 
     const results = await processQueuedJobsByIds(
       {} as never,
@@ -336,26 +370,24 @@ describe("processQueuedJobs", () => {
         processJobById,
         resetStaleJobs: vi.fn(),
       },
-    )
+    );
 
-    expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"])
-    expect(processJobById).toHaveBeenCalledTimes(2)
-  })
+    expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"]);
+    expect(processJobById).toHaveBeenCalledTimes(2);
+  });
 
   it("continues past unavailable selected ids until the batch is filled", async () => {
-    const processJobById = vi
-      .fn()
-      .mockImplementation((_db, jobId: string) => {
-        if (jobId === "claimed-elsewhere") {
-          return Promise.resolve(null)
-        }
+    const processJobById = vi.fn().mockImplementation((_db, jobId: string) => {
+      if (jobId === "claimed-elsewhere") {
+        return Promise.resolve(null);
+      }
 
-        return Promise.resolve({
-          jobId,
-          articleId: `article-${jobId}`,
-          status: "succeeded" as const,
-        })
-      })
+      return Promise.resolve({
+        jobId,
+        articleId: `article-${jobId}`,
+        status: "succeeded" as const,
+      });
+    });
 
     const results = await processQueuedJobsByIds(
       {} as never,
@@ -365,95 +397,95 @@ describe("processQueuedJobs", () => {
         processJobById,
         resetStaleJobs: vi.fn(),
       },
-    )
+    );
 
-    expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"])
-    expect(processJobById).toHaveBeenCalledTimes(3)
-  })
+    expect(results.map((result) => result.jobId)).toEqual(["job-1", "job-2"]);
+    expect(processJobById).toHaveBeenCalledTimes(3);
+  });
 
   it("drains the queue while refilling completed slots up to five concurrent jobs", async () => {
-    let nextJob = 0
-    let running = 0
-    let peakRunning = 0
+    let nextJob = 0;
+    let running = 0;
+    let peakRunning = 0;
     const processNextJob = vi.fn().mockImplementation(async () => {
-      nextJob += 1
+      nextJob += 1;
 
       if (nextJob > 12) {
-        return null
+        return null;
       }
 
-      const jobId = `job-${nextJob}`
-      running += 1
-      peakRunning = Math.max(peakRunning, running)
-      await Promise.resolve()
-      running -= 1
+      const jobId = `job-${nextJob}`;
+      running += 1;
+      peakRunning = Math.max(peakRunning, running);
+      await Promise.resolve();
+      running -= 1;
 
       return {
         jobId,
         articleId: `article-${jobId}`,
         status: "succeeded" as const,
-      }
-    })
+      };
+    });
 
     const results = await processAllRemainingJobs({} as never, {
       batchSize: 5,
       processNextJob,
       resetStaleJobs: vi.fn(),
-    })
+    });
 
-    expect(results).toHaveLength(12)
-    expect(peakRunning).toBeLessThanOrEqual(5)
-    expect(processNextJob).toHaveBeenCalledTimes(17)
-  })
+    expect(results).toHaveLength(12);
+    expect(peakRunning).toBeLessThanOrEqual(5);
+    expect(processNextJob).toHaveBeenCalledTimes(17);
+  });
 
   it("only fills available global running slots", async () => {
-    let nextJob = 0
-    let running = 0
-    let peakRunning = 0
+    let nextJob = 0;
+    let running = 0;
+    let peakRunning = 0;
     const processNextJob = vi.fn().mockImplementation(async () => {
-      nextJob += 1
+      nextJob += 1;
 
       if (nextJob > 6) {
-        return null
+        return null;
       }
 
-      running += 1
-      peakRunning = Math.max(peakRunning, running)
-      await Promise.resolve()
-      running -= 1
+      running += 1;
+      peakRunning = Math.max(peakRunning, running);
+      await Promise.resolve();
+      running -= 1;
 
       return {
         jobId: `job-${nextJob}`,
         articleId: `article-${nextJob}`,
         status: "succeeded" as const,
-      }
-    })
+      };
+    });
 
     const results = await processAvailableQueuedJobs({} as never, {
       batchSize: 5,
       countRunningJobs: vi.fn().mockResolvedValue(3),
       processNextJob,
       resetStaleJobs: vi.fn(),
-    })
+    });
 
-    expect(results).toHaveLength(6)
-    expect(peakRunning).toBeLessThanOrEqual(2)
-  })
+    expect(results).toHaveLength(6);
+    expect(peakRunning).toBeLessThanOrEqual(2);
+  });
 
   it("does not claim new jobs when the global running limit is already full", async () => {
-    const processNextJob = vi.fn()
+    const processNextJob = vi.fn();
 
     const results = await processAvailableQueuedJobs({} as never, {
       batchSize: 5,
       countRunningJobs: vi.fn().mockResolvedValue(5),
       processNextJob,
       resetStaleJobs: vi.fn(),
-    })
+    });
 
-    expect(results).toEqual([])
-    expect(processNextJob).not.toHaveBeenCalled()
-  })
-})
+    expect(results).toEqual([]);
+    expect(processNextJob).not.toHaveBeenCalled();
+  });
+});
 
 describe("pollFeed", () => {
   const feed: ActiveFeed = {
@@ -867,7 +899,9 @@ describe("pollFeedNow", () => {
     const result = await pollFeedNow(feed.id, {
       db,
       fetchFeed: vi.fn().mockResolvedValue({
-        items: [{ title: "Immediate article", link: "https://example.com/article" }],
+        items: [
+          { title: "Immediate article", link: "https://example.com/article" },
+        ],
       }),
       insertFeedItem,
       enqueueExtractJob,
@@ -961,22 +995,22 @@ describe("assertSuccessfulWorkerCycle", () => {
 
 describe("runWorkerLoop", () => {
   it("keeps running worker cycles until stopped", async () => {
-    const controller = new AbortController()
+    const controller = new AbortController();
     const summary = {
       activeFeedCount: 0,
       succeeded: [],
       failed: [],
       processedJobs: [],
-    }
+    };
     const runCycle = vi.fn().mockImplementation(async () => {
       if (runCycle.mock.calls.length >= 2) {
-        controller.abort()
+        controller.abort();
       }
 
-      return summary
-    })
-    const sleep = vi.fn().mockResolvedValue(undefined)
-    const logger = { log: vi.fn(), error: vi.fn() }
+      return summary;
+    });
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const logger = { log: vi.fn(), error: vi.fn() };
 
     await runWorkerLoop({
       intervalMs: 10,
@@ -984,26 +1018,26 @@ describe("runWorkerLoop", () => {
       runCycle,
       signal: controller.signal,
       sleep,
-    })
+    });
 
-    expect(runCycle).toHaveBeenCalledTimes(2)
-    expect(sleep).toHaveBeenCalledTimes(1)
-  })
+    expect(runCycle).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledTimes(1);
+  });
 
   it("treats feed-level failures as warnings instead of loop errors", async () => {
-    const controller = new AbortController()
+    const controller = new AbortController();
     const runCycle = vi.fn().mockImplementation(async () => {
-      controller.abort()
+      controller.abort();
 
       return {
         activeFeedCount: 2,
         succeeded: ["feed-ok"],
         failed: [{ feedId: "feed-bad", error: "404 Not Found" }],
         processedJobs: [],
-      }
-    })
-    const sleep = vi.fn().mockResolvedValue(undefined)
-    const logger = { log: vi.fn(), warn: vi.fn(), error: vi.fn() }
+      };
+    });
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const logger = { log: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
     await runWorkerLoop({
       intervalMs: 10,
@@ -1011,12 +1045,12 @@ describe("runWorkerLoop", () => {
       runCycle,
       signal: controller.signal,
       sleep,
-    })
+    });
 
     expect(logger.warn).toHaveBeenCalledWith(
       "worker cycle warnings: feed-bad: 404 Not Found",
-    )
-    expect(logger.error).not.toHaveBeenCalled()
-    expect(sleep).not.toHaveBeenCalled()
-  })
-})
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(sleep).not.toHaveBeenCalled();
+  });
+});

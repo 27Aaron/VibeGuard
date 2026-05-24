@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import Link from "next/link"
+import Link from "next/link";
 import {
   ExternalLink,
   Orbit,
@@ -10,11 +10,11 @@ import {
   PlusCircle,
   RefreshCw,
   Trash2,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import type { FeedRow } from "@/components/admin/types"
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import type { FeedRow } from "@/components/admin/types";
 import {
   Table,
   TableBody,
@@ -22,36 +22,43 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   deleteFeedAction,
   fetchFeedNowAction,
   toggleFeedAction,
-} from "@/lib/actions/feeds"
-import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
-import type { AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
-import { useFormStatus } from "react-dom"
+} from "@/lib/actions/feeds";
+import { getAdminTableSurfaceClassName } from "@/lib/admin-layout";
+import type { AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { useFormStatus } from "react-dom";
 
 function FeedActionButton({
   children,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { pending } = useFormStatus()
+  const { pending } = useFormStatus();
   return (
     <Button {...props} disabled={pending}>
       {pending ? <RefreshCw className="size-3.5 animate-spin" /> : null}
       {children}
     </Button>
-  )
+  );
 }
 
-export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) {
+export function FeedTable({
+  feeds,
+  lang,
+}: {
+  feeds: FeedRow[];
+  lang: AppLang;
+}) {
   const copy =
     lang === "zh"
       ? {
           emptyStateTitle: "当前还没有配置任何来源",
-          emptyStateBody: "先添加一个 RSS 或 Atom 来源，再回来这里查看抓取状态和即时操作。",
+          emptyStateBody:
+            "先添加一个 RSS 或 Atom 来源，再回来这里查看抓取状态和即时操作。",
           addSource: "去添加来源",
         }
       : {
@@ -59,7 +66,7 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
           emptyStateBody:
             "Add an RSS or Atom source first, then come back here to review sync state and quick actions.",
           addSource: "Add a source",
-        }
+        };
 
   if (feeds.length === 0) {
     return (
@@ -72,18 +79,23 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
             <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
               {copy.emptyStateTitle}
             </p>
-            <p className="max-w-xl text-sm text-muted-foreground">{copy.emptyStateBody}</p>
+            <p className="max-w-xl text-sm text-muted-foreground">
+              {copy.emptyStateBody}
+            </p>
           </div>
           <Link
             href={`/${lang}/admin/feeds`}
-            className={cn(buttonVariants({ size: "sm", variant: "outline" }), "inline-flex items-center gap-2")}
+            className={cn(
+              buttonVariants({ size: "sm", variant: "outline" }),
+              "inline-flex items-center gap-2",
+            )}
           >
             <PlusCircle className="size-4" />
             {copy.addSource}
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -91,16 +103,24 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
       <Table>
         <TableHeader className="bg-white/56 dark:bg-white/[0.035]">
           <TableRow>
-            <TableHead className="px-4">{lang === "zh" ? "来源" : "Source"}</TableHead>
-            <TableHead className="px-4 text-center">{lang === "zh" ? "类型" : "Type"}</TableHead>
+            <TableHead className="px-4">
+              {lang === "zh" ? "来源" : "Source"}
+            </TableHead>
+            <TableHead className="px-4 text-center">
+              {lang === "zh" ? "类型" : "Type"}
+            </TableHead>
             <TableHead className="px-4 text-center">
               {lang === "zh" ? "抓取频率" : "Cadence"}
             </TableHead>
-            <TableHead className="px-4 text-center">{lang === "zh" ? "状态" : "Status"}</TableHead>
+            <TableHead className="px-4 text-center">
+              {lang === "zh" ? "状态" : "Status"}
+            </TableHead>
             <TableHead className="px-4 text-center">
               {lang === "zh" ? "最近同步" : "Last synced"}
             </TableHead>
-            <TableHead className="px-4 text-center">{lang === "zh" ? "操作" : "Actions"}</TableHead>
+            <TableHead className="px-4 text-center">
+              {lang === "zh" ? "操作" : "Actions"}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -123,9 +143,13 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
               <TableCell className="px-4 py-3 text-center align-middle uppercase text-muted-foreground">
                 {feed.feedType}
               </TableCell>
-              <TableCell className="px-4 py-3 text-center align-middle">{feed.cadence}</TableCell>
               <TableCell className="px-4 py-3 text-center align-middle">
-                <Badge variant={feed.status === "enabled" ? "secondary" : "outline"}>
+                {feed.cadence}
+              </TableCell>
+              <TableCell className="px-4 py-3 text-center align-middle">
+                <Badge
+                  variant={feed.status === "enabled" ? "secondary" : "outline"}
+                >
                   {feed.status === "enabled"
                     ? lang === "zh"
                       ? "启用中"
@@ -135,7 +159,9 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
                       : "Paused"}
                 </Badge>
               </TableCell>
-              <TableCell className="px-4 py-3 text-center align-middle tabular-nums">{feed.lastSyncedAt}</TableCell>
+              <TableCell className="px-4 py-3 text-center align-middle tabular-nums">
+                {feed.lastSyncedAt}
+              </TableCell>
               <TableCell className="px-4 py-3 text-center align-middle">
                 <div className="inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-black/5 bg-white/68 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
                   <Link
@@ -185,14 +211,31 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
                           : "Enable"}
                     </FeedActionButton>
                   </form>
-                  <form action={deleteFeedAction} onSubmit={(e) => { if (!confirm(lang === "zh" ? "确认删除此数据源？此操作不可撤销。" : "Delete this source? This cannot be undone.")) { e.preventDefault(); } }}>
+                  <form
+                    action={deleteFeedAction}
+                    onSubmit={(e) => {
+                      if (
+                        !confirm(
+                          lang === "zh"
+                            ? "确认删除此数据源？此操作不可撤销。"
+                            : "Delete this source? This cannot be undone.",
+                        )
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
                     <input type="hidden" name="id" value={feed.id} />
                     <input type="hidden" name="lang" value={lang} />
                     <FeedActionButton
                       type="submit"
                       size="sm"
                       variant="destructive"
-                      aria-label={lang === "zh" ? `删除 ${feed.name}` : `Delete ${feed.name}`}
+                      aria-label={
+                        lang === "zh"
+                          ? `删除 ${feed.name}`
+                          : `Delete ${feed.name}`
+                      }
                       className="inline-flex items-center gap-1.5"
                     >
                       <Trash2 className="size-3.5" />
@@ -206,5 +249,5 @@ export function FeedTable({ feeds, lang }: { feeds: FeedRow[]; lang: AppLang }) 
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

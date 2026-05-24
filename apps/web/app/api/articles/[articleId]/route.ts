@@ -1,24 +1,20 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
 
-import { getArticleById } from "@/lib/api-articles"
-import { resolveLang } from "@/lib/i18n"
+import { getArticleById } from "@/lib/api-articles";
+import { resolveLang } from "@/lib/i18n";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type ArticleRouteProps = {
   params: Promise<{
-    articleId: string
-  }>
-}
+    articleId: string;
+  }>;
+};
 
 export async function GET(request: NextRequest, { params }: ArticleRouteProps) {
-  const { articleId } = await params
-  const lang = resolveLang(request.nextUrl.searchParams.get("lang"))
-  const article = await getArticleById(
-    articleId,
-    lang,
-    "ready",
-  )
+  const { articleId } = await params;
+  const lang = resolveLang(request.nextUrl.searchParams.get("lang"));
+  const article = await getArticleById(articleId, lang, "ready");
 
   if (!article) {
     return NextResponse.json(
@@ -28,8 +24,8 @@ export async function GET(request: NextRequest, { params }: ArticleRouteProps) {
       {
         status: 404,
       },
-    )
+    );
   }
 
-  return NextResponse.json(article)
+  return NextResponse.json(article);
 }

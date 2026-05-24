@@ -1,78 +1,78 @@
-import { closeDb, getDb } from "@vibeguard/db"
+import { closeDb, getDb } from "@vibeguard/db";
 import {
   bootstrapAllOsvEcosystems,
   type SyncOsvEcosystemSummary,
   syncAllOsvEcosystems,
-} from "@vibeguard/content/osv/sync"
+} from "@vibeguard/content/osv/sync";
 import {
   syncAllSecurityEnrichmentSources,
   type SecurityEnrichmentSyncSummary,
-} from "@vibeguard/content/security/enrichment"
+} from "@vibeguard/content/security/enrichment";
 
-import { isDirectExecution } from "./run-utils"
+import { isDirectExecution } from "./run-utils";
 
-export type OsvSyncMode = "bootstrap" | "incremental"
+export type OsvSyncMode = "bootstrap" | "incremental";
 
 function parseExplicitLimit(argv: string[]) {
-  const limitArg = argv.find((arg) => arg.startsWith("--limit="))
+  const limitArg = argv.find((arg) => arg.startsWith("--limit="));
 
   if (!limitArg) {
-    return undefined
+    return undefined;
   }
 
-  const parsed = Number.parseInt(limitArg.slice("--limit=".length), 10)
+  const parsed = Number.parseInt(limitArg.slice("--limit=".length), 10);
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error("--limit must be a positive integer")
+    throw new Error("--limit must be a positive integer");
   }
 
-  return parsed
+  return parsed;
 }
 
 function parseConcurrency(argv: string[]) {
-  const concurrencyArg = argv.find((arg) => arg.startsWith("--concurrency="))
+  const concurrencyArg = argv.find((arg) => arg.startsWith("--concurrency="));
 
   if (!concurrencyArg) {
-    return 2
+    return 2;
   }
 
   const parsed = Number.parseInt(
     concurrencyArg.slice("--concurrency=".length),
     10,
-  )
+  );
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error("--concurrency must be a positive integer")
+    throw new Error("--concurrency must be a positive integer");
   }
 
-  return parsed
+  return parsed;
 }
 
 function parseMode(argv: string[]): OsvSyncMode {
-  const modeArg = argv.find((arg) => arg.startsWith("--mode="))
+  const modeArg = argv.find((arg) => arg.startsWith("--mode="));
 
   if (!modeArg) {
-    return "incremental"
+    return "incremental";
   }
 
-  const mode = modeArg.slice("--mode=".length).trim()
+  const mode = modeArg.slice("--mode=".length).trim();
 
   if (mode === "bootstrap" || mode === "incremental") {
-    return mode
+    return mode;
   }
 
-  throw new Error("--mode must be bootstrap or incremental")
+  throw new Error("--mode must be bootstrap or incremental");
 }
 
 export function parseArgs(argv: string[]) {
-  const mode = parseMode(argv)
-  const explicitLimit = parseExplicitLimit(argv)
+  const mode = parseMode(argv);
+  const explicitLimit = parseExplicitLimit(argv);
 
   return {
     mode,
     limit: explicitLimit ?? (mode === "incremental" ? 20 : undefined),
     concurrency: parseConcurrency(argv),
-  }
+  };
 }
 
 export function formatSyncSummaryLine(
@@ -87,24 +87,26 @@ export function formatSyncSummaryLine(
     `changed=${result.recordsChanged}`,
     `skipped=${result.recordsSkipped}`,
     `failed=${result.recordsFailed}`,
-  ].join(" ")
+  ].join(" ");
 }
 
-export function formatEnrichmentSyncSummaryLine(result: SecurityEnrichmentSyncSummary) {
+export function formatEnrichmentSyncSummaryLine(
+  result: SecurityEnrichmentSyncSummary,
+) {
   return [
     `security enrichment ${result.source}/${result.scope}`,
     `seen=${result.recordsSeen}`,
     `imported=${result.recordsImported}`,
     `failed=${result.recordsFailed}`,
-  ].join(" ")
+  ].join(" ");
 }
 
 export function getEnrichmentSyncMode(mode: OsvSyncMode) {
-  return mode === "bootstrap" ? "bootstrap" : "incremental"
+  return mode === "bootstrap" ? "bootstrap" : "incremental";
 }
 
 export async function main(argv = process.argv.slice(2)) {
-  const { mode, limit, concurrency } = parseArgs(argv)
+  const { mode, limit, concurrency } = parseArgs(argv);
 
   try {
     const results =
@@ -117,26 +119,26 @@ export async function main(argv = process.argv.slice(2)) {
         : await syncAllOsvEcosystems({
             db: getDb(),
             limit,
-          })
+          });
 
     for (const result of results) {
-      console.log(formatSyncSummaryLine(mode, result))
+      console.log(formatSyncSummaryLine(mode, result));
     }
 
     const enrichmentResults = await syncAllSecurityEnrichmentSources(getDb(), {
       mode: getEnrichmentSyncMode(mode),
-    })
+    });
     for (const result of enrichmentResults) {
-      console.log(formatEnrichmentSyncSummaryLine(result))
+      console.log(formatEnrichmentSyncSummaryLine(result));
     }
   } finally {
-    await closeDb()
+    await closeDb();
   }
 }
 
 if (isDirectExecution(import.meta.url)) {
   main().catch((error) => {
-    console.error(error)
-    process.exit(1)
-  })
+    console.error(error);
+    process.exit(1);
+  });
 }

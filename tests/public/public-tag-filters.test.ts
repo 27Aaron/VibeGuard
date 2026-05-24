@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { buildPublicTagFilterModel } from "../../apps/web/lib/public-tag-filters"
+import { buildPublicTagFilterModel } from "../../apps/web/lib/public-tag-filters";
 
 describe("public tag filters", () => {
   it("shows the most common tags first", () => {
@@ -12,11 +12,14 @@ describe("public tag filters", () => {
       ],
       "",
       2,
-    )
+    );
 
-    expect(model.visibleTags.map((item) => item.tag)).toEqual(["npm", "actions"])
-    expect(model.overflowTags.map((item) => item.tag)).toEqual(["pypi"])
-  })
+    expect(model.visibleTags.map((item) => item.tag)).toEqual([
+      "npm",
+      "actions",
+    ]);
+    expect(model.overflowTags.map((item) => item.tag)).toEqual(["pypi"]);
+  });
 
   it("keeps the selected tag visible even when it is outside the popular set", () => {
     const model = buildPublicTagFilterModel(
@@ -27,24 +30,27 @@ describe("public tag filters", () => {
       ],
       "sigstore",
       2,
-    )
+    );
 
     expect(model.visibleTags).toEqual([
       { tag: "npm", count: 9, active: false },
       { tag: "actions", count: 5, active: false },
       { tag: "sigstore", count: 1, active: true },
-    ])
-    expect(model.overflowTags).toEqual([])
-  })
+    ]);
+    expect(model.overflowTags).toEqual([]);
+  });
 
   it("can represent a selected tag that is not in the current counts", () => {
-    const model = buildPublicTagFilterModel([{ tag: "npm", count: 9 }], "ghost-tag")
+    const model = buildPublicTagFilterModel(
+      [{ tag: "npm", count: 9 }],
+      "ghost-tag",
+    );
 
     expect(model.visibleTags).toContainEqual({
       tag: "ghost-tag",
       count: 0,
       active: true,
-    })
-    expect(model.hasTags).toBe(true)
-  })
-})
+    });
+    expect(model.hasTags).toBe(true);
+  });
+});

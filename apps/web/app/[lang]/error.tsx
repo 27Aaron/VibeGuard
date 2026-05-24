@@ -1,25 +1,29 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useEffect } from "react";
+import { useParams } from "next/navigation";
 
-import { buttonVariants } from "@/components/ui/button"
-import type { AppLang } from "@/lib/i18n"
-import { getBackgroundClassName, getBackdropClassName, getShellClassName } from "@/lib/layout-tokens"
-import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button";
+import type { AppLang } from "@/lib/i18n";
+import {
+  getBackgroundClassName,
+  getBackdropClassName,
+  getShellClassName,
+} from "@/lib/layout-tokens";
+import { cn } from "@/lib/utils";
 
 export default function Error({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
-  const lang = (useParams().lang as AppLang) || "zh"
+  const lang = (useParams().lang as AppLang) || "zh";
 
   useEffect(() => {
-    console.error(error)
-  }, [error])
+    console.error(error);
+  }, [error]);
 
   return (
     <main className={getBackgroundClassName()}>
@@ -47,5 +51,5 @@ export default function Error({
         </div>
       </div>
     </main>
-  )
+  );
 }

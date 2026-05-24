@@ -21,10 +21,7 @@ const resolvedCommand =
   process.platform === "win32" && command === "pnpm" ? "pnpm.cmd" : command;
 const env = {
   ...process.env,
-  PATH: [
-    path.join(rootDir, "node_modules", ".bin"),
-    process.env.PATH,
-  ]
+  PATH: [path.join(rootDir, "node_modules", ".bin"), process.env.PATH]
     .filter(Boolean)
     .join(path.delimiter),
 };

@@ -1,39 +1,42 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button"
-import type { AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
-import Link from "next/link"
+import { buttonVariants } from "@/components/ui/button";
+import type { AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 type RedirectCountdownProps = {
-  lang: AppLang
-}
+  lang: AppLang;
+};
 
 export function RedirectCountdown({ lang }: RedirectCountdownProps) {
-  const [seconds, setSeconds] = useState(3)
-  const deadline = useRef<number | null>(null)
-  const redirected = useRef(false)
+  const [seconds, setSeconds] = useState(3);
+  const deadline = useRef<number | null>(null);
+  const redirected = useRef(false);
 
   useEffect(() => {
-    deadline.current = Date.now() + 3000
-    redirected.current = false
-    setSeconds(3)
+    deadline.current = Date.now() + 3000;
+    redirected.current = false;
+    setSeconds(3);
 
     const timer = setInterval(() => {
-      const remaining = Math.max(0, Math.ceil(((deadline.current ?? Date.now()) - Date.now()) / 1000))
-      setSeconds(remaining)
+      const remaining = Math.max(
+        0,
+        Math.ceil(((deadline.current ?? Date.now()) - Date.now()) / 1000),
+      );
+      setSeconds(remaining);
 
       if (remaining === 0 && !redirected.current) {
-        redirected.current = true
-        clearInterval(timer)
-        window.location.replace(`/${lang}`)
+        redirected.current = true;
+        clearInterval(timer);
+        window.location.replace(`/${lang}`);
       }
-    }, 1000)
+    }, 1000);
 
-    return () => clearInterval(timer)
-  }, [lang])
+    return () => clearInterval(timer);
+  }, [lang]);
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -47,8 +50,10 @@ export function RedirectCountdown({ lang }: RedirectCountdownProps) {
         {lang === "zh" ? "返回首页" : "Go Home"}
       </Link>
       <span className="text-xs tabular-nums text-zinc-400 dark:text-stone-500">
-        {lang === "zh" ? `${seconds} 秒后自动跳转` : `Redirecting in ${seconds}s`}
+        {lang === "zh"
+          ? `${seconds} 秒后自动跳转`
+          : `Redirecting in ${seconds}s`}
       </span>
     </div>
-  )
+  );
 }

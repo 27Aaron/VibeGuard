@@ -22,7 +22,9 @@ type ParsedFeed = {
 
 type PollFeedDependencies = {
   fetchFeed: (feedUrl: string) => Promise<ParsedFeed>;
-  insertFeedItem: (input: ToArticleInsertInput) => Promise<InsertFeedItemResult>;
+  insertFeedItem: (
+    input: ToArticleInsertInput,
+  ) => Promise<InsertFeedItemResult>;
   enqueueExtractJob: (articleId: string) => Promise<unknown>;
   markFeedPoll: (
     feedId: string,
@@ -52,9 +54,7 @@ export async function markFeedPoll(
     .update(feeds)
     .set({
       lastPolledAt: state.lastPolledAt,
-      ...(state.lastSuccessAt
-        ? { lastSuccessAt: state.lastSuccessAt }
-        : {}),
+      ...(state.lastSuccessAt ? { lastSuccessAt: state.lastSuccessAt } : {}),
     })
     .where(eq(feeds.id, feedId));
 }
@@ -175,8 +175,10 @@ export async function pollFeedNow(
   const cycleNow = dependencies.now?.() ?? new Date();
   const applyMarkFeedPoll =
     dependencies.markFeedPoll ??
-    ((nextFeedId: string, state: { lastPolledAt: Date; lastSuccessAt?: Date }) =>
-      markFeedPoll(db, nextFeedId, state));
+    ((
+      nextFeedId: string,
+      state: { lastPolledAt: Date; lastSuccessAt?: Date },
+    ) => markFeedPoll(db, nextFeedId, state));
 
   return pollFeed(feed, {
     fetchFeed: dependencies.fetchFeed ?? fetchFeed,

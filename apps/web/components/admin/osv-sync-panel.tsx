@@ -1,34 +1,34 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useState } from "react"
-import { Database, RefreshCw } from "lucide-react"
+import { useCallback, useEffect, useState } from "react";
+import { Database, RefreshCw } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import type { AppLang } from "@/lib/i18n"
-import { formatDateTimeInShanghai } from "@/lib/time"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import type { AppLang } from "@/lib/i18n";
+import { formatDateTimeInShanghai } from "@/lib/time";
 
 type OsvSyncEcosystem = {
-  ecosystem: string
-  status: string
-  lastSuccessAt: string | null
-  lastError: string | null
-  recordsImported: number
-  recordsFailed: number
-}
+  ecosystem: string;
+  status: string;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  recordsImported: number;
+  recordsFailed: number;
+};
 
 function ecosystemLabel(eco: string) {
   switch (eco) {
     case "npm":
-      return "npm"
+      return "npm";
     case "pypi":
-      return "PyPI"
+      return "PyPI";
     case "go":
-      return "Go"
+      return "Go";
     case "crates-io":
-      return "crates.io"
+      return "crates.io";
     default:
-      return eco
+      return eco;
   }
 }
 
@@ -39,54 +39,70 @@ function statusBadge(status: string, lang: AppLang) {
         <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
           {lang === "zh" ? "同步中" : "Syncing"}
         </Badge>
-      )
+      );
     case "success":
       return (
-        <Badge variant="outline" className="border-emerald-600/20 text-emerald-700 dark:border-emerald-300/20 dark:text-emerald-300">
+        <Badge
+          variant="outline"
+          className="border-emerald-600/20 text-emerald-700 dark:border-emerald-300/20 dark:text-emerald-300"
+        >
           {lang === "zh" ? "正常" : "OK"}
         </Badge>
-      )
+      );
     case "failed":
       return (
-        <Badge variant="outline" className="border-destructive/40 text-destructive">
+        <Badge
+          variant="outline"
+          className="border-destructive/40 text-destructive"
+        >
           {lang === "zh" ? "失败" : "Failed"}
         </Badge>
-      )
+      );
     default:
       return (
         <Badge variant="outline" className="text-zinc-500 dark:text-stone-400">
           {lang === "zh" ? "待同步" : "Idle"}
         </Badge>
-      )
+      );
   }
 }
 
-export function OsvSyncButton({ lang, onSyncComplete }: { lang: AppLang; onSyncComplete?: () => void }) {
-  const [syncing, setSyncing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function OsvSyncButton({
+  lang,
+  onSyncComplete,
+}: {
+  lang: AppLang;
+  onSyncComplete?: () => void;
+}) {
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSync() {
-    setSyncing(true)
-    setError(null)
+    setSyncing(true);
+    setError(null);
 
     try {
-      const res = await fetch("/api/admin/osv-sync", { method: "POST" })
-      const data = await res.json()
+      const res = await fetch("/api/admin/osv-sync", { method: "POST" });
+      const data = await res.json();
 
       if (!data.ok) {
-        setError(data.error ?? "Unknown error")
+        setError(data.error ?? "Unknown error");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed")
+      setError(err instanceof Error ? err.message : "Request failed");
     } finally {
-      setSyncing(false)
-      onSyncComplete?.()
+      setSyncing(false);
+      onSyncComplete?.();
     }
   }
 
   const syncLabel = syncing
-    ? (lang === "zh" ? "同步中…" : "Syncing…")
-    : (lang === "zh" ? "同步漏洞库" : "Sync Vuln DB")
+    ? lang === "zh"
+      ? "同步中…"
+      : "Syncing…"
+    : lang === "zh"
+      ? "同步漏洞库"
+      : "Sync Vuln DB";
 
   return (
     <div className="flex flex-col gap-2">
@@ -102,46 +118,54 @@ export function OsvSyncButton({ lang, onSyncComplete }: { lang: AppLang; onSyncC
         <RefreshCw className={syncing ? "size-4 animate-spin" : "size-4"} />
       </Button>
       {error ? (
-        <p className="text-xs text-destructive" aria-live="polite">{error}</p>
+        <p className="text-xs text-destructive" aria-live="polite">
+          {error}
+        </p>
       ) : (
         <p className="text-xs text-muted-foreground">
           {syncing
-            ? (lang === "zh" ? "正在同步漏洞数据库…" : "Syncing vulnerability database…")
-            : (lang === "zh" ? "手动同步 OSV 漏洞库到本地。" : "Manually sync the OSV vulnerability database.")}
+            ? lang === "zh"
+              ? "正在同步漏洞数据库…"
+              : "Syncing vulnerability database…"
+            : lang === "zh"
+              ? "手动同步 OSV 漏洞库到本地。"
+              : "Manually sync the OSV vulnerability database."}
         </p>
       )}
     </div>
-  )
+  );
 }
 
 export function OsvSyncPanel({ lang }: { lang: AppLang }) {
-  const [ecosystems, setEcosystems] = useState<OsvSyncEcosystem[]>([])
+  const [ecosystems, setEcosystems] = useState<OsvSyncEcosystem[]>([]);
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/osv-sync", { cache: "no-store" })
+      const res = await fetch("/api/admin/osv-sync", { cache: "no-store" });
       if (res.ok) {
-        const data = await res.json()
-        setEcosystems(data.ecosystems ?? [])
+        const data = await res.json();
+        setEcosystems(data.ecosystems ?? []);
       }
     } catch {
       // ignore
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchStatus()
-  }, [fetchStatus])
+    fetchStatus();
+  }, [fetchStatus]);
 
   if (ecosystems.length === 0) {
     return (
       <div className="flex flex-col gap-4">
         <OsvSyncButton lang={lang} onSyncComplete={fetchStatus} />
         <p className="text-sm text-muted-foreground">
-          {lang === "zh" ? "暂无同步记录，首次同步后将显示状态。" : "No sync records yet. Status will appear after the first sync."}
+          {lang === "zh"
+            ? "暂无同步记录，首次同步后将显示状态。"
+            : "No sync records yet. Status will appear after the first sync."}
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -169,5 +193,5 @@ export function OsvSyncPanel({ lang }: { lang: AppLang }) {
         ))}
       </div>
     </div>
-  )
+  );
 }

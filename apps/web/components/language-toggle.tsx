@@ -1,46 +1,49 @@
-"use client"
+"use client";
 
-import { startTransition, useCallback, type MouseEvent } from "react"
-import { useRouter, usePathname, useSearchParams } from "next/navigation"
-import { Languages } from "lucide-react"
+import { startTransition, useCallback, type MouseEvent } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Languages } from "lucide-react";
 
-import type { AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+import type { AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 type LanguageToggleProps = {
-  currentLang: AppLang
-  className?: string
-}
+  currentLang: AppLang;
+  className?: string;
+};
 
 export function LanguageToggle({
   currentLang,
   className,
 }: LanguageToggleProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const nextLang = currentLang === "zh" ? "en" : "zh"
-  const nextLabel = currentLang === "zh" ? "切换到英文" : "Switch to Chinese"
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const nextLang = currentLang === "zh" ? "en" : "zh";
+  const nextLabel = currentLang === "zh" ? "切换到英文" : "Switch to Chinese";
 
-  const segments = pathname.split("/")
-  segments[1] = nextLang
-  const nextPath = segments.join("/")
+  const segments = pathname.split("/");
+  segments[1] = nextLang;
+  const nextPath = segments.join("/");
   const href = searchParams.toString()
     ? `${nextPath}?${searchParams.toString()}`
-    : nextPath
+    : nextPath;
 
-  const handleClick = useCallback((e: MouseEvent) => {
-    e.preventDefault()
-    if (document.startViewTransition) {
-      document.startViewTransition(() => {
-        startTransition(() => {
-          router.push(href)
-        })
-      })
-    } else {
-      router.push(href)
-    }
-  }, [href, router])
+  const handleClick = useCallback(
+    (e: MouseEvent) => {
+      e.preventDefault();
+      if (document.startViewTransition) {
+        document.startViewTransition(() => {
+          startTransition(() => {
+            router.push(href);
+          });
+        });
+      } else {
+        router.push(href);
+      }
+    },
+    [href, router],
+  );
 
   return (
     <button
@@ -57,5 +60,5 @@ export function LanguageToggle({
         <Languages className="size-[14px]" strokeWidth={2} />
       </span>
     </button>
-  )
+  );
 }

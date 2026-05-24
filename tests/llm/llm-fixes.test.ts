@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { buildTranslationSystemPrompt, buildLocalizedSummaryPrompt } from "../../packages/llm/src/prompts";
+import {
+  buildTranslationSystemPrompt,
+  buildLocalizedSummaryPrompt,
+} from "../../packages/llm/src/prompts";
 import { buildTagExtractionPrompt } from "../../packages/llm/src/tags";
 import { createOpenAIClient } from "../../packages/llm/src/client";
-import { decryptSecret, encryptSecret } from "../../packages/llm/src/credentials";
+import {
+  decryptSecret,
+  encryptSecret,
+} from "../../packages/llm/src/credentials";
 import { stripJsonFence } from "../../packages/llm/src/utils";
 import { summarizeText } from "../../packages/llm/src/summarize";
 import { protectMarkdownCode } from "../../packages/llm/src/translate";
@@ -56,7 +62,10 @@ describe("W03: API key validation (client.ts)", () => {
 
   it("should throw if apiKey is undefined-like (falsy)", () => {
     expect(() =>
-      createOpenAIClient({ baseUrl: "https://api.example.com", apiKey: "" as string }),
+      createOpenAIClient({
+        baseUrl: "https://api.example.com",
+        apiKey: "" as string,
+      }),
     ).toThrow("API key is required");
   });
 });
@@ -173,9 +182,7 @@ describe("W47: summarize input size limit with truncation warning (summarize.ts)
       sourceText: longText,
     });
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("truncated"),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("truncated"));
 
     // Verify the text was truncated before being sent
     const callArgs = mockClient.chat.completions.create.mock.calls[0][0];
@@ -252,17 +259,17 @@ describe("W48: restore uses replaceAll instead of split/join (translate.ts)", ()
 // ---------------------------------------------------------------------------
 describe("W49: stripJsonFence handles multiple fences (utils.ts)", () => {
   it("should strip a single code fence", () => {
-    expect(stripJsonFence("```json\n{\"a\": 1}\n```")).toBe('{"a": 1}');
+    expect(stripJsonFence('```json\n{"a": 1}\n```')).toBe('{"a": 1}');
   });
 
   it("should handle double-nested fences", () => {
-    const input = "``````json\n{\"a\": 1}\n``````";
+    const input = '``````json\n{"a": 1}\n``````';
     const result = stripJsonFence(input);
     expect(result).toBe('{"a": 1}');
   });
 
   it("should handle triple-nested fences", () => {
-    const input = "`````````\n{\"a\": 1}\n`````````";
+    const input = '`````````\n{"a": 1}\n`````````';
     const result = stripJsonFence(input);
     expect(result).toBe('{"a": 1}');
   });

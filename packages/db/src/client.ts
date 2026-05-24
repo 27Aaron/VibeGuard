@@ -21,7 +21,9 @@ function requireDatabaseUrl(): string {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
-    throw new Error("DATABASE_URL is required to initialize the database client.");
+    throw new Error(
+      "DATABASE_URL is required to initialize the database client.",
+    );
   }
 
   return databaseUrl;
@@ -33,8 +35,14 @@ export function getPool(): Pool {
       connectionString: requireDatabaseUrl(),
       max: normalizeInt(process.env.DB_POOL_MAX, 10),
       idleTimeoutMillis: normalizeInt(process.env.DB_IDLE_TIMEOUT_MS, 30_000),
-      connectionTimeoutMillis: normalizeInt(process.env.DB_CONNECT_TIMEOUT_MS, 5_000),
-      ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : undefined,
+      connectionTimeoutMillis: normalizeInt(
+        process.env.DB_CONNECT_TIMEOUT_MS,
+        5_000,
+      ),
+      ssl:
+        process.env.DB_SSL === "true"
+          ? { rejectUnauthorized: true }
+          : undefined,
     });
   }
 

@@ -6,7 +6,8 @@ import { applyLocalEnvDefaults, loadRootEnv } from "./load-env.mjs";
 loadRootEnv();
 applyLocalEnvDefaults();
 
-const packageManagerCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const packageManagerCommand =
+  process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const webPort = Number(process.env.PORT ?? "3000");
 const webHost = process.env.HOSTNAME ?? "127.0.0.1";
 

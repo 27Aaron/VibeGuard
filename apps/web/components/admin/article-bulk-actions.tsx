@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { RotateCcw, Trash2 } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react";
+import { RotateCcw, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -13,27 +13,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import type { AppLang } from "@/lib/i18n"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import type { AppLang } from "@/lib/i18n";
 
 export function ArticleBulkActions({
   formId,
   inputName,
   lang,
 }: {
-  formId: string
-  inputName: string
-  lang: AppLang
+  formId: string;
+  inputName: string;
+  lang: AppLang;
 }) {
-  const formRef = useRef<HTMLFormElement | null>(null)
-  const [selectedCount, setSelectedCount] = useState(0)
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const [selectedCount, setSelectedCount] = useState(0);
 
   const syncSelectedCount = useCallback(() => {
-    const form = formRef.current
+    const form = formRef.current;
     if (!form) {
-      setSelectedCount(0)
-      return
+      setSelectedCount(0);
+      return;
     }
 
     const count = Array.from(form.elements).filter(
@@ -42,30 +42,30 @@ export function ArticleBulkActions({
         element.type === "checkbox" &&
         element.name === inputName &&
         element.checked,
-    ).length
+    ).length;
 
-    setSelectedCount(count)
-  }, [inputName])
+    setSelectedCount(count);
+  }, [inputName]);
 
   useEffect(() => {
-    formRef.current = document.getElementById(formId) as HTMLFormElement | null
-    syncSelectedCount()
+    formRef.current = document.getElementById(formId) as HTMLFormElement | null;
+    syncSelectedCount();
 
     function handleChange(event: Event) {
-      const target = event.target
-      if (!(target instanceof HTMLInputElement)) return
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
       if (target.form?.id === formId && target.name === inputName) {
-        syncSelectedCount()
+        syncSelectedCount();
       }
     }
 
-    document.addEventListener("change", handleChange)
+    document.addEventListener("change", handleChange);
     return () => {
-      document.removeEventListener("change", handleChange)
-    }
-  }, [formId, inputName, syncSelectedCount])
+      document.removeEventListener("change", handleChange);
+    };
+  }, [formId, inputName, syncSelectedCount]);
 
-  const disabled = selectedCount === 0
+  const disabled = selectedCount === 0;
 
   return (
     <>
@@ -142,5 +142,5 @@ export function ArticleBulkActions({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

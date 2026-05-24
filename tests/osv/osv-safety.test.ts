@@ -1,7 +1,13 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest";
 
-import { buildPackageCheckMeta, checkPackagesAgainstLocalDb } from "../../packages/content/src/osv/query"
-import { downloadOsvTextToCache, downloadOsvArchiveToCache } from "../../packages/content/src/osv/cache"
+import {
+  buildPackageCheckMeta,
+  checkPackagesAgainstLocalDb,
+} from "../../packages/content/src/osv/query";
+import {
+  downloadOsvTextToCache,
+  downloadOsvArchiveToCache,
+} from "../../packages/content/src/osv/cache";
 
 // ---------------------------------------------------------------------------
 // SEC-06: Response size bounded fetch
@@ -9,21 +15,23 @@ import { downloadOsvTextToCache, downloadOsvArchiveToCache } from "../../package
 
 describe("SEC-06: OSV cache fetch size limits", () => {
   it("rejects text responses exceeding the 50MB content-length header", async () => {
-    const oversizedFetchText = vi.fn().mockResolvedValue("x".repeat(100))
+    const oversizedFetchText = vi.fn().mockResolvedValue("x".repeat(100));
 
     // Simulate what defaultFetchText does internally by checking the pattern.
     // We cannot call defaultFetchText directly (it is not exported), so we
     // verify the logic through the injection point and a manual size check.
-    const text = "x".repeat(100)
-    const MAX_RESPONSE_BYTES = 50 * 1024 * 1024
+    const text = "x".repeat(100);
+    const MAX_RESPONSE_BYTES = 50 * 1024 * 1024;
 
     // Verify that a realistic-sized text passes the size check
-    expect(Buffer.byteLength(text, "utf8")).toBeLessThan(MAX_RESPONSE_BYTES)
-  })
+    expect(Buffer.byteLength(text, "utf8")).toBeLessThan(MAX_RESPONSE_BYTES);
+  });
 
   it("downloadOsvTextToCache propagates size-limit errors from the injected fetchText", async () => {
-    const sizeError = new Error("Response too large: 100000000 bytes exceeds 52428800 limit")
-    const fetchTextThatRejects = vi.fn().mockRejectedValue(sizeError)
+    const sizeError = new Error(
+      "Response too large: 100000000 bytes exceeds 52428800 limit",
+    );
+    const fetchTextThatRejects = vi.fn().mockRejectedValue(sizeError);
 
     await expect(
       downloadOsvTextToCache({
@@ -33,14 +41,16 @@ describe("SEC-06: OSV cache fetch size limits", () => {
         url: "https://example.com/huge.csv",
         fetchText: fetchTextThatRejects,
       }),
-    ).rejects.toThrow("Response too large")
+    ).rejects.toThrow("Response too large");
 
-    expect(fetchTextThatRejects).toHaveBeenCalledTimes(1)
-  })
+    expect(fetchTextThatRejects).toHaveBeenCalledTimes(1);
+  });
 
   it("downloadOsvArchiveToCache propagates size-limit errors from the injected fetchBytes", async () => {
-    const sizeError = new Error("Response too large: 200000000 bytes exceeds 52428800 limit")
-    const fetchBytesThatRejects = vi.fn().mockRejectedValue(sizeError)
+    const sizeError = new Error(
+      "Response too large: 200000000 bytes exceeds 52428800 limit",
+    );
+    const fetchBytesThatRejects = vi.fn().mockRejectedValue(sizeError);
 
     await expect(
       downloadOsvArchiveToCache({
@@ -50,14 +60,14 @@ describe("SEC-06: OSV cache fetch size limits", () => {
         url: "https://example.com/huge.zip",
         fetchBytes: fetchBytesThatRejects,
       }),
-    ).rejects.toThrow("Response too large")
+    ).rejects.toThrow("Response too large");
 
-    expect(fetchBytesThatRejects).toHaveBeenCalledTimes(1)
-  })
+    expect(fetchBytesThatRejects).toHaveBeenCalledTimes(1);
+  });
 
   it("allows normal-sized text responses to pass through", async () => {
-    const smallText = "2026-05-21T23:01:37Z,MAL-2026-4230\n"
-    const fetchText = vi.fn().mockResolvedValue(smallText)
+    const smallText = "2026-05-21T23:01:37Z,MAL-2026-4230\n";
+    const fetchText = vi.fn().mockResolvedValue(smallText);
 
     // This should not throw — the actual fetch is overridden
     const result = await downloadOsvTextToCache({
@@ -66,12 +76,12 @@ describe("SEC-06: OSV cache fetch size limits", () => {
       fileName: "modified_id.csv",
       url: "https://example.com/small.csv",
       fetchText,
-    })
+    });
 
-    expect(result).toContain("modified_id.csv")
-    expect(fetchText).toHaveBeenCalledTimes(1)
-  })
-})
+    expect(result).toContain("modified_id.csv");
+    expect(fetchText).toHaveBeenCalledTimes(1);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // SEC-07: sql.raw replaced with sql template tag
@@ -81,16 +91,17 @@ describe("SEC-07: store conflict update uses sql template tag", () => {
   it("advisoryConflictUpdateSet is imported and the module loads without sql.raw errors", async () => {
     // If sql.raw was still present, the module would still load but we verify
     // the module exports work correctly after the refactor.
-    const store = await import("../../packages/content/src/osv/store")
+    const store = await import("../../packages/content/src/osv/store");
 
-    expect(store.buildSecurityAdvisoryInsert).toBeTypeOf("function")
-    expect(store.buildSecurityAffectedPackageInsert).toBeTypeOf("function")
-    expect(store.upsertNormalizedOsvRecord).toBeTypeOf("function")
-    expect(store.upsertNormalizedOsvRecordsBatch).toBeTypeOf("function")
-  })
+    expect(store.buildSecurityAdvisoryInsert).toBeTypeOf("function");
+    expect(store.buildSecurityAffectedPackageInsert).toBeTypeOf("function");
+    expect(store.upsertNormalizedOsvRecord).toBeTypeOf("function");
+    expect(store.upsertNormalizedOsvRecordsBatch).toBeTypeOf("function");
+  });
 
   it("buildSecurityAdvisoryInsert produces correct values independent of sql.raw", async () => {
-    const { buildSecurityAdvisoryInsert } = await import("../../packages/content/src/osv/store")
+    const { buildSecurityAdvisoryInsert } =
+      await import("../../packages/content/src/osv/store");
 
     const advisory = {
       source: "osv" as const,
@@ -106,17 +117,17 @@ describe("SEC-07: store conflict update uses sql template tag", () => {
       modifiedAt: new Date("2026-01-02T00:00:00Z"),
       withdrawnAt: null,
       references: [{ type: "ADVISORY", url: "https://example.com/advisory" }],
-    }
+    };
 
-    const insert = buildSecurityAdvisoryInsert(advisory)
+    const insert = buildSecurityAdvisoryInsert(advisory);
 
-    expect(insert.externalId).toBe("GHSA-test-sec07")
-    expect(insert.source).toBe("osv")
-    expect(insert.rawHash).toBe("sha256:abc")
-    expect(insert.aliases).toEqual(["CVE-2026-1234"])
-    expect(insert.severity).toEqual([{ type: "CVSS_V3", score: "7.5" }])
-  })
-})
+    expect(insert.externalId).toBe("GHSA-test-sec07");
+    expect(insert.source).toBe("osv");
+    expect(insert.rawHash).toBe("sha256:abc");
+    expect(insert.aliases).toEqual(["CVE-2026-1234"]);
+    expect(insert.severity).toEqual([{ type: "CVSS_V3", score: "7.5" }]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // PERF-01: Batch queries replace N+1
@@ -124,8 +135,8 @@ describe("SEC-07: store conflict update uses sql template tag", () => {
 
 describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
   it("makes at most 1 query per ecosystem for affected packages + 1 advisory query", async () => {
-    const affectedPackagesCalls: unknown[] = []
-    const advisoryCalls: unknown[] = []
+    const affectedPackagesCalls: unknown[] = [];
+    const advisoryCalls: unknown[] = [];
 
     const db = {
       query: {
@@ -136,7 +147,7 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
         },
         securityAffectedPackages: {
           findMany: vi.fn().mockImplementation((...args: unknown[]) => {
-            affectedPackagesCalls.push(args)
+            affectedPackagesCalls.push(args);
             return Promise.resolve([
               {
                 id: "affected-1",
@@ -160,12 +171,12 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
                 fixedVersions: [],
                 advisoryId: "advisory-2",
               },
-            ])
+            ]);
           }),
         },
         securityAdvisories: {
           findMany: vi.fn().mockImplementation((...args: unknown[]) => {
-            advisoryCalls.push(args)
+            advisoryCalls.push(args);
             return Promise.resolve([
               {
                 id: "advisory-1",
@@ -193,11 +204,11 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
                 withdrawnAt: null,
                 modifiedAt: new Date("2026-05-21T22:00:00Z"),
               },
-            ])
+            ]);
           }),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [
@@ -205,27 +216,27 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
         { ecosystem: "npm", name: "evil-pkg", version: "2.0.0" },
       ],
       now: new Date("2026-05-22T08:00:00Z"),
-    })
+    });
 
     // With batch queries: 1 findMany call for npm ecosystem, not 2
-    expect(affectedPackagesCalls).toHaveLength(1)
+    expect(affectedPackagesCalls).toHaveLength(1);
     // 1 advisory batch query, not 2
-    expect(advisoryCalls).toHaveLength(1)
-    expect(result.findings).toHaveLength(2)
+    expect(advisoryCalls).toHaveLength(1);
+    expect(result.findings).toHaveLength(2);
     expect(result.findings[0]).toMatchObject({
       affected: true,
       matchReason: "explicit_affected_version",
       advisory: { id: "MAL-2026-4230" },
-    })
+    });
     expect(result.findings[1]).toMatchObject({
       affected: true,
       matchReason: "explicit_affected_version",
       advisory: { id: "MAL-2026-5000" },
-    })
-  })
+    });
+  });
 
   it("handles multiple ecosystems with one batch query per ecosystem", async () => {
-    const affectedPackagesCalls: unknown[] = []
+    const affectedPackagesCalls: unknown[] = [];
 
     const db = {
       query: {
@@ -236,15 +247,15 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
         },
         securityAffectedPackages: {
           findMany: vi.fn().mockImplementation((...args: unknown[]) => {
-            affectedPackagesCalls.push(args)
-            return Promise.resolve([])
+            affectedPackagesCalls.push(args);
+            return Promise.resolve([]);
           }),
         },
         securityAdvisories: {
           findMany: vi.fn().mockResolvedValue([]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [
@@ -254,13 +265,13 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
         { ecosystem: "go", name: "pkg-d", version: "v4.0.0" },
       ],
       now: new Date("2026-05-22T08:00:00Z"),
-    })
+    });
 
     // 3 ecosystems (npm, pypi, go) = 3 batch queries for affected packages
     // Previously this would have been 4 individual queries
-    expect(affectedPackagesCalls).toHaveLength(3)
-    expect(result.findings).toHaveLength(0)
-  })
+    expect(affectedPackagesCalls).toHaveLength(3);
+    expect(result.findings).toHaveLength(0);
+  });
 
   it("returns empty findings when packages list is empty", async () => {
     const db = {
@@ -275,19 +286,19 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
           findMany: vi.fn(),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [],
       now: new Date("2026-05-22T08:00:00Z"),
-    })
+    });
 
-    expect(result.findings).toEqual([])
-    expect(result.meta.source).toBe("local-osv-mirror")
-    expect(result.meta.stale).toBe(true)
-    expect(db.query.securityAffectedPackages.findMany).not.toHaveBeenCalled()
-    expect(db.query.securityAdvisories.findMany).not.toHaveBeenCalled()
-  })
+    expect(result.findings).toEqual([]);
+    expect(result.meta.source).toBe("local-osv-mirror");
+    expect(result.meta.stale).toBe(true);
+    expect(db.query.securityAffectedPackages.findMany).not.toHaveBeenCalled();
+    expect(db.query.securityAdvisories.findMany).not.toHaveBeenCalled();
+  });
 
   it("keeps withdrawn advisories in batch result with withdrawal metadata", async () => {
     const db = {
@@ -354,7 +365,7 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [
@@ -362,9 +373,9 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
         { ecosystem: "npm", name: "active-pkg", version: "2.0.0" },
       ],
       now: new Date("2026-05-22T08:00:00Z"),
-    })
+    });
 
-    expect(result.findings).toHaveLength(2)
+    expect(result.findings).toHaveLength(2);
     expect(result.findings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -382,8 +393,8 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
           }),
         }),
       ]),
-    )
-  })
+    );
+  });
 
   it("correctly joins packages to advisories across ecosystems in batch", async () => {
     const npmAffected = [
@@ -403,7 +414,7 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
         fixedVersions: ["4.17.21"],
         advisoryId: "advisory-npm",
       },
-    ]
+    ];
     const goAffected = [
       {
         id: "affected-go",
@@ -421,7 +432,7 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
         fixedVersions: ["v0.3.8"],
         advisoryId: "advisory-go",
       },
-    ]
+    ];
 
     const db = {
       query: {
@@ -431,7 +442,10 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
           }),
         },
         securityAffectedPackages: {
-          findMany: vi.fn().mockResolvedValueOnce(npmAffected).mockResolvedValueOnce(goAffected),
+          findMany: vi
+            .fn()
+            .mockResolvedValueOnce(npmAffected)
+            .mockResolvedValueOnce(goAffected),
         },
         securityAdvisories: {
           findMany: vi.fn().mockResolvedValue([
@@ -464,7 +478,7 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
           ]),
         },
       },
-    } as never
+    } as never;
 
     const result = await checkPackagesAgainstLocalDb(db, {
       packages: [
@@ -472,20 +486,24 @@ describe("PERF-01: checkPackagesAgainstLocalDb uses batch queries", () => {
         { ecosystem: "go", name: "golang.org/x/text", version: "v0.3.5" },
       ],
       now: new Date("2026-05-22T08:00:00Z"),
-    })
+    });
 
-    expect(result.findings).toHaveLength(2)
+    expect(result.findings).toHaveLength(2);
     expect(result.findings[0]).toMatchObject({
       affected: true,
       matchReason: "version_in_ecosystem_range",
       advisory: { id: "GHSA-npm-lodash" },
       package: { ecosystem: "npm", name: "lodash", version: "4.17.15" },
-    })
+    });
     expect(result.findings[1]).toMatchObject({
       affected: true,
       matchReason: "version_in_ecosystem_range",
       advisory: { id: "GO-2026-1" },
-      package: { ecosystem: "go", name: "golang.org/x/text", version: "v0.3.5" },
-    })
-  })
-})
+      package: {
+        ecosystem: "go",
+        name: "golang.org/x/text",
+        version: "v0.3.5",
+      },
+    });
+  });
+});

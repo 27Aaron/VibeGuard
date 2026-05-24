@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "next/link";
 import {
   Braces,
   FileJson,
@@ -8,40 +8,40 @@ import {
   ShieldCheck,
   Sparkles,
   type LucideIcon,
-} from "lucide-react"
+} from "lucide-react";
 
-import { LanguageToggle } from "@/components/language-toggle"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { getUiText, type AppLang } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+import { LanguageToggle } from "@/components/language-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { getUiText, type AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
-type PublicSurface = "rss" | "check" | "api" | "mcp" | "skill"
+type PublicSurface = "rss" | "check" | "api" | "mcp" | "skill";
 
 const futureSurfaceLinks: Array<{
-  label: string
-  icon: LucideIcon
-  surface?: PublicSurface
-  route: string
+  label: string;
+  icon: LucideIcon;
+  surface?: PublicSurface;
+  route: string;
 }> = [
   { label: "API", icon: FileJson, surface: "api", route: "/api" },
   { label: "MCP", icon: Braces, surface: "mcp", route: "/mcp" },
   { label: "RSS", icon: Rss, surface: "rss", route: "/rss" },
   { label: "Skill", icon: Sparkles, surface: "skill", route: "/skill" },
   { label: "Check", icon: Search, surface: "check", route: "/check" },
-]
+];
 
 type PublicHeaderProps = {
-  homeHref: string
-  currentLang: AppLang
-  currentSurface?: PublicSurface
-}
+  homeHref: string;
+  currentLang: AppLang;
+  currentSurface?: PublicSurface;
+};
 
 export function PublicHeader({
   homeHref,
   currentLang,
   currentSurface,
 }: PublicHeaderProps) {
-  const copy = getUiText(currentLang)
+  const copy = getUiText(currentLang);
 
   return (
     <header className="sticky top-3 z-40">
@@ -67,34 +67,42 @@ export function PublicHeader({
 
           <div className="grid w-full min-w-0 grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:items-center md:justify-self-center">
             {futureSurfaceLinks.map((item) => {
-              const Icon = item.icon
-              const active = currentSurface != null && item.surface === currentSurface
+              const Icon = item.icon;
+              const active =
+                currentSurface != null && item.surface === currentSurface;
               const className =
-                "inline-flex h-8 min-w-0 items-center rounded-full border border-black/8 bg-[#eef2f7] p-[2px] text-xs font-semibold text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] transition-[background-color,border-color,box-shadow,color] duration-200 hover:bg-[#e7ecf4] hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white"
+                "inline-flex h-8 min-w-0 items-center rounded-full border border-black/8 bg-[#eef2f7] p-[2px] text-xs font-semibold text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] transition-[background-color,border-color,box-shadow,color] duration-200 hover:bg-[#e7ecf4] hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white";
               const surfaceClassName = cn(
                 className,
                 active &&
                   "border-emerald-900/18 bg-[#dfe9e2] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_1px_2px_rgba(15,23,42,0.08)] hover:bg-[#d6e4da] hover:text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#16221c] dark:hover:text-emerald-50",
-              )
+              );
               const contentClassName = cn(
                 "inline-flex h-[26px] items-center gap-1.5 rounded-full border border-black/8 bg-white px-2.5 text-zinc-700 shadow-[0_1px_2px_rgba(15,23,42,0.14),0_4px_10px_rgba(15,23,42,0.12)] transition-[background-color,color,border-color,box-shadow] duration-200 dark:border-white/10 dark:bg-[#0c1218] dark:text-stone-100 dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_6px_16px_rgba(0,0,0,0.28)]",
                 active &&
                   "border-emerald-900/12 bg-[#f7fbf8] text-emerald-950 shadow-[0_1px_2px_rgba(15,23,42,0.10),0_5px_12px_rgba(20,83,45,0.10)] dark:border-emerald-200/12 dark:bg-[#18241e] dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_6px_16px_rgba(0,0,0,0.26)]",
-              )
+              );
               const iconClassName = cn(
                 "size-[14px]",
                 active && "text-emerald-800 dark:text-emerald-300",
-              )
+              );
 
-              const href = item.route ? `/${currentLang}${item.route}` : undefined
-              const label = item.surface === "check" ? copy.publicCheckNav : item.label
+              const href = item.route
+                ? `/${currentLang}${item.route}`
+                : undefined;
+              const label =
+                item.surface === "check" ? copy.publicCheckNav : item.label;
 
               if (href) {
                 return (
                   <Link
                     key={item.label}
                     href={href}
-                    prefetch={item.route === "/api" || item.route === "/mcp" ? false : undefined}
+                    prefetch={
+                      item.route === "/api" || item.route === "/mcp"
+                        ? false
+                        : undefined
+                    }
                     className={surfaceClassName}
                   >
                     <span className={contentClassName}>
@@ -102,7 +110,7 @@ export function PublicHeader({
                       {label}
                     </span>
                   </Link>
-                )
+                );
               }
 
               return (
@@ -118,18 +126,16 @@ export function PublicHeader({
                     {label}
                   </span>
                 </button>
-              )
+              );
             })}
           </div>
 
           <div className="flex items-center justify-end gap-1.5 md:justify-self-end">
             <ThemeToggle />
-            <LanguageToggle
-              currentLang={currentLang}
-            />
+            <LanguageToggle currentLang={currentLang} />
           </div>
         </div>
       </div>
     </header>
-  )
+  );
 }

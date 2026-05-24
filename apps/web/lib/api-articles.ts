@@ -1,17 +1,17 @@
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm"
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 
-import { articles, feeds, getDb } from "@vibeguard/db"
+import { articles, feeds, getDb } from "@vibeguard/db";
 import {
   ARTICLE_ECOSYSTEM_VALUES,
   ARTICLE_RISK_CATEGORY_VALUES,
   type ArticleEcosystem,
   type ArticleRiskCategory,
   type ArticleStatus,
-} from "@vibeguard/shared"
+} from "@vibeguard/shared";
 
-import { pickArticleLocale } from "./article-content"
-import { resolveLang } from "./i18n"
-import { formatDateTimeInShanghai, toShanghaiIsoOffset } from "./time"
+import { pickArticleLocale } from "./article-content";
+import { resolveLang } from "./i18n";
+import { formatDateTimeInShanghai, toShanghaiIsoOffset } from "./time";
 
 const ALLOWED_STATUSES: ArticleStatus[] = [
   "pending",
@@ -19,56 +19,56 @@ const ALLOWED_STATUSES: ArticleStatus[] = [
   "ready",
   "failed",
   "filtered",
-]
-const ALLOWED_ECOSYSTEMS: ArticleEcosystem[] = [...ARTICLE_ECOSYSTEM_VALUES]
+];
+const ALLOWED_ECOSYSTEMS: ArticleEcosystem[] = [...ARTICLE_ECOSYSTEM_VALUES];
 const ALLOWED_RISK_CATEGORIES: ArticleRiskCategory[] = [
   ...ARTICLE_RISK_CATEGORY_VALUES,
-]
+];
 
 function clampLimit(raw: string | null) {
-  const parsed = Number.parseInt(raw ?? "20", 10)
+  const parsed = Number.parseInt(raw ?? "20", 10);
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 20
+    return 20;
   }
 
-  return Math.min(parsed, 100)
+  return Math.min(parsed, 100);
 }
 
 function clampPage(raw: string | null) {
-  const parsed = Number.parseInt(raw ?? "1", 10)
+  const parsed = Number.parseInt(raw ?? "1", 10);
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 1
+    return 1;
   }
 
-  return Math.min(parsed, 10_000)
+  return Math.min(parsed, 10_000);
 }
 
 export function parseArticleListParams(searchParams: URLSearchParams) {
-  const lang = resolveLang(searchParams.get("lang"))
-  const statusParam = searchParams.get("status")?.trim()
+  const lang = resolveLang(searchParams.get("lang"));
+  const statusParam = searchParams.get("status")?.trim();
   const status =
     statusParam && ALLOWED_STATUSES.includes(statusParam as ArticleStatus)
       ? (statusParam as ArticleStatus)
-      : "ready"
-  const source = searchParams.get("source")?.trim() ?? ""
-  const query = searchParams.get("q")?.trim() ?? ""
-  const ecosystemParam = searchParams.get("ecosystem")?.trim()
+      : "ready";
+  const source = searchParams.get("source")?.trim() ?? "";
+  const query = searchParams.get("q")?.trim() ?? "";
+  const ecosystemParam = searchParams.get("ecosystem")?.trim();
   const ecosystem =
     ecosystemParam &&
     ALLOWED_ECOSYSTEMS.includes(ecosystemParam as ArticleEcosystem)
       ? (ecosystemParam as ArticleEcosystem)
-      : ""
-  const riskCategoryParam = searchParams.get("riskCategory")?.trim()
+      : "";
+  const riskCategoryParam = searchParams.get("riskCategory")?.trim();
   const riskCategory =
     riskCategoryParam &&
     ALLOWED_RISK_CATEGORIES.includes(riskCategoryParam as ArticleRiskCategory)
       ? (riskCategoryParam as ArticleRiskCategory)
-      : ""
-  const tag = searchParams.get("tag")?.trim().toLowerCase() ?? ""
-  const limit = clampLimit(searchParams.get("limit"))
-  const page = clampPage(searchParams.get("page"))
+      : "";
+  const tag = searchParams.get("tag")?.trim().toLowerCase() ?? "";
+  const limit = clampLimit(searchParams.get("limit"));
+  const page = clampPage(searchParams.get("page"));
 
   return {
     lang,
@@ -80,17 +80,17 @@ export function parseArticleListParams(searchParams: URLSearchParams) {
     tag,
     limit,
     page,
-  }
+  };
 }
 
 type BuildArticleListMetaInput = ReturnType<typeof parseArticleListParams> & {
-  totalCount: number
-  count: number
-}
+  totalCount: number;
+  count: number;
+};
 
 export function buildArticleListMeta(input: BuildArticleListMetaInput) {
-  const totalPages = Math.max(1, Math.ceil(input.totalCount / input.limit))
-  const page = Math.min(input.page, totalPages)
+  const totalPages = Math.max(1, Math.ceil(input.totalCount / input.limit));
+  const page = Math.min(input.page, totalPages);
 
   return {
     lang: input.lang,
@@ -106,17 +106,21 @@ export function buildArticleListMeta(input: BuildArticleListMetaInput) {
     pageSize: input.limit,
     totalCount: input.totalCount,
     totalPages,
-  }
+  };
 }
 
 export async function listArticles(searchParams: URLSearchParams) {
-  const db = getDb()
-  const params = parseArticleListParams(searchParams)
+  const db = getDb();
+  const params = parseArticleListParams(searchParams);
   const filters = [
     eq(articles.status, params.status),
     params.source ? eq(feeds.name, params.source) : undefined,
-    params.ecosystem ? eq(articles.ecosystem, params.ecosystem as ArticleEcosystem) : undefined,
-    params.riskCategory ? eq(articles.riskCategory, params.riskCategory as ArticleRiskCategory) : undefined,
+    params.ecosystem
+      ? eq(articles.ecosystem, params.ecosystem as ArticleEcosystem)
+      : undefined,
+    params.riskCategory
+      ? eq(articles.riskCategory, params.riskCategory as ArticleRiskCategory)
+      : undefined,
     // TODO: 在 tags 列上创建 GIN 索引（使用 gin_toast_trgm 或 jsonb_path_ops）
     // 可以显著加速下方的 JSONB `?` 运算符查询。
     // 示例：CREATE INDEX idx_articles_tags_gin ON articles USING gin (tags jsonb_path_ops);
@@ -141,12 +145,12 @@ export async function listArticles(searchParams: URLSearchParams) {
           )`,
         )
       : undefined,
-  ].filter(Boolean)
-  const where = filters.length > 0 ? and(...filters) : undefined
+  ].filter(Boolean);
+  const where = filters.length > 0 ? and(...filters) : undefined;
 
   // 并行执行计数查询和数据查询以提升性能。数据查询使用原始页码偏移量，
   // 在两个查询都完成后，再根据实际计数结果对页码进行校正。
-  const preliminaryOffset = (params.page - 1) * params.limit
+  const preliminaryOffset = (params.page - 1) * params.limit;
   const [countRows, rows] = await Promise.all([
     db
       .select({ count: sql<number>`count(*)` })
@@ -177,11 +181,11 @@ export async function listArticles(searchParams: URLSearchParams) {
       .orderBy(desc(articles.publishedAt))
       .limit(params.limit)
       .offset(preliminaryOffset),
-  ])
+  ]);
 
-  const totalCount = Number(countRows[0]?.count ?? 0)
-  const totalPages = Math.max(1, Math.ceil(totalCount / params.limit))
-  const page = Math.min(params.page, totalPages)
+  const totalCount = Number(countRows[0]?.count ?? 0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / params.limit));
+  const page = Math.min(params.page, totalPages);
 
   return {
     meta: buildArticleListMeta({
@@ -191,7 +195,7 @@ export async function listArticles(searchParams: URLSearchParams) {
       count: rows.length,
     }),
     items: rows.map((article) => {
-      const localized = pickArticleLocale(article, params.lang)
+      const localized = pickArticleLocale(article, params.lang);
 
       return {
         id: article.id,
@@ -204,19 +208,25 @@ export async function listArticles(searchParams: URLSearchParams) {
         tags: article.tags,
         status: article.status,
         publishedAt:
-          toShanghaiIsoOffset(article.publishedAt) ?? article.publishedAt.toISOString(),
+          toShanghaiIsoOffset(article.publishedAt) ??
+          article.publishedAt.toISOString(),
         publishedAtDisplay: formatDateTimeInShanghai(article.publishedAt),
         updatedAt:
-          toShanghaiIsoOffset(article.updatedAt) ?? article.updatedAt.toISOString(),
+          toShanghaiIsoOffset(article.updatedAt) ??
+          article.updatedAt.toISOString(),
         updatedAtDisplay: formatDateTimeInShanghai(article.updatedAt),
         locale: localized.locale,
-      }
+      };
     }),
-  }
+  };
 }
 
-export async function getArticleById(articleId: string, requestedLocale: string | undefined, requiredStatus?: ArticleStatus) {
-  const db = getDb()
+export async function getArticleById(
+  articleId: string,
+  requestedLocale: string | undefined,
+  requiredStatus?: ArticleStatus,
+) {
+  const db = getDb();
   const rows = await db
     .select({
       id: articles.id,
@@ -238,15 +248,19 @@ export async function getArticleById(articleId: string, requestedLocale: string 
     })
     .from(articles)
     .innerJoin(feeds, eq(articles.feedId, feeds.id))
-    .where(requiredStatus ? and(eq(articles.id, articleId), eq(articles.status, requiredStatus)) : eq(articles.id, articleId))
+    .where(
+      requiredStatus
+        ? and(eq(articles.id, articleId), eq(articles.status, requiredStatus))
+        : eq(articles.id, articleId),
+    );
 
-  const article = rows[0]
+  const article = rows[0];
 
   if (!article) {
-    return null
+    return null;
   }
 
-  const localized = pickArticleLocale(article, requestedLocale)
+  const localized = pickArticleLocale(article, requestedLocale);
 
   return {
     id: article.id,
@@ -261,11 +275,12 @@ export async function getArticleById(articleId: string, requestedLocale: string 
     tags: article.tags,
     status: article.status,
     publishedAt:
-      toShanghaiIsoOffset(article.publishedAt) ?? article.publishedAt.toISOString(),
+      toShanghaiIsoOffset(article.publishedAt) ??
+      article.publishedAt.toISOString(),
     publishedAtDisplay: formatDateTimeInShanghai(article.publishedAt),
     updatedAt:
       toShanghaiIsoOffset(article.updatedAt) ?? article.updatedAt.toISOString(),
     updatedAtDisplay: formatDateTimeInShanghai(article.updatedAt),
     locale: localized.locale,
-  }
+  };
 }

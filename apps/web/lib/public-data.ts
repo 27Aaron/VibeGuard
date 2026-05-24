@@ -1,32 +1,32 @@
-import { eq, sql } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm";
 
-import { articles, feeds, getDb, getPool } from "@vibeguard/db"
+import { articles, feeds, getDb, getPool } from "@vibeguard/db";
 
-import { listArticles } from "./api-articles"
+import { listArticles } from "./api-articles";
 
 export async function getPublicArticleFeed(searchParams: URLSearchParams) {
-  return listArticles(searchParams)
+  return listArticles(searchParams);
 }
 
 export async function getPublicOverview() {
-  const db = getDb()
+  const db = getDb();
   const [articleCountRow] = await db
     .select({ count: sql<number>`count(*)` })
     .from(articles)
-    .where(eq(articles.status, "ready"))
+    .where(eq(articles.status, "ready"));
   const [sourceCountRow] = await db
     .select({ count: sql<number>`count(distinct ${articles.feedId})` })
     .from(articles)
-    .where(eq(articles.status, "ready"))
+    .where(eq(articles.status, "ready"));
 
   return {
     articleCount: Number(articleCountRow?.count ?? 0),
     sourceCount: Number(sourceCountRow?.count ?? 0),
-  }
+  };
 }
 
 export async function getPublicSources() {
-  const db = getDb()
+  const db = getDb();
   const rows = await db
     .select({
       sourceName: feeds.name,
@@ -35,14 +35,14 @@ export async function getPublicSources() {
     .from(articles)
     .innerJoin(feeds, eq(articles.feedId, feeds.id))
     .where(eq(articles.status, "ready"))
-    .groupBy(feeds.name)
+    .groupBy(feeds.name);
 
   return rows
     .map((row) => ({
       sourceName: row.sourceName,
       count: Number(row.count ?? 0),
     }))
-    .sort((left, right) => left.sourceName.localeCompare(right.sourceName))
+    .sort((left, right) => left.sourceName.localeCompare(right.sourceName));
 }
 
 export async function getPublicTags() {
@@ -54,7 +54,7 @@ export async function getPublicTags() {
       group by tag
       order by count desc, tag asc
     `,
-  )
+  );
 
-  return result.rows
+  return result.rows;
 }

@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest";
 
-import { SecuritySyncStatus } from "@vibeguard/shared"
+import { SecuritySyncStatus } from "@vibeguard/shared";
 
 import {
   buildSecurityAdvisoryInsert,
@@ -8,7 +8,7 @@ import {
   buildSecuritySyncStateUpdate,
   upsertNormalizedOsvRecord,
   upsertNormalizedOsvRecordsBatch,
-} from "../../packages/content/src/osv/store"
+} from "../../packages/content/src/osv/store";
 
 const advisory = {
   source: "osv" as const,
@@ -34,10 +34,11 @@ const advisory = {
       importTime: "2026-05-22T01:02:03Z",
       modifiedTime: "2026-05-21T21:15:38Z",
       versions: ["1.0.0", "1.0.1"],
-      sha256: "ca03d48324ae2eb5f990ffb012ceca9f24805e940675010c516a2ce7e8c2a76a",
+      sha256:
+        "ca03d48324ae2eb5f990ffb012ceca9f24805e940675010c516a2ce7e8c2a76a",
     },
   ],
-}
+};
 
 const affectedPackage = {
   ecosystem: "npm" as const,
@@ -47,7 +48,7 @@ const affectedPackage = {
   affectedVersions: ["1.0.0", "1.0.1"],
   ranges: [],
   fixedVersions: [],
-}
+};
 
 describe("OSV store payload builders", () => {
   it("builds an advisory insert with only the product-facing OSV fields", () => {
@@ -66,8 +67,8 @@ describe("OSV store payload builders", () => {
           source: "reversing-labs",
         }),
       ],
-    })
-  })
+    });
+  });
 
   it("builds affected package inserts linked to the advisory", () => {
     expect(
@@ -77,11 +78,11 @@ describe("OSV store payload builders", () => {
       ecosystem: "npm",
       packageKey: "cryptoco-auth",
       affectedVersions: ["1.0.0", "1.0.1"],
-    })
-  })
+    });
+  });
 
   it("builds sync state updates for success and failure", () => {
-    const now = new Date("2026-05-22T00:00:00Z")
+    const now = new Date("2026-05-22T00:00:00Z");
 
     expect(
       buildSecuritySyncStateUpdate({
@@ -99,7 +100,7 @@ describe("OSV store payload builders", () => {
       recordsSeen: 5,
       recordsImported: 4,
       recordsFailed: 1,
-    })
+    });
 
     expect(
       buildSecuritySyncStateUpdate({
@@ -111,14 +112,14 @@ describe("OSV store payload builders", () => {
       status: "failed",
       lastError: "network failed",
       recordsFailed: 1,
-    })
-  })
-})
+    });
+  });
+});
 
 describe("upsertNormalizedOsvRecord", () => {
   it("upserts advisory and refreshed affected packages", async () => {
-    const calls: string[] = []
-    const deleteWhere = vi.fn().mockResolvedValue(undefined)
+    const calls: string[] = [];
+    const deleteWhere = vi.fn().mockResolvedValue(undefined);
     const db = {
       select: vi.fn(() => ({
         from: vi.fn(() => ({
@@ -128,20 +129,24 @@ describe("upsertNormalizedOsvRecord", () => {
       insert: vi.fn((table) => ({
         values: vi.fn((values) => ({
           onConflictDoUpdate: vi.fn(() => ({
-            returning: vi.fn().mockResolvedValue([
-              { id: "advisory-1", externalId: "MAL-2026-4230" },
-            ]),
+            returning: vi
+              .fn()
+              .mockResolvedValue([
+                { id: "advisory-1", externalId: "MAL-2026-4230" },
+              ]),
           })),
           onConflictDoNothing: vi.fn(() => ({
-            returning: vi.fn().mockResolvedValue([{ id: "affected-1", ...values }]),
+            returning: vi
+              .fn()
+              .mockResolvedValue([{ id: "affected-1", ...values }]),
           })),
         })),
       })),
       delete: vi.fn(() => {
-        calls.push("delete-affected")
-        return { where: deleteWhere }
+        calls.push("delete-affected");
+        return { where: deleteWhere };
       }),
-    } as never
+    } as never;
 
     const result = await upsertNormalizedOsvRecord(
       db,
@@ -155,16 +160,16 @@ describe("upsertNormalizedOsvRecord", () => {
           securityAffectedPackages: "affected",
         } as never,
       },
-    )
+    );
 
     expect(result).toEqual({
       advisoryId: "advisory-1",
       affectedPackageCount: 1,
       skipped: false,
       writeKind: "new",
-    })
-    expect(calls).toEqual(["delete-affected"])
-  })
+    });
+    expect(calls).toEqual(["delete-affected"]);
+  });
 
   it("skips affected package rewrites when the advisory hash is unchanged", async () => {
     const db = {
@@ -187,22 +192,22 @@ describe("upsertNormalizedOsvRecord", () => {
       })),
       insert: vi.fn(),
       delete: vi.fn(),
-    } as never
+    } as never;
 
     const result = await upsertNormalizedOsvRecord(db, {
       advisory,
       affectedPackages: [affectedPackage],
-    })
+    });
 
     expect(result).toEqual({
       advisoryId: "advisory-1",
       affectedPackageCount: 1,
       skipped: true,
       writeKind: null,
-    })
-    expect(db.insert).not.toHaveBeenCalled()
-    expect(db.delete).not.toHaveBeenCalled()
-  })
+    });
+    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.delete).not.toHaveBeenCalled();
+  });
 
   it("refreshes derived advisory fields when the raw OSV hash is unchanged", async () => {
     const db = {
@@ -227,9 +232,11 @@ describe("upsertNormalizedOsvRecord", () => {
       insert: vi.fn((table) => ({
         values: vi.fn(() => ({
           onConflictDoUpdate: vi.fn(() => ({
-            returning: vi.fn().mockResolvedValue([
-              { id: "advisory-1", externalId: "MAL-2026-4230" },
-            ]),
+            returning: vi
+              .fn()
+              .mockResolvedValue([
+                { id: "advisory-1", externalId: "MAL-2026-4230" },
+              ]),
           })),
           onConflictDoNothing: vi.fn(() => ({
             returning: vi.fn().mockResolvedValue([]),
@@ -239,7 +246,7 @@ describe("upsertNormalizedOsvRecord", () => {
       delete: vi.fn(() => ({
         where: vi.fn().mockResolvedValue(undefined),
       })),
-    } as never
+    } as never;
 
     const result = await upsertNormalizedOsvRecord(db, {
       advisory: {
@@ -247,24 +254,24 @@ describe("upsertNormalizedOsvRecord", () => {
         details: null,
       },
       affectedPackages: [affectedPackage],
-    })
+    });
 
     expect(result).toEqual({
       advisoryId: "advisory-1",
       affectedPackageCount: 1,
       skipped: false,
       writeKind: "changed",
-    })
-    expect(db.insert).toHaveBeenCalled()
-    expect(db.delete).toHaveBeenCalled()
-  })
-})
+    });
+    expect(db.insert).toHaveBeenCalled();
+    expect(db.delete).toHaveBeenCalled();
+  });
+});
 
 describe("upsertNormalizedOsvRecordsBatch", () => {
   it("batch-loads existing hashes, skips unchanged advisories, and rewrites only changed rows", async () => {
-    const advisoryValuesCalls: unknown[] = []
-    const affectedValuesCalls: unknown[] = []
-    const deleteWhere = vi.fn().mockResolvedValue(undefined)
+    const advisoryValuesCalls: unknown[] = [];
+    const affectedValuesCalls: unknown[] = [];
+    const deleteWhere = vi.fn().mockResolvedValue(undefined);
     const advisoryReturning = [
       {
         id: "advisory-changed",
@@ -278,7 +285,7 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
         externalId: "GHSA-new",
         rawHash: "sha256:new-new",
       },
-    ]
+    ];
     const db = {
       select: vi.fn(() => ({
         from: vi.fn(() => ({
@@ -311,26 +318,26 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
       insert: vi.fn((table) => ({
         values: vi.fn((values) => {
           if (table === "advisory") {
-            advisoryValuesCalls.push(values)
+            advisoryValuesCalls.push(values);
             return {
               onConflictDoUpdate: vi.fn(() => ({
                 returning: vi.fn().mockResolvedValue(advisoryReturning),
               })),
-            }
+            };
           }
 
-          affectedValuesCalls.push(values)
+          affectedValuesCalls.push(values);
           return {
             onConflictDoNothing: vi.fn(() => ({
               returning: vi.fn().mockResolvedValue(values),
             })),
-          }
+          };
         }),
       })),
       delete: vi.fn(() => ({
         where: deleteWhere,
       })),
-    } as never
+    } as never;
 
     const changedRecord = {
       advisory: {
@@ -339,7 +346,7 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
         rawHash: "sha256:new",
       },
       affectedPackages: [affectedPackage],
-    }
+    };
     const unchangedRecord = {
       advisory: {
         ...advisory,
@@ -347,7 +354,7 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
         rawHash: "sha256:same",
       },
       affectedPackages: [affectedPackage],
-    }
+    };
     const newRecord = {
       advisory: {
         ...advisory,
@@ -363,7 +370,7 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
           ecosystem: "pypi" as const,
         },
       ],
-    }
+    };
 
     const result = await upsertNormalizedOsvRecordsBatch(
       db,
@@ -374,12 +381,12 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
           securityAffectedPackages: "affected",
         } as never,
       },
-    )
+    );
 
-    expect(result.importedCount).toBe(2)
-    expect(result.newCount).toBe(1)
-    expect(result.changedCount).toBe(1)
-    expect(result.skippedCount).toBe(1)
+    expect(result.importedCount).toBe(2);
+    expect(result.newCount).toBe(1);
+    expect(result.changedCount).toBe(1);
+    expect(result.skippedCount).toBe(1);
     expect(result.results).toEqual([
       {
         advisoryId: "advisory-changed",
@@ -399,17 +406,17 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
         skipped: false,
         writeKind: "new",
       },
-    ])
-    expect(db.select).toHaveBeenCalledTimes(1)
-    expect(advisoryValuesCalls).toHaveLength(1)
-    expect(advisoryValuesCalls[0]).toHaveLength(2)
-    expect(deleteWhere).toHaveBeenCalledTimes(1)
-    expect(affectedValuesCalls).toHaveLength(1)
-    expect(affectedValuesCalls[0]).toHaveLength(2)
-  })
+    ]);
+    expect(db.select).toHaveBeenCalledTimes(1);
+    expect(advisoryValuesCalls).toHaveLength(1);
+    expect(advisoryValuesCalls[0]).toHaveLength(2);
+    expect(deleteWhere).toHaveBeenCalledTimes(1);
+    expect(affectedValuesCalls).toHaveLength(1);
+    expect(affectedValuesCalls[0]).toHaveLength(2);
+  });
 
   it("chunks affected package inserts to keep single SQL payloads smaller", async () => {
-    const affectedValuesCalls: unknown[] = []
+    const affectedValuesCalls: unknown[] = [];
     const db = {
       select: vi.fn(() => ({
         from: vi.fn(() => ({
@@ -421,25 +428,27 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
           if (table === "advisory") {
             return {
               onConflictDoUpdate: vi.fn(() => ({
-                returning: vi.fn().mockResolvedValue([
-                  { id: "advisory-1", externalId: "GHSA-many" },
-                ]),
+                returning: vi
+                  .fn()
+                  .mockResolvedValue([
+                    { id: "advisory-1", externalId: "GHSA-many" },
+                  ]),
               })),
-            }
+            };
           }
 
-          affectedValuesCalls.push(values)
+          affectedValuesCalls.push(values);
           return {
             onConflictDoNothing: vi.fn(() => ({
               returning: vi.fn().mockResolvedValue(values),
             })),
-          }
+          };
         }),
       })),
       delete: vi.fn(() => ({
         where: vi.fn().mockResolvedValue(undefined),
       })),
-    } as never
+    } as never;
 
     await upsertNormalizedOsvRecordsBatch(
       db,
@@ -468,10 +477,10 @@ describe("upsertNormalizedOsvRecordsBatch", () => {
         } as never,
         affectedPackageInsertChunkSize: 1,
       },
-    )
+    );
 
-    expect(affectedValuesCalls).toHaveLength(2)
-    expect(affectedValuesCalls[0]).toHaveLength(1)
-    expect(affectedValuesCalls[1]).toHaveLength(1)
-  })
-})
+    expect(affectedValuesCalls).toHaveLength(2);
+    expect(affectedValuesCalls[0]).toHaveLength(1);
+    expect(affectedValuesCalls[1]).toHaveLength(1);
+  });
+});

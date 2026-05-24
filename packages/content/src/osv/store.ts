@@ -1,35 +1,35 @@
-import { and, eq, inArray, sql } from "drizzle-orm"
-import type { NodePgDatabase } from "drizzle-orm/node-postgres"
+import { and, eq, inArray, sql } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import {
   schema,
   securityAdvisories,
   securityAffectedPackages,
   securitySyncState,
-} from "@vibeguard/db"
+} from "@vibeguard/db";
 import {
   SecuritySyncStatus,
   type SecuritySyncStatus as SecuritySyncStatusValue,
-} from "@vibeguard/shared"
+} from "@vibeguard/shared";
 
 import type {
   NormalizedOsvAdvisory,
   NormalizedOsvAffectedPackage,
   NormalizedOsvRecord,
-} from "./normalize"
+} from "./normalize";
 
-type ContentDb = NodePgDatabase<typeof schema>
+type ContentDb = NodePgDatabase<typeof schema>;
 
 type StoreTables = {
-  securityAdvisories: typeof securityAdvisories
-  securityAffectedPackages: typeof securityAffectedPackages
-  securitySyncState: typeof securitySyncState
-}
+  securityAdvisories: typeof securityAdvisories;
+  securityAffectedPackages: typeof securityAffectedPackages;
+  securitySyncState: typeof securitySyncState;
+};
 
 type UpsertOptions = {
-  tables?: Partial<StoreTables>
-  affectedPackageInsertChunkSize?: number
-}
+  tables?: Partial<StoreTables>;
+  affectedPackageInsertChunkSize?: number;
+};
 
 // EXCLUDED.* 引用的是硬编码的列名（而非用户输入），因此不存在 SQL 注入风险，可以安全使用。
 // 使用 sql`` 模板标签而非 sql.raw()，是为了与项目中 Drizzle ORM 的编码惯例保持一致。
@@ -48,46 +48,46 @@ const advisoryConflictUpdateSet = {
   withdrawnAt: sql`excluded.withdrawn_at`,
   references: sql`excluded.references`,
   maliciousOrigins: sql`excluded.malicious_origins`,
-}
+};
 
-const DEFAULT_AFFECTED_PACKAGE_INSERT_CHUNK_SIZE = 1000
+const DEFAULT_AFFECTED_PACKAGE_INSERT_CHUNK_SIZE = 1000;
 
 function chunkArray<T>(values: T[], chunkSize: number) {
-  const chunks: T[][] = []
+  const chunks: T[][] = [];
 
   for (let index = 0; index < values.length; index += chunkSize) {
-    chunks.push(values.slice(index, index + chunkSize))
+    chunks.push(values.slice(index, index + chunkSize));
   }
 
-  return chunks
+  return chunks;
 }
 
 export type UpsertNormalizedOsvRecordResult = {
-  advisoryId: string
-  affectedPackageCount: number
-  skipped: boolean
-  writeKind: "new" | "changed" | null
-}
+  advisoryId: string;
+  affectedPackageCount: number;
+  skipped: boolean;
+  writeKind: "new" | "changed" | null;
+};
 
 export type UpsertNormalizedOsvRecordsBatchResult = {
-  importedCount: number
-  newCount: number
-  changedCount: number
-  skippedCount: number
-  results: UpsertNormalizedOsvRecordResult[]
-}
+  importedCount: number;
+  newCount: number;
+  changedCount: number;
+  skippedCount: number;
+  results: UpsertNormalizedOsvRecordResult[];
+};
 
 export type SecuritySyncStateUpdateInput = {
-  source?: string
-  status: SecuritySyncStatusValue
-  now: Date
-  lastProcessedModifiedAt?: Date | null
-  cursorJson?: Record<string, unknown> | null
-  lastError?: string | null
-  recordsSeen?: number
-  recordsImported?: number
-  recordsFailed?: number
-}
+  source?: string;
+  status: SecuritySyncStatusValue;
+  now: Date;
+  lastProcessedModifiedAt?: Date | null;
+  cursorJson?: Record<string, unknown> | null;
+  lastError?: string | null;
+  recordsSeen?: number;
+  recordsImported?: number;
+  recordsFailed?: number;
+};
 
 export function buildSecurityAdvisoryInsert(advisory: NormalizedOsvAdvisory) {
   return {
@@ -107,7 +107,7 @@ export function buildSecurityAdvisoryInsert(advisory: NormalizedOsvAdvisory) {
     withdrawnAt: advisory.withdrawnAt,
     references: advisory.references,
     maliciousOrigins: advisory.maliciousOrigins,
-  }
+  };
 }
 
 export function buildSecurityAffectedPackageInsert(
@@ -123,7 +123,7 @@ export function buildSecurityAffectedPackageInsert(
     affectedVersions: affectedPackage.affectedVersions,
     ranges: affectedPackage.ranges,
     fixedVersions: affectedPackage.fixedVersions,
-  }
+  };
 }
 
 export function buildSecuritySyncStateUpdate({
@@ -137,7 +137,7 @@ export function buildSecuritySyncStateUpdate({
   recordsFailed,
 }: SecuritySyncStateUpdateInput) {
   const failedCount =
-    recordsFailed ?? (status === SecuritySyncStatus.FAILED ? 1 : 0)
+    recordsFailed ?? (status === SecuritySyncStatus.FAILED ? 1 : 0);
 
   return {
     status,
@@ -149,29 +149,29 @@ export function buildSecuritySyncStateUpdate({
     recordsSeen,
     recordsImported,
     recordsFailed: failedCount,
-  }
+  };
 }
 
 export async function upsertNormalizedOsvRecord(
   db: ContentDb,
   normalized: NormalizedOsvRecord,
   options: UpsertOptions = {},
-) : Promise<UpsertNormalizedOsvRecordResult> {
+): Promise<UpsertNormalizedOsvRecordResult> {
   const result = await upsertNormalizedOsvRecordsBatch(
     db,
     [normalized],
     options,
-  )
+  );
 
-  const firstResult = result.results[0]
+  const firstResult = result.results[0];
 
   if (!firstResult) {
     throw new Error(
       `Unable to upsert OSV advisory: ${normalized.advisory.externalId}`,
-    )
+    );
   }
 
-  return firstResult
+  return firstResult;
 }
 
 export async function upsertNormalizedOsvRecordsBatch(
@@ -186,25 +186,25 @@ export async function upsertNormalizedOsvRecordsBatch(
       changedCount: 0,
       skippedCount: 0,
       results: [],
-    }
+    };
   }
 
   const advisoriesTable =
-    options.tables?.securityAdvisories ?? securityAdvisories
+    options.tables?.securityAdvisories ?? securityAdvisories;
   const affectedPackagesTable =
-    options.tables?.securityAffectedPackages ?? securityAffectedPackages
+    options.tables?.securityAffectedPackages ?? securityAffectedPackages;
   const affectedPackageInsertChunkSize = Math.max(
     1,
     Math.floor(
       options.affectedPackageInsertChunkSize ??
         DEFAULT_AFFECTED_PACKAGE_INSERT_CHUNK_SIZE,
     ),
-  )
+  );
 
   const externalIds = Array.from(
     new Set(normalizedRecords.map((record) => record.advisory.externalId)),
-  )
-  const source = normalizedRecords[0]!.advisory.source
+  );
+  const source = normalizedRecords[0]!.advisory.source;
   const existingAdvisories = await db
     .select({
       id: advisoriesTable.id,
@@ -222,17 +222,20 @@ export async function upsertNormalizedOsvRecordsBatch(
         eq(advisoriesTable.source, source),
         inArray(advisoriesTable.externalId, externalIds),
       ),
-    )
+    );
 
   const existingByExternalId = new Map(
     existingAdvisories.map((advisory) => [advisory.externalId, advisory]),
-  )
-  const resultsByExternalId = new Map<string, UpsertNormalizedOsvRecordResult>()
-  const recordsToWrite: NormalizedOsvRecord[] = []
-  let skippedCount = 0
+  );
+  const resultsByExternalId = new Map<
+    string,
+    UpsertNormalizedOsvRecordResult
+  >();
+  const recordsToWrite: NormalizedOsvRecord[] = [];
+  let skippedCount = 0;
 
   for (const record of normalizedRecords) {
-    const existing = existingByExternalId.get(record.advisory.externalId)
+    const existing = existingByExternalId.get(record.advisory.externalId);
 
     if (
       existing?.id &&
@@ -248,17 +251,17 @@ export async function upsertNormalizedOsvRecordsBatch(
       JSON.stringify(existing.maliciousOrigins ?? []) ===
         JSON.stringify(record.advisory.maliciousOrigins)
     ) {
-      skippedCount += 1
+      skippedCount += 1;
       resultsByExternalId.set(record.advisory.externalId, {
         advisoryId: existing.id,
         affectedPackageCount: record.affectedPackages.length,
         skipped: true,
         writeKind: null,
-      })
-      continue
+      });
+      continue;
     }
 
-    recordsToWrite.push(record)
+    recordsToWrite.push(record);
   }
 
   if (recordsToWrite.length === 0) {
@@ -268,22 +271,22 @@ export async function upsertNormalizedOsvRecordsBatch(
       changedCount: 0,
       skippedCount,
       results: normalizedRecords.map((record) => {
-        const result = resultsByExternalId.get(record.advisory.externalId)
+        const result = resultsByExternalId.get(record.advisory.externalId);
 
         if (!result) {
           throw new Error(
             `Missing skipped advisory result: ${record.advisory.externalId}`,
-          )
+          );
         }
 
-        return result
+        return result;
       }),
-    }
+    };
   }
 
   const advisoryInsertValues = recordsToWrite.map((record) =>
     buildSecurityAdvisoryInsert(record.advisory),
-  )
+  );
   const upsertedAdvisories = await db
     .insert(advisoriesTable)
     .values(advisoryInsertValues)
@@ -294,53 +297,53 @@ export async function upsertNormalizedOsvRecordsBatch(
     .returning({
       id: advisoriesTable.id,
       externalId: advisoriesTable.externalId,
-    })
+    });
 
   const advisoryIdByExternalId = new Map(
     upsertedAdvisories.map((advisory) => [advisory.externalId, advisory.id]),
-  )
-  const advisoryIdsToRewrite: string[] = []
+  );
+  const advisoryIdsToRewrite: string[] = [];
   const affectedPackageInsertValues: Array<
     ReturnType<typeof buildSecurityAffectedPackageInsert>
-  > = []
-  let newCount = 0
-  let changedCount = 0
+  > = [];
+  let newCount = 0;
+  let changedCount = 0;
 
   for (const record of recordsToWrite) {
-    const advisoryId = advisoryIdByExternalId.get(record.advisory.externalId)
+    const advisoryId = advisoryIdByExternalId.get(record.advisory.externalId);
     const writeKind = existingByExternalId.has(record.advisory.externalId)
       ? "changed"
-      : "new"
+      : "new";
 
     if (!advisoryId) {
       throw new Error(
         `Unable to upsert OSV advisory: ${record.advisory.externalId}`,
-      )
+      );
     }
 
     if (writeKind === "new") {
-      newCount += 1
+      newCount += 1;
     } else {
-      changedCount += 1
+      changedCount += 1;
     }
-    advisoryIdsToRewrite.push(advisoryId)
+    advisoryIdsToRewrite.push(advisoryId);
     resultsByExternalId.set(record.advisory.externalId, {
       advisoryId,
       affectedPackageCount: record.affectedPackages.length,
       skipped: false,
       writeKind,
-    })
+    });
     affectedPackageInsertValues.push(
       ...record.affectedPackages.map((affectedPackage) =>
         buildSecurityAffectedPackageInsert(affectedPackage, advisoryId),
       ),
-    )
+    );
   }
 
   if (advisoryIdsToRewrite.length > 0) {
     await db
       .delete(affectedPackagesTable)
-      .where(inArray(affectedPackagesTable.advisoryId, advisoryIdsToRewrite))
+      .where(inArray(affectedPackagesTable.advisoryId, advisoryIdsToRewrite));
   }
 
   if (affectedPackageInsertValues.length > 0) {
@@ -352,7 +355,7 @@ export async function upsertNormalizedOsvRecordsBatch(
         .insert(affectedPackagesTable)
         .values(chunk)
         .onConflictDoNothing()
-        .returning()
+        .returning();
     }
   }
 
@@ -362,17 +365,17 @@ export async function upsertNormalizedOsvRecordsBatch(
     changedCount,
     skippedCount,
     results: normalizedRecords.map((record) => {
-      const result = resultsByExternalId.get(record.advisory.externalId)
+      const result = resultsByExternalId.get(record.advisory.externalId);
 
       if (!result) {
         throw new Error(
           `Missing advisory upsert result: ${record.advisory.externalId}`,
-        )
+        );
       }
 
-      return result
+      return result;
     }),
-  }
+  };
 }
 
 export async function upsertSecuritySyncState(
@@ -381,12 +384,12 @@ export async function upsertSecuritySyncState(
   input: SecuritySyncStateUpdateInput,
   options: UpsertOptions = {},
 ) {
-  const syncStateTable = options.tables?.securitySyncState ?? securitySyncState
+  const syncStateTable = options.tables?.securitySyncState ?? securitySyncState;
   const values = {
     source: input.source ?? "osv",
     scope,
     ...buildSecuritySyncStateUpdate(input),
-  }
+  };
 
   await db
     .insert(syncStateTable)
@@ -395,5 +398,5 @@ export async function upsertSecuritySyncState(
       target: [syncStateTable.source, syncStateTable.scope],
       set: values,
     })
-    .returning()
+    .returning();
 }

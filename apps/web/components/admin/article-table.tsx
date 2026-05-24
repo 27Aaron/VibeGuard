@@ -1,10 +1,10 @@
-import Link from "next/link"
+import Link from "next/link";
 
-import { AdminSelectAllCheckbox } from "@/components/admin/admin-select-all-checkbox"
-import { Badge } from "@/components/ui/badge"
-import type { ArticleRow } from "@/components/admin/types"
-import { getAdminTableSurfaceClassName } from "@/lib/admin-layout"
-import type { AppLang } from "@/lib/i18n"
+import { AdminSelectAllCheckbox } from "@/components/admin/admin-select-all-checkbox";
+import { Badge } from "@/components/ui/badge";
+import type { ArticleRow } from "@/components/admin/types";
+import { getAdminTableSurfaceClassName } from "@/lib/admin-layout";
+import type { AppLang } from "@/lib/i18n";
 import {
   Table,
   TableBody,
@@ -12,25 +12,31 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
 function statusLabel(status: ArticleRow["status"], lang: AppLang) {
   switch (status) {
     case "ready":
-      return lang === "zh" ? "成功" : "Ready"
+      return lang === "zh" ? "成功" : "Ready";
     case "processing":
-      return lang === "zh" ? "处理中" : "Processing"
+      return lang === "zh" ? "处理中" : "Processing";
     case "failed":
-      return lang === "zh" ? "失败" : "Failed"
+      return lang === "zh" ? "失败" : "Failed";
     case "filtered":
-      return lang === "zh" ? "已过滤" : "Filtered"
+      return lang === "zh" ? "已过滤" : "Filtered";
     default:
-      console.warn(`Unknown article status: ${status}`)
-      return lang === "zh" ? "待处理" : "Pending"
+      console.warn(`Unknown article status: ${status}`);
+      return lang === "zh" ? "待处理" : "Pending";
   }
 }
 
-export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang: AppLang }) {
+export function ArticleTable({
+  articles,
+  lang,
+}: {
+  articles: ArticleRow[];
+  lang: AppLang;
+}) {
   if (articles.length === 0) {
     return (
       <div className="rounded-[1.2rem] border border-dashed border-black/10 bg-white/58 px-6 py-10 text-center dark:border-white/10 dark:bg-white/[0.04]">
@@ -43,7 +49,7 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
             : "Add a source and run one processing cycle. Articles will appear here automatically."}
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -55,12 +61,22 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
               <AdminSelectAllCheckbox
                 formId="selected-articles-form"
                 inputName="ids"
-                label={lang === "zh" ? "全选当前页文章" : "Select all articles on this page"}
+                label={
+                  lang === "zh"
+                    ? "全选当前页文章"
+                    : "Select all articles on this page"
+                }
               />
             </TableHead>
-            <TableHead className="px-4">{lang === "zh" ? "标题" : "Title"}</TableHead>
-            <TableHead className="px-4 text-center">{lang === "zh" ? "来源" : "Source"}</TableHead>
-            <TableHead className="px-4 text-center">{lang === "zh" ? "状态" : "Status"}</TableHead>
+            <TableHead className="px-4">
+              {lang === "zh" ? "标题" : "Title"}
+            </TableHead>
+            <TableHead className="px-4 text-center">
+              {lang === "zh" ? "来源" : "Source"}
+            </TableHead>
+            <TableHead className="px-4 text-center">
+              {lang === "zh" ? "状态" : "Status"}
+            </TableHead>
             <TableHead className="px-4 text-center">
               {lang === "zh" ? "发布时间" : "Published at"}
             </TableHead>
@@ -102,7 +118,9 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
                   ) : null}
                 </div>
               </TableCell>
-              <TableCell className="px-4 py-3 text-center align-middle">{article.source}</TableCell>
+              <TableCell className="px-4 py-3 text-center align-middle">
+                {article.source}
+              </TableCell>
               <TableCell className="px-4 py-3 text-center align-middle">
                 <Badge
                   variant={
@@ -116,7 +134,11 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
                             ? "outline"
                             : "default"
                   }
-                  className={article.status === "filtered" ? "border-orange-300 text-orange-600 dark:border-orange-700 dark:text-orange-400" : undefined}
+                  className={
+                    article.status === "filtered"
+                      ? "border-orange-300 text-orange-600 dark:border-orange-700 dark:text-orange-400"
+                      : undefined
+                  }
                 >
                   {statusLabel(article.status, lang)}
                 </Badge>
@@ -132,5 +154,5 @@ export function ArticleTable({ articles, lang }: { articles: ArticleRow[]; lang:
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

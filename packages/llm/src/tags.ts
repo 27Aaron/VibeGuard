@@ -98,7 +98,9 @@ function normalizeTag(value: unknown) {
 export function normalizeGeneratedTags(values: unknown) {
   const rawTags = Array.isArray(values)
     ? values
-    : values && typeof values === "object" && Array.isArray((values as { tags?: unknown }).tags)
+    : values &&
+        typeof values === "object" &&
+        Array.isArray((values as { tags?: unknown }).tags)
       ? (values as { tags: unknown[] }).tags
       : [];
   const tags = new Set<string>();
@@ -137,7 +139,7 @@ export function buildTagExtractionPrompt(input: {
   return {
     systemPrompt: resolveTagPrompt(input.systemPrompt),
     userContent: input.sourceText,
-  }
+  };
 }
 
 export function resolveTagPrompt(value: string | null | undefined) {

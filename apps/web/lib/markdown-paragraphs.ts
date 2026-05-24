@@ -1,26 +1,43 @@
-import { Children, Fragment, createElement, isValidElement, type ReactNode } from "react"
+import {
+  Children,
+  Fragment,
+  createElement,
+  isValidElement,
+  type ReactNode,
+} from "react";
 
 function isFigureElement(node: ReactNode) {
-  return isValidElement(node) && typeof node.type === "string" && node.type === "figure"
+  return (
+    isValidElement(node) &&
+    typeof node.type === "string" &&
+    node.type === "figure"
+  );
 }
 
 function isImageElement(node: ReactNode) {
-  return isValidElement(node) && typeof node.type === "string" && node.type === "img"
+  return (
+    isValidElement(node) && typeof node.type === "string" && node.type === "img"
+  );
 }
 
 function isBlockMediaElement(node: ReactNode) {
-  return isFigureElement(node) || isImageElement(node)
+  return isFigureElement(node) || isImageElement(node);
 }
 
 type MarkdownParagraphNode = {
   children?: Array<{
-    type?: string
-    tagName?: string
-  }>
-}
+    type?: string;
+    tagName?: string;
+  }>;
+};
 
-function isBlockMediaChildNode(node: { type?: string; tagName?: string } | undefined) {
-  return node?.type === "element" && (node.tagName === "img" || node.tagName === "figure")
+function isBlockMediaChildNode(
+  node: { type?: string; tagName?: string } | undefined,
+) {
+  return (
+    node?.type === "element" &&
+    (node.tagName === "img" || node.tagName === "figure")
+  );
 }
 
 export function renderMarkdownParagraph(
@@ -28,41 +45,47 @@ export function renderMarkdownParagraph(
   className: string,
   node?: MarkdownParagraphNode,
 ) {
-  const items = Children.toArray(children)
-  const nodeChildren = Array.isArray(node?.children) ? node.children : []
+  const items = Children.toArray(children);
+  const nodeChildren = Array.isArray(node?.children) ? node.children : [];
   const mediaIndexesFromNode = new Set(
-    nodeChildren.flatMap((child, index) => (isBlockMediaChildNode(child) ? [index] : [])),
-  )
+    nodeChildren.flatMap((child, index) =>
+      isBlockMediaChildNode(child) ? [index] : [],
+    ),
+  );
 
   if (!items.some(isBlockMediaElement) && mediaIndexesFromNode.size === 0) {
-    return createElement("p", { className }, children)
+    return createElement("p", { className }, children);
   }
 
-  const output: ReactNode[] = []
-  let inlineBuffer: ReactNode[] = []
+  const output: ReactNode[] = [];
+  let inlineBuffer: ReactNode[] = [];
 
   const flushInlineBuffer = () => {
     if (!inlineBuffer.length) {
-      return
+      return;
     }
 
     output.push(
-      createElement("p", { key: `paragraph-${output.length}`, className }, inlineBuffer),
-    )
-    inlineBuffer = []
-  }
+      createElement(
+        "p",
+        { key: `paragraph-${output.length}`, className },
+        inlineBuffer,
+      ),
+    );
+    inlineBuffer = [];
+  };
 
   for (const [index, item] of items.entries()) {
     if (isBlockMediaElement(item) || mediaIndexesFromNode.has(index)) {
-      flushInlineBuffer()
-      output.push(item)
-      continue
+      flushInlineBuffer();
+      output.push(item);
+      continue;
     }
 
-    inlineBuffer.push(item)
+    inlineBuffer.push(item);
   }
 
-  flushInlineBuffer()
+  flushInlineBuffer();
 
-  return createElement(Fragment, null, ...output)
+  return createElement(Fragment, null, ...output);
 }

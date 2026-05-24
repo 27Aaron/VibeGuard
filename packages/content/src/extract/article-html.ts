@@ -21,7 +21,9 @@ export async function fetchArticleHtml(
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch article HTML: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch article HTML: ${response.status} ${response.statusText}`,
+      );
     }
 
     const contentLength = Number(response.headers.get("content-length") ?? "0");

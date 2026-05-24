@@ -1,20 +1,20 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
-import { getDb } from "@vibeguard/db"
+import { getDb } from "@vibeguard/db";
 
-import { getSecurityCveDetail } from "../../../../../lib/security-api"
+import { getSecurityCveDetail } from "../../../../../lib/security-api";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type CveDetailRouteProps = {
   params: Promise<{
-    cveId: string
-  }>
-}
+    cveId: string;
+  }>;
+};
 
 export async function GET(_request: Request, { params }: CveDetailRouteProps) {
-  const { cveId } = await params
-  const payload = await getSecurityCveDetail(getDb(), cveId)
+  const { cveId } = await params;
+  const payload = await getSecurityCveDetail(getDb(), cveId);
 
   if (!payload) {
     return NextResponse.json(
@@ -22,8 +22,8 @@ export async function GET(_request: Request, { params }: CveDetailRouteProps) {
         error: "CVE not found.",
       },
       { status: 404 },
-    )
+    );
   }
 
-  return NextResponse.json(payload)
+  return NextResponse.json(payload);
 }

@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest";
 
-import { ArticleStatus, JobType } from "@vibeguard/shared"
+import { ArticleStatus, JobType } from "@vibeguard/shared";
 
 import {
   buildLocalizedSummaryPrompt,
   processArticleJob,
-} from "../../apps/worker/src/process-article"
+} from "../../apps/worker/src/process-article";
 
 function createRelevantChatClient() {
   return {
@@ -25,7 +25,7 @@ function createRelevantChatClient() {
         }),
       },
     },
-  }
+  };
 }
 
 function createIrrelevantChatClient() {
@@ -46,41 +46,41 @@ function createIrrelevantChatClient() {
         }),
       },
     },
-  }
+  };
 }
 
 describe("buildLocalizedSummaryPrompt", () => {
   it("adds an explicit locale instruction", () => {
-    expect(buildLocalizedSummaryPrompt("Summarize the article.", "en")).toContain(
-      "written entirely in English",
-    )
-    expect(buildLocalizedSummaryPrompt("Summarize the article.", "zh")).toContain(
-      "written entirely in Simplified Chinese",
-    )
-  })
+    expect(
+      buildLocalizedSummaryPrompt("Summarize the article.", "en"),
+    ).toContain("written entirely in English");
+    expect(
+      buildLocalizedSummaryPrompt("Summarize the article.", "zh"),
+    ).toContain("written entirely in Simplified Chinese");
+  });
 
   it("overrides conflicting language instructions in the base prompt", () => {
     expect(
       buildLocalizedSummaryPrompt("Write the summary in Chinese.", "en"),
-    ).toContain("Ignore any conflicting language instructions")
+    ).toContain("Ignore any conflicting language instructions");
     expect(
       buildLocalizedSummaryPrompt("Write the summary in English.", "zh"),
-    ).toContain("Ignore any conflicting language instructions")
-  })
-})
+    ).toContain("Ignore any conflicting language instructions");
+  });
+});
 
 describe("processArticleJob", () => {
   it("extracts, translates, summarizes, and marks the article ready", async () => {
-    const markArticleStatus = vi.fn().mockResolvedValue(undefined)
-    const updateArticleContent = vi.fn().mockResolvedValue(undefined)
+    const markArticleStatus = vi.fn().mockResolvedValue(undefined);
+    const updateArticleContent = vi.fn().mockResolvedValue(undefined);
     const translateText = vi
       .fn()
       .mockResolvedValueOnce({ result: "中文标题", usage: null })
-      .mockResolvedValueOnce({ result: "中文正文", usage: null })
+      .mockResolvedValueOnce({ result: "中文正文", usage: null });
     const summarizeText = vi
       .fn()
       .mockResolvedValueOnce({ result: "English summary", usage: null })
-      .mockResolvedValueOnce({ result: "中文摘要", usage: null })
+      .mockResolvedValueOnce({ result: "中文摘要", usage: null });
 
     await processArticleJob(
       { articleId: "article-1" },
@@ -122,13 +122,13 @@ describe("processArticleJob", () => {
         translateText,
         summarizeText,
       },
-    )
+    );
 
     expect(markArticleStatus).toHaveBeenNthCalledWith(
       1,
       "article-1",
       ArticleStatus.PROCESSING,
-    )
+    );
     expect(updateArticleContent).toHaveBeenCalledWith(
       "article-1",
       expect.objectContaining({
@@ -139,27 +139,30 @@ describe("processArticleJob", () => {
         contentMdEn: "English body",
         contentMdZh: "中文正文",
       }),
-    )
+    );
     expect(markArticleStatus).toHaveBeenNthCalledWith(
       2,
       "article-1",
       ArticleStatus.READY,
-    )
-  })
+    );
+  });
 
   it("stores LLM-generated tags from the original English body only", async () => {
-    const updateArticleContent = vi.fn().mockResolvedValue(undefined)
+    const updateArticleContent = vi.fn().mockResolvedValue(undefined);
     const translateText = vi
       .fn()
       .mockResolvedValueOnce({ result: "中文标题", usage: null })
-      .mockResolvedValueOnce({ result: "中文正文", usage: null })
+      .mockResolvedValueOnce({ result: "中文正文", usage: null });
     const summarizeText = vi
       .fn()
       .mockResolvedValueOnce({ result: "English summary", usage: null })
-      .mockResolvedValueOnce({ result: "中文摘要", usage: null })
+      .mockResolvedValueOnce({ result: "中文摘要", usage: null });
     const generateTags = vi
       .fn()
-      .mockResolvedValue({ result: ["npm", "creds", "postinstall"], usage: null })
+      .mockResolvedValue({
+        result: ["npm", "creds", "postinstall"],
+        usage: null,
+      });
 
     await processArticleJob(
       { articleId: "article-1" },
@@ -192,7 +195,8 @@ describe("processArticleJob", () => {
         fetchArticleHtml: vi.fn().mockResolvedValue("<html></html>"),
         extractMarkdownFromHtml: vi.fn().mockResolvedValue({
           title: "English title",
-          contentMd: "Original English body mentioning npm postinstall token theft.",
+          contentMd:
+            "Original English body mentioning npm postinstall token theft.",
           author: "Author",
           description: "Description",
           publishedAt: "2026-05-19T00:00:00.000Z",
@@ -204,29 +208,32 @@ describe("processArticleJob", () => {
         summarizeText,
         generateTags,
       },
-    )
+    );
 
     expect(generateTags).toHaveBeenCalledWith(
       expect.objectContaining({
         systemPrompt: "Extract short tags from the original body: {{content}}",
-        sourceText: "Original English body mentioning npm postinstall token theft.",
+        sourceText:
+          "Original English body mentioning npm postinstall token theft.",
       }),
-    )
-    expect(generateTags.mock.calls[0]?.[0]?.sourceText).not.toContain("中文正文")
+    );
+    expect(generateTags.mock.calls[0]?.[0]?.sourceText).not.toContain(
+      "中文正文",
+    );
     expect(updateArticleContent).toHaveBeenCalledWith(
       "article-1",
       expect.objectContaining({
         tags: ["npm", "creds", "postinstall"],
       }),
-    )
-  })
+    );
+  });
 
   it("keeps irrelevant articles filtered instead of marking them ready", async () => {
-    const markArticleStatus = vi.fn().mockResolvedValue(undefined)
-    const updateArticleContent = vi.fn().mockResolvedValue(undefined)
-    const updateArticlePatch = vi.fn().mockResolvedValue(undefined)
-    const translateText = vi.fn()
-    const summarizeText = vi.fn()
+    const markArticleStatus = vi.fn().mockResolvedValue(undefined);
+    const updateArticleContent = vi.fn().mockResolvedValue(undefined);
+    const updateArticlePatch = vi.fn().mockResolvedValue(undefined);
+    const translateText = vi.fn();
+    const summarizeText = vi.fn();
 
     await processArticleJob(
       { articleId: "article-1", jobType: JobType.EXTRACT },
@@ -259,16 +266,18 @@ describe("processArticleJob", () => {
           publishedAt: "2026-05-19T00:00:00.000Z",
           siteName: "Example",
         }),
-        createOpenAIClient: vi.fn().mockReturnValue(createIrrelevantChatClient()),
+        createOpenAIClient: vi
+          .fn()
+          .mockReturnValue(createIrrelevantChatClient()),
         decryptSecret: vi.fn().mockReturnValue("sk-live"),
         translateText,
         summarizeText,
       },
-    )
+    );
 
-    expect(translateText).not.toHaveBeenCalled()
-    expect(summarizeText).not.toHaveBeenCalled()
-    expect(updateArticleContent).not.toHaveBeenCalled()
+    expect(translateText).not.toHaveBeenCalled();
+    expect(summarizeText).not.toHaveBeenCalled();
+    expect(updateArticleContent).not.toHaveBeenCalled();
     expect(updateArticlePatch).toHaveBeenLastCalledWith(
       "article-1",
       expect.objectContaining({
@@ -278,23 +287,23 @@ describe("processArticleJob", () => {
           }),
         }),
       }),
-    )
+    );
     expect(markArticleStatus).toHaveBeenLastCalledWith(
       "article-1",
       ArticleStatus.FILTERED,
-    )
-  })
+    );
+  });
 
   it("falls back to rule-based tags when LLM tag generation fails", async () => {
-    const updateArticleContent = vi.fn().mockResolvedValue(undefined)
+    const updateArticleContent = vi.fn().mockResolvedValue(undefined);
     const translateText = vi
       .fn()
       .mockResolvedValueOnce({ result: "中文标题", usage: null })
-      .mockResolvedValueOnce({ result: "中文正文", usage: null })
+      .mockResolvedValueOnce({ result: "中文正文", usage: null });
     const summarizeText = vi
       .fn()
       .mockResolvedValueOnce({ result: "English summary", usage: null })
-      .mockResolvedValueOnce({ result: "中文摘要", usage: null })
+      .mockResolvedValueOnce({ result: "中文摘要", usage: null });
 
     await processArticleJob(
       { articleId: "article-1", jobType: JobType.EXTRACT },
@@ -334,15 +343,15 @@ describe("processArticleJob", () => {
         summarizeText,
         generateTags: vi.fn().mockRejectedValue(new Error("tag model failed")),
       },
-    )
+    );
 
     expect(updateArticleContent).toHaveBeenCalledWith(
       "article-1",
       expect.objectContaining({
         tags: expect.arrayContaining(["npm", "malicious-package", "malware"]),
       }),
-    )
-  })
+    );
+  });
 
   it("fails when the active credential cannot be decrypted", async () => {
     await expect(
@@ -357,12 +366,12 @@ describe("processArticleJob", () => {
           loadActiveLlmSettings: vi.fn().mockResolvedValue({
             apiKeyEncrypted: "ciphertext",
             baseUrl: "https://api.openai.com/v1",
-          model: "gpt-5-mini",
-          translateTitlePrompt: "Translate title",
-          translateContentPrompt: "Translate body",
-          summaryPromptEn: "Summarize body in English",
-          summaryPromptZh: "用中文总结正文",
-        }),
+            model: "gpt-5-mini",
+            translateTitlePrompt: "Translate title",
+            translateContentPrompt: "Translate body",
+            summaryPromptEn: "Summarize body in English",
+            summaryPromptZh: "用中文总结正文",
+          }),
           markArticleStatus: vi.fn(),
           updateArticleContent: vi.fn(),
           fetchArticleHtml: vi.fn(),
@@ -373,19 +382,19 @@ describe("processArticleJob", () => {
           summarizeText: vi.fn(),
         },
       ),
-    ).rejects.toThrow("Active LLM settings could not be decrypted.")
-  })
+    ).rejects.toThrow("Active LLM settings could not be decrypted.");
+  });
 
   it("runs a summarize job without refetching or retranslating the article", async () => {
-    const markArticleStatus = vi.fn().mockResolvedValue(undefined)
-    const updateArticlePatch = vi.fn().mockResolvedValue(undefined)
+    const markArticleStatus = vi.fn().mockResolvedValue(undefined);
+    const updateArticlePatch = vi.fn().mockResolvedValue(undefined);
     const summarizeText = vi
       .fn()
       .mockResolvedValueOnce({ result: "Fresh English summary", usage: null })
-      .mockResolvedValueOnce({ result: "新的中文摘要", usage: null })
-    const fetchArticleHtml = vi.fn()
-    const extractMarkdownFromHtml = vi.fn()
-    const translateText = vi.fn()
+      .mockResolvedValueOnce({ result: "新的中文摘要", usage: null });
+    const fetchArticleHtml = vi.fn();
+    const extractMarkdownFromHtml = vi.fn();
+    const translateText = vi.fn();
 
     await processArticleJob(
       { articleId: "article-1", jobType: JobType.SUMMARIZE },
@@ -418,27 +427,29 @@ describe("processArticleJob", () => {
         translateText,
         summarizeText,
       },
-    )
+    );
 
-    expect(fetchArticleHtml).not.toHaveBeenCalled()
-    expect(extractMarkdownFromHtml).not.toHaveBeenCalled()
-    expect(translateText).not.toHaveBeenCalled()
+    expect(fetchArticleHtml).not.toHaveBeenCalled();
+    expect(extractMarkdownFromHtml).not.toHaveBeenCalled();
+    expect(translateText).not.toHaveBeenCalled();
     expect(updateArticlePatch).toHaveBeenCalledWith("article-1", {
       summaryEn: "Fresh English summary",
       summaryZh: "新的中文摘要",
-    })
+    });
     expect(markArticleStatus).toHaveBeenLastCalledWith(
       "article-1",
       ArticleStatus.READY,
-    )
-  })
+    );
+  });
 
   it("resumes an extract job from persisted article fields", async () => {
-    const fetchArticleHtml = vi.fn()
-    const extractMarkdownFromHtml = vi.fn()
-    const translateText = vi.fn()
-    const summarizeText = vi.fn().mockResolvedValueOnce({ result: "新的中文摘要", usage: null })
-    const updateArticlePatch = vi.fn().mockResolvedValue(undefined)
+    const fetchArticleHtml = vi.fn();
+    const extractMarkdownFromHtml = vi.fn();
+    const translateText = vi.fn();
+    const summarizeText = vi
+      .fn()
+      .mockResolvedValueOnce({ result: "新的中文摘要", usage: null });
+    const updateArticlePatch = vi.fn().mockResolvedValue(undefined);
 
     await processArticleJob(
       { articleId: "article-1", jobType: JobType.EXTRACT },
@@ -485,28 +496,28 @@ describe("processArticleJob", () => {
         translateText,
         summarizeText,
       },
-    )
+    );
 
-    expect(fetchArticleHtml).not.toHaveBeenCalled()
-    expect(extractMarkdownFromHtml).not.toHaveBeenCalled()
-    expect(translateText).not.toHaveBeenCalled()
-    expect(summarizeText).toHaveBeenCalledTimes(1)
+    expect(fetchArticleHtml).not.toHaveBeenCalled();
+    expect(extractMarkdownFromHtml).not.toHaveBeenCalled();
+    expect(translateText).not.toHaveBeenCalled();
+    expect(summarizeText).toHaveBeenCalledTimes(1);
     expect(summarizeText).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceText: "中文正文",
       }),
-    )
+    );
     expect(updateArticlePatch).toHaveBeenCalledWith("article-1", {
       summaryZh: "新的中文摘要",
-    })
-  })
+    });
+  });
 
   it("persists completed extract stages before later stages run", async () => {
-    const updateArticlePatch = vi.fn().mockResolvedValue(undefined)
+    const updateArticlePatch = vi.fn().mockResolvedValue(undefined);
     const translateText = vi
       .fn()
       .mockResolvedValueOnce({ result: "中文标题", usage: null })
-      .mockRejectedValueOnce(new Error("content translation failed"))
+      .mockRejectedValueOnce(new Error("content translation failed"));
 
     await expect(
       processArticleJob(
@@ -540,13 +551,15 @@ describe("processArticleJob", () => {
             publishedAt: "2026-05-19T00:00:00.000Z",
             siteName: "Example",
           }),
-          createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
+          createOpenAIClient: vi
+            .fn()
+            .mockReturnValue(createRelevantChatClient()),
           decryptSecret: vi.fn().mockReturnValue("sk-live"),
           translateText,
           summarizeText: vi.fn(),
         },
       ),
-    ).rejects.toThrow("content translation failed")
+    ).rejects.toThrow("content translation failed");
 
     expect(updateArticlePatch).toHaveBeenNthCalledWith(
       1,
@@ -555,7 +568,7 @@ describe("processArticleJob", () => {
         titleEn: "English title",
         contentMdEn: "English body",
       }),
-    )
+    );
     expect(updateArticlePatch).toHaveBeenNthCalledWith(
       2,
       "article-1",
@@ -567,9 +580,9 @@ describe("processArticleJob", () => {
           }),
         }),
       }),
-    )
+    );
     expect(updateArticlePatch).toHaveBeenNthCalledWith(3, "article-1", {
       titleZh: "中文标题",
-    })
-  })
-})
+    });
+  });
+});

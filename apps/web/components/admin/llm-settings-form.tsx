@@ -1,25 +1,39 @@
-"use client"
+"use client";
 
-import { useActionState, useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react"
-import { useFormStatus } from "react-dom"
-import { useRouter } from "next/navigation"
-import { Check, ChevronDown, ChevronRight, PlusCircle, Trash2 } from "lucide-react"
-import { CustomSelect } from "@/components/ui/custom-select"
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  PlusCircle,
+  Trash2,
+} from "lucide-react";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 import type {
   LlmSettingsRow,
   PipelineSettings,
   ProviderSettings,
-} from "@/components/admin/types"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+} from "@/components/admin/types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,24 +44,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   IDLE_FORM_ACTION_RESULT,
   type FormActionResult,
-} from "@/lib/action-result"
+} from "@/lib/action-result";
 import {
   activateLlmSettingsAction,
   deleteLlmSettingsAction,
   testLlmSettingsAction,
-} from "@/lib/actions/settings"
-import type { AppLang } from "@/lib/i18n"
-import { resolveLang } from "@/lib/i18n"
-import { mergeModelOptions } from "@/lib/provider-models"
-import { PROVIDER_PRESETS, resolvePresetLabel } from "@/lib/provider-presets"
-import { cn } from "@/lib/utils"
+} from "@/lib/actions/settings";
+import type { AppLang } from "@/lib/i18n";
+import { resolveLang } from "@/lib/i18n";
+import { mergeModelOptions } from "@/lib/provider-models";
+import { PROVIDER_PRESETS, resolvePresetLabel } from "@/lib/provider-presets";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Reducer：将原本分散的 15+ 个 useState 整合为统一的状态机，
@@ -55,38 +69,50 @@ import { cn } from "@/lib/utils"
 // ---------------------------------------------------------------------------
 
 interface FormState {
-  settingsName: string
-  baseUrl: string
-  apiKey: string
-  model: string
-  isActive: boolean
-  translationTitlePrompt: string
-  translationContentPrompt: string
-  summaryPromptEn: string
-  summaryPromptZh: string
-  tagPrompt: string
-  relevancePrompt: string
-  modelOptions: string[]
-  isLoadingModels: boolean
-  modelFeedback: string
-  selectedPresetIndex: number
-  nameManuallyEdited: boolean
+  settingsName: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  isActive: boolean;
+  translationTitlePrompt: string;
+  translationContentPrompt: string;
+  summaryPromptEn: string;
+  summaryPromptZh: string;
+  tagPrompt: string;
+  relevancePrompt: string;
+  modelOptions: string[];
+  isLoadingModels: boolean;
+  modelFeedback: string;
+  selectedPresetIndex: number;
+  nameManuallyEdited: boolean;
 }
 
 type FormAction =
-  | { type: "SET_FIELD"; field: keyof FormState; value: string | boolean | number | string[] }
+  | {
+      type: "SET_FIELD";
+      field: keyof FormState;
+      value: string | boolean | number | string[];
+    }
   | { type: "APPLY_PRESET"; presetIndex: number }
-  | { type: "SYNC_PROVIDER"; provider: ProviderSettings; pipeline: PipelineSettings }
+  | {
+      type: "SYNC_PROVIDER";
+      provider: ProviderSettings;
+      pipeline: PipelineSettings;
+    }
   | { type: "MODELS_LOADED"; options: string[]; feedback: string }
   | { type: "MODELS_ERROR"; feedback: string }
   | { type: "START_LOADING_MODELS" }
   | { type: "RESET_PIPELINE"; pipeline: PipelineSettings }
-  | { type: "CLEAR_MODEL_LIST" }
+  | { type: "CLEAR_MODEL_LIST" };
 
-function initFormState(provider: ProviderSettings, pipeline: PipelineSettings, presetIndex?: number): FormState {
+function initFormState(
+  provider: ProviderSettings,
+  pipeline: PipelineSettings,
+  presetIndex?: number,
+): FormState {
   const matchedIdx = provider.baseUrl
     ? PROVIDER_PRESETS.findIndex((p) => p.baseUrl === provider.baseUrl)
-    : -1
+    : -1;
   return {
     settingsName: provider.settingsName,
     baseUrl: provider.baseUrl,
@@ -102,48 +128,62 @@ function initFormState(provider: ProviderSettings, pipeline: PipelineSettings, p
     modelOptions: [],
     isLoadingModels: false,
     modelFeedback: "",
-    selectedPresetIndex: presetIndex != null && presetIndex >= 0 && presetIndex < PROVIDER_PRESETS.length
-      ? presetIndex
-      : matchedIdx >= 0 ? matchedIdx : PROVIDER_PRESETS.length - 1,
+    selectedPresetIndex:
+      presetIndex != null &&
+      presetIndex >= 0 &&
+      presetIndex < PROVIDER_PRESETS.length
+        ? presetIndex
+        : matchedIdx >= 0
+          ? matchedIdx
+          : PROVIDER_PRESETS.length - 1,
     nameManuallyEdited: false,
-  }
+  };
 }
 
 function formReducer(state: FormState, action: FormAction): FormState {
   switch (action.type) {
     case "SET_FIELD":
-      return { ...state, [action.field]: action.value }
+      return { ...state, [action.field]: action.value };
     case "APPLY_PRESET": {
-      const preset = PROVIDER_PRESETS[action.presetIndex]
-      if (!preset) return state
+      const preset = PROVIDER_PRESETS[action.presetIndex];
+      if (!preset) return state;
       return {
         ...state,
         selectedPresetIndex: action.presetIndex,
         baseUrl: preset.baseUrl,
-        settingsName: state.nameManuallyEdited ? state.settingsName : preset.name,
+        settingsName: state.nameManuallyEdited
+          ? state.settingsName
+          : preset.name,
         nameManuallyEdited: false,
         model: "",
         modelOptions: [],
         modelFeedback: "",
         apiKey: "",
-      }
+      };
     }
     case "SYNC_PROVIDER":
-      return initFormState(action.provider, action.pipeline)
+      return initFormState(action.provider, action.pipeline);
     case "MODELS_LOADED": {
-      const nextModel = !state.model && action.options.length > 0 ? action.options[0] : state.model
+      const nextModel =
+        !state.model && action.options.length > 0
+          ? action.options[0]
+          : state.model;
       return {
         ...state,
         model: nextModel,
         modelOptions: action.options,
         isLoadingModels: false,
         modelFeedback: action.feedback,
-      }
+      };
     }
     case "MODELS_ERROR":
-      return { ...state, isLoadingModels: false, modelFeedback: action.feedback }
+      return {
+        ...state,
+        isLoadingModels: false,
+        modelFeedback: action.feedback,
+      };
     case "START_LOADING_MODELS":
-      return { ...state, isLoadingModels: true, modelFeedback: "" }
+      return { ...state, isLoadingModels: true, modelFeedback: "" };
     case "RESET_PIPELINE":
       return {
         ...state,
@@ -153,15 +193,15 @@ function formReducer(state: FormState, action: FormAction): FormState {
         summaryPromptEn: action.pipeline.summaryPromptEn,
         summaryPromptZh: action.pipeline.summaryPromptZh,
         tagPrompt: action.pipeline.tagPrompt,
-      }
+      };
     case "CLEAR_MODEL_LIST":
-      return { ...state, modelOptions: [], modelFeedback: "" }
+      return { ...state, modelOptions: [], modelFeedback: "" };
   }
 }
 
 function FeedbackMessage({ state }: { state: FormActionResult }) {
   if (state.status === "idle") {
-    return null
+    return null;
   }
 
   return (
@@ -175,7 +215,7 @@ function FeedbackMessage({ state }: { state: FormActionResult }) {
     >
       {state.message}
     </div>
-  )
+  );
 }
 
 function CollapsiblePromptField({
@@ -186,14 +226,14 @@ function CollapsiblePromptField({
   onChange,
   lang,
 }: {
-  id: string
-  name: string
-  label: string
-  value: string
-  onChange: (value: string) => void
-  lang: AppLang
+  id: string;
+  name: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  lang: AppLang;
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="flex flex-col gap-2 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
@@ -240,36 +280,36 @@ function CollapsiblePromptField({
         </>
       )}
     </div>
-  )
+  );
 }
 
 type LlmSettingsFormProps = {
-  profiles: LlmSettingsRow[]
-  selectedProfileId?: string
-  presetIndex?: number
-  provider: ProviderSettings
-  pipeline: PipelineSettings
-  lang: AppLang
+  profiles: LlmSettingsRow[];
+  selectedProfileId?: string;
+  presetIndex?: number;
+  provider: ProviderSettings;
+  pipeline: PipelineSettings;
+  lang: AppLang;
   action: (
     previousState: FormActionResult,
     formData: FormData,
-  ) => Promise<FormActionResult>
-}
+  ) => Promise<FormActionResult>;
+};
 
 function SubmitButton({
   idleLabel,
   pendingLabel,
 }: {
-  idleLabel: string
-  pendingLabel: string
+  idleLabel: string;
+  pendingLabel: string;
 }) {
-  const { pending } = useFormStatus()
+  const { pending } = useFormStatus();
 
   return (
     <Button type="submit" disabled={pending}>
       {pending ? pendingLabel : idleLabel}
     </Button>
-  )
+  );
 }
 
 export function LlmSettingsForm({
@@ -281,26 +321,35 @@ export function LlmSettingsForm({
   lang,
   action,
 }: LlmSettingsFormProps) {
-  const resolvedLang = resolveLang(lang)
-  const router = useRouter()
-  const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT)
-  const [form, dispatch] = useReducer(formReducer, { provider, pipeline, presetIndex }, ({ provider: p, pipeline: pl, presetIndex: pi }) => initFormState(p, pl, pi))
-  const [isActionPending, startActionTransition] = useTransition()
+  const resolvedLang = resolveLang(lang);
+  const router = useRouter();
+  const [state, formAction] = useActionState(action, IDLE_FORM_ACTION_RESULT);
+  const [form, dispatch] = useReducer(
+    formReducer,
+    { provider, pipeline, presetIndex },
+    ({ provider: p, pipeline: pl, presetIndex: pi }) =>
+      initFormState(p, pl, pi),
+  );
+  const [isActionPending, startActionTransition] = useTransition();
   const mergedModelOptions = useMemo(
     () => mergeModelOptions(form.model, form.modelOptions),
     [form.model, form.modelOptions],
-  )
+  );
 
   // 从 URL 的 preset 查询参数同步预设配置（用于从预设链接创建新配置的场景）
   useEffect(() => {
-    if (presetIndex != null && presetIndex >= 0 && presetIndex < PROVIDER_PRESETS.length) {
-      dispatch({ type: "APPLY_PRESET", presetIndex })
+    if (
+      presetIndex != null &&
+      presetIndex >= 0 &&
+      presetIndex < PROVIDER_PRESETS.length
+    ) {
+      dispatch({ type: "APPLY_PRESET", presetIndex });
     }
-  }, [presetIndex])
+  }, [presetIndex]);
 
   // 从服务端数据同步（当 provider 或 pipeline 在外部被修改时，将最新数据推送到表单状态）
   useEffect(() => {
-    dispatch({ type: "SYNC_PROVIDER", provider, pipeline })
+    dispatch({ type: "SYNC_PROVIDER", provider, pipeline });
   }, [
     provider,
     provider.id,
@@ -315,29 +364,34 @@ export function LlmSettingsForm({
     pipeline.summaryPromptZh,
     pipeline.tagPrompt,
     pipeline.relevancePrompt,
-  ])
+  ]);
 
-  const abortControllerRef = useRef<AbortController | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   async function loadProviderModels() {
-    abortControllerRef.current?.abort()
-    const controller = new AbortController()
-    abortControllerRef.current = controller
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-    dispatch({ type: "START_LOADING_MODELS" })
+    dispatch({ type: "START_LOADING_MODELS" });
 
     try {
       const response = await fetch("/api/admin/provider-models", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ profileId: provider.id, baseUrl: form.baseUrl, apiKey: form.apiKey, lang }),
+        body: JSON.stringify({
+          profileId: provider.id,
+          baseUrl: form.baseUrl,
+          apiKey: form.apiKey,
+          lang,
+        }),
         signal: controller.signal,
-      })
+      });
       const payload = (await response.json()) as {
-        ok: boolean
-        message?: string
-        models?: string[]
-      }
+        ok: boolean;
+        message?: string;
+        models?: string[];
+      };
 
       if (!response.ok || !payload.ok) {
         throw new Error(
@@ -345,32 +399,34 @@ export function LlmSettingsForm({
             (resolvedLang === "zh"
               ? "获取模型失败。"
               : "Failed to load models."),
-        )
+        );
       }
 
-      const nextOptions = mergeModelOptions(form.model, payload.models ?? [])
+      const nextOptions = mergeModelOptions(form.model, payload.models ?? []);
       dispatch({
         type: "MODELS_LOADED",
         options: nextOptions,
-        feedback: resolvedLang === "zh"
-          ? `已获取 ${nextOptions.length} 个模型。`
-          : `Loaded ${nextOptions.length} models.`,
-      })
+        feedback:
+          resolvedLang === "zh"
+            ? `已获取 ${nextOptions.length} 个模型。`
+            : `Loaded ${nextOptions.length} models.`,
+      });
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return
+      if (error instanceof DOMException && error.name === "AbortError") return;
       dispatch({
         type: "MODELS_ERROR",
-        feedback: error instanceof Error
-          ? error.message
-          : resolvedLang === "zh"
-            ? "获取模型失败。"
-            : "Failed to load models.",
-      })
+        feedback:
+          error instanceof Error
+            ? error.message
+            : resolvedLang === "zh"
+              ? "获取模型失败。"
+              : "Failed to load models.",
+      });
     }
   }
 
   function resetPipelineDraft() {
-    dispatch({ type: "RESET_PIPELINE", pipeline })
+    dispatch({ type: "RESET_PIPELINE", pipeline });
   }
 
   return (
@@ -398,14 +454,14 @@ export function LlmSettingsForm({
                   className="min-w-[220px]"
                   value={profiles.find((p) => p.isActive)?.id ?? ""}
                   onChange={(targetId) => {
-                    if (!targetId) return
+                    if (!targetId) return;
                     startActionTransition(async () => {
-                      const fd = new FormData()
-                      fd.set("id", targetId)
-                      fd.set("lang", String(lang))
-                      await activateLlmSettingsAction(fd)
-                      router.refresh()
-                    })
+                      const fd = new FormData();
+                      fd.set("id", targetId);
+                      fd.set("lang", String(lang));
+                      await activateLlmSettingsAction(fd);
+                      router.refresh();
+                    });
                   }}
                   disabled={isActionPending}
                   options={profiles.map((p) => ({
@@ -435,9 +491,9 @@ export function LlmSettingsForm({
                     value={selectedProfileId ?? ""}
                     onChange={(value) => {
                       if (value === "new") {
-                        router.push(`/${lang}/admin/settings?profile=new`)
+                        router.push(`/${lang}/admin/settings?profile=new`);
                       } else if (value) {
-                        router.push(`/${lang}/admin/settings?profile=${value}`)
+                        router.push(`/${lang}/admin/settings?profile=${value}`);
                       }
                     }}
                     className="min-w-[180px]"
@@ -448,7 +504,10 @@ export function LlmSettingsForm({
                       })),
                       {
                         value: "new",
-                        label: resolvedLang === "zh" ? "＋ 新建配置" : "＋ New profile",
+                        label:
+                          resolvedLang === "zh"
+                            ? "＋ 新建配置"
+                            : "＋ New profile",
                       },
                     ]}
                   />
@@ -469,12 +528,12 @@ export function LlmSettingsForm({
                         disabled={isActionPending}
                         onClick={() => {
                           startActionTransition(async () => {
-                            const fd = new FormData()
-                            fd.set("id", provider.id)
-                            fd.set("lang", String(lang))
-                            await activateLlmSettingsAction(fd)
-                            router.refresh()
-                          })
+                            const fd = new FormData();
+                            fd.set("id", provider.id);
+                            fd.set("lang", String(lang));
+                            await activateLlmSettingsAction(fd);
+                            router.refresh();
+                          });
                         }}
                       >
                         {resolvedLang === "zh" ? "设为生效" : "Activate"}
@@ -484,7 +543,9 @@ export function LlmSettingsForm({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => router.push(`/${lang}/admin/settings?profile=new`)}
+                      onClick={() =>
+                        router.push(`/${lang}/admin/settings?profile=new`)
+                      }
                     >
                       <PlusCircle className="mr-1.5 size-3.5" />
                       {resolvedLang === "zh" ? "新建" : "New"}
@@ -497,16 +558,20 @@ export function LlmSettingsForm({
                         disabled={isActionPending}
                         onClick={() => {
                           startActionTransition(async () => {
-                            const fd = new FormData()
-                            fd.set("id", provider.id)
-                            fd.set("lang", String(lang))
-                            await testLlmSettingsAction(fd)
-                          })
+                            const fd = new FormData();
+                            fd.set("id", provider.id);
+                            fd.set("lang", String(lang));
+                            await testLlmSettingsAction(fd);
+                          });
                         }}
                       >
                         {isActionPending
-                          ? (resolvedLang === "zh" ? "测试中..." : "Testing...")
-                          : (resolvedLang === "zh" ? "测试连接" : "Test")}
+                          ? resolvedLang === "zh"
+                            ? "测试中..."
+                            : "Testing..."
+                          : resolvedLang === "zh"
+                            ? "测试连接"
+                            : "Test"}
                       </Button>
                     ) : null}
                     {provider.id && profiles.length > 1 ? (
@@ -521,7 +586,9 @@ export function LlmSettingsForm({
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              {resolvedLang === "zh" ? "删除确认" : "Confirm deletion"}
+                              {resolvedLang === "zh"
+                                ? "删除确认"
+                                : "Confirm deletion"}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                               {resolvedLang === "zh"
@@ -537,12 +604,12 @@ export function LlmSettingsForm({
                               variant="destructive"
                               onClick={() => {
                                 startActionTransition(async () => {
-                                  const fd = new FormData()
-                                  fd.set("id", provider.id)
-                                  fd.set("lang", String(lang))
-                                  await deleteLlmSettingsAction(fd)
-                                  router.refresh()
-                                })
+                                  const fd = new FormData();
+                                  fd.set("id", provider.id);
+                                  fd.set("lang", String(lang));
+                                  await deleteLlmSettingsAction(fd);
+                                  router.refresh();
+                                });
                               }}
                             >
                               {resolvedLang === "zh" ? "删除" : "Delete"}
@@ -554,7 +621,10 @@ export function LlmSettingsForm({
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="settings-name" className="text-sm font-medium">
+                  <label
+                    htmlFor="settings-name"
+                    className="text-sm font-medium"
+                  >
                     {resolvedLang === "zh" ? "配置名称" : "Profile name"}
                   </label>
                   <Input
@@ -562,29 +632,53 @@ export function LlmSettingsForm({
                     name="name"
                     value={form.settingsName}
                     onChange={(event) => {
-                      dispatch({ type: "SET_FIELD", field: "settingsName", value: event.target.value })
-                      dispatch({ type: "SET_FIELD", field: "nameManuallyEdited", value: true })
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "settingsName",
+                        value: event.target.value,
+                      });
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "nameManuallyEdited",
+                        value: true,
+                      });
                     }}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="provider-preset" className="text-sm font-medium">
+                  <label
+                    htmlFor="provider-preset"
+                    className="text-sm font-medium"
+                  >
                     {resolvedLang === "zh" ? "服务商预设" : "Provider preset"}
                   </label>
                   <CustomSelect
-                    value={form.selectedPresetIndex >= 0 && form.selectedPresetIndex < PROVIDER_PRESETS.length ? PROVIDER_PRESETS[form.selectedPresetIndex].baseUrl : ""}
+                    value={
+                      form.selectedPresetIndex >= 0 &&
+                      form.selectedPresetIndex < PROVIDER_PRESETS.length
+                        ? PROVIDER_PRESETS[form.selectedPresetIndex].baseUrl
+                        : ""
+                    }
                     onChange={(val) => {
-                      const idx = PROVIDER_PRESETS.findIndex((p) => p.baseUrl === val)
-                      if (idx < 0) return
-                      const preset = PROVIDER_PRESETS[idx]
-                      if (preset.baseUrl === "") return
+                      const idx = PROVIDER_PRESETS.findIndex(
+                        (p) => p.baseUrl === val,
+                      );
+                      if (idx < 0) return;
+                      const preset = PROVIDER_PRESETS[idx];
+                      if (preset.baseUrl === "") return;
                       if (provider.id) {
-                        router.push(`/${lang}/admin/settings?profile=new&preset=${idx}`)
-                        return
+                        router.push(
+                          `/${lang}/admin/settings?profile=new&preset=${idx}`,
+                        );
+                        return;
                       }
-                      dispatch({ type: "APPLY_PRESET", presetIndex: idx })
+                      dispatch({ type: "APPLY_PRESET", presetIndex: idx });
                     }}
-                    placeholder={resolvedLang === "zh" ? "选择预设以自动填充..." : "Select a preset to auto-fill..."}
+                    placeholder={
+                      resolvedLang === "zh"
+                        ? "选择预设以自动填充..."
+                        : "Select a preset to auto-fill..."
+                    }
                     options={PROVIDER_PRESETS.map((preset) => ({
                       value: preset.baseUrl,
                       label: resolvePresetLabel(preset, resolvedLang),
@@ -599,7 +693,13 @@ export function LlmSettingsForm({
                     id="base-url"
                     name="baseUrl"
                     value={form.baseUrl}
-                    onChange={(event) => dispatch({ type: "SET_FIELD", field: "baseUrl", value: event.target.value })}
+                    onChange={(event) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "baseUrl",
+                        value: event.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -611,7 +711,13 @@ export function LlmSettingsForm({
                     name="apiKey"
                     type="password"
                     value={form.apiKey}
-                    onChange={(event) => dispatch({ type: "SET_FIELD", field: "apiKey", value: event.target.value })}
+                    onChange={(event) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "apiKey",
+                        value: event.target.value,
+                      })
+                    }
                     placeholder={
                       provider.hasStoredApiKey
                         ? "● ● ● ● ● ● ● ● ● ● ● ●"
@@ -635,7 +741,13 @@ export function LlmSettingsForm({
                       <input type="hidden" name="model" value={form.model} />
                       <CustomSelect
                         value={form.model}
-                        onChange={(val) => dispatch({ type: "SET_FIELD", field: "model", value: val })}
+                        onChange={(val) =>
+                          dispatch({
+                            type: "SET_FIELD",
+                            field: "model",
+                            value: val,
+                          })
+                        }
                         options={mergedModelOptions.map((option) => ({
                           value: option,
                           label: option,
@@ -647,8 +759,18 @@ export function LlmSettingsForm({
                       id="model"
                       name="model"
                       value={form.model}
-                      onChange={(event) => dispatch({ type: "SET_FIELD", field: "model", value: event.target.value })}
-                      placeholder={resolvedLang === "zh" ? "输入模型名称或点击获取模型列表" : "Enter model name or load model list"}
+                      onChange={(event) =>
+                        dispatch({
+                          type: "SET_FIELD",
+                          field: "model",
+                          value: event.target.value,
+                        })
+                      }
+                      placeholder={
+                        resolvedLang === "zh"
+                          ? "输入模型名称或点击获取模型列表"
+                          : "Enter model name or load model list"
+                      }
                     />
                   )}
                   <div className="flex flex-wrap items-center gap-2">
@@ -679,13 +801,24 @@ export function LlmSettingsForm({
                     ) : null}
                   </div>
                   {form.modelFeedback ? (
-                    <p className="text-sm text-muted-foreground">{form.modelFeedback}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {form.modelFeedback}
+                    </p>
                   ) : null}
                 </div>
-                <div className={cn("flex items-center justify-between gap-4 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none")}>
-                  <label htmlFor="is-active-checkbox" className="flex flex-col gap-1">
+                <div
+                  className={cn(
+                    "flex items-center justify-between gap-4 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none",
+                  )}
+                >
+                  <label
+                    htmlFor="is-active-checkbox"
+                    className="flex flex-col gap-1"
+                  >
                     <p className="text-sm font-medium">
-                      {resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
+                      {resolvedLang === "zh"
+                        ? "设为当前生效配置"
+                        : "Set as active profile"}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {resolvedLang === "zh"
@@ -698,8 +831,18 @@ export function LlmSettingsForm({
                     type="checkbox"
                     name="isActive"
                     checked={form.isActive}
-                    onChange={(event) => dispatch({ type: "SET_FIELD", field: "isActive", value: event.target.checked })}
-                    aria-label={resolvedLang === "zh" ? "设为当前生效配置" : "Set as active profile"}
+                    onChange={(event) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "isActive",
+                        value: event.target.checked,
+                      })
+                    }
+                    aria-label={
+                      resolvedLang === "zh"
+                        ? "设为当前生效配置"
+                        : "Set as active profile"
+                    }
                   />
                 </div>
               </CardContent>
@@ -713,41 +856,83 @@ export function LlmSettingsForm({
                   <CollapsiblePromptField
                     id="relevance-prompt"
                     name="relevancePrompt"
-                    label={resolvedLang === "zh" ? "相关性判断" : "Classify relevance"}
+                    label={
+                      resolvedLang === "zh"
+                        ? "相关性判断"
+                        : "Classify relevance"
+                    }
                     value={form.relevancePrompt}
-                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "relevancePrompt", value: v })}
+                    onChange={(v) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "relevancePrompt",
+                        value: v,
+                      })
+                    }
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="title-prompt"
                     name="translateTitlePrompt"
-                    label={resolvedLang === "zh" ? "标题翻译" : "Translate title"}
+                    label={
+                      resolvedLang === "zh" ? "标题翻译" : "Translate title"
+                    }
                     value={form.translationTitlePrompt}
-                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "translationTitlePrompt", value: v })}
+                    onChange={(v) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "translationTitlePrompt",
+                        value: v,
+                      })
+                    }
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="content-prompt"
                     name="translateContentPrompt"
-                    label={resolvedLang === "zh" ? "正文翻译" : "Translate body"}
+                    label={
+                      resolvedLang === "zh" ? "正文翻译" : "Translate body"
+                    }
                     value={form.translationContentPrompt}
-                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "translationContentPrompt", value: v })}
+                    onChange={(v) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "translationContentPrompt",
+                        value: v,
+                      })
+                    }
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="summary-prompt-en"
                     name="summaryPromptEn"
-                    label={resolvedLang === "zh" ? "英文摘要" : "English summary"}
+                    label={
+                      resolvedLang === "zh" ? "英文摘要" : "English summary"
+                    }
                     value={form.summaryPromptEn}
-                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "summaryPromptEn", value: v })}
+                    onChange={(v) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "summaryPromptEn",
+                        value: v,
+                      })
+                    }
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
                     id="summary-prompt-zh"
                     name="summaryPromptZh"
-                    label={resolvedLang === "zh" ? "中文摘要" : "Chinese summary"}
+                    label={
+                      resolvedLang === "zh" ? "中文摘要" : "Chinese summary"
+                    }
                     value={form.summaryPromptZh}
-                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "summaryPromptZh", value: v })}
+                    onChange={(v) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "summaryPromptZh",
+                        value: v,
+                      })
+                    }
                     lang={resolvedLang}
                   />
                   <CollapsiblePromptField
@@ -755,12 +940,23 @@ export function LlmSettingsForm({
                     name="tagPrompt"
                     label={resolvedLang === "zh" ? "标签提取" : "Generate tags"}
                     value={form.tagPrompt}
-                    onChange={(v) => dispatch({ type: "SET_FIELD", field: "tagPrompt", value: v })}
+                    onChange={(v) =>
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "tagPrompt",
+                        value: v,
+                      })
+                    }
                     lang={resolvedLang}
                   />
                 </div>
                 <div className="mt-3">
-                  <Button variant="outline" type="button" size="sm" onClick={resetPipelineDraft}>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    size="sm"
+                    onClick={resetPipelineDraft}
+                  >
                     {resolvedLang === "zh" ? "重置草稿" : "Reset draft"}
                   </Button>
                 </div>
@@ -780,5 +976,5 @@ export function LlmSettingsForm({
         </div>
       </form>
     </div>
-  )
+  );
 }

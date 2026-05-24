@@ -137,12 +137,37 @@ paths:
           example: GitHub Advisory
         - name: ecosystem
           in: query
-          schema: { type: string, enum: [npm, pypi, maven, go, crates-io, github-actions, docker, multi] }
+          schema:
+            {
+              type: string,
+              enum:
+                [
+                  npm,
+                  pypi,
+                  maven,
+                  go,
+                  crates-io,
+                  github-actions,
+                  docker,
+                  multi,
+                ],
+            }
           description: Filter by the primary package ecosystem discussed by the article.
           example: npm
         - name: riskCategory
           in: query
-          schema: { type: string, enum: [vulnerability, exploit-activity, malicious-package, supply-chain-attack, dependency-risk] }
+          schema:
+            {
+              type: string,
+              enum:
+                [
+                  vulnerability,
+                  exploit-activity,
+                  malicious-package,
+                  supply-chain-attack,
+                  dependency-risk,
+                ],
+            }
           description: Filter by risk category.
           example: malicious-package
         - name: limit
@@ -337,7 +362,8 @@ paths:
           example: CVE-2026-25639
         - name: riskType
           in: query
-          schema: { type: string, enum: [unknown, vulnerability, malicious-package] }
+          schema:
+            { type: string, enum: [unknown, vulnerability, malicious-package] }
           description: Risk type.
         - name: kev
           in: query
@@ -882,15 +908,39 @@ components:
       description: Pagination and filter echo for advisory list responses.
       properties:
         q: { type: string, description: Keyword filter echo. }
-        ecosystem: { type: string, nullable: true, description: Ecosystem filter echo. }
+        ecosystem:
+          { type: string, nullable: true, description: Ecosystem filter echo. }
         packageName: { type: string, description: Package-name filter echo. }
         cve: { type: string, nullable: true, description: CVE filter echo. }
-        riskType: { type: string, nullable: true, description: Risk-type filter echo. }
-        kev: { type: boolean, nullable: true, description: CISA KEV filter echo. }
-        withdrawn: { type: boolean, nullable: true, description: Withdrawn-state filter echo. }
-        cvssMin: { type: number, nullable: true, description: Minimum CVSS filter echo. }
-        epssMin: { type: number, nullable: true, description: Minimum EPSS percentile filter echo. }
-        updatedAfter: { type: string, format: date-time, nullable: true, description: Updated-after filter echo. }
+        riskType:
+          { type: string, nullable: true, description: Risk-type filter echo. }
+        kev:
+          { type: boolean, nullable: true, description: CISA KEV filter echo. }
+        withdrawn:
+          {
+            type: boolean,
+            nullable: true,
+            description: Withdrawn-state filter echo.,
+          }
+        cvssMin:
+          {
+            type: number,
+            nullable: true,
+            description: Minimum CVSS filter echo.,
+          }
+        epssMin:
+          {
+            type: number,
+            nullable: true,
+            description: Minimum EPSS percentile filter echo.,
+          }
+        updatedAfter:
+          {
+            type: string,
+            format: date-time,
+            nullable: true,
+            description: Updated-after filter echo.,
+          }
         limit: { type: integer }
         page: { type: integer }
         count: { type: integer }
@@ -1036,17 +1086,33 @@ components:
       description: CVE enrichment fields from NVD, FIRST EPSS, and CISA KEV.
       properties:
         cveId: { type: string }
-        title: { type: string, nullable: true, description: NVD or source title. }
-        description: { type: string, nullable: true, description: CVE description. }
-        cvssMetrics: { type: array, description: Raw CVSS metric objects. , items: { type: object } }
-        bestCvssScore: { type: string, nullable: true, description: Selected highest CVSS score. }
-        bestCvssSeverity: { type: string, nullable: true, description: Highest CVSS severity. }
-        cweIds: { type: array, description: CWE categories. , items: { type: string } }
+        title:
+          { type: string, nullable: true, description: NVD or source title. }
+        description:
+          { type: string, nullable: true, description: CVE description. }
+        cvssMetrics:
+          {
+            type: array,
+            description: Raw CVSS metric objects.,
+            items: { type: object },
+          }
+        bestCvssScore:
+          {
+            type: string,
+            nullable: true,
+            description: Selected highest CVSS score.,
+          }
+        bestCvssSeverity:
+          { type: string, nullable: true, description: Highest CVSS severity. }
+        cweIds:
+          { type: array, description: CWE categories., items: { type: string } }
         epss: { type: string, nullable: true, description: FIRST EPSS score. }
-        epssPercentile: { type: string, nullable: true, description: FIRST EPSS percentile. }
+        epssPercentile:
+          { type: string, nullable: true, description: FIRST EPSS percentile. }
         epssScoreDate: { type: string, format: date-time, nullable: true }
         epssModelVersion: { type: string, nullable: true }
-        kevListed: { type: boolean, description: Whether the CVE is listed in CISA KEV. }
+        kevListed:
+          { type: boolean, description: Whether the CVE is listed in CISA KEV. }
         kevDateAdded: { type: string, format: date-time, nullable: true }
         kevDueDate: { type: string, format: date-time, nullable: true }
         kevKnownRansomwareCampaignUse: { type: string, nullable: true }
@@ -1075,11 +1141,21 @@ components:
           items:
             type: object
             properties:
-              source: { type: string, description: Data source, such as osv, nvd, epss, or kev. }
+              source:
+                {
+                  type: string,
+                  description: Data source,
+                  such as osv,
+                  nvd,
+                  epss,
+                  or kev.,
+                }
               scope: { type: string, description: Sync scope. }
               status: { type: string, enum: [idle, running, success, failed] }
-              lastProcessedModifiedAt: { type: string, format: date-time, nullable: true }
-              cursorJson: { type: object, description: Incremental sync cursor. }
+              lastProcessedModifiedAt:
+                { type: string, format: date-time, nullable: true }
+              cursorJson:
+                { type: object, description: Incremental sync cursor. }
               lastStartedAt: { type: string, format: date-time, nullable: true }
               lastSuccessAt: { type: string, format: date-time, nullable: true }
               lastError: { type: string, nullable: true }
@@ -1087,4 +1163,8 @@ components:
               recordsImported: { type: integer }
               recordsFailed: { type: integer }
               updatedAt: { type: string, format: date-time }
-              stale: { type: boolean, description: Whether this source is older than the freshness threshold. }
+              stale:
+                {
+                  type: boolean,
+                  description: Whether this source is older than the freshness threshold.,
+                }

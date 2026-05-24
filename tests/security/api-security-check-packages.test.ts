@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   parseSecurityPackageCheckBody,
   SECURITY_PACKAGE_CHECK_MAX_PACKAGES,
-} from "../../apps/web/lib/api-security"
+} from "../../apps/web/lib/api-security";
 
 describe("parseSecurityPackageCheckBody", () => {
   it("normalizes supported package coordinates for local security checks", () => {
@@ -27,14 +27,14 @@ describe("parseSecurityPackageCheckBody", () => {
         { ecosystem: "npm", name: "@Scope/Package", version: "1.0.0" },
         { ecosystem: "pypi", name: "Django", version: null },
       ],
-    })
-  })
+    });
+  });
 
   it("rejects invalid package check requests", () => {
     expect(parseSecurityPackageCheckBody({ packages: [] })).toEqual({
       ok: false,
       message: "packages must include at least one package.",
-    })
+    });
     expect(
       parseSecurityPackageCheckBody({
         packages: [{ ecosystem: "maven", name: "spring-core" }],
@@ -42,7 +42,7 @@ describe("parseSecurityPackageCheckBody", () => {
     ).toEqual({
       ok: false,
       message: "packages[0].ecosystem must be one of npm, pypi, go, crates-io.",
-    })
+    });
     expect(
       parseSecurityPackageCheckBody({
         packages: Array.from(
@@ -53,22 +53,22 @@ describe("parseSecurityPackageCheckBody", () => {
     ).toEqual({
       ok: false,
       message: `packages cannot contain more than ${SECURITY_PACKAGE_CHECK_MAX_PACKAGES} packages.`,
-    })
-  })
-})
+    });
+  });
+});
 
 describe("POST /api/security/check/packages", () => {
   beforeEach(() => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date("2026-05-22T10:00:00.000Z"))
-  })
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-22T10:00:00.000Z"));
+  });
 
   afterEach(() => {
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
   it("checks packages against the local database mirror", async () => {
-    vi.resetModules()
+    vi.resetModules();
     const db = {
       query: {
         securitySyncState: {
@@ -109,27 +109,28 @@ describe("POST /api/security/check/packages", () => {
           ]),
         },
       },
-    }
-    const getDb = vi.fn(() => db)
+    };
+    const getDb = vi.fn(() => db);
 
     vi.doMock("@vibeguard/db", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@vibeguard/db")>()),
       getDb,
-    }))
+    }));
 
-    const { POST } = await import(
-      "../../apps/web/app/api/security/check/packages/route"
-    )
+    const { POST } =
+      await import("../../apps/web/app/api/security/check/packages/route");
     const response = await POST(
       new Request("http://vibeguard.test/api/security/check/packages", {
         method: "POST",
         body: JSON.stringify({
-          packages: [{ ecosystem: "npm", name: "cryptoco-auth", version: "1.0.1" }],
+          packages: [
+            { ecosystem: "npm", name: "cryptoco-auth", version: "1.0.1" },
+          ],
         }),
       }),
-    )
+    );
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       meta: {
         source: "local-osv-mirror",
@@ -178,21 +179,20 @@ describe("POST /api/security/check/packages", () => {
           },
         },
       ],
-    })
-    expect(getDb).toHaveBeenCalledTimes(1)
-    expect(db.query.securityAffectedPackages.findMany).toHaveBeenCalledTimes(1)
-  })
+    });
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(db.query.securityAffectedPackages.findMany).toHaveBeenCalledTimes(1);
+  });
 
   it("returns 400 for invalid package check requests", async () => {
-    vi.resetModules()
+    vi.resetModules();
     vi.doMock("@vibeguard/db", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@vibeguard/db")>()),
       getDb: vi.fn(),
-    }))
+    }));
 
-    const { POST } = await import(
-      "../../apps/web/app/api/security/check/packages/route"
-    )
+    const { POST } =
+      await import("../../apps/web/app/api/security/check/packages/route");
     const response = await POST(
       new Request("http://vibeguard.test/api/security/check/packages", {
         method: "POST",
@@ -200,42 +200,41 @@ describe("POST /api/security/check/packages", () => {
           packages: [{ ecosystem: "npm", name: "" }],
         }),
       }),
-    )
+    );
 
-    expect(response.status).toBe(400)
+    expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       ok: false,
       message: "packages[0].name is required.",
-    })
-  })
-})
+    });
+  });
+});
 
 describe("GET /api/security/check/overview", () => {
   it("returns per-ecosystem totals for the public package-check surface", async () => {
-    vi.resetModules()
+    vi.resetModules();
     const groupBy = vi.fn().mockResolvedValue([
       { ecosystem: "npm", count: 49313 },
       { ecosystem: "pypi", count: 8123 },
       { ecosystem: "go", count: 2455 },
       { ecosystem: "crates-io", count: 3659 },
-    ])
-    const from = vi.fn(() => ({ groupBy }))
-    const select = vi.fn(() => ({ from }))
-    const getDb = vi.fn(() => ({ select }))
+    ]);
+    const from = vi.fn(() => ({ groupBy }));
+    const select = vi.fn(() => ({ from }));
+    const getDb = vi.fn(() => ({ select }));
 
     vi.doMock("@vibeguard/db", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@vibeguard/db")>()),
       getDb,
-    }))
+    }));
 
-    const { GET } = await import(
-      "../../apps/web/app/api/security/check/overview/route"
-    )
+    const { GET } =
+      await import("../../apps/web/app/api/security/check/overview/route");
     const response = await GET(
       new Request("http://vibeguard.test/api/security/check/overview"),
-    )
+    );
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       totals: {
         npm: 49313,
@@ -243,9 +242,9 @@ describe("GET /api/security/check/overview", () => {
         go: 2455,
         "crates-io": 3659,
       },
-    })
-    expect(getDb).toHaveBeenCalledTimes(1)
-    expect(select).toHaveBeenCalledTimes(1)
-    expect(groupBy).toHaveBeenCalledTimes(1)
-  })
-})
+    });
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(select).toHaveBeenCalledTimes(1);
+    expect(groupBy).toHaveBeenCalledTimes(1);
+  });
+});

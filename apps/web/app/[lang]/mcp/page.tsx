@@ -1,37 +1,53 @@
-import type { Metadata } from "next"
-import { headers } from "next/headers"
-import type { LucideIcon } from "lucide-react"
-import { Braces, Database, FileText, Plug, ShieldCheck, Wrench } from "lucide-react"
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import type { LucideIcon } from "lucide-react";
+import {
+  Braces,
+  Database,
+  FileText,
+  Plug,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
 
-import { PublicHeader } from "@/components/public-header"
-import { CopyButton } from "@/components/ui/copy-button"
-import { resolveLang } from "@/lib/i18n"
+import { PublicHeader } from "@/components/public-header";
+import { CopyButton } from "@/components/ui/copy-button";
+import { resolveLang } from "@/lib/i18n";
 import {
   getBackgroundClassName,
   getBackdropClassName,
   getSectionInnerClassName,
   getSectionOuterClassName,
   getShellClassName,
-} from "@/lib/layout-tokens"
+} from "@/lib/layout-tokens";
 
-import { ConfigCard } from "./config-card"
+import { ConfigCard } from "./config-card";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 async function getMcpEndpoint() {
-  const hdrs = await headers()
-  const proto = hdrs.get("x-forwarded-proto") ?? "https"
-  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host") ?? "vibeguard.aihot.virxact.com"
-  return `${proto}://${host}/api/mcp`
+  const hdrs = await headers();
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  const host =
+    hdrs.get("x-forwarded-host") ??
+    hdrs.get("host") ??
+    "vibeguard.aihot.virxact.com";
+  return `${proto}://${host}/api/mcp`;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
-  const { lang: rawLang } = await params
-  const lang = resolveLang(rawLang)
-  const title = lang === "zh" ? "MCP Server - VibeGuard" : "MCP Server - VibeGuard"
-  const description = lang === "zh"
-    ? "VibeGuard MCP Server 让 AI 助手直接查询供应链安全资讯和检查依赖包漏洞。"
-    : "VibeGuard MCP Server enables AI assistants to query supply-chain security intelligence and check packages for vulnerabilities."
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const { lang: rawLang } = await params;
+  const lang = resolveLang(rawLang);
+  const title =
+    lang === "zh" ? "MCP Server - VibeGuard" : "MCP Server - VibeGuard";
+  const description =
+    lang === "zh"
+      ? "VibeGuard MCP Server 让 AI 助手直接查询供应链安全资讯和检查依赖包漏洞。"
+      : "VibeGuard MCP Server enables AI assistants to query supply-chain security intelligence and check packages for vulnerabilities.";
 
   return {
     title,
@@ -42,27 +58,27 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       type: "website",
       locale: lang === "zh" ? "zh_CN" : "en_US",
     },
-  }
+  };
 }
 
 type McpPageProps = {
-  params: Promise<{ lang: string }>
-}
+  params: Promise<{ lang: string }>;
+};
 
 type McpTool = {
-  name: string
-  zh: string
-  en: string
-}
+  name: string;
+  zh: string;
+  en: string;
+};
 
 type McpToolGroup = {
-  icon: LucideIcon
-  titleZh: string
-  titleEn: string
-  summaryZh: string
-  summaryEn: string
-  tools: McpTool[]
-}
+  icon: LucideIcon;
+  titleZh: string;
+  titleEn: string;
+  summaryZh: string;
+  summaryEn: string;
+  tools: McpTool[];
+};
 
 const toolGroups: McpToolGroup[] = [
   {
@@ -70,7 +86,8 @@ const toolGroups: McpToolGroup[] = [
     titleZh: "内容检索",
     titleEn: "Content",
     summaryZh: "让 AI 助手读到 VibeGuard 已整理好的供应链安全资讯。",
-    summaryEn: "Let AI assistants read curated VibeGuard supply-chain intelligence.",
+    summaryEn:
+      "Let AI assistants read curated VibeGuard supply-chain intelligence.",
     tools: [
       {
         name: "search_articles",
@@ -89,7 +106,8 @@ const toolGroups: McpToolGroup[] = [
     titleZh: "安全查询",
     titleEn: "Security queries",
     summaryZh: "复用公开安全 API，按包、版本、CVE 和风险信号做结构化查询。",
-    summaryEn: "Reuse the public security API for package, version, CVE, and risk-signal queries.",
+    summaryEn:
+      "Reuse the public security API for package, version, CVE, and risk-signal queries.",
     tools: [
       {
         name: "check_packages",
@@ -118,7 +136,8 @@ const toolGroups: McpToolGroup[] = [
     titleZh: "数据状态",
     titleEn: "Data status",
     summaryZh: "检查本地安全数据库的新鲜度，方便判断查询结果是否需要刷新。",
-    summaryEn: "Inspect local security-data freshness so results can be refreshed when needed.",
+    summaryEn:
+      "Inspect local security-data freshness so results can be refreshed when needed.",
     tools: [
       {
         name: "security_overview",
@@ -132,12 +151,12 @@ const toolGroups: McpToolGroup[] = [
       },
     ],
   },
-]
+];
 
 export default async function McpPage({ params: routeParams }: McpPageProps) {
-  const { lang: rawLang } = await routeParams
-  const lang = resolveLang(rawLang)
-  const mcpUrl = await getMcpEndpoint()
+  const { lang: rawLang } = await routeParams;
+  const lang = resolveLang(rawLang);
+  const mcpUrl = await getMcpEndpoint();
 
   return (
     <main className={getBackgroundClassName()}>
@@ -208,7 +227,7 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
 
                 <div className="grid gap-3">
                   {toolGroups.map((group) => {
-                    const Icon = group.icon
+                    const Icon = group.icon;
                     return (
                       <div
                         key={group.titleEn}
@@ -223,7 +242,9 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
                               {lang === "zh" ? group.titleZh : group.titleEn}
                             </h3>
                             <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-stone-400">
-                              {lang === "zh" ? group.summaryZh : group.summaryEn}
+                              {lang === "zh"
+                                ? group.summaryZh
+                                : group.summaryEn}
                             </p>
                           </div>
                         </div>
@@ -244,7 +265,7 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
                           ))}
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </div>
@@ -263,24 +284,32 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
                   />
                   <ConfigCard
                     title="Claude Desktop"
-                    code={JSON.stringify({
-                      mcpServers: {
-                        vibeguard: {
-                          type: "url",
-                          url: mcpUrl,
+                    code={JSON.stringify(
+                      {
+                        mcpServers: {
+                          vibeguard: {
+                            type: "url",
+                            url: mcpUrl,
+                          },
                         },
                       },
-                    }, null, 2)}
+                      null,
+                      2,
+                    )}
                   />
                   <ConfigCard
                     title="Codex"
-                    code={JSON.stringify({
-                      mcpServers: {
-                        vibeguard: {
-                          url: mcpUrl,
+                    code={JSON.stringify(
+                      {
+                        mcpServers: {
+                          vibeguard: {
+                            url: mcpUrl,
+                          },
                         },
                       },
-                    }, null, 2)}
+                      null,
+                      2,
+                    )}
                   />
                 </div>
               </div>
@@ -289,5 +318,5 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
         </section>
       </div>
     </main>
-  )
+  );
 }

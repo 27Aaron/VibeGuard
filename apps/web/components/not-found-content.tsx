@@ -1,22 +1,22 @@
-import type { AppLang } from "@/lib/i18n"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { cn } from "@/lib/utils"
+import type { AppLang } from "@/lib/i18n";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { cn } from "@/lib/utils";
 import {
   getBackgroundClassName,
   getBackdropClassName,
   getShellClassName,
   getSectionOuterClassName,
   getSectionInnerClassName,
-} from "@/lib/layout-tokens"
-import { RedirectCountdown } from "@/components/redirect-countdown"
-import { Radio, ShieldAlert } from "lucide-react"
+} from "@/lib/layout-tokens";
+import { RedirectCountdown } from "@/components/redirect-countdown";
+import { Radio, ShieldAlert } from "lucide-react";
 
 type NotFoundContentProps = {
-  lang: AppLang
-}
+  lang: AppLang;
+};
 
 export function NotFoundContent({ lang }: NotFoundContentProps) {
-  const isZh = lang === "zh"
+  const isZh = lang === "zh";
 
   return (
     <main className={getBackgroundClassName()}>
@@ -65,5 +65,5 @@ export function NotFoundContent({ lang }: NotFoundContentProps) {
         </div>
       </div>
     </main>
-  )
+  );
 }

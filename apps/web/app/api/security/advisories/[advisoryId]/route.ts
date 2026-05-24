@@ -1,20 +1,23 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
-import { getDb } from "@vibeguard/db"
+import { getDb } from "@vibeguard/db";
 
-import { getSecurityAdvisoryDetail } from "../../../../../lib/security-api"
+import { getSecurityAdvisoryDetail } from "../../../../../lib/security-api";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type AdvisoryDetailRouteProps = {
   params: Promise<{
-    advisoryId: string
-  }>
-}
+    advisoryId: string;
+  }>;
+};
 
-export async function GET(_request: Request, { params }: AdvisoryDetailRouteProps) {
-  const { advisoryId } = await params
-  const payload = await getSecurityAdvisoryDetail(getDb(), advisoryId)
+export async function GET(
+  _request: Request,
+  { params }: AdvisoryDetailRouteProps,
+) {
+  const { advisoryId } = await params;
+  const payload = await getSecurityAdvisoryDetail(getDb(), advisoryId);
 
   if (!payload) {
     return NextResponse.json(
@@ -22,8 +25,8 @@ export async function GET(_request: Request, { params }: AdvisoryDetailRouteProp
         error: "Advisory not found.",
       },
       { status: 404 },
-    )
+    );
   }
 
-  return NextResponse.json(payload)
+  return NextResponse.json(payload);
 }

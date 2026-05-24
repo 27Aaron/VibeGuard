@@ -1,15 +1,15 @@
-import Link from "next/link"
-import { LogOut, Radio, ShieldCheck } from "lucide-react"
+import Link from "next/link";
+import { LogOut, Radio, ShieldCheck } from "lucide-react";
 
-import { AdminNav } from "@/components/admin/admin-nav"
-import { LanguageToggle } from "@/components/language-toggle"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { logoutAction } from "@/lib/actions/auth"
-import type { AppLang } from "@/lib/i18n"
+import { AdminNav } from "@/components/admin/admin-nav";
+import { LanguageToggle } from "@/components/language-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { logoutAction } from "@/lib/actions/auth";
+import type { AppLang } from "@/lib/i18n";
 
 type AdminHeaderProps = {
-  lang: AppLang
-}
+  lang: AppLang;
+};
 
 export function AdminHeader({ lang }: AdminHeaderProps) {
   return (
@@ -53,5 +53,5 @@ export function AdminHeader({ lang }: AdminHeaderProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }

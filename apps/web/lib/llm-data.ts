@@ -1,54 +1,60 @@
-import { getDb, llmSettings } from "@vibeguard/db"
-import { DEFAULT_TAG_PROMPT, resolveRelevancePrompt, resolveTagPrompt } from "@vibeguard/llm"
-import { formatDateTimeInShanghai } from "./time"
+import { getDb, llmSettings } from "@vibeguard/db";
+import {
+  DEFAULT_TAG_PROMPT,
+  resolveRelevancePrompt,
+  resolveTagPrompt,
+} from "@vibeguard/llm";
+import { formatDateTimeInShanghai } from "./time";
 
 export const DEFAULT_SUMMARY_PROMPT_EN =
-  "Write a concise 2–4 sentence English summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact. Omit filler and boilerplate. Focus on the security-relevant facts."
+  "Write a concise 2–4 sentence English summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact. Omit filler and boilerplate. Focus on the security-relevant facts.";
 
 export const DEFAULT_SUMMARY_PROMPT_ZH =
-  "Write a concise 2–4 sentence Simplified Chinese summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact. Omit filler and boilerplate. Focus on the security-relevant facts."
+  "Write a concise 2–4 sentence Simplified Chinese summary of this supply-chain security article. Cover: (1) what happened, (2) which ecosystem or platform is affected, (3) the potential impact. Omit filler and boilerplate. Focus on the security-relevant facts.";
 
-export { DEFAULT_TAG_PROMPT }
+export { DEFAULT_TAG_PROMPT };
 
 const LEGACY_TRANSLATION_CONTENT_PROMPT =
-  "Translate the article body into natural Chinese. Preserve links, package names, version strings, code snippets, and technical terms when needed."
+  "Translate the article body into natural Chinese. Preserve links, package names, version strings, code snippets, and technical terms when needed.";
 
 export const DEFAULT_TRANSLATION_CONTENT_PROMPT =
-  "Translate the article body into natural, fluent Simplified Chinese. Preserve the original meaning precisely. Keep all technical accuracy — do not simplify or paraphrase security terminology. Keep fenced code blocks, inline code, shell commands, configuration keys, package names, version strings, URLs, and file paths exactly unchanged."
+  "Translate the article body into natural, fluent Simplified Chinese. Preserve the original meaning precisely. Keep all technical accuracy — do not simplify or paraphrase security terminology. Keep fenced code blocks, inline code, shell commands, configuration keys, package names, version strings, URLs, and file paths exactly unchanged.";
 
 export function normalizeLocalizedSummaryPrompt(input: {
-  prompt: string | null | undefined
-  fallback: string
+  prompt: string | null | undefined;
+  fallback: string;
 }) {
-  const normalized = String(input.prompt ?? "").trim()
+  const normalized = String(input.prompt ?? "").trim();
 
   if (!normalized) {
-    return input.fallback
+    return input.fallback;
   }
 
-  return normalized
+  return normalized;
 }
 
-export function normalizeTranslationContentPrompt(input: string | null | undefined) {
-  const normalized = String(input ?? "").trim()
+export function normalizeTranslationContentPrompt(
+  input: string | null | undefined,
+) {
+  const normalized = String(input ?? "").trim();
 
   if (!normalized || normalized === LEGACY_TRANSLATION_CONTENT_PROMPT) {
-    return DEFAULT_TRANSLATION_CONTENT_PROMPT
+    return DEFAULT_TRANSLATION_CONTENT_PROMPT;
   }
 
-  return normalized
+  return normalized;
 }
 
 export function normalizeTagPrompt(input: string | null | undefined) {
-  return resolveTagPrompt(input)
+  return resolveTagPrompt(input);
 }
 
 export function normalizeRelevancePrompt(input: string | null | undefined) {
-  return resolveRelevancePrompt(input)
+  return resolveRelevancePrompt(input);
 }
 
 export async function getActiveLlmSettings() {
-  const db = getDb()
+  const db = getDb();
   const row =
     (await db.query.llmSettings.findFirst({
       where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
@@ -56,10 +62,10 @@ export async function getActiveLlmSettings() {
     })) ??
     (await db.query.llmSettings.findFirst({
       orderBy: (table, { desc: orderDesc }) => [orderDesc(table.updatedAt)],
-    }))
+    }));
 
   if (!row) {
-    return buildDefaultLlmSettings()
+    return buildDefaultLlmSettings();
   }
 
   return {
@@ -84,7 +90,7 @@ export async function getActiveLlmSettings() {
     }),
     tagPrompt: normalizeTagPrompt(row.tagPrompt),
     relevancePrompt: normalizeRelevancePrompt(row.relevancePrompt),
-  }
+  };
 }
 
 function buildDefaultLlmSettings() {
@@ -103,17 +109,17 @@ function buildDefaultLlmSettings() {
     summaryPromptZh: DEFAULT_SUMMARY_PROMPT_ZH,
     tagPrompt: DEFAULT_TAG_PROMPT,
     relevancePrompt: normalizeRelevancePrompt(null),
-  }
+  };
 }
 
 export async function getLlmSettingsRows() {
-  const db = getDb()
+  const db = getDb();
   const rows = await db.query.llmSettings.findMany({
     orderBy: (table, { desc: orderDesc }) => [
       orderDesc(table.isActive),
       orderDesc(table.updatedAt),
     ],
-  })
+  });
 
   return rows.map((row) => ({
     id: row.id,
@@ -123,21 +129,23 @@ export async function getLlmSettingsRows() {
     isActive: row.isActive,
     hasStoredApiKey: Boolean(row.apiKeyEncrypted),
     updatedAt: formatDateTime(row.updatedAt),
-  }))
+  }));
 }
 
 export async function getLlmSettingsDetail(profileId?: string) {
   if (!profileId || profileId === "new") {
-    return profileId === "new" ? buildDefaultLlmSettings() : getActiveLlmSettings()
+    return profileId === "new"
+      ? buildDefaultLlmSettings()
+      : getActiveLlmSettings();
   }
 
-  const db = getDb()
+  const db = getDb();
   const row = await db.query.llmSettings.findFirst({
     where: (table, { eq: whereEq }) => whereEq(table.id, profileId),
-  })
+  });
 
   if (!row) {
-    return getActiveLlmSettings()
+    return getActiveLlmSettings();
   }
 
   return {
@@ -162,9 +170,13 @@ export async function getLlmSettingsDetail(profileId?: string) {
     }),
     tagPrompt: normalizeTagPrompt(row.tagPrompt),
     relevancePrompt: normalizeRelevancePrompt(row.relevancePrompt),
-  }
+  };
 }
 
-function formatDateTime(value: Date | null | undefined, lang: "zh" | "en" = "zh", fallback?: string) {
-  return formatDateTimeInShanghai(value, { lang, fallback })
+function formatDateTime(
+  value: Date | null | undefined,
+  lang: "zh" | "en" = "zh",
+  fallback?: string,
+) {
+  return formatDateTimeInShanghai(value, { lang, fallback });
 }

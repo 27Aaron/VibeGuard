@@ -1,1 +1,1 @@
-export { normalizeInt } from "@vibeguard/shared"
+export { normalizeInt } from "@vibeguard/shared";

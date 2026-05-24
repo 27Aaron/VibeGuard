@@ -1,26 +1,23 @@
-import { cache } from "react"
-import type { Metadata } from "next"
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import {
-  ChevronLeft,
-  ExternalLink,
-  FileText,
-  Link2,
-  Tags,
-} from "lucide-react"
+import { cache } from "react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ChevronLeft, ExternalLink, FileText, Link2, Tags } from "lucide-react";
 
-import { MarkdownRenderer, MarkdownSummary } from "@/components/content/markdown-renderer"
-import { PublicHeader } from "@/components/public-header"
-import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
-import { getArticleById as _getArticleById } from "@/lib/api-articles"
+import {
+  MarkdownRenderer,
+  MarkdownSummary,
+} from "@/components/content/markdown-renderer";
+import { PublicHeader } from "@/components/public-header";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { getArticleById as _getArticleById } from "@/lib/api-articles";
 import {
   getPublicArticleSidebarClassName,
   getPublicArticleSummaryContainerClass,
-} from "@/lib/article-layout"
-import { getInteractiveChipClassName } from "@/lib/interactive-chip"
-import { getUiText, resolveLang } from "@/lib/i18n"
+} from "@/lib/article-layout";
+import { getInteractiveChipClassName } from "@/lib/interactive-chip";
+import { getUiText, resolveLang } from "@/lib/i18n";
 import {
   getBackgroundClassName,
   getBackdropClassName,
@@ -28,20 +25,24 @@ import {
   getSectionOuterClassName,
   getShellClassName,
   getSubtlePanelClassName,
-} from "@/lib/layout-tokens"
-import { cn } from "@/lib/utils"
+} from "@/lib/layout-tokens";
+import { cn } from "@/lib/utils";
 
-const getArticleById = cache(_getArticleById)
+const getArticleById = cache(_getArticleById);
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: Promise<{ lang: string; articleId: string }> }): Promise<Metadata> {
-  const { lang: rawLang, articleId } = await params
-  const lang = resolveLang(rawLang)
-  const article = await getArticleById(articleId, lang)
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string; articleId: string }>;
+}): Promise<Metadata> {
+  const { lang: rawLang, articleId } = await params;
+  const lang = resolveLang(rawLang);
+  const article = await getArticleById(articleId, lang);
 
   if (!article) {
-    return { title: "Not Found" }
+    return { title: "Not Found" };
   }
 
   return {
@@ -53,44 +54,44 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       type: "article",
       locale: lang === "zh" ? "zh_CN" : "en_US",
     },
-  }
+  };
 }
 
 type PublicArticlePageProps = {
-  params: Promise<{ lang: string; articleId: string }>
+  params: Promise<{ lang: string; articleId: string }>;
   searchParams: Promise<{
-    q?: string
-    tag?: string
-    page?: string
-  }>
-}
+    q?: string;
+    tag?: string;
+    page?: string;
+  }>;
+};
 
 export default async function PublicArticlePage({
   params,
   searchParams,
 }: PublicArticlePageProps) {
-  const { lang: langParam, articleId } = await params
-  const resolvedLang = resolveLang(langParam)
-  const { q, tag, page } = await searchParams
-  const text = getUiText(resolvedLang)
-  const article = await getArticleById(articleId, resolvedLang)
+  const { lang: langParam, articleId } = await params;
+  const resolvedLang = resolveLang(langParam);
+  const { q, tag, page } = await searchParams;
+  const text = getUiText(resolvedLang);
+  const article = await getArticleById(articleId, resolvedLang);
 
   if (!article) {
-    notFound()
+    notFound();
   }
 
-  const resolvedArticle = article
-  const articleLang = resolveLang(resolvedArticle.locale)
+  const resolvedArticle = article;
+  const articleLang = resolveLang(resolvedArticle.locale);
 
-  const backParams = new URLSearchParams()
+  const backParams = new URLSearchParams();
   if (q) {
-    backParams.set("q", q)
+    backParams.set("q", q);
   }
   if (tag) {
-    backParams.set("tag", tag)
+    backParams.set("tag", tag);
   }
   if (page && page !== "1") {
-    backParams.set("page", page)
+    backParams.set("page", page);
   }
 
   return (
@@ -99,17 +100,27 @@ export default async function PublicArticlePage({
 
       <div className={getShellClassName()}>
         <PublicHeader
-          homeHref={backParams.toString() ? `/${resolvedArticle.locale}?${backParams.toString()}` : `/${resolvedArticle.locale}`}
+          homeHref={
+            backParams.toString()
+              ? `/${resolvedArticle.locale}?${backParams.toString()}`
+              : `/${resolvedArticle.locale}`
+          }
           currentLang={articleLang}
         />
 
         <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
           <div className="flex min-w-0 flex-col gap-5">
             <section className={cn("min-w-0", getSectionOuterClassName())}>
-              <div className={cn("min-w-0 p-5 sm:p-7", getSectionInnerClassName())}>
+              <div
+                className={cn("min-w-0 p-5 sm:p-7", getSectionInnerClassName())}
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
-                    href={backParams.toString() ? `/${resolvedArticle.locale}?${backParams.toString()}` : `/${resolvedArticle.locale}`}
+                    href={
+                      backParams.toString()
+                        ? `/${resolvedArticle.locale}?${backParams.toString()}`
+                        : `/${resolvedArticle.locale}`
+                    }
                     className={cn(
                       buttonVariants({ size: "sm", variant: "outline" }),
                       "h-8 rounded-full border-black/8 bg-[#eef2f7] px-3 text-[0.78rem] font-semibold text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#e7ecf4] hover:text-zinc-950 dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)] dark:hover:bg-[#151b22] dark:hover:text-white",
@@ -122,7 +133,10 @@ export default async function PublicArticlePage({
                     href={resolvedArticle.url}
                     target="_blank"
                     rel="noreferrer"
-                    className={cn(getInteractiveChipClassName(false), "inline-flex items-center gap-2")}
+                    className={cn(
+                      getInteractiveChipClassName(false),
+                      "inline-flex items-center gap-2",
+                    )}
                   >
                     <ExternalLink className="size-3.5" />
                     {text.readSource}
@@ -247,5 +261,5 @@ export default async function PublicArticlePage({
         </div>
       </div>
     </main>
-  )
+  );
 }

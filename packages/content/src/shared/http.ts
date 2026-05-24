@@ -1,7 +1,6 @@
 import { lookup } from "node:dns/promises";
 
-export const DEFAULT_USER_AGENT =
-  "vibeguard-bot/0.1 (+https://vibeguard.dev)";
+export const DEFAULT_USER_AGENT = "vibeguard-bot/0.1 (+https://vibeguard.dev)";
 
 function isPrivateIp(ip: string): boolean {
   const parts = ip.split(".");

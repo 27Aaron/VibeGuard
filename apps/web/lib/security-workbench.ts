@@ -1,4 +1,4 @@
-import type { checkPackagesAgainstLocalDb } from "@vibeguard/content/osv/query"
+import type { checkPackagesAgainstLocalDb } from "@vibeguard/content/osv/query";
 import {
   SECURITY_PACKAGE_ECOSYSTEM_VALUES,
   SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES,
@@ -6,21 +6,23 @@ import {
   type SecurityPackageMatchConfidence,
   type SecurityPackageMatchReason,
   type SecurityPackageEcosystem,
-} from "@vibeguard/shared"
+} from "@vibeguard/shared";
 
-export type SecurityCheckPayload = Awaited<ReturnType<typeof checkPackagesAgainstLocalDb>>
-export type SecurityFinding = SecurityCheckPayload["findings"][number]
-export type SecurityFindingConfidence = SecurityFinding["confidence"]
+export type SecurityCheckPayload = Awaited<
+  ReturnType<typeof checkPackagesAgainstLocalDb>
+>;
+export type SecurityFinding = SecurityCheckPayload["findings"][number];
+export type SecurityFindingConfidence = SecurityFinding["confidence"];
 
-type SecurityRange = SecurityFinding["affectedPackage"]["ranges"][number]
+type SecurityRange = SecurityFinding["affectedPackage"]["ranges"][number];
 
 export function buildSecurityCheckRequestBody(input: {
-  ecosystem: SecurityPackageEcosystem
-  name: string
-  version: string
+  ecosystem: SecurityPackageEcosystem;
+  name: string;
+  version: string;
 }) {
-  const trimmedName = input.name.trim()
-  const trimmedVersion = input.version.trim()
+  const trimmedName = input.name.trim();
+  const trimmedVersion = input.version.trim();
 
   return {
     packages: [
@@ -30,22 +32,24 @@ export function buildSecurityCheckRequestBody(input: {
         version: trimmedVersion || null,
       },
     ],
-  }
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value)
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string")
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
 }
 
 function isOneOf<TValue extends string>(
   allowed: readonly TValue[],
   value: unknown,
 ): value is TValue {
-  return typeof value === "string" && allowed.includes(value as TValue)
+  return typeof value === "string" && allowed.includes(value as TValue);
 }
 
 function isReferenceEntry(value: unknown) {
@@ -53,40 +57,51 @@ function isReferenceEntry(value: unknown) {
     isRecord(value) && typeof value.url === "string"
       ? (() => {
           try {
-            return new URL(value.url)
+            return new URL(value.url);
           } catch {
-            return null
+            return null;
           }
         })()
-      : null
+      : null;
 
   return (
     isRecord(value) &&
-    (typeof value.type === "string" || value.type === null || value.type === undefined) &&
+    (typeof value.type === "string" ||
+      value.type === null ||
+      value.type === undefined) &&
     !!url &&
     (url.protocol === "http:" || url.protocol === "https:")
-  )
+  );
 }
 
 function isSeverityEntry(value: unknown) {
   return (
     isRecord(value) &&
-    (typeof value.type === "string" || value.type === null || value.type === undefined) &&
-    (typeof value.score === "string" || value.score === null || value.score === undefined)
-  )
+    (typeof value.type === "string" ||
+      value.type === null ||
+      value.type === undefined) &&
+    (typeof value.score === "string" ||
+      value.score === null ||
+      value.score === undefined)
+  );
 }
 
 function isRangeEventEntry(value: unknown) {
-  return isRecord(value) && Object.values(value).every((entry) => typeof entry === "string")
+  return (
+    isRecord(value) &&
+    Object.values(value).every((entry) => typeof entry === "string")
+  );
 }
 
 function isRangeEntry(value: unknown) {
   return (
     isRecord(value) &&
-    (typeof value.type === "string" || value.type === null || value.type === undefined) &&
+    (typeof value.type === "string" ||
+      value.type === null ||
+      value.type === undefined) &&
     (value.events === undefined ||
       (Array.isArray(value.events) && value.events.every(isRangeEventEntry)))
-  )
+  );
 }
 
 function isMaliciousOriginEntry(value: unknown) {
@@ -95,10 +110,11 @@ function isMaliciousOriginEntry(value: unknown) {
     (typeof value.id === "string" || value.id === undefined) &&
     (typeof value.source === "string" || value.source === undefined) &&
     (typeof value.importTime === "string" || value.importTime === undefined) &&
-    (typeof value.modifiedTime === "string" || value.modifiedTime === undefined) &&
+    (typeof value.modifiedTime === "string" ||
+      value.modifiedTime === undefined) &&
     isStringArray(value.versions) &&
     (typeof value.sha256 === "string" || value.sha256 === undefined)
-  )
+  );
 }
 
 function isRiskEntry(value: unknown) {
@@ -115,7 +131,7 @@ function isRiskEntry(value: unknown) {
     value.score <= 100 &&
     Array.isArray(value.signals) &&
     value.signals.every((signal) => typeof signal === "string")
-  )
+  );
 }
 
 function isCvssMetricEntry(value: unknown) {
@@ -125,10 +141,12 @@ function isCvssMetricEntry(value: unknown) {
     (typeof value.version === "string" || value.version === undefined) &&
     (typeof value.vector === "string" || value.vector === undefined) &&
     (typeof value.baseScore === "string" || value.baseScore === undefined) &&
-    (typeof value.baseSeverity === "string" || value.baseSeverity === undefined) &&
-    (typeof value.exploitabilityScore === "string" || value.exploitabilityScore === undefined) &&
+    (typeof value.baseSeverity === "string" ||
+      value.baseSeverity === undefined) &&
+    (typeof value.exploitabilityScore === "string" ||
+      value.exploitabilityScore === undefined) &&
     (typeof value.impactScore === "string" || value.impactScore === undefined)
-  )
+  );
 }
 
 function isCveEnrichmentEntry(value: unknown) {
@@ -140,29 +158,35 @@ function isCveEnrichmentEntry(value: unknown) {
     Array.isArray(value.cvssMetrics) &&
     value.cvssMetrics.every(isCvssMetricEntry) &&
     (typeof value.bestCvssScore === "string" || value.bestCvssScore === null) &&
-    (typeof value.bestCvssSeverity === "string" || value.bestCvssSeverity === null) &&
+    (typeof value.bestCvssSeverity === "string" ||
+      value.bestCvssSeverity === null) &&
     isStringArray(value.cweIds) &&
     (typeof value.epss === "string" || value.epss === null) &&
-    (typeof value.epssPercentile === "string" || value.epssPercentile === null) &&
+    (typeof value.epssPercentile === "string" ||
+      value.epssPercentile === null) &&
     (typeof value.epssScoreDate === "string" || value.epssScoreDate === null) &&
-    (typeof value.epssModelVersion === "string" || value.epssModelVersion === null) &&
+    (typeof value.epssModelVersion === "string" ||
+      value.epssModelVersion === null) &&
     typeof value.kevListed === "boolean" &&
     (typeof value.kevDateAdded === "string" || value.kevDateAdded === null) &&
     (typeof value.kevDueDate === "string" || value.kevDueDate === null) &&
     (typeof value.kevKnownRansomwareCampaignUse === "string" ||
       value.kevKnownRansomwareCampaignUse === null) &&
-    (typeof value.kevRequiredAction === "string" || value.kevRequiredAction === null) &&
-    (typeof value.kevVendorProject === "string" || value.kevVendorProject === null) &&
+    (typeof value.kevRequiredAction === "string" ||
+      value.kevRequiredAction === null) &&
+    (typeof value.kevVendorProject === "string" ||
+      value.kevVendorProject === null) &&
     (typeof value.kevProduct === "string" || value.kevProduct === null) &&
     (typeof value.kevNotes === "string" || value.kevNotes === null) &&
-    (typeof value.nvdPublishedAt === "string" || value.nvdPublishedAt === null) &&
+    (typeof value.nvdPublishedAt === "string" ||
+      value.nvdPublishedAt === null) &&
     (typeof value.nvdModifiedAt === "string" || value.nvdModifiedAt === null)
-  )
+  );
 }
 
 function isSecurityFinding(value: unknown): value is SecurityFinding {
   if (!isRecord(value)) {
-    return false
+    return false;
   }
 
   const structurallyValid =
@@ -173,7 +197,8 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
     isRecord(value.package) &&
     isOneOf(SECURITY_PACKAGE_ECOSYSTEM_VALUES, value.package.ecosystem) &&
     typeof value.package.name === "string" &&
-    (typeof value.package.version === "string" || value.package.version === null) &&
+    (typeof value.package.version === "string" ||
+      value.package.version === null) &&
     (typeof value.package.purl === "string" || value.package.purl === null) &&
     isRecord(value.advisory) &&
     typeof value.advisory.id === "string" &&
@@ -182,11 +207,15 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
       value.advisory.sourceUrl === null ||
       value.advisory.sourceUrl === undefined) &&
     typeof value.advisory.riskType === "string" &&
-    (typeof value.advisory.summary === "string" || value.advisory.summary === null) &&
-    (typeof value.advisory.details === "string" || value.advisory.details === null) &&
+    (typeof value.advisory.summary === "string" ||
+      value.advisory.summary === null) &&
+    (typeof value.advisory.details === "string" ||
+      value.advisory.details === null) &&
     isStringArray(value.advisory.aliases) &&
-    (value.advisory.related === undefined || isStringArray(value.advisory.related)) &&
-    (value.advisory.upstream === undefined || isStringArray(value.advisory.upstream)) &&
+    (value.advisory.related === undefined ||
+      isStringArray(value.advisory.related)) &&
+    (value.advisory.upstream === undefined ||
+      isStringArray(value.advisory.upstream)) &&
     Array.isArray(value.advisory.severity) &&
     value.advisory.severity.every(isSeverityEntry) &&
     Array.isArray(value.advisory.references) &&
@@ -197,7 +226,8 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
     (typeof value.advisory.publishedAt === "string" ||
       value.advisory.publishedAt === null ||
       value.advisory.publishedAt === undefined) &&
-    (typeof value.advisory.modifiedAt === "string" || value.advisory.modifiedAt === null) &&
+    (typeof value.advisory.modifiedAt === "string" ||
+      value.advisory.modifiedAt === null) &&
     (typeof value.advisory.withdrawnAt === "string" ||
       value.advisory.withdrawnAt === null ||
       value.advisory.withdrawnAt === undefined) &&
@@ -208,10 +238,10 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
     isStringArray(value.affectedPackage.fixedVersions) &&
     Array.isArray(value.cveEnrichments) &&
     value.cveEnrichments.every(isCveEnrichmentEntry) &&
-    isRiskEntry(value.risk)
+    isRiskEntry(value.risk);
 
   if (!structurallyValid) {
-    return false
+    return false;
   }
 
   if (value.affected) {
@@ -219,100 +249,101 @@ function isSecurityFinding(value: unknown): value is SecurityFinding {
       value.confidence === "high" &&
       (value.matchReason === "explicit_affected_version" ||
         value.matchReason === "version_in_ecosystem_range")
-    )
+    );
   }
 
   if (value.matchReason === "version_outside_ecosystem_range") {
-    return value.confidence === "undetermined"
+    return value.confidence === "undetermined";
   }
 
   if (value.matchReason === "package_match_without_version") {
-    return value.confidence === "low"
+    return value.confidence === "low";
   }
 
   if (value.matchReason === "range_present_but_inconclusive") {
-    return value.confidence === "low" || value.confidence === "medium"
+    return value.confidence === "low" || value.confidence === "medium";
   }
 
-  return false
+  return false;
 }
 
 function isSecurityCheckPayload(value: unknown): value is SecurityCheckPayload {
   if (!value || typeof value !== "object") {
-    return false
+    return false;
   }
 
-  const candidate = value as Partial<SecurityCheckPayload>
+  const candidate = value as Partial<SecurityCheckPayload>;
 
   return (
     !!candidate.meta &&
     typeof candidate.meta.source === "string" &&
-    (typeof candidate.meta.lastSyncedAt === "string" || candidate.meta.lastSyncedAt === null) &&
+    (typeof candidate.meta.lastSyncedAt === "string" ||
+      candidate.meta.lastSyncedAt === null) &&
     typeof candidate.meta.stale === "boolean" &&
     Array.isArray(candidate.findings) &&
     candidate.findings.every(isSecurityFinding)
-  )
+  );
 }
 
 export function parseSecurityCheckPayload(value: unknown) {
   if (!isSecurityCheckPayload(value)) {
-    throw new Error("Malformed security check response.")
+    throw new Error("Malformed security check response.");
   }
 
-  return value
+  return value;
 }
 
 export function getSecurityFindingTone(
   input: Pick<SecurityFinding, "affected" | "matchReason"> & {
-    advisory?: Pick<SecurityFinding["advisory"], "withdrawnAt">
+    advisory?: Pick<SecurityFinding["advisory"], "withdrawnAt">;
   },
 ) {
   if (input.advisory?.withdrawnAt) {
-    return "withdrawn"
+    return "withdrawn";
   }
 
   if (input.affected) {
-    return "hit"
+    return "hit";
   }
 
   switch (input.matchReason) {
     case "package_match_without_version":
     case "range_present_but_inconclusive":
-      return "inconclusive"
+      return "inconclusive";
     case "explicit_affected_version":
     case "version_in_ecosystem_range":
     case "version_outside_ecosystem_range":
-      return "clear"
+      return "clear";
     default: {
-      const exhaustiveCheck: never = input.matchReason
+      const exhaustiveCheck: never = input.matchReason;
 
-      return exhaustiveCheck
+      return exhaustiveCheck;
     }
   }
 }
 
 function formatRangeEvent(event: Record<string, string>) {
   if ("introduced" in event && "fixed" in event) {
-    return `>= ${event.introduced}, < ${event.fixed}`
+    return `>= ${event.introduced}, < ${event.fixed}`;
   }
 
   if ("introduced" in event && "last_affected" in event) {
-    return `>= ${event.introduced}, <= ${event.last_affected}`
+    return `>= ${event.introduced}, <= ${event.last_affected}`;
   }
 
   if ("introduced" in event) {
-    return `>= ${event.introduced}`
+    return `>= ${event.introduced}`;
   }
 
   if ("fixed" in event) {
-    return `< ${event.fixed}`
+    return `< ${event.fixed}`;
   }
 
   if ("last_affected" in event) {
-    return `<= ${event.last_affected}`
+    return `<= ${event.last_affected}`;
   }
 
-  return null
+  return null;
 }
 
 export function formatAffectedRanges(ranges: SecurityRange[]) {
@@ -322,73 +353,75 @@ export function formatAffectedRanges(ranges: SecurityRange[]) {
       !Array.isArray(range.events) ||
       range.events.length === 0
     ) {
-      return []
+      return [];
     }
 
-    const formatted: string[] = []
-    let introduced: string | null = null
+    const formatted: string[] = [];
+    let introduced: string | null = null;
 
     for (const event of range.events) {
       if ("introduced" in event) {
-        introduced = event.introduced
+        introduced = event.introduced;
       }
 
       if (introduced && "fixed" in event) {
-        formatted.push(`>= ${introduced}, < ${event.fixed}`)
-        introduced = null
-        continue
+        formatted.push(`>= ${introduced}, < ${event.fixed}`);
+        introduced = null;
+        continue;
       }
 
       if (introduced && "last_affected" in event) {
-        formatted.push(`>= ${introduced}, <= ${event.last_affected}`)
-        introduced = null
-        continue
+        formatted.push(`>= ${introduced}, <= ${event.last_affected}`);
+        introduced = null;
+        continue;
       }
 
       if (!introduced) {
-        const fallback = formatRangeEvent(event)
+        const fallback = formatRangeEvent(event);
 
         if (fallback) {
-          formatted.push(fallback)
+          formatted.push(fallback);
         }
       }
     }
 
     if (introduced) {
-      formatted.push(`>= ${introduced}`)
+      formatted.push(`>= ${introduced}`);
     }
 
-    return formatted
-  })
+    return formatted;
+  });
 }
 
-export function buildSecurityWorkbenchResultState(payload: SecurityCheckPayload) {
+export function buildSecurityWorkbenchResultState(
+  payload: SecurityCheckPayload,
+) {
   return {
     empty: payload.findings.length === 0,
     stale: payload.meta.stale,
     source: payload.meta.source,
     lastSyncedAt: payload.meta.lastSyncedAt,
     findings: payload.findings,
-  }
+  };
 }
 
 function timestampFromIso(value: string | null | undefined) {
-  if (!value) return 0
-  const parsed = Date.parse(value)
-  return Number.isFinite(parsed) ? parsed : 0
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function numberFromDecimal(value: string | number | null | undefined) {
   if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null
+    return Number.isFinite(value) ? value : null;
   }
 
   if (typeof value !== "string" || !value.trim()) {
-    return null
+    return null;
   }
 
-  const parsed = Number.parseFloat(value)
-  return Number.isFinite(parsed) ? parsed : null
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function getSecurityFindingLatestUpdatedAt(finding: SecurityFinding) {
@@ -400,62 +433,65 @@ export function getSecurityFindingLatestUpdatedAt(finding: SecurityFinding) {
       timestampFromIso(cve.nvdModifiedAt),
       timestampFromIso(cve.nvdPublishedAt),
     ]),
-  )
+  );
 
-  return latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null
+  return latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null;
 }
 
 export function buildSecurityResultSummary(findings: SecurityFinding[]) {
-  const activeFindings = findings.filter((finding) => !finding.advisory.withdrawnAt)
+  const activeFindings = findings.filter(
+    (finding) => !finding.advisory.withdrawnAt,
+  );
   const highestRisk = activeFindings.reduce<{
-    level: SecurityFinding["risk"]["level"]
-    score: number
+    level: SecurityFinding["risk"]["level"];
+    score: number;
   }>(
     (current, finding) =>
       finding.risk.score > current.score
         ? { level: finding.risk.level, score: finding.risk.score }
         : current,
     { level: "unknown", score: 0 },
-  )
+  );
   const highestCvss = Math.max(
     0,
     ...activeFindings.flatMap((finding) =>
       finding.cveEnrichments.flatMap((cve) => {
-        const parsed = numberFromDecimal(cve.bestCvssScore)
-        return parsed === null ? [] : [parsed]
+        const parsed = numberFromDecimal(cve.bestCvssScore);
+        return parsed === null ? [] : [parsed];
       }),
     ),
-  )
+  );
   const latestTimestamp = Math.max(
     0,
     ...findings.flatMap((finding) => {
-      const latest = getSecurityFindingLatestUpdatedAt(finding)
-      return latest ? [timestampFromIso(latest)] : []
+      const latest = getSecurityFindingLatestUpdatedAt(finding);
+      return latest ? [timestampFromIso(latest)] : [];
     }),
-  )
+  );
   const latestFixedVersions = activeFindings.reduce<{
-    timestamp: number
-    versions: string[]
+    timestamp: number;
+    versions: string[];
   }>(
     (current, finding) => {
-      const latest = getSecurityFindingLatestUpdatedAt(finding)
-      const timestamp = latest ? timestampFromIso(latest) : 0
+      const latest = getSecurityFindingLatestUpdatedAt(finding);
+      const timestamp = latest ? timestampFromIso(latest) : 0;
 
       return timestamp > current.timestamp
         ? { timestamp, versions: finding.affectedPackage.fixedVersions }
-        : current
+        : current;
     },
     { timestamp: 0, versions: [] },
-  )
+  );
 
   return {
     count: findings.length,
     affectedCount: activeFindings.filter((finding) => finding.affected).length,
     highestRisk,
     highestCvssScore: highestCvss > 0 ? String(highestCvss) : null,
-    latestUpdatedAt: latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null,
+    latestUpdatedAt:
+      latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null,
     recommendedFixedVersions: Array.from(new Set(latestFixedVersions.versions)),
-  }
+  };
 }
 
 export function formatSecurityMatchReason(
@@ -478,7 +514,7 @@ export function formatSecurityMatchReason(
       range_present_but_inconclusive: "Range present, not conclusive",
       package_match_without_version: "Package matched, version missing",
     },
-  }[lang][reason]
+  }[lang][reason];
   const confidenceText = {
     zh: {
       high: "高置信",
@@ -492,9 +528,9 @@ export function formatSecurityMatchReason(
       low: "Low confidence",
       undetermined: "Undetermined",
     },
-  }[lang][confidence]
+  }[lang][confidence];
 
-  return `${reasonText} · ${confidenceText}`
+  return `${reasonText} · ${confidenceText}`;
 }
 
 export function isSecurityWorkbenchResultState(
@@ -508,5 +544,5 @@ export function isSecurityWorkbenchResultState(
     (typeof value.lastSyncedAt === "string" || value.lastSyncedAt === null) &&
     Array.isArray(value.findings) &&
     value.findings.every(isSecurityFinding)
-  )
+  );
 }

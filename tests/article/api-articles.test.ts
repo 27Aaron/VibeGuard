@@ -1,10 +1,13 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { buildArticleListMeta, parseArticleListParams } from "../../apps/web/lib/api-articles"
+import {
+  buildArticleListMeta,
+  parseArticleListParams,
+} from "../../apps/web/lib/api-articles";
 
 describe("article api query parsing", () => {
   it("defaults to ready chinese results with a sane limit", () => {
-    const params = parseArticleListParams(new URLSearchParams())
+    const params = parseArticleListParams(new URLSearchParams());
 
     expect(params).toEqual({
       lang: "zh",
@@ -16,8 +19,8 @@ describe("article api query parsing", () => {
       tag: "",
       limit: 20,
       page: 1,
-    })
-  })
+    });
+  });
 
   it("accepts known filters and clamps the limit", () => {
     const params = parseArticleListParams(
@@ -32,7 +35,7 @@ describe("article api query parsing", () => {
         limit: "500",
         page: "0",
       }),
-    )
+    );
 
     expect(params).toEqual({
       lang: "zh",
@@ -44,37 +47,37 @@ describe("article api query parsing", () => {
       tag: "typosquat",
       limit: 100,
       page: 1,
-    })
-  })
+    });
+  });
 
   it("falls back to ready when an unknown status is supplied", () => {
     const params = parseArticleListParams(
       new URLSearchParams({
         status: "broken",
       }),
-    )
+    );
 
-    expect(params.status).toBe("ready")
-  })
+    expect(params.status).toBe("ready");
+  });
 
   it("clamps invalid pages and keeps positive page values", () => {
     const invalid = parseArticleListParams(
       new URLSearchParams({
         page: "-7",
       }),
-    )
+    );
     const valid = parseArticleListParams(
       new URLSearchParams({
         page: "3",
         limit: "12",
       }),
-    )
+    );
 
-    expect(invalid.page).toBe(1)
-    expect(valid.page).toBe(3)
-    expect(valid.limit).toBe(12)
-  })
-})
+    expect(invalid.page).toBe(1);
+    expect(valid.page).toBe(3);
+    expect(valid.limit).toBe(12);
+  });
+});
 
 describe("article api pagination metadata", () => {
   it("builds metadata with total pages for paginated responses", () => {
@@ -106,8 +109,8 @@ describe("article api pagination metadata", () => {
       pageSize: 24,
       totalCount: 55,
       totalPages: 3,
-    })
-  })
+    });
+  });
 
   it("clamps metadata to a real page when the requested page is out of range", () => {
     expect(
@@ -134,7 +137,7 @@ describe("article api pagination metadata", () => {
       ecosystem: "npm",
       riskCategory: "vulnerability",
       tag: "cve",
-    })
+    });
 
     expect(
       buildArticleListMeta({
@@ -153,6 +156,6 @@ describe("article api pagination metadata", () => {
     ).toMatchObject({
       page: 3,
       totalPages: 3,
-    })
-  })
-})
+    });
+  });
+});

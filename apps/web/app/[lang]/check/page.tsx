@@ -1,29 +1,34 @@
-import { PublicHeader } from "@/components/public-header"
-import { PackageCheckWorkbench } from "@/components/security/package-check-workbench"
-import { getDb } from "@vibeguard/db"
-import { resolveLang } from "@/lib/i18n"
+import { PublicHeader } from "@/components/public-header";
+import { PackageCheckWorkbench } from "@/components/security/package-check-workbench";
+import { getDb } from "@vibeguard/db";
+import { resolveLang } from "@/lib/i18n";
 import {
   getBackgroundClassName,
   getBackdropClassName,
   getSectionInnerClassName,
   getSectionOuterClassName,
   getShellClassName,
-} from "@/lib/layout-tokens"
-import { getLastSyncTime, getSecurityOverviewTotals } from "@/lib/security-overview"
+} from "@/lib/layout-tokens";
+import {
+  getLastSyncTime,
+  getSecurityOverviewTotals,
+} from "@/lib/security-overview";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 type CheckPageProps = {
-  params: Promise<{ lang: string }>
-}
+  params: Promise<{ lang: string }>;
+};
 
-export default async function CheckPage({ params: routeParams }: CheckPageProps) {
-  const { lang: rawLang } = await routeParams
-  const lang = resolveLang(rawLang)
+export default async function CheckPage({
+  params: routeParams,
+}: CheckPageProps) {
+  const { lang: rawLang } = await routeParams;
+  const lang = resolveLang(rawLang);
   const [overviewTotals, lastSyncTime] = await Promise.all([
     getSecurityOverviewTotals(getDb()),
     getLastSyncTime(getDb()),
-  ])
+  ]);
 
   return (
     <main className={getBackgroundClassName()}>
@@ -38,10 +43,14 @@ export default async function CheckPage({ params: routeParams }: CheckPageProps)
 
         <section className={getSectionOuterClassName()}>
           <div className={getSectionInnerClassName()}>
-            <PackageCheckWorkbench lang={lang} initialOverviewTotals={overviewTotals} lastSyncTime={lastSyncTime?.toISOString() ?? null} />
+            <PackageCheckWorkbench
+              lang={lang}
+              initialOverviewTotals={overviewTotals}
+              lastSyncTime={lastSyncTime?.toISOString() ?? null}
+            />
           </div>
         </section>
       </div>
     </main>
-  )
+  );
 }

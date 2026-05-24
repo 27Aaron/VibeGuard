@@ -11,8 +11,7 @@ export type RelevanceResult = {
   reason: string;
 };
 
-const DEFAULT_RELEVANCE_PROMPT =
-  `Determine whether the following article is relevant to software supply-chain security, open-source security, dependency safety, malicious packages, or vulnerability exploitation.
+const DEFAULT_RELEVANCE_PROMPT = `Determine whether the following article is relevant to software supply-chain security, open-source security, dependency safety, malicious packages, or vulnerability exploitation.
 
 Relevant topics include: typosquatting, dependency confusion, account takeover targeting package registries, malicious npm/PyPI/crates/etc. packages, CI/CD pipeline attacks, build-system compromises, code-signing or signature verification issues, dependency hijacking, and similar threats.
 
@@ -34,8 +33,8 @@ function safeSlice(text: string, maxChars: number): string {
 }
 
 interface RawRelevanceResponse {
-  relevant?: unknown
-  reason?: unknown
+  relevant?: unknown;
+  reason?: unknown;
 }
 
 function parseRelevanceResponse(value: string): RelevanceResult | null {
@@ -65,7 +64,7 @@ function buildRelevancePrompt(input: {
   return {
     systemPrompt: resolveRelevancePrompt(input.systemPrompt),
     userContent: safeSlice(input.sourceText, MAX_SOURCE_LENGTH),
-  }
+  };
 }
 
 export function resolveRelevancePrompt(value: string | null | undefined) {
@@ -92,7 +91,10 @@ export async function classifyRelevance(input: {
 
   const parsed = parseRelevanceResponse(text);
 
-  const result = parsed ?? { relevant: false, reason: "Failed to parse relevance response" };
+  const result = parsed ?? {
+    relevant: false,
+    reason: "Failed to parse relevance response",
+  };
 
   return { result, usage };
 }

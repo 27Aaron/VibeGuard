@@ -250,12 +250,8 @@
           "name": "articles_feed_id_feeds_id_fk",
           "tableFrom": "articles",
           "tableTo": "feeds",
-          "columnsFrom": [
-            "feed_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["feed_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -265,9 +261,7 @@
         "articles_url_unique": {
           "name": "articles_url_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "url"
-          ]
+          "columns": ["url"]
         }
       },
       "policies": {},
@@ -388,9 +382,7 @@
         "feeds_feed_url_unique": {
           "name": "feeds_feed_url_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "feed_url"
-          ]
+          "columns": ["feed_url"]
         }
       },
       "policies": {},
@@ -648,12 +640,8 @@
           "name": "llm_usage_logs_article_id_articles_id_fk",
           "tableFrom": "llm_usage_logs",
           "tableTo": "articles",
-          "columnsFrom": [
-            "article_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["article_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -661,12 +649,8 @@
           "name": "llm_usage_logs_job_id_processing_jobs_id_fk",
           "tableFrom": "llm_usage_logs",
           "tableTo": "processing_jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -836,12 +820,8 @@
           "name": "processing_jobs_article_id_articles_id_fk",
           "tableFrom": "processing_jobs",
           "tableTo": "articles",
-          "columnsFrom": [
-            "article_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["article_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1177,12 +1157,8 @@
           "name": "security_affected_packages_advisory_id_security_advisories_id_fk",
           "tableFrom": "security_affected_packages",
           "tableTo": "security_advisories",
-          "columnsFrom": [
-            "advisory_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["advisory_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1572,13 +1548,7 @@
     "public.article_status": {
       "name": "article_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "processing",
-        "ready",
-        "failed",
-        "filtered"
-      ]
+      "values": ["pending", "processing", "ready", "failed", "filtered"]
     },
     "public.job_pipeline_stage": {
       "name": "job_pipeline_stage",
@@ -1612,40 +1582,22 @@
     "public.job_type": {
       "name": "job_type",
       "schema": "public",
-      "values": [
-        "extract",
-        "translate",
-        "summarize"
-      ]
+      "values": ["extract", "translate", "summarize"]
     },
     "public.security_package_ecosystem": {
       "name": "security_package_ecosystem",
       "schema": "public",
-      "values": [
-        "npm",
-        "pypi",
-        "go",
-        "crates-io"
-      ]
+      "values": ["npm", "pypi", "go", "crates-io"]
     },
     "public.security_risk_type": {
       "name": "security_risk_type",
       "schema": "public",
-      "values": [
-        "unknown",
-        "vulnerability",
-        "malicious-package"
-      ]
+      "values": ["unknown", "vulnerability", "malicious-package"]
     },
     "public.security_sync_status": {
       "name": "security_sync_status",
       "schema": "public",
-      "values": [
-        "idle",
-        "running",
-        "success",
-        "failed"
-      ]
+      "values": ["idle", "running", "success", "failed"]
     }
   },
   "schemas": {},

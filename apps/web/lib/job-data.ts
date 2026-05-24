@@ -1,24 +1,34 @@
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
-import { articles, feeds, getDb, llmSettings, processingJobs } from "@vibeguard/db"
-import { JobStatus } from "@vibeguard/shared"
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import {
+  articles,
+  feeds,
+  getDb,
+  llmSettings,
+  processingJobs,
+} from "@vibeguard/db";
+import { JobStatus } from "@vibeguard/shared";
 import {
   DEFAULT_ADMIN_JOB_PAGE_SIZE,
   type AdminJobStageFilter,
   type AdminJobListParams,
-} from "./admin-job-pagination"
-import type { AppLang } from "./i18n"
-import { formatDateTimeInShanghai } from "./time"
-import { normalizeUserFacingError } from "./errors"
+} from "./admin-job-pagination";
+import type { AppLang } from "./i18n";
+import { formatDateTimeInShanghai } from "./time";
+import { normalizeUserFacingError } from "./errors";
 
-function formatDateTime(value: Date | null | undefined, lang: AppLang = "zh", fallback?: string) {
-  return formatDateTimeInShanghai(value, { lang, fallback })
+function formatDateTime(
+  value: Date | null | undefined,
+  lang: AppLang = "zh",
+  fallback?: string,
+) {
+  return formatDateTimeInShanghai(value, { lang, fallback });
 }
 
 const RUNNING_JOB_STATUSES = [
   JobStatus.RUNNING,
   JobStatus.PAUSE_REQUESTED,
   JobStatus.CANCEL_REQUESTED,
-] as const
+] as const;
 const VISIBLE_JOB_STATUSES = [
   JobStatus.QUEUED,
   JobStatus.RUNNING,
@@ -26,21 +36,22 @@ const VISIBLE_JOB_STATUSES = [
   JobStatus.CANCEL_REQUESTED,
   JobStatus.PAUSED,
   JobStatus.FAILED,
-] as const
+] as const;
 
 export async function getDashboardOverview(lang: AppLang = "zh") {
-  const db = getDb()
-  const [feedCountRow, articleCountRow, queuedJobsRow, activeSettings] = await Promise.all([
-    db.select({ count: sql<number>`count(*)` }).from(feeds),
-    db.select({ count: sql<number>`count(*)` }).from(articles),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(processingJobs)
-      .where(inArray(processingJobs.status, VISIBLE_JOB_STATUSES)),
-    db.query.llmSettings.findFirst({
-      where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
-    }),
-  ])
+  const db = getDb();
+  const [feedCountRow, articleCountRow, queuedJobsRow, activeSettings] =
+    await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(feeds),
+      db.select({ count: sql<number>`count(*)` }).from(articles),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(processingJobs)
+        .where(inArray(processingJobs.status, VISIBLE_JOB_STATUSES)),
+      db.query.llmSettings.findFirst({
+        where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
+      }),
+    ]);
 
   return [
     {
@@ -80,11 +91,11 @@ export async function getDashboardOverview(lang: AppLang = "zh") {
           ? "请先配置模型服务访问参数"
           : "Configure model service access before processing articles",
     },
-  ] as const
+  ] as const;
 }
 
 export async function getJobPreviewRows() {
-  const db = getDb()
+  const db = getDb();
   const rows = await db
     .select({
       id: processingJobs.id,
@@ -96,12 +107,14 @@ export async function getJobPreviewRows() {
     })
     .from(processingJobs)
     .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
-    .where(inArray(processingJobs.status, [
-      JobStatus.QUEUED,
-      ...RUNNING_JOB_STATUSES,
-    ]))
+    .where(
+      inArray(processingJobs.status, [
+        JobStatus.QUEUED,
+        ...RUNNING_JOB_STATUSES,
+      ]),
+    )
     .orderBy(desc(processingJobs.createdAt))
-    .limit(5)
+    .limit(5);
 
   return rows.map((row) => ({
     id: row.id,
@@ -109,28 +122,30 @@ export async function getJobPreviewRows() {
     jobType: row.jobType,
     status: row.status,
     runAt: formatDateTime(row.runAfter),
-  }))
+  }));
 }
 
 export async function getJobStatusCounts(lang: AppLang = "zh") {
-  const db = getDb()
+  const db = getDb();
   const counts = await db
     .select({
       status: processingJobs.status,
       count: sql<number>`count(*)`,
     })
     .from(processingJobs)
-    .groupBy(processingJobs.status)
+    .groupBy(processingJobs.status);
 
-  const countMap = new Map(counts.map((row) => [row.status, Number(row.count)]))
+  const countMap = new Map(
+    counts.map((row) => [row.status, Number(row.count)]),
+  );
 
   // 统计被过滤的文章关联的任务数
   const [filteredCountRow] = await db
     .select({ count: sql<number>`count(*)` })
     .from(processingJobs)
     .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
-    .where(eq(articles.status, "filtered"))
-  const filteredCount = Number(filteredCountRow?.count ?? 0)
+    .where(eq(articles.status, "filtered"));
+  const filteredCount = Number(filteredCountRow?.count ?? 0);
 
   return [
     {
@@ -164,42 +179,63 @@ export async function getJobStatusCounts(lang: AppLang = "zh") {
       label: lang === "zh" ? "失败" : "Failed",
       count: countMap.get("failed") ?? 0,
     },
-    { status: "filtered", label: lang === "zh" ? "已过滤" : "Filtered", count: filteredCount },
-  ] as const
+    {
+      status: "filtered",
+      label: lang === "zh" ? "已过滤" : "Filtered",
+      count: filteredCount,
+    },
+  ] as const;
 }
 
-type JobStatusInput = "all" | "running" | "queued" | "paused" | "failed" | "filtered"
+type JobStatusInput =
+  | "all"
+  | "running"
+  | "queued"
+  | "paused"
+  | "failed"
+  | "filtered";
 
-export async function getJobRows(input: Partial<AdminJobListParams> & {
-  status?: JobStatusInput
-  lang?: AppLang
-} = {}) {
-  const db = getDb()
-  const status = input.status ?? "all"
-  const stage = input.stage ?? "all"
-  const lang = input.lang ?? "zh"
-  const pageSize = input.pageSize ?? DEFAULT_ADMIN_JOB_PAGE_SIZE
-  const requestedPage = Math.max(1, Math.floor(input.page ?? 1))
-  const visibleJobFilter = inArray(processingJobs.status, VISIBLE_JOB_STATUSES)
+export async function getJobRows(
+  input: Partial<AdminJobListParams> & {
+    status?: JobStatusInput;
+    lang?: AppLang;
+  } = {},
+) {
+  const db = getDb();
+  const status = input.status ?? "all";
+  const stage = input.stage ?? "all";
+  const lang = input.lang ?? "zh";
+  const pageSize = input.pageSize ?? DEFAULT_ADMIN_JOB_PAGE_SIZE;
+  const requestedPage = Math.max(1, Math.floor(input.page ?? 1));
+  const visibleJobFilter = inArray(processingJobs.status, VISIBLE_JOB_STATUSES);
   const filters = [
-    status === "all" ? visibleJobFilter
-      : status === "filtered" ? eq(articles.status, "filtered")
-      : status === "running" ? inArray(processingJobs.status, RUNNING_JOB_STATUSES)
-      : eq(processingJobs.status, status),
+    status === "all"
+      ? visibleJobFilter
+      : status === "filtered"
+        ? eq(articles.status, "filtered")
+        : status === "running"
+          ? inArray(processingJobs.status, RUNNING_JOB_STATUSES)
+          : eq(processingJobs.status, status),
     stage === "all"
       ? undefined
-      : eq(processingJobs.pipelineStage, stage as Exclude<AdminJobStageFilter, "all">),
-  ].filter(Boolean)
-  const useJoin = status === "filtered"
+      : eq(
+          processingJobs.pipelineStage,
+          stage as Exclude<AdminJobStageFilter, "all">,
+        ),
+  ].filter(Boolean);
+  const useJoin = status === "filtered";
   const baseQuery = useJoin
-    ? db.select({ count: sql<number>`count(*)` }).from(processingJobs).innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
-    : db.select({ count: sql<number>`count(*)` }).from(processingJobs)
-  const where = filters.length > 0 ? and(...filters) : undefined
-  const [countRow] = await baseQuery.where(where)
-  const totalCount = Number(countRow?.count ?? 0)
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
-  const page = Math.min(requestedPage, totalPages)
-  const offset = (page - 1) * pageSize
+    ? db
+        .select({ count: sql<number>`count(*)` })
+        .from(processingJobs)
+        .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
+    : db.select({ count: sql<number>`count(*)` }).from(processingJobs);
+  const where = filters.length > 0 ? and(...filters) : undefined;
+  const [countRow] = await baseQuery.where(where);
+  const totalCount = Number(countRow?.count ?? 0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(requestedPage, totalPages);
+  const offset = (page - 1) * pageSize;
   const rows = await db
     .select({
       id: processingJobs.id,
@@ -224,7 +260,7 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
     .where(where)
     .orderBy(desc(processingJobs.updatedAt))
     .limit(pageSize)
-    .offset(offset)
+    .offset(offset);
 
   return {
     rows: rows.map((row) => ({
@@ -233,8 +269,11 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
       articleTitle: row.articleTitleZh || row.articleTitleEn,
       sourceName: row.sourceName,
       jobType: row.jobType,
-      status: status === "filtered" ? "filtered" as const : row.status,
-      pipelineStage: status === "filtered" ? "classify_relevance" as const : row.pipelineStage,
+      status: status === "filtered" ? ("filtered" as const) : row.status,
+      pipelineStage:
+        status === "filtered"
+          ? ("classify_relevance" as const)
+          : row.pipelineStage,
       attempt: row.attempt,
       maxAttempts: row.maxAttempts,
       runAt: formatDateTime(row.runAfter, lang),
@@ -261,5 +300,5 @@ export async function getJobRows(input: Partial<AdminJobListParams> & {
       from: totalCount === 0 ? 0 : offset + 1,
       to: offset + rows.length,
     },
-  }
+  };
 }

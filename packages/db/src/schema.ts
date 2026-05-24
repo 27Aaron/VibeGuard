@@ -36,10 +36,7 @@ export const securityPackageEcosystemValues = SECURITY_PACKAGE_ECOSYSTEM_VALUES;
 export const securitySyncStatusValues = SECURITY_SYNC_STATUS_VALUES;
 export const securityRiskTypeValues = SECURITY_RISK_TYPE_VALUES;
 
-export const articleStatusEnum = pgEnum(
-  "article_status",
-  articleStatusValues,
-);
+export const articleStatusEnum = pgEnum("article_status", articleStatusValues);
 
 export const jobStatusEnum = pgEnum("job_status", jobStatusValues);
 
@@ -129,7 +126,10 @@ export const articles = pgTable(
     riskCategory: articleRiskCategoryEnum("risk_category")
       .notNull()
       .default("unknown"),
-    tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    tags: jsonb("tags")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
     publishedAtIsFallback: boolean("published_at_is_fallback")
       .notNull()
@@ -194,7 +194,9 @@ export const processingJobs = pgTable(
     index("processing_jobs_pipeline_stage_idx").on(table.pipelineStage),
     uniqueIndex("processing_jobs_active_unique")
       .on(table.articleId, table.jobType)
-      .where(sql`${table.status} <> 'succeeded' and ${table.status} <> 'failed'`),
+      .where(
+        sql`${table.status} <> 'succeeded' and ${table.status} <> 'failed'`,
+      ),
   ],
 );
 
@@ -210,8 +212,14 @@ export const llmSettings = pgTable(
     translateContentPrompt: text("translate_content_prompt").notNull(),
     summaryPromptEn: text("summary_prompt_en").notNull(),
     summaryPromptZh: text("summary_prompt_zh").notNull(),
-    tagPrompt: text("tag_prompt").notNull().default("Extract short supply-chain security tags as strict JSON."),
-    relevancePrompt: text("relevance_prompt").notNull().default("Determine whether the article is relevant to software supply-chain security. Output ONLY JSON: {\"relevant\": true/false, \"reason\": \"one-sentence explanation\"}"),
+    tagPrompt: text("tag_prompt")
+      .notNull()
+      .default("Extract short supply-chain security tags as strict JSON."),
+    relevancePrompt: text("relevance_prompt")
+      .notNull()
+      .default(
+        'Determine whether the article is relevant to software supply-chain security. Output ONLY JSON: {"relevant": true/false, "reason": "one-sentence explanation"}',
+      ),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -311,7 +319,10 @@ export const securityAdvisories = pgTable(
     riskType: securityRiskTypeEnum("risk_type").notNull().default("unknown"),
     summary: text("summary").notNull().default(""),
     details: text("details"),
-    aliases: jsonb("aliases").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    aliases: jsonb("aliases")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     relatedIds: jsonb("related_ids")
       .$type<string[]>()
       .notNull()
@@ -334,12 +345,12 @@ export const securityAdvisories = pgTable(
     maliciousOrigins: jsonb("malicious_origins")
       .$type<
         Array<{
-          id?: string
-          source?: string
-          importTime?: string
-          modifiedTime?: string
-          versions: string[]
-          sha256?: string
+          id?: string;
+          source?: string;
+          importTime?: string;
+          modifiedTime?: string;
+          versions: string[];
+          sha256?: string;
         }>
       >()
       .notNull()
