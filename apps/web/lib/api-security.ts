@@ -4,6 +4,8 @@ import {
 } from "@vibeguard/shared";
 
 export const SECURITY_PACKAGE_CHECK_MAX_PACKAGES = 100;
+const MAX_PACKAGE_NAME_LENGTH = 256;
+const MAX_PACKAGE_VERSION_LENGTH = 128;
 
 export type SecurityPackageCheckCoordinate = {
   ecosystem: SecurityPackageEcosystem;
@@ -85,10 +87,24 @@ export function parseSecurityPackageCheckBody(
       };
     }
 
+    if (name.length > MAX_PACKAGE_NAME_LENGTH) {
+      return {
+        ok: false,
+        message: `packages[${index}].name exceeds ${MAX_PACKAGE_NAME_LENGTH} characters.`,
+      };
+    }
+
     const version =
       typeof item.version === "string" && item.version.trim()
         ? item.version.trim()
         : null;
+
+    if (version && version.length > MAX_PACKAGE_VERSION_LENGTH) {
+      return {
+        ok: false,
+        message: `packages[${index}].version exceeds ${MAX_PACKAGE_VERSION_LENGTH} characters.`,
+      };
+    }
 
     packages.push({
       ecosystem,

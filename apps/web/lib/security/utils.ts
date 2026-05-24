@@ -60,6 +60,10 @@ function isSupportedRiskType(value: string): value is SecurityRiskType {
   return SECURITY_RISK_TYPE_VALUES.includes(value as SecurityRiskType);
 }
 
+function clampStringLength(raw: string, max: number) {
+  return raw.length > max ? raw.slice(0, max) : raw;
+}
+
 function normalizeSecurityCveId(value: string) {
   const normalized = value.trim().toUpperCase();
   return /^CVE-\d{4}-\d{4,}$/.test(normalized) ? normalized : null;
@@ -72,9 +76,9 @@ export function parseSecurityAdvisoryListParams(
   const riskTypeParam = searchParams.get("riskType")?.trim() ?? "";
 
   return {
-    q: searchParams.get("q")?.trim() ?? "",
+    q: clampStringLength(searchParams.get("q")?.trim() ?? "", 256),
     ecosystem: isSupportedEcosystem(ecosystemParam) ? ecosystemParam : null,
-    packageName: searchParams.get("package")?.trim() ?? "",
+    packageName: clampStringLength(searchParams.get("package")?.trim() ?? "", 256),
     cve: normalizeSecurityCveId(searchParams.get("cve") ?? ""),
     riskType: isSupportedRiskType(riskTypeParam) ? riskTypeParam : null,
     kev: optionalBoolean(searchParams.get("kev")),

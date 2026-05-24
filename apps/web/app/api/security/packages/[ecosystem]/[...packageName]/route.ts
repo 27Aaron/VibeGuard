@@ -50,8 +50,17 @@ export async function GET(
     );
   }
 
-  const version =
+  if (name.length > 256) {
+    return NextResponse.json(
+      { ok: false, message: "package name too long." },
+      { status: 400 },
+    );
+  }
+
+  const rawVersion =
     new URL(request.url).searchParams.get("version")?.trim() || null;
+  const version =
+    rawVersion && rawVersion.length <= 128 ? rawVersion : null;
   const payload = await getSecurityPackageProfile(getDb(), {
     ecosystem,
     name,
