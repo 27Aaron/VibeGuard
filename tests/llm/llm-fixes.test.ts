@@ -15,9 +15,9 @@ import { summarizeText } from "../../packages/llm/src/summarize";
 import { protectMarkdownCode } from "../../packages/llm/src/translate";
 
 // ---------------------------------------------------------------------------
-// W01: system/user message separation enables prompt caching
+// system/user 消息分离以启用 prompt 缓存
 // ---------------------------------------------------------------------------
-describe("W01: system/user message separation (prompts.ts)", () => {
+describe("system/user message separation (prompts.ts)", () => {
   it("should separate translation system prompt from user content", () => {
     const systemPrompt = buildTranslationSystemPrompt("You are a translator.");
     expect(systemPrompt).toContain("You are a translator.");
@@ -36,9 +36,9 @@ describe("W01: system/user message separation (prompts.ts)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W02: tag extraction prompt separates system/user (tags.ts)
+// 标签提取 prompt 分离 system/user（tags.ts）
 // ---------------------------------------------------------------------------
-describe("W02: tag extraction prompt separates system/user (tags.ts)", () => {
+describe("tag extraction prompt separates system/user (tags.ts)", () => {
   it("should return separate systemPrompt and userContent", () => {
     const result = buildTagExtractionPrompt({
       systemPrompt: "Extract tags.",
@@ -51,9 +51,9 @@ describe("W02: tag extraction prompt separates system/user (tags.ts)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W03: API key validation in client.ts
+// client.ts 中 API key 校验
 // ---------------------------------------------------------------------------
-describe("W03: API key validation (client.ts)", () => {
+describe("API key validation (client.ts)", () => {
   it("should throw if apiKey is empty string", () => {
     expect(() =>
       createOpenAIClient({ baseUrl: "https://api.example.com", apiKey: "" }),
@@ -71,9 +71,9 @@ describe("W03: API key validation (client.ts)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W45: Decryption failure logging in credentials.ts
+// credentials.ts 解密失败日志
 // ---------------------------------------------------------------------------
-describe("W45: decryption failure logs warning (credentials.ts)", () => {
+describe("decryption failure logs warning (credentials.ts)", () => {
   it("should log a warning when decryption fails", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -110,9 +110,9 @@ describe("W45: decryption failure logs warning (credentials.ts)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W46: safe slice for multi-byte characters in relevance.ts
+// relevance.ts 多字节字符安全截取
 // ---------------------------------------------------------------------------
-describe("W46: safe slice preserves multi-byte characters (relevance.ts)", () => {
+describe("safe slice preserves multi-byte characters (relevance.ts)", () => {
   it("should not split surrogate pairs at the boundary", () => {
     // Build a string where the 4000th character is in the middle of a surrogate pair
     const emoji = "😀"; // U+1F600 😀
@@ -158,9 +158,9 @@ describe("W46: safe slice preserves multi-byte characters (relevance.ts)", () =>
 });
 
 // ---------------------------------------------------------------------------
-// W47: input size limit in summarize.ts
+// summarize.ts 输入大小限制
 // ---------------------------------------------------------------------------
-describe("W47: summarize input size limit with truncation warning (summarize.ts)", () => {
+describe("summarize input size limit with truncation warning (summarize.ts)", () => {
   it("should warn when source text exceeds max length", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -221,9 +221,9 @@ describe("W47: summarize input size limit with truncation warning (summarize.ts)
 });
 
 // ---------------------------------------------------------------------------
-// W48: restore function efficiency in translate.ts
+// translate.ts restore 函数效率优化
 // ---------------------------------------------------------------------------
-describe("W48: restore uses replaceAll instead of split/join (translate.ts)", () => {
+describe("restore uses replaceAll instead of split/join (translate.ts)", () => {
   it("should correctly restore all code blocks", () => {
     const code = "```js\nconsole.log('hi')\n```";
     const inline = "`var x = 1`";
@@ -255,9 +255,9 @@ describe("W48: restore uses replaceAll instead of split/join (translate.ts)", ()
 });
 
 // ---------------------------------------------------------------------------
-// W49: stripJsonFence handles multiple nested fences
+// stripJsonFence 处理多层嵌套围栏
 // ---------------------------------------------------------------------------
-describe("W49: stripJsonFence handles multiple fences (utils.ts)", () => {
+describe("stripJsonFence handles multiple fences (utils.ts)", () => {
   it("should strip a single code fence", () => {
     expect(stripJsonFence('```json\n{"a": 1}\n```')).toBe('{"a": 1}');
   });
@@ -280,9 +280,9 @@ describe("W49: stripJsonFence handles multiple fences (utils.ts)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// W50: less greedy think tag regex in chat.ts
+// chat.ts think 标签正则改为非贪婪
 // ---------------------------------------------------------------------------
-describe("W50: think tag stripping is less greedy (chat.ts)", () => {
+describe("think tag stripping is less greedy (chat.ts)", () => {
   it("should handle unclosed <think tag at end of content", () => {
     const text = "Hello world<think some thinking content";
     // Old regex: /<think[\s\S]*$/g matches from <think to end

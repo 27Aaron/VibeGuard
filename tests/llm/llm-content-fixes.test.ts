@@ -23,10 +23,10 @@ import {
 } from "../../packages/content/src/feed/normalize";
 
 // ---------------------------------------------------------------------------
-// I06: chat.ts — lastError default value
+// chat.ts lastError 默认值
 // ---------------------------------------------------------------------------
 
-describe("I06: createChatCompletionTextWithRetry lastError default", () => {
+describe("createChatCompletionTextWithRetry lastError default", () => {
   it("throws a meaningful error when maxAttempts <= 0", async () => {
     const result = createChatCompletionTextWithRetry({
       client: {
@@ -68,10 +68,10 @@ describe("I06: createChatCompletionTextWithRetry lastError default", () => {
 });
 
 // ---------------------------------------------------------------------------
-// I19: relevance.ts — no redundant type casts
+// relevance.ts 移除冗余类型断言
 // ---------------------------------------------------------------------------
 
-describe("I19: parseRelevanceResponse via classifyRelevance", () => {
+describe("parseRelevanceResponse via classifyRelevance", () => {
   function makeMockClient(text: string) {
     return {
       chat: {
@@ -114,10 +114,10 @@ describe("I19: parseRelevanceResponse via classifyRelevance", () => {
 });
 
 // ---------------------------------------------------------------------------
-// I20: translate.ts — improved fenced code block regex
+// translate.ts 改进代码块围栏正则
 // ---------------------------------------------------------------------------
 
-describe("I20: protectMarkdownCode", () => {
+describe("protectMarkdownCode", () => {
   it("protects fenced code blocks with language tags", () => {
     const input = [
       "Some text",
@@ -181,10 +181,10 @@ describe("I20: protectMarkdownCode", () => {
 });
 
 // ---------------------------------------------------------------------------
-// I21: utils.ts — resolvePrompt blank string handling
+// utils.ts resolvePrompt 空字符串处理
 // ---------------------------------------------------------------------------
 
-describe("I21: resolvePrompt validation", () => {
+describe("resolvePrompt validation", () => {
   it("returns fallback for null", () => {
     expect(resolvePrompt(null, "fallback")).toBe("fallback");
   });
@@ -209,10 +209,10 @@ describe("I21: resolvePrompt validation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// I07: osv/sync.ts — unused execFile removed (compile-time check)
+// osv/sync.ts 移除未使用的 execFile（编译期检查）
 // ---------------------------------------------------------------------------
 
-describe("I07: osv/sync.ts — no unused execFile import", () => {
+describe("osv/sync.ts — no unused execFile import", () => {
   it("buildModifiedIdCsvUrl produces expected URL", () => {
     const url = buildModifiedIdCsvUrl("npm");
     expect(url).toContain("npm");
@@ -227,10 +227,10 @@ describe("I07: osv/sync.ts — no unused execFile import", () => {
 });
 
 // ---------------------------------------------------------------------------
-// I22: feed/normalize.ts — tighter FeedItemInput index signature
+// feed/normalize.ts 收紧 FeedItemInput 索引签名
 // ---------------------------------------------------------------------------
 
-describe("I22: FeedItemInput type tightness", () => {
+describe("FeedItemInput type tightness", () => {
   it("accepts valid feed item with standard fields", () => {
     const item: FeedItemInput = {
       title: "Test Article",
@@ -269,10 +269,10 @@ describe("I22: FeedItemInput type tightness", () => {
 });
 
 // ---------------------------------------------------------------------------
-// I24: osv/sync.ts — nextIndex documented as safe (verified by reading source)
+// osv/sync.ts console.log 不从模块作用域导入
 // ---------------------------------------------------------------------------
 
-describe("I24: osv/sync.ts — nextIndex safety documentation", () => {
+describe("osv/sync.ts — nextIndex safety documentation", () => {
   it("parseModifiedIdCsv respects limit=0", () => {
     const rows = parseModifiedIdCsv(
       "modified,id\n2024-01-01T00:00:00Z,CVE-1",
