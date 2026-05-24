@@ -92,7 +92,7 @@ export async function classifyRelevance(input: {
 
   const parsed = parseRelevanceResponse(text);
 
-  const result = parsed ?? { relevant: true, reason: "Failed to parse relevance response" };
+  const result = parsed ?? { relevant: false, reason: "Failed to parse relevance response" };
 
   return { result, usage };
 }

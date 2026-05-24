@@ -83,7 +83,7 @@ describe("I19: parseRelevanceResponse via classifyRelevance", () => {
     expect(result.reason).toBe("about vulnerabilities")
   })
 
-  it("returns default relevant=true when response is unparseable", async () => {
+  it("returns default relevant=false when response is unparseable", async () => {
     const client = makeMockClient("not json at all")
     const { result } = await classifyRelevance({
       // @ts-expect-error -- simplified mock
@@ -92,7 +92,7 @@ describe("I19: parseRelevanceResponse via classifyRelevance", () => {
       systemPrompt: null,
       sourceText: "some text",
     })
-    expect(result.relevant).toBe(true)
+    expect(result.relevant).toBe(false)
     expect(result.reason).toBe("Failed to parse relevance response")
   })
 })

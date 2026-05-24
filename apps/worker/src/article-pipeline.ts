@@ -644,6 +644,10 @@ async function updateArticlePatchWithFallback(
       `updateArticlePatchWithFallback failed for article ${article.id}:`,
       error,
     )
+    throw new Error(
+      `Failed to persist article patch for ${article.id}`,
+      { cause: error },
+    )
   }
 }
 

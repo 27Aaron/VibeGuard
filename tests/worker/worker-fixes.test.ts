@@ -458,7 +458,7 @@ describe("W56: runWorkerLoop respects max iteration limit", () => {
 // W57: updateArticlePatchWithFallback graceful error handling
 // ---------------------------------------------------------------------------
 describe("W57: updateArticlePatchWithFallback catches errors gracefully", () => {
-  it("does not throw when updateArticleContent fails in summarize job", async () => {
+  it("throws when updateArticleContent fails in summarize job", async () => {
     const article = {
       id: "article-1",
       url: "https://example.com/article",
@@ -472,31 +472,29 @@ describe("W57: updateArticlePatchWithFallback catches errors gracefully", () => 
       .fn()
       .mockRejectedValue(new Error("db connection lost"));
 
-    // processSummarizeJob path: should not throw despite update failure
-    const result = await processArticleJob(
-      { articleId: article.id, jobType: JobType.SUMMARIZE },
-      {
-        loadArticle: vi.fn().mockResolvedValue(article),
-        loadActiveLlmSettings: vi.fn().mockResolvedValue({
-          apiKeyEncrypted: "encrypted",
-          baseUrl: "https://llm.example.com/v1",
-          model: "test-model",
-          summaryPromptEn: "summarize en",
-          summaryPromptZh: "summarize zh",
-        }),
-        markArticleStatus: vi.fn().mockResolvedValue(undefined),
-        updateArticleContent,
-        fetchArticleHtml: vi.fn(),
-        extractMarkdownFromHtml: vi.fn(),
-        createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
-        decryptSecret: vi.fn().mockReturnValue("plain-key"),
-        translateText: vi.fn(),
-        summarizeText: vi.fn().mockResolvedValue("summary text"),
-      } as never,
-    );
-
-    // Should resolve without throwing (the error was caught gracefully)
-    expect(result).toBeUndefined();
+    await expect(
+      processArticleJob(
+        { articleId: article.id, jobType: JobType.SUMMARIZE },
+        {
+          loadArticle: vi.fn().mockResolvedValue(article),
+          loadActiveLlmSettings: vi.fn().mockResolvedValue({
+            apiKeyEncrypted: "encrypted",
+            baseUrl: "https://llm.example.com/v1",
+            model: "test-model",
+            summaryPromptEn: "summarize en",
+            summaryPromptZh: "summarize zh",
+          }),
+          markArticleStatus: vi.fn().mockResolvedValue(undefined),
+          updateArticleContent,
+          fetchArticleHtml: vi.fn(),
+          extractMarkdownFromHtml: vi.fn(),
+          createOpenAIClient: vi.fn().mockReturnValue(createRelevantChatClient()),
+          decryptSecret: vi.fn().mockReturnValue("plain-key"),
+          translateText: vi.fn(),
+          summarizeText: vi.fn().mockResolvedValue("summary text"),
+        } as never,
+      ),
+    ).rejects.toThrow("Failed to persist article patch for article-1");
     expect(updateArticleContent).toHaveBeenCalled();
   });
 });

@@ -450,13 +450,10 @@ export async function syncOsvEcosystem({
     }
   }
 
-  const hasPartialSuccess = recordsImported > 0 || recordsSkipped > 0
   const syncStatus =
     recordsFailed === 0
       ? SecuritySyncStatus.SUCCESS
-      : hasPartialSuccess
-        ? SecuritySyncStatus.SUCCESS
-        : SecuritySyncStatus.FAILED
+      : SecuritySyncStatus.FAILED
 
   await upsertSyncState(db, packageEcosystem, {
     status: syncStatus,

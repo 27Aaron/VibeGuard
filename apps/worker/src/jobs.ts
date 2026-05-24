@@ -369,7 +369,6 @@ export async function resetStaleRunningJobs(
     .update(processingJobs)
     .set({
       status: JobStatus.QUEUED,
-      attempt: 0,
       startedAt: null,
       pipelineStage: JobPipelineStage.WAITING,
       lastError: "Reset after stale detection",
