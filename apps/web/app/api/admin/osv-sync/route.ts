@@ -1,6 +1,12 @@
-import { desc } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
-import { getDb, securitySyncState } from "@vibeguard/db";
+import {
+  getDb,
+  securityAdvisories,
+  securityAffectedPackages,
+  securityCveEnrichments,
+  securitySyncState,
+} from "@vibeguard/db";
 
 import { requireAdminAuth } from "@/lib/admin-api-auth";
 
@@ -28,7 +34,61 @@ export async function GET() {
     recordsFailed: row.recordsFailed,
   }));
 
-  return Response.json({ sources });
+  const osvEcosystemCounts = Object.fromEntries(
+    (
+      await db
+        .select({
+          ecosystem: securityAffectedPackages.ecosystem,
+          count: sql<number>`count(distinct ${securityAffectedPackages.advisoryId})`,
+        })
+        .from(securityAffectedPackages)
+        .groupBy(securityAffectedPackages.ecosystem)
+    ).map((row) => [row.ecosystem, Number(row.count)]),
+  );
+
+  const nvdCount = Number(
+    (
+      await db
+        .select({ count: sql<number>`count(*)` })
+        .from(securityCveEnrichments)
+        .where(sql`nvd_published_at IS NOT NULL`)
+    )[0]?.count ?? 0,
+  );
+
+  const kevCount = Number(
+    (
+      await db
+        .select({ count: sql<number>`count(*)` })
+        .from(securityCveEnrichments)
+        .where(sql`kev_listed = true`)
+    )[0]?.count ?? 0,
+  );
+
+  const epssCount = Number(
+    (
+      await db
+        .select({ count: sql<number>`count(*)` })
+        .from(securityCveEnrichments)
+        .where(sql`epss IS NOT NULL`)
+    )[0]?.count ?? 0,
+  );
+
+  const totalBySourceKey: Record<string, number> = {};
+
+  for (const [eco, count] of Object.entries(osvEcosystemCounts)) {
+    totalBySourceKey[`osv:${eco}`] = count;
+  }
+
+  totalBySourceKey["nvd:modified"] = nvdCount;
+  totalBySourceKey["cisa-kev:global"] = kevCount;
+  totalBySourceKey["first-epss:current"] = epssCount;
+
+  const sourcesWithTotals = sources.map((src) => ({
+    ...src,
+    totalRecords: totalBySourceKey[`${src.source}:${src.scope}`] ?? 0,
+  }));
+
+  return Response.json({ sources: sourcesWithTotals });
 }
 
 export async function POST() {

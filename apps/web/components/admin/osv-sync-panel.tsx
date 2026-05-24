@@ -15,15 +15,8 @@ type SyncSource = {
   lastError: string | null;
   recordsImported: number;
   recordsFailed: number;
+  totalRecords: number;
 };
-
-function sourceDisplayName(source: string, scope: string) {
-  if (source === "osv") return ecosystemLabel(scope);
-  if (source === "nvd") return "NVD";
-  if (source === "cisa-kev") return "CISA KEV";
-  if (source === "first-epss") return "EPSS";
-  return source;
-}
 
 function ecosystemLabel(eco: string) {
   switch (eco) {
@@ -38,6 +31,14 @@ function ecosystemLabel(eco: string) {
     default:
       return eco;
   }
+}
+
+function sourceDisplayName(source: string, scope: string) {
+  if (source === "osv") return `OSV (${ecosystemLabel(scope)})`;
+  if (source === "nvd") return "NVD";
+  if (source === "cisa-kev") return "CISA KEV";
+  if (source === "first-epss") return "EPSS";
+  return source;
 }
 
 function statusBadge(status: string, lang: AppLang) {
@@ -75,9 +76,8 @@ function statusBadge(status: string, lang: AppLang) {
   }
 }
 
-function SourceIcon({ source }: { source: string }) {
-  if (source === "osv") return <Database className="size-3.5" />;
-  return <Shield className="size-3.5" />;
+function formatCount(n: number) {
+  return n.toLocaleString();
 }
 
 export function SecuritySyncButton({
@@ -150,6 +150,42 @@ export function SecuritySyncButton({
   );
 }
 
+function SourceCard({
+  src,
+  lang,
+  icon,
+  label,
+}: {
+  src: SyncSource;
+  lang: AppLang;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
+      <div className="flex items-center gap-2">
+        <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1.5 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
+          {icon}
+        </span>
+        <span className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
+          {label}
+        </span>
+        {statusBadge(src.status, lang)}
+      </div>
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-zinc-500 dark:text-stone-400">
+          {formatCount(src.totalRecords)} {lang === "zh" ? "条" : "records"}
+        </span>
+        {src.recordsImported > 0 ? (
+          <span className="text-emerald-700 dark:text-emerald-300">
+            +{src.recordsImported}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
   const [sources, setSources] = useState<SyncSource[]>([]);
   const [syncLogs, setSyncLogs] = useState<string[] | null>(null);
@@ -175,7 +211,23 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
     fetchStatus();
   }
 
-  const displaySources = sources.filter((s) => s.scope !== "full");
+  const displaySources = sources.filter(
+    (s) => s.scope !== "full" && !s.scope.startsWith("year-"),
+  );
+
+  const osvSources = displaySources.filter((s) => s.source === "osv");
+  const enrichmentSources = displaySources.filter((s) => s.source !== "osv");
+
+  const osvTotal = osvSources.reduce((sum, s) => sum + s.totalRecords, 0);
+  const osvNew = osvSources.reduce((sum, s) => sum + s.recordsImported, 0);
+  const enrichmentTotal = enrichmentSources.reduce(
+    (sum, s) => sum + s.totalRecords,
+    0,
+  );
+  const enrichmentNew = enrichmentSources.reduce(
+    (sum, s) => sum + s.recordsImported,
+    0,
+  );
 
   if (displaySources.length === 0) {
     return (
@@ -193,27 +245,65 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
   return (
     <div className="flex flex-col gap-4">
       <SecuritySyncButton lang={lang} onSyncComplete={handleSyncComplete} />
-      <div className="grid grid-cols-2 gap-2">
-        {displaySources.map((src) => (
-          <div
-            key={`${src.source}-${src.scope}`}
-            className="flex items-center justify-between gap-3 rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none"
-          >
-            <div className="flex items-center gap-2">
-              <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1.5 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
-                <SourceIcon source={src.source} />
-              </span>
-              <span className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
-                {sourceDisplayName(src.source, src.scope)}
-              </span>
-              {statusBadge(src.status, lang)}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-stone-400">
-              <span>{src.recordsImported}</span>
-            </div>
+
+      {osvSources.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              OSV
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatCount(osvTotal)} {lang === "zh" ? "条" : "records"}
+              {osvNew > 0 ? (
+                <span className="ml-1 text-emerald-700 dark:text-emerald-300">
+                  +{osvNew}
+                </span>
+              ) : null}
+            </span>
           </div>
-        ))}
-      </div>
+          <div className="grid grid-cols-2 gap-2">
+            {osvSources.map((src) => (
+              <SourceCard
+                key={`${src.source}-${src.scope}`}
+                src={src}
+                lang={lang}
+                icon={<Database className="size-3.5" />}
+                label={ecosystemLabel(src.scope)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {enrichmentSources.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              {lang === "zh" ? "增强数据" : "Enrichment"}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatCount(enrichmentTotal)} {lang === "zh" ? "条" : "records"}
+              {enrichmentNew > 0 ? (
+                <span className="ml-1 text-emerald-700 dark:text-emerald-300">
+                  +{enrichmentNew}
+                </span>
+              ) : null}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {enrichmentSources.map((src) => (
+              <SourceCard
+                key={`${src.source}-${src.scope}`}
+                src={src}
+                lang={lang}
+                icon={<Shield className="size-3.5" />}
+                label={sourceDisplayName(src.source, src.scope)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {syncLogs && syncLogs.length > 0 ? (
         <div className="rounded-[0.9rem] border border-black/5 bg-white/60 p-3 dark:border-white/10 dark:bg-white/[0.04]">
           <div className="mb-2 flex items-center justify-between">
