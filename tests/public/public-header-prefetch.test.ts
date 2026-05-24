@@ -9,8 +9,8 @@ describe("public header API link prefetch", () => {
       "utf8",
     );
 
-    expect(publicHeader).toContain(
-      'prefetch={item.route === "/api" || item.route === "/mcp" ? false : undefined}',
+    expect(publicHeader).toMatch(
+      /prefetch=\{\s*item\.route === "\/api" \|\| item\.route === "\/mcp"\s*\?\s*false\s*:\s*undefined\s*\}/,
     );
   });
 });

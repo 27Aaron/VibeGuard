@@ -16,8 +16,8 @@ describe("theme toggle", () => {
     expect(layout).toContain(
       'const resolvedTheme = themePreference === "light" ? "light" : "dark"',
     );
-    expect(layout).toContain(
-      'className={cn("font-sans", geist.variable, resolvedTheme === "dark" && "dark")}',
+    expect(layout).toMatch(
+      /className=\{cn\(\s*"font-sans",\s*geist\.variable,\s*resolvedTheme === "dark" && "dark",\s*\)\}/,
     );
     expect(layout).toContain("data-theme={resolvedTheme}");
     expect(theme).toContain(

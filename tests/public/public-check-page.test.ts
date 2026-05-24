@@ -61,8 +61,8 @@ describe("public check page scaffolding", () => {
     expect(component).toContain('summaryLineParts.join(" · ")');
     expect(component).toContain("copy.publicCheckResultLabel");
     expect(component).not.toContain('lang === "zh" ? "查询结论"');
-    expect(component).toContain(
-      'latestUpdatedAt ? `${lang === "zh" ? "最近漏洞更新"',
+    expect(component).toMatch(
+      /latestUpdatedAt\s*\?\s*`\$\{lang === "zh" \? "最近漏洞更新"/,
     );
     expect(component).toContain("const findingsPerPage = 3");
     expect(component).toContain("currentPage");
@@ -194,8 +194,8 @@ describe("public check page scaffolding", () => {
     expect(copy).toContain('publicCheckAffectedRangesLabel: "影响范围"');
     expect(copy).not.toContain('publicCheckTitle: "Package check"');
     expect(copy).not.toContain("publicCheckDescription:");
-    expect(copy).toContain(
-      'publicCheckSearchHint: "Search the package you want to check. Add a version for a more precise result."',
+    expect(copy).toMatch(
+      /publicCheckSearchHint:\s*"Search the package you want to check\. Add a version for a more precise result\."/,
     );
     expect(copy).toContain("publicCheckOverviewBadge:");
     expect(copy).toContain("publicCheckMatchCountBadge:");

@@ -327,12 +327,12 @@ describe("W74: markdown-renderer memoized components", () => {
   });
 
   it("wraps components prop in useMemo", () => {
-    expect(src).toContain("components={useMemo(() => ({");
+    expect(src).toMatch(/components=\{useMemo\(\s*\(\) => \(\{/);
   });
 
   it("has dependency array for useMemo", () => {
     expect(src).toMatch(
-      /\[palette,\s*lang,\s*sourceUrl,\s*copiedCodeBlock,\s*resolvedTheme,\s*text\.copiedCode,\s*text\.copyCode\]/,
+      /\[\s*palette,\s*lang,\s*sourceUrl,\s*copiedCodeBlock,\s*resolvedTheme,\s*text\.copiedCode,\s*text\.copyCode,\s*\]/,
     );
   });
 });
@@ -397,8 +397,8 @@ describe("W77: feed-table delete button aria confirmation", () => {
   );
 
   it("delete button has aria-label describing the action", () => {
-    expect(src).toContain(
-      'aria-label={lang === "zh" ? `删除 ${feed.name}` : `Delete ${feed.name}`}',
+    expect(src).toMatch(
+      /aria-label=\{\s*lang === "zh"\s*\?\s*`删除 \$\{feed\.name\}`\s*:\s*`Delete \$\{feed\.name\}`\s*\}/,
     );
   });
 });

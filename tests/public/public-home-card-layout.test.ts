@@ -49,8 +49,8 @@ describe("public homepage card layout", () => {
     expect(publicHeader).toContain(
       "dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100",
     );
-    expect(publicHeader).toContain(
-      "const active = currentSurface != null && item.surface === currentSurface",
+    expect(publicHeader).toMatch(
+      /const active =\s*currentSurface != null && item\.surface === currentSurface/,
     );
     expect(publicHeader).toContain(
       "border-emerald-900/18 bg-[#dfe9e2] text-emerald-950",

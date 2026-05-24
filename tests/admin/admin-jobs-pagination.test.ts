@@ -214,7 +214,7 @@ describe("admin job pagination", () => {
   it("keeps admin job queries paginated and filtered", () => {
     const adminData = fs.readFileSync("apps/web/lib/job-data.ts", "utf8");
 
-    expect(adminData).toContain("getJobRows(input");
+    expect(adminData).toMatch(/getJobRows\(\s*input/);
     expect(adminData).toContain("const pageSize = input.pageSize");
     expect(adminData).toContain("VISIBLE_JOB_STATUSES");
     expect(adminData).toContain("visibleJobFilter");

@@ -16,8 +16,8 @@ describe("CFG-01 — Pool timeout, idle timeout, and SSL config", () => {
     });
 
     it("sets connectionTimeoutMillis using normalizeInt with default 5000", () => {
-      expect(clientSource).toContain(
-        "connectionTimeoutMillis: normalizeInt(process.env.DB_CONNECT_TIMEOUT_MS, 5_000)",
+      expect(clientSource).toMatch(
+        /connectionTimeoutMillis:\s*normalizeInt\(\s*process\.env\.DB_CONNECT_TIMEOUT_MS,\s*5_000,\s*\)/,
       );
     });
 
@@ -39,8 +39,8 @@ describe("CFG-01 — Pool timeout, idle timeout, and SSL config", () => {
   // -------------------------------------------------------------------------
   describe("SSL configuration", () => {
     it("enables ssl with rejectUnauthorized when DB_SSL is 'true'", () => {
-      expect(clientSource).toContain(
-        'ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : undefined',
+      expect(clientSource).toMatch(
+        /ssl:\s*process\.env\.DB_SSL === "true"\s*\?\s*\{ rejectUnauthorized: true \}\s*:\s*undefined/,
       );
     });
 
@@ -53,9 +53,7 @@ describe("CFG-01 — Pool timeout, idle timeout, and SSL config", () => {
       expect(poolBlock).not.toBeNull();
 
       // Within the Pool block, ssl must be conditional
-      const sslLine = poolBlock![0].match(/ssl:.*$/m);
-      expect(sslLine).not.toBeNull();
-      expect(sslLine![0]).toContain('DB_SSL === "true"');
+      expect(poolBlock![0]).toMatch(/ssl:[\s\S]*?DB_SSL === "true"/);
     });
   });
 

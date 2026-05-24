@@ -58,11 +58,9 @@ describe("BUG-05: selectedPresetIndex bounds guard", () => {
   });
 
   it("falls back to empty string for out-of-bounds index", () => {
-    const valueLine = LLM_SETTINGS.match(
-      /value=\{form\.selectedPresetIndex.*?\}/s,
+    expect(LLM_SETTINGS).toMatch(
+      /value=\{\s*form\.selectedPresetIndex >= 0 &&\s*form\.selectedPresetIndex < PROVIDER_PRESETS\.length\s*\?\s*PROVIDER_PRESETS\[form\.selectedPresetIndex\]\.baseUrl\s*:\s*""\s*\}/,
     );
-    expect(valueLine).toBeTruthy();
-    expect(valueLine![0]).toContain('""');
   });
 });
 

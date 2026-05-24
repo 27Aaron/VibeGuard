@@ -48,7 +48,7 @@ describe("admin article pagination", () => {
   it("keeps admin article list queries lightweight and paginated", () => {
     const adminData = fs.readFileSync("apps/web/lib/article-data.ts", "utf8");
 
-    expect(adminData).toContain("getArticleRows(input");
+    expect(adminData).toMatch(/getArticleRows\(\s*input/);
     expect(adminData).toContain(".select({");
     expect(adminData).toContain("id: articles.id");
     expect(adminData).toContain("titleEn: articles.titleEn");

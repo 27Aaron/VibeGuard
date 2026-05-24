@@ -8,6 +8,10 @@ import {
 } from "@vibeguard/shared";
 
 const schemaSource = fs.readFileSync("packages/db/src/schema.ts", "utf8");
+const migrationSource = fs.readFileSync(
+  "packages/db/src/migrations/0000_unknown_wiccan.sql",
+  "utf8",
+);
 
 // ---------------------------------------------------------------------------
 // BUG-01: Duplicate unique index prevents job retry
@@ -31,14 +35,11 @@ describe("BUG-01 — processing_jobs unique index", () => {
     );
   });
 
-  it("has a migration that drops the old unconditional index", () => {
-    const migrationSql = fs.readFileSync(
-      "packages/db/src/migrations/0011_drop_duplicate_job_unique_index.sql",
-      "utf8",
+  it("keeps migrations free of the old unconditional index", () => {
+    expect(migrationSource).not.toContain(
+      '"processing_jobs_article_job_type_unique"',
     );
-    expect(migrationSql).toContain(
-      'DROP INDEX IF EXISTS "processing_jobs_article_job_type_unique"',
-    );
+    expect(migrationSource).toContain('"processing_jobs_active_unique"');
   });
 });
 
@@ -90,43 +91,22 @@ describe("BUG-06 — articles ecosystem and riskCategory enum types", () => {
   });
 
   it("has a migration that creates the enum types and alters the columns", () => {
-    const migrationSql = fs.readFileSync(
-      "packages/db/src/migrations/0012_articles_ecosystem_risk_category_enum.sql",
-      "utf8",
+    expect(migrationSource).toContain('"public"."article_ecosystem"');
+    expect(migrationSource).toContain('"public"."article_risk_category"');
+    expect(migrationSource).toContain(
+      '"ecosystem" "article_ecosystem" DEFAULT',
     );
-
-    // Should create both enum types
-    expect(migrationSql).toContain('"public"."article_ecosystem"');
-    expect(migrationSql).toContain('"public"."article_risk_category"');
-
-    // Should normalize invalid data before altering
-    expect(migrationSql).toMatch(
-      /UPDATE "articles"[\s\S]*SET "ecosystem" = 'unknown'/,
-    );
-    expect(migrationSql).toMatch(
-      /UPDATE "articles"[\s\S]*SET "risk_category" = 'unknown'/,
-    );
-
-    // Should alter column types
-    expect(migrationSql).toMatch(
-      /ALTER TABLE "articles"[\s\S]*ALTER COLUMN "ecosystem" TYPE "article_ecosystem"/,
-    );
-    expect(migrationSql).toMatch(
-      /ALTER TABLE "articles"[\s\S]*ALTER COLUMN "risk_category" TYPE "article_risk_category"/,
+    expect(migrationSource).toContain(
+      '"risk_category" "article_risk_category" DEFAULT',
     );
   });
 
   it("migration enum values match the shared constants", () => {
-    const migrationSql = fs.readFileSync(
-      "packages/db/src/migrations/0012_articles_ecosystem_risk_category_enum.sql",
-      "utf8",
-    );
-
     // Extract enum values from migration SQL
-    const ecosystemMatch = migrationSql.match(
+    const ecosystemMatch = migrationSource.match(
       /CREATE TYPE.*article_ecosystem.*AS ENUM\(([^)]+)\)/,
     );
-    const riskCategoryMatch = migrationSql.match(
+    const riskCategoryMatch = migrationSource.match(
       /CREATE TYPE.*article_risk_category.*AS ENUM\(([^)]+)\)/,
     );
 

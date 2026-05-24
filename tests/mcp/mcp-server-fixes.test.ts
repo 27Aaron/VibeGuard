@@ -21,13 +21,13 @@ describe("MCP server critical fixes", () => {
 
     it("searchArticles GET fetch passes timeout signal in options object", () => {
       expect(clientSource).toMatch(
-        /fetch\(`\$\{this\.baseUrl\}\/api\/articles\?\$\{searchParams\}`, \{ signal: AbortSignal\.timeout\(30_000\) \}\)/,
+        /fetch\(`\$\{this\.baseUrl\}\/api\/articles\?\$\{searchParams\}`,\s*\{\s*signal: AbortSignal\.timeout\(30_000\),?\s*\}\)/,
       );
     });
 
     it("getArticle GET fetch passes timeout signal in options object", () => {
       expect(clientSource).toMatch(
-        /fetch\(`\$\{this\.baseUrl\}\/api\/articles\/\$\{id\}\?\$\{searchParams\}`, \{ signal: AbortSignal\.timeout\(30_000\) \}\)/,
+        /fetch\(\s*`\$\{this\.baseUrl\}\/api\/articles\/\$\{id\}\?\$\{searchParams\}`,\s*\{\s*signal: AbortSignal\.timeout\(30_000\),?\s*\},?\s*\)/,
       );
     });
 
@@ -39,7 +39,7 @@ describe("MCP server critical fixes", () => {
 
     it("securityOverview GET fetch passes timeout signal in options object", () => {
       expect(clientSource).toMatch(
-        /fetch\(`\$\{this\.baseUrl\}\/api\/security\/check\/overview`, \{ signal: AbortSignal\.timeout\(30_000\) \}\)/,
+        /fetch\(`\$\{this\.baseUrl\}\/api\/security\/check\/overview`,\s*\{\s*signal: AbortSignal\.timeout\(30_000\),?\s*\}\)/,
       );
     });
   });
@@ -93,7 +93,9 @@ describe("MCP server critical fixes", () => {
         /name: "get_article"[\s\S]*?id: z\.string\(\)\.describe\("文章 UUID"\)/,
       );
       // check_packages uses min(1).max(100) array validation
-      expect(toolsSource).toMatch(/z\.array\([\s\S]*?\)\.min\(1\)\.max\(100\)/);
+      expect(toolsSource).toMatch(
+        /packages:\s*z[\s\S]*?\.array\([\s\S]*?\.min\(1\)[\s\S]*?\.max\(100\)/,
+      );
       // search_articles uses z.enum for ecosystem (references variable name)
       expect(toolsSource).toMatch(/ecosystem: z\.enum\(MCP_ECOSYSTEMS\)/);
       // search_articles also has z.enum for lang
