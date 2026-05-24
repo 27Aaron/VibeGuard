@@ -317,15 +317,18 @@ export async function checkPackagesAgainstLocalDb(
     advisoryId: string;
   }> = [];
 
-  for (const [ecosystem, keys] of ecosystemKeys) {
-    const keyArray = Array.from(keys);
-    const rows = await db.query.securityAffectedPackages.findMany({
-      where: (table, { and, eq: whereEq, inArray: whereInArray }) =>
-        and(
-          whereEq(table.ecosystem, ecosystem),
-          whereInArray(table.packageKey, keyArray),
-        ),
-    });
+  const ecosystemResults = await Promise.all(
+    Array.from(ecosystemKeys.entries()).map(([ecosystem, keys]) =>
+      db.query.securityAffectedPackages.findMany({
+        where: (table, { and, eq: whereEq, inArray: whereInArray }) =>
+          and(
+            whereEq(table.ecosystem, ecosystem),
+            whereInArray(table.packageKey, Array.from(keys)),
+          ),
+      }),
+    ),
+  );
+  for (const rows of ecosystemResults) {
     allAffectedPackages.push(...rows);
   }
 
