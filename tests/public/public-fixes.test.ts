@@ -132,12 +132,15 @@ describe("I30: markdown-renderer pre component only unwraps code blocks", () => 
   });
 
   it("preserves <pre> for non-code content", () => {
-    expect(renderer).toContain("<pre>{children}</pre>");
+    expect(renderer).toContain("<pre");
+    expect(renderer).toContain("whitespace-pre-wrap");
   });
 
   it("unwraps code-containing <pre> elements", () => {
     // The unwrapping should be conditional
-    expect(renderer).toMatch(/hasCodeChild\s*\?\s*<>\{children}<\/>/);
+    expect(renderer).toMatch(
+      /hasCodeChild\s*\?\s*\(\s*<>\s*\{children\}\s*<\/>\s*\)/,
+    );
   });
 });
 

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { Check, Copy, Expand } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -83,9 +90,51 @@ type LightboxImage = {
   alt: string;
 };
 
+type MarkdownElementNode = {
+  tagName?: string;
+  position?: {
+    start?: { line?: number };
+    end?: { line?: number };
+  };
+};
+
+type MarkdownCodeChildProps = {
+  className?: string;
+  node?: MarkdownElementNode;
+};
+
 function codeBlockLanguage(className?: string) {
   const match = className?.match(/language-([\w-]+)/);
   return match?.[1] ?? "";
+}
+
+function isMarkdownCodeBlock(
+  className: string | undefined,
+  node?: MarkdownElementNode,
+) {
+  if (className) {
+    return true;
+  }
+
+  const startLine = node?.position?.start?.line;
+  const endLine = node?.position?.end?.line;
+  return (
+    typeof startLine === "number" &&
+    typeof endLine === "number" &&
+    endLine > startLine
+  );
+}
+
+function isMarkdownCodeChild(child: ReactNode) {
+  if (!isValidElement<MarkdownCodeChildProps>(child)) {
+    return false;
+  }
+
+  return (
+    child.type === "code" ||
+    child.props.node?.tagName === "code" ||
+    child.props.className?.startsWith("language-")
+  );
 }
 
 function normalizeCodeContent(children: ReactNode) {
@@ -344,14 +393,14 @@ export function MarkdownRenderer({
                   {children}
                 </td>
               ),
-              code: ({ className: codeClassName, children, ...props }) => {
-                const inline = !codeClassName;
+              code: ({ className: codeClassName, children, node, ...props }) => {
+                const inline = !isMarkdownCodeBlock(codeClassName, node);
 
                 if (inline) {
                   return (
                     <code
                       className={cn(
-                        "rounded-md font-mono text-[0.92em]",
+                        "max-w-full whitespace-normal rounded-md font-mono text-[0.92em] [overflow-wrap:anywhere]",
                         palette.codeInline,
                       )}
                       {...props}
@@ -448,27 +497,23 @@ export function MarkdownRenderer({
                 );
               },
               pre: ({ children }) => {
-                // 仅解包包含 <code> 子元素的 <pre> 标签（即 react-markdown 渲染的围栏代码块）。
-                // 对于独立的 <pre> 元素保持原样，不做任何处理。
+                // 解包 react-markdown 生成的代码块，让 code 组件接管语言栏、复制按钮和换行。
                 const hasCodeChild = Array.isArray(children)
-                  ? children.some(
-                      (ch) =>
-                        ch &&
-                        typeof ch === "object" &&
-                        "props" in ch &&
-                        "type" in ch &&
-                        (ch.type === "code" ||
-                          ch.props?.className?.startsWith("language-")),
-                    )
-                  : children != null &&
-                    typeof children === "object" &&
-                    "props" in children &&
-                    (children.type === "code" ||
-                      (
-                        children as { props?: { className?: string } }
-                      ).props?.className?.startsWith("language-"));
+                  ? children.some(isMarkdownCodeChild)
+                  : isMarkdownCodeChild(children);
 
-                return hasCodeChild ? <>{children}</> : <pre>{children}</pre>;
+                return hasCodeChild ? (
+                  <>{children}</>
+                ) : (
+                  <pre
+                    className={cn(
+                      "my-6 max-w-full whitespace-pre-wrap rounded-2xl px-4 py-3 font-mono text-[0.92em] leading-7 [overflow-wrap:anywhere]",
+                      palette.codeBlock,
+                    )}
+                  >
+                    {children}
+                  </pre>
+                );
               },
               img: ({ src, alt }) => {
                 const resolvedSrc = resolveMarkdownImageProxyUrl(
