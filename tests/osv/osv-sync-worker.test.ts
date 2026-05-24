@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
+import { hasSuccessfulSyncMarker } from "../../apps/worker/src/index"
 import {
   formatEnrichmentSyncSummaryLine,
   formatSyncSummaryLine,
+  getEnrichmentSyncMode,
 } from "../../apps/worker/src/sync-osv"
 
 describe("formatSyncSummaryLine", () => {
@@ -37,5 +39,31 @@ describe("formatEnrichmentSyncSummaryLine", () => {
     ).toBe(
       "security enrichment nvd/modified seen=10 imported=9 failed=0",
     )
+  })
+})
+
+describe("getEnrichmentSyncMode", () => {
+  it("keeps manual OSV bootstrap and enrichment bootstrap aligned", () => {
+    expect(getEnrichmentSyncMode("bootstrap")).toBe("bootstrap")
+    expect(getEnrichmentSyncMode("incremental")).toBe("incremental")
+  })
+})
+
+describe("hasSuccessfulSyncMarker", () => {
+  it("only treats a successful source/full marker as bootstrap complete", async () => {
+    const findFirst = vi.fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ status: "failed" })
+      .mockResolvedValueOnce({ status: "success" })
+    const db = {
+      query: {
+        securitySyncState: { findFirst },
+      },
+    } as never
+
+    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(false)
+    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(false)
+    await expect(hasSuccessfulSyncMarker(db, "osv", "full")).resolves.toBe(true)
+    expect(findFirst).toHaveBeenCalledTimes(3)
   })
 })

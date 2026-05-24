@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from "vitest"
 
 import {
   buildNvdModifiedFeedUrl,
+  buildNvdYearFeedUrl,
   parseEpssCsv,
   parseKevCatalog,
   parseNvdModifiedFeed,
+  syncAllSecurityEnrichmentSources,
+  syncNvdFullHistory,
   upsertSecurityCveEnrichments,
 } from "../../packages/content/src/security/enrichment"
 
@@ -67,6 +70,9 @@ describe("security enrichment parsers", () => {
     expect(buildNvdModifiedFeedUrl()).toBe(
       "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-modified.json.gz",
     )
+    expect(buildNvdYearFeedUrl(2026)).toBe(
+      "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-2026.json.gz",
+    )
 
     expect(
       parseNvdModifiedFeed({
@@ -111,6 +117,116 @@ describe("security enrichment parsers", () => {
         cweIds: ["CWE-79"],
       }),
     ])
+  })
+})
+
+describe("security enrichment sync modes", () => {
+  it("uses NVD full history during bootstrap and NVD modified during incremental refreshes", async () => {
+    const db = {} as never
+    const syncCisaKevCatalog = vi.fn().mockResolvedValue({
+      source: "cisa-kev",
+      scope: "global",
+      recordsSeen: 1,
+      recordsImported: 1,
+      recordsFailed: 0,
+    })
+    const syncFirstEpssScores = vi.fn().mockResolvedValue({
+      source: "first-epss",
+      scope: "current",
+      recordsSeen: 2,
+      recordsImported: 2,
+      recordsFailed: 0,
+    })
+    const syncNvdFullHistory = vi.fn().mockResolvedValue({
+      source: "nvd",
+      scope: "full",
+      recordsSeen: 3,
+      recordsImported: 3,
+      recordsFailed: 0,
+    })
+    const syncNvdModifiedFeed = vi.fn().mockResolvedValue({
+      source: "nvd",
+      scope: "modified",
+      recordsSeen: 4,
+      recordsImported: 4,
+      recordsFailed: 0,
+    })
+
+    await expect(
+      syncAllSecurityEnrichmentSources(db, {
+        mode: "bootstrap",
+        syncCisaKevCatalog,
+        syncFirstEpssScores,
+        syncNvdFullHistory,
+        syncNvdModifiedFeed,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({ source: "cisa-kev", scope: "global" }),
+      expect.objectContaining({ source: "first-epss", scope: "current" }),
+      expect.objectContaining({ source: "nvd", scope: "full" }),
+    ])
+
+    expect(syncNvdFullHistory).toHaveBeenCalledWith(expect.objectContaining({ db }))
+    expect(syncNvdModifiedFeed).not.toHaveBeenCalled()
+
+    await syncAllSecurityEnrichmentSources(db, {
+      mode: "incremental",
+      syncCisaKevCatalog,
+      syncFirstEpssScores,
+      syncNvdFullHistory,
+      syncNvdModifiedFeed,
+    })
+
+    expect(syncNvdModifiedFeed).toHaveBeenCalledWith(expect.objectContaining({ db }))
+    expect(syncNvdFullHistory).toHaveBeenCalledTimes(1)
+  })
+
+  it("summarizes and marks NVD full-history bootstrap across annual feeds", async () => {
+    const db = {} as never
+    const syncNvdYearFeed = vi.fn().mockImplementation(({ year }) =>
+      Promise.resolve({
+        source: "nvd",
+        scope: `year-${year}`,
+        recordsSeen: year === 2025 ? 2 : 3,
+        recordsImported: year === 2025 ? 1 : 2,
+        recordsFailed: 0,
+      }),
+    )
+    const upsertSecuritySyncState = vi.fn().mockResolvedValue(undefined)
+    const now = () => new Date("2026-05-24T08:00:00.000Z")
+
+    await expect(
+      syncNvdFullHistory({
+        db,
+        years: [2025, 2026],
+        now,
+        syncNvdYearFeed,
+        upsertSecuritySyncState,
+      }),
+    ).resolves.toEqual({
+      source: "nvd",
+      scope: "full",
+      recordsSeen: 5,
+      recordsImported: 3,
+      recordsFailed: 0,
+    })
+
+    expect(syncNvdYearFeed).toHaveBeenCalledTimes(2)
+    expect(upsertSecuritySyncState).toHaveBeenLastCalledWith(
+      db,
+      "full",
+      expect.objectContaining({
+        source: "nvd",
+        status: "success",
+        recordsSeen: 5,
+        recordsImported: 3,
+        recordsFailed: 0,
+        cursorJson: expect.objectContaining({
+          mode: "bootstrap",
+          years: [2025, 2026],
+        }),
+      }),
+    )
   })
 })
 

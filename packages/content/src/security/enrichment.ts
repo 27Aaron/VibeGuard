@@ -24,8 +24,11 @@ export const CISA_KEV_JSON_URL =
   "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
 export const FIRST_EPSS_CURRENT_CSV_GZ_URL =
   "https://epss.cyentia.com/epss_scores-current.csv.gz"
+export const NVD_FEED_BASE_URL =
+  "https://nvd.nist.gov/feeds/json/cve/2.0"
 export const NVD_MODIFIED_FEED_URL =
-  "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-modified.json.gz"
+  `${NVD_FEED_BASE_URL}/nvdcve-2.0-modified.json.gz`
+export const NVD_FULL_FEED_START_YEAR = 2002
 
 export type SecurityCveEnrichmentPatch = {
   cveId: string
@@ -70,6 +73,40 @@ export type SecurityEnrichmentSyncSummary = {
   recordsSeen: number
   recordsImported: number
   recordsFailed: number
+}
+
+export type SecurityEnrichmentSyncMode = "bootstrap" | "incremental"
+
+type SyncNvdYearFeedInput = {
+  db: ContentDb
+  year: number
+  fetchBytes?: typeof defaultFetchBytes
+}
+
+type SyncNvdFullHistoryInput = {
+  db: ContentDb
+  years?: number[]
+  now?: () => Date
+  fetchBytes?: typeof defaultFetchBytes
+  syncNvdYearFeed?: (
+    input: SyncNvdYearFeedInput,
+  ) => Promise<SecurityEnrichmentSyncSummary>
+  upsertSecuritySyncState?: (
+    db: ContentDb,
+    scope: string,
+    input: SecuritySyncStateUpdateInput,
+  ) => Promise<void>
+}
+
+type SyncAllSecurityEnrichmentSourcesOptions = {
+  mode?: SecurityEnrichmentSyncMode
+  nvdYears?: number[]
+  fetchText?: typeof defaultFetchText
+  fetchBytes?: typeof defaultFetchBytes
+  syncCisaKevCatalog?: typeof syncCisaKevCatalog
+  syncFirstEpssScores?: typeof syncFirstEpssScores
+  syncNvdModifiedFeed?: typeof syncNvdModifiedFeed
+  syncNvdFullHistory?: typeof syncNvdFullHistory
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -145,6 +182,10 @@ function firstEnglishDescription(value: unknown) {
 
 export function buildNvdModifiedFeedUrl() {
   return NVD_MODIFIED_FEED_URL
+}
+
+export function buildNvdYearFeedUrl(year: number) {
+  return `${NVD_FEED_BASE_URL}/nvdcve-2.0-${year}.json.gz`
 }
 
 export function parseKevCatalog(rawJson: string): SecurityCveEnrichmentPatch[] {
@@ -482,6 +523,10 @@ export async function syncCisaKevCatalog({
     db,
     source: "cisa-kev",
     scope: "global",
+    cursorJson: {
+      mode: "snapshot",
+      url: CISA_KEV_JSON_URL,
+    },
     patches,
   })
 }
@@ -496,10 +541,20 @@ export async function syncFirstEpssScores({
   const bytes = await fetchBytes(FIRST_EPSS_CURRENT_CSV_GZ_URL)
   const csv = (await gunzip(Buffer.from(bytes))).toString("utf8")
   const patches = parseEpssCsv(csv)
+  const scoreDate = patches.find((patch) => patch.epssScoreDate)?.epssScoreDate
+  const modelVersion = patches.find(
+    (patch) => patch.epssModelVersion,
+  )?.epssModelVersion
   return syncPatches({
     db,
     source: "first-epss",
     scope: "current",
+    cursorJson: {
+      mode: "snapshot",
+      url: FIRST_EPSS_CURRENT_CSV_GZ_URL,
+      ...(scoreDate ? { scoreDate: scoreDate.toISOString() } : {}),
+      ...(modelVersion ? { modelVersion } : {}),
+    },
     patches,
   })
 }
@@ -518,15 +573,171 @@ export async function syncNvdModifiedFeed({
     db,
     source: "nvd",
     scope: "modified",
+    cursorJson: {
+      mode: "incremental",
+      url: buildNvdModifiedFeedUrl(),
+    },
     patches,
   })
 }
 
-export async function syncAllSecurityEnrichmentSources(db: ContentDb) {
+export async function syncNvdYearFeed({
+  db,
+  year,
+  fetchBytes = defaultFetchBytes,
+}: SyncNvdYearFeedInput) {
+  const bytes = await fetchBytes(buildNvdYearFeedUrl(year))
+  const payload = JSON.parse((await gunzip(Buffer.from(bytes))).toString("utf8"))
+  const patches = parseNvdModifiedFeed(payload)
+  return syncPatches({
+    db,
+    source: "nvd",
+    scope: `year-${year}`,
+    cursorJson: {
+      mode: "bootstrap",
+      year,
+      url: buildNvdYearFeedUrl(year),
+    },
+    patches,
+  })
+}
+
+function resolveNvdFullYears(years: number[] | undefined, now: Date) {
+  const currentYear = now.getUTCFullYear()
+  const resolvedYears =
+    years && years.length > 0
+      ? years
+      : Array.from(
+          { length: currentYear - NVD_FULL_FEED_START_YEAR + 1 },
+          (_value, index) => NVD_FULL_FEED_START_YEAR + index,
+        )
+
+  return Array.from(
+    new Set(
+      resolvedYears
+        .map((year) => Math.floor(year))
+        .filter((year) => year >= NVD_FULL_FEED_START_YEAR && year <= currentYear),
+    ),
+  ).sort((left, right) => left - right)
+}
+
+export async function syncNvdFullHistory({
+  db,
+  years,
+  now = () => new Date(),
+  fetchBytes,
+  syncNvdYearFeed: syncYear = syncNvdYearFeed,
+  upsertSecuritySyncState: upsertSyncState = upsertSecuritySyncState,
+}: SyncNvdFullHistoryInput): Promise<SecurityEnrichmentSyncSummary> {
+  const startedAt = now()
+  const resolvedYears = resolveNvdFullYears(years, startedAt)
+
+  await upsertSyncState(db, "full", {
+    source: "nvd",
+    status: SecuritySyncStatus.RUNNING,
+    now: startedAt,
+    cursorJson: {
+      mode: "bootstrap",
+      years: resolvedYears,
+    },
+  })
+
+  try {
+    const results: SecurityEnrichmentSyncSummary[] = []
+    for (const year of resolvedYears) {
+      results.push(
+        await syncYear({
+          db,
+          year,
+          ...(fetchBytes ? { fetchBytes } : {}),
+        }),
+      )
+    }
+
+    const recordsSeen = results.reduce((total, result) => total + result.recordsSeen, 0)
+    const recordsImported = results.reduce(
+      (total, result) => total + result.recordsImported,
+      0,
+    )
+    const recordsFailed = results.reduce(
+      (total, result) => total + result.recordsFailed,
+      0,
+    )
+    const completedAt = now()
+
+    await upsertSyncState(db, "full", {
+      source: "nvd",
+      status:
+        recordsFailed > 0 ? SecuritySyncStatus.FAILED : SecuritySyncStatus.SUCCESS,
+      now: completedAt,
+      cursorJson: {
+        mode: "bootstrap",
+        years: resolvedYears,
+        completedAt: completedAt.toISOString(),
+      },
+      lastError:
+        recordsFailed > 0
+          ? `${recordsFailed} NVD full-history records failed to sync.`
+          : null,
+      recordsSeen,
+      recordsImported,
+      recordsFailed,
+    })
+
+    return {
+      source: "nvd",
+      scope: "full",
+      recordsSeen,
+      recordsImported,
+      recordsFailed,
+    }
+  } catch (error) {
+    await upsertSyncState(db, "full", {
+      source: "nvd",
+      status: SecuritySyncStatus.FAILED,
+      now: now(),
+      cursorJson: {
+        mode: "bootstrap",
+        years: resolvedYears,
+      },
+      lastError: error instanceof Error ? error.message : String(error),
+      recordsSeen: 0,
+      recordsImported: 0,
+      recordsFailed: 1,
+    })
+    throw error
+  }
+}
+
+export async function syncAllSecurityEnrichmentSources(
+  db: ContentDb,
+  options: SyncAllSecurityEnrichmentSourcesOptions = {},
+) {
+  const mode = options.mode ?? "incremental"
+  const syncKev = options.syncCisaKevCatalog ?? syncCisaKevCatalog
+  const syncEpss = options.syncFirstEpssScores ?? syncFirstEpssScores
+  const syncModified = options.syncNvdModifiedFeed ?? syncNvdModifiedFeed
+  const syncFull = options.syncNvdFullHistory ?? syncNvdFullHistory
+
   return [
-    await syncCisaKevCatalog({ db }),
-    await syncFirstEpssScores({ db }),
-    await syncNvdModifiedFeed({ db }),
+    await syncKev({
+      db,
+      ...(options.fetchText ? { fetchText: options.fetchText } : {}),
+    }),
+    await syncEpss({
+      db,
+      ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),
+    }),
+    mode === "bootstrap"
+      ? await syncFull({
+          db,
+          ...(options.nvdYears ? { years: options.nvdYears } : {}),
+          ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),
+        })
+      : await syncModified({
+          db,
+          ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),
+        }),
   ]
 }
 

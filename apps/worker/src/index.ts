@@ -1,4 +1,8 @@
-import { closeDb, getDb } from "@vibeguard/db";
+import { and, eq } from "drizzle-orm";
+
+import { upsertSecuritySyncState } from "@vibeguard/content/osv/store";
+import { closeDb, getDb, securitySyncState } from "@vibeguard/db";
+import { SecuritySyncStatus } from "@vibeguard/shared";
 
 import { pollActiveFeeds } from "./poll-feeds";
 import { processAvailableQueuedJobs } from "./process-article";
@@ -16,6 +20,7 @@ export type WorkerCycleSummary = Awaited<ReturnType<typeof runWorkerCycle>>;
 
 type WorkerLogger = Pick<typeof console, "log" | "error"> &
   Partial<Pick<typeof console, "warn">>;
+type ContentDb = ReturnType<typeof getDb>;
 
 type WorkerLoopOptions = {
   intervalMs?: number;
@@ -108,17 +113,102 @@ function resolveOsvSyncInterval(env = process.env) {
   return parsed
 }
 
+export async function hasSuccessfulSyncMarker(
+  db: ContentDb,
+  source: string,
+  scope = "full",
+) {
+  const row = await db.query.securitySyncState.findFirst({
+    where: and(
+      eq(securitySyncState.source, source),
+      eq(securitySyncState.scope, scope),
+    ),
+  })
+
+  return row?.status === SecuritySyncStatus.SUCCESS
+}
+
+function summarizeOsvSyncResults(
+  results: Array<{
+    ecosystem: string
+    recordsSeen: number
+    recordsImported: number
+    recordsFailed: number
+  }>,
+) {
+  return results.reduce(
+    (summary, result) => ({
+      scopes: [...summary.scopes, result.ecosystem],
+      recordsSeen: summary.recordsSeen + result.recordsSeen,
+      recordsImported: summary.recordsImported + result.recordsImported,
+      recordsFailed: summary.recordsFailed + result.recordsFailed,
+    }),
+    {
+      scopes: [] as string[],
+      recordsSeen: 0,
+      recordsImported: 0,
+      recordsFailed: 0,
+    },
+  )
+}
+
+async function markOsvFullSyncMarker(
+  db: ContentDb,
+  results: Array<{
+    ecosystem: string
+    recordsSeen: number
+    recordsImported: number
+    recordsFailed: number
+  }>,
+) {
+  const summary = summarizeOsvSyncResults(results)
+  const now = new Date()
+
+  await upsertSecuritySyncState(db, "full", {
+    source: "osv",
+    status:
+      summary.recordsFailed > 0
+        ? SecuritySyncStatus.FAILED
+        : SecuritySyncStatus.SUCCESS,
+    now,
+    cursorJson: {
+      mode: "bootstrap",
+      ecosystems: summary.scopes,
+      completedAt: now.toISOString(),
+    },
+    lastError:
+      summary.recordsFailed > 0
+        ? `${summary.recordsFailed} OSV bootstrap records failed to sync.`
+        : null,
+    recordsSeen: summary.recordsSeen,
+    recordsImported: summary.recordsImported,
+    recordsFailed: summary.recordsFailed,
+  })
+}
+
 export async function runOsvSyncCycle(logger: WorkerLogger = console) {
   try {
-    const { syncAllOsvEcosystems } = await import("@vibeguard/content/osv/sync")
-    const { syncAllSecurityEnrichmentSources } = await import("@vibeguard/content/security/enrichment")
-    const results = await syncAllOsvEcosystems({ db: getDb() })
+    const db = getDb()
+    const shouldBootstrapOsv = !(await hasSuccessfulSyncMarker(db, "osv", "full"))
+    const shouldBootstrapNvd = !(await hasSuccessfulSyncMarker(db, "nvd", "full"))
+    const { bootstrapAllOsvEcosystems, syncAllOsvEcosystems } =
+      await import("@vibeguard/content/osv/sync")
+    const { syncAllSecurityEnrichmentSources } =
+      await import("@vibeguard/content/security/enrichment")
+    const results = shouldBootstrapOsv
+      ? await bootstrapAllOsvEcosystems({ db, concurrency: 2 })
+      : await syncAllOsvEcosystems({ db })
     for (const result of results) {
       logger.log(
-        `osv sync ${result.ecosystem}: imported=${result.recordsImported} new=${result.recordsNew} changed=${result.recordsChanged} failed=${result.recordsFailed}`,
+        `osv ${shouldBootstrapOsv ? "bootstrap" : "sync"} ${result.ecosystem}: imported=${result.recordsImported} new=${result.recordsNew} changed=${result.recordsChanged} failed=${result.recordsFailed}`,
       )
     }
-    const enrichmentResults = await syncAllSecurityEnrichmentSources(getDb())
+    if (shouldBootstrapOsv) {
+      await markOsvFullSyncMarker(db, results)
+    }
+    const enrichmentResults = await syncAllSecurityEnrichmentSources(db, {
+      mode: shouldBootstrapNvd ? "bootstrap" : "incremental",
+    })
     for (const result of enrichmentResults) {
       logger.log(
         `security enrichment sync ${result.source}/${result.scope}: imported=${result.recordsImported} failed=${result.recordsFailed}`,

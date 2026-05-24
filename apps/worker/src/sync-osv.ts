@@ -99,6 +99,10 @@ export function formatEnrichmentSyncSummaryLine(result: SecurityEnrichmentSyncSu
   ].join(" ")
 }
 
+export function getEnrichmentSyncMode(mode: OsvSyncMode) {
+  return mode === "bootstrap" ? "bootstrap" : "incremental"
+}
+
 export async function main(argv = process.argv.slice(2)) {
   const { mode, limit, concurrency } = parseArgs(argv)
 
@@ -119,7 +123,9 @@ export async function main(argv = process.argv.slice(2)) {
       console.log(formatSyncSummaryLine(mode, result))
     }
 
-    const enrichmentResults = await syncAllSecurityEnrichmentSources(getDb())
+    const enrichmentResults = await syncAllSecurityEnrichmentSources(getDb(), {
+      mode: getEnrichmentSyncMode(mode),
+    })
     for (const result of enrichmentResults) {
       console.log(formatEnrichmentSyncSummaryLine(result))
     }
