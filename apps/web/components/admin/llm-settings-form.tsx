@@ -6,15 +6,11 @@ import {
   useMemo,
   useReducer,
   useRef,
-  useState,
   useTransition,
 } from "react";
-import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Check,
-  ChevronDown,
-  ChevronRight,
   PlusCircle,
   Trash2,
 } from "lucide-react";
@@ -47,7 +43,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import {
   IDLE_FORM_ACTION_RESULT,
   type FormActionResult,
@@ -63,225 +58,16 @@ import { mergeModelOptions } from "@/lib/provider-models";
 import { PROVIDER_PRESETS, resolvePresetLabel } from "@/lib/provider-presets";
 import { cn } from "@/lib/utils";
 
-// ---------------------------------------------------------------------------
-// Reducer：将原本分散的 15+ 个 useState 整合为统一的状态机，
-// 集中管理表单字段、模型列表加载、预设应用等所有状态变更逻辑。
-// ---------------------------------------------------------------------------
-
-interface FormState {
-  settingsName: string;
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  isActive: boolean;
-  translationTitlePrompt: string;
-  translationContentPrompt: string;
-  summaryPromptEn: string;
-  summaryPromptZh: string;
-  tagPrompt: string;
-  relevancePrompt: string;
-  modelOptions: string[];
-  isLoadingModels: boolean;
-  modelFeedback: string;
-  selectedPresetIndex: number;
-  nameManuallyEdited: boolean;
-}
-
-type FormAction =
-  | {
-      type: "SET_FIELD";
-      field: keyof FormState;
-      value: string | boolean | number | string[];
-    }
-  | { type: "APPLY_PRESET"; presetIndex: number }
-  | {
-      type: "SYNC_PROVIDER";
-      provider: ProviderSettings;
-      pipeline: PipelineSettings;
-    }
-  | { type: "MODELS_LOADED"; options: string[]; feedback: string }
-  | { type: "MODELS_ERROR"; feedback: string }
-  | { type: "START_LOADING_MODELS" }
-  | { type: "RESET_PIPELINE"; pipeline: PipelineSettings }
-  | { type: "CLEAR_MODEL_LIST" };
-
-function initFormState(
-  provider: ProviderSettings,
-  pipeline: PipelineSettings,
-  presetIndex?: number,
-): FormState {
-  const matchedIdx = provider.baseUrl
-    ? PROVIDER_PRESETS.findIndex((p) => p.baseUrl === provider.baseUrl)
-    : -1;
-  return {
-    settingsName: provider.settingsName,
-    baseUrl: provider.baseUrl,
-    apiKey: "",
-    model: provider.model,
-    isActive: provider.isActive,
-    translationTitlePrompt: pipeline.translationTitlePrompt,
-    translationContentPrompt: pipeline.translationContentPrompt,
-    summaryPromptEn: pipeline.summaryPromptEn,
-    summaryPromptZh: pipeline.summaryPromptZh,
-    tagPrompt: pipeline.tagPrompt,
-    relevancePrompt: pipeline.relevancePrompt,
-    modelOptions: [],
-    isLoadingModels: false,
-    modelFeedback: "",
-    selectedPresetIndex:
-      presetIndex != null &&
-      presetIndex >= 0 &&
-      presetIndex < PROVIDER_PRESETS.length
-        ? presetIndex
-        : matchedIdx >= 0
-          ? matchedIdx
-          : PROVIDER_PRESETS.length - 1,
-    nameManuallyEdited: false,
-  };
-}
-
-function formReducer(state: FormState, action: FormAction): FormState {
-  switch (action.type) {
-    case "SET_FIELD":
-      return { ...state, [action.field]: action.value };
-    case "APPLY_PRESET": {
-      const preset = PROVIDER_PRESETS[action.presetIndex];
-      if (!preset) return state;
-      return {
-        ...state,
-        selectedPresetIndex: action.presetIndex,
-        baseUrl: preset.baseUrl,
-        settingsName: state.nameManuallyEdited
-          ? state.settingsName
-          : preset.name,
-        nameManuallyEdited: false,
-        model: "",
-        modelOptions: [],
-        modelFeedback: "",
-        apiKey: "",
-      };
-    }
-    case "SYNC_PROVIDER":
-      return initFormState(action.provider, action.pipeline);
-    case "MODELS_LOADED": {
-      const nextModel =
-        !state.model && action.options.length > 0
-          ? action.options[0]
-          : state.model;
-      return {
-        ...state,
-        model: nextModel,
-        modelOptions: action.options,
-        isLoadingModels: false,
-        modelFeedback: action.feedback,
-      };
-    }
-    case "MODELS_ERROR":
-      return {
-        ...state,
-        isLoadingModels: false,
-        modelFeedback: action.feedback,
-      };
-    case "START_LOADING_MODELS":
-      return { ...state, isLoadingModels: true, modelFeedback: "" };
-    case "RESET_PIPELINE":
-      return {
-        ...state,
-        relevancePrompt: action.pipeline.relevancePrompt,
-        translationTitlePrompt: action.pipeline.translationTitlePrompt,
-        translationContentPrompt: action.pipeline.translationContentPrompt,
-        summaryPromptEn: action.pipeline.summaryPromptEn,
-        summaryPromptZh: action.pipeline.summaryPromptZh,
-        tagPrompt: action.pipeline.tagPrompt,
-      };
-    case "CLEAR_MODEL_LIST":
-      return { ...state, modelOptions: [], modelFeedback: "" };
-  }
-}
-
-function FeedbackMessage({ state }: { state: FormActionResult }) {
-  if (state.status === "idle") {
-    return null;
-  }
-
-  return (
-    <div
-      className={`rounded-[1.15rem] border px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:shadow-none ${
-        state.status === "error"
-          ? "border-destructive/40 bg-destructive/5 text-destructive dark:bg-destructive/10"
-          : "border-emerald-900/18 bg-[#f7fbf8] text-emerald-950 dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100"
-      }`}
-      aria-live="polite"
-    >
-      {state.message}
-    </div>
-  );
-}
-
-function CollapsiblePromptField({
-  id,
-  name,
-  label,
-  value,
-  onChange,
-  lang,
-}: {
-  id: string;
-  name: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  lang: AppLang;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="flex flex-col gap-2 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
-      <div className="flex items-center justify-between gap-2">
-        <label htmlFor={id} className="text-sm font-medium">
-          {label}
-        </label>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 shrink-0 px-2 text-xs text-muted-foreground"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? (
-            <>
-              <ChevronDown className="size-3.5" />
-              {lang === "zh" ? "收起" : "Collapse"}
-            </>
-          ) : (
-            <>
-              <ChevronRight className="size-3.5" />
-              {lang === "zh" ? "展开" : "Expand"}
-            </>
-          )}
-        </Button>
-      </div>
-      {expanded ? (
-        <Textarea
-          id={id}
-          name={name}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-        />
-      ) : (
-        <>
-          <input type="hidden" name={name} value={value} />
-          <div
-            className="line-clamp-2 cursor-pointer rounded-md border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground leading-relaxed hover:bg-muted/50"
-            onClick={() => setExpanded(true)}
-          >
-            {value || (lang === "zh" ? "未配置" : "Not configured")}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+import {
+  type FormState,
+  formReducer,
+  initFormState,
+} from "@/components/admin/llm-settings-form-reducer";
+import {
+  CollapsiblePromptField,
+  FeedbackMessage,
+  SubmitButton,
+} from "@/components/admin/llm-settings-form-parts";
 
 type LlmSettingsFormProps = {
   profiles: LlmSettingsRow[];
@@ -295,22 +81,6 @@ type LlmSettingsFormProps = {
     formData: FormData,
   ) => Promise<FormActionResult>;
 };
-
-function SubmitButton({
-  idleLabel,
-  pendingLabel,
-}: {
-  idleLabel: string;
-  pendingLabel: string;
-}) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? pendingLabel : idleLabel}
-    </Button>
-  );
-}
 
 export function LlmSettingsForm({
   profiles,
