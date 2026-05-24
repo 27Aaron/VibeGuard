@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: VibeGuard Public API
-  version: 1.0.0
-  description: VibeGuard 为开发者和安全团队提供供应链威胁情报的公开 API，支持漏洞包检查与安全文章检索，无需认证即可访问。
+  version: 1.1.0
+  description: VibeGuard 为开发者和安全团队提供供应链威胁情报的公开 API，支持漏洞包检查、安全公告查询、CVE 富集信息与安全文章检索。
   contact:
     name: VibeGuard
     url: https://github.com/27Aaron/VibeGuard
@@ -12,6 +12,55 @@ servers:
     description: Current server
 
 paths:
+  /api/overview:
+    get:
+      summary: 公开站点概览
+      tags: [Public]
+      responses:
+        "200":
+          description: 文章与来源数量概览
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      generatedAt: { type: string, format: date-time }
+                      generatedAtDisplay: { type: string }
+                  overview:
+                    type: object
+                    properties:
+                      articleCount: { type: integer }
+                      sourceCount: { type: integer }
+
+  /api/sources:
+    get:
+      summary: 公开来源列表
+      tags: [Public]
+      responses:
+        "200":
+          description: 已发布文章来源及数量
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      count: { type: integer }
+                      generatedAt: { type: string, format: date-time }
+                      generatedAtDisplay: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sourceName: { type: string }
+                        count: { type: integer }
+
   /api/articles:
     get:
       summary: 查询文章列表
@@ -24,7 +73,7 @@ paths:
         - name: q
           in: query
           schema: { type: string }
-          description: 全文搜索关键词。
+          description: 搜索关键词，匹配标题、摘要、来源与标签。
         - name: tag
           in: query
           schema: { type: string }
@@ -54,14 +103,7 @@ paths:
                 type: object
                 properties:
                   meta:
-                    type: object
-                    properties:
-                      lang: { type: string }
-                      limit: { type: integer }
-                      count: { type: integer }
-                      page: { type: integer }
-                      totalCount: { type: integer }
-                      totalPages: { type: integer }
+                    $ref: "#/components/schemas/ArticleListMeta"
                   items:
                     type: array
                     items:
@@ -87,13 +129,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ArticleDetail"
         "404":
-          description: 未找到
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error: { type: string }
+          $ref: "#/components/responses/NotFound"
 
   /api/security/check/overview:
     get:
@@ -108,12 +144,7 @@ paths:
                 type: object
                 properties:
                   totals:
-                    type: object
-                    properties:
-                      npm: { type: integer }
-                      pypi: { type: integer }
-                      go: { type: integer }
-                      crates-io: { type: integer }
+                    $ref: "#/components/schemas/SecurityEcosystemTotals"
 
   /api/security/check/packages:
     post:
@@ -131,12 +162,7 @@ paths:
                   minItems: 1
                   maxItems: 100
                   items:
-                    type: object
-                    properties:
-                      ecosystem: { type: string, enum: [npm, pypi, go, crates-io] }
-                      name: { type: string }
-                      version: { type: string, nullable: true }
-                    required: [ecosystem, name]
+                    $ref: "#/components/schemas/PackageCoordinate"
               required: [packages]
       responses:
         "200":
@@ -144,79 +170,210 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  findings:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        affected: { type: boolean }
-                        matchSummary: { type: string }
-                        package:
-                          type: object
-                          properties:
-                            ecosystem: { type: string }
-                            name: { type: string }
-                            version: { type: string, nullable: true }
-                        advisory:
-                          type: object
-                          properties:
-                            id: { type: string }
-                            riskType: { type: string, enum: [vulnerability, malicious-package] }
-                            summary: { type: string }
-                            aliases: { type: array, items: { type: string } }
-                            severity: { type: array, items: { type: object } }
-                            references: { type: array, items: { type: object } }
-                        affectedPackage:
-                          type: object
-                          properties:
-                            affectedVersions: { type: array, items: { type: string } }
-                            fixedVersions: { type: array, items: { type: string } }
-                        risk:
-                          type: object
-                          properties:
-                            level: { type: string, enum: [critical, high, medium, low, unknown] }
-                            score: { type: number }
-                            signals: { type: array, items: { type: string } }
-                        cveEnrichments:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              cveId: { type: string }
-                              title: { type: string, nullable: true }
-                              description: { type: string, nullable: true }
-                              bestCvssScore: { type: string, nullable: true }
-                              bestCvssSeverity: { type: string, nullable: true }
-                              epss: { type: string, nullable: true }
-                              epssPercentile: { type: string, nullable: true }
-                              kevListed: { type: boolean }
-                              kevKnownRansomwareCampaignUse: { type: string, nullable: true }
-                              cweIds: { type: array, items: { type: string } }
+                $ref: "#/components/schemas/PackageCheckResponse"
         "400":
-          description: 参数错误
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /api/security/advisories:
+    get:
+      summary: 查询安全公告
+      tags: [Security]
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+          description: 搜索 GHSA、MAL、摘要、详情、CVE、related 或 upstream ID。
+        - name: ecosystem
+          in: query
+          schema: { type: string, enum: [npm, pypi, go, crates-io] }
+        - name: package
+          in: query
+          schema: { type: string }
+          description: 包名；与 ecosystem 一起使用可查包相关公告。
+        - name: cve
+          in: query
+          schema: { type: string, pattern: "^CVE-\\d{4}-\\d{4,}$" }
+        - name: riskType
+          in: query
+          schema: { type: string, enum: [unknown, vulnerability, malicious-package] }
+        - name: kev
+          in: query
+          schema: { type: boolean }
+          description: 是否只返回 CISA KEV 已列入或未列入的公告。
+        - name: withdrawn
+          in: query
+          schema: { type: boolean }
+          description: 是否筛选已撤回公告。
+        - name: cvssMin
+          in: query
+          schema: { type: number, minimum: 0, maximum: 10 }
+        - name: epssMin
+          in: query
+          schema: { type: number, minimum: 0, maximum: 1 }
+        - name: updatedAfter
+          in: query
+          schema: { type: string, format: date-time }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          description: 安全公告列表
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  ok: { type: boolean }
-                  message: { type: string }
+                  meta:
+                    $ref: "#/components/schemas/SecurityAdvisoryListMeta"
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SecurityAdvisory"
+
+  /api/security/advisories/{advisoryId}:
+    get:
+      summary: 获取单条安全公告
+      tags: [Security]
+      parameters:
+        - name: advisoryId
+          in: path
+          required: true
+          schema: { type: string }
+          description: OSV/GHSA/MAL external id，例如 GHSA-43fc-jf86-j433。
+      responses:
+        "200":
+          description: 安全公告详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityAdvisory"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/security/packages/{ecosystem}/{packageName}:
+    get:
+      summary: 获取包风险画像
+      tags: [Security]
+      parameters:
+        - name: ecosystem
+          in: path
+          required: true
+          schema: { type: string, enum: [npm, pypi, go, crates-io] }
+        - name: packageName
+          in: path
+          required: true
+          schema: { type: string }
+          description: 包名或模块路径。npm scope 和 Go module 路径可使用多段路径。
+        - name: version
+          in: query
+          schema: { type: string, nullable: true }
+          description: 可选版本；传入后返回该版本是否确认命中。
+      responses:
+        "200":
+          description: 包风险画像
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PackageProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/security/cves/{cveId}:
+    get:
+      summary: 获取 CVE 富集详情
+      tags: [Security]
+      parameters:
+        - name: cveId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^CVE-\\d{4}-\\d{4,}$" }
+      responses:
+        "200":
+          description: CVE 富集数据与相关公告
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CveDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/security/sync/status:
+    get:
+      summary: 安全数据同步状态
+      tags: [Security]
+      responses:
+        "200":
+          description: OSV/NVD/EPSS/KEV 等来源同步状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecuritySyncStatusResponse"
 
 components:
+  responses:
+    BadRequest:
+      description: 参数错误
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              ok: { type: boolean }
+              message: { type: string }
+    NotFound:
+      description: 未找到
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+    TooManyRequests:
+      description: 请求过多
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              ok: { type: boolean }
+              message: { type: string }
+
   schemas:
+    ArticleListMeta:
+      type: object
+      properties:
+        lang: { type: string, enum: [zh, en] }
+        status: { type: string }
+        source: { type: string, nullable: true }
+        query: { type: string, nullable: true }
+        ecosystem: { type: string, nullable: true }
+        riskCategory: { type: string, nullable: true }
+        tag: { type: string, nullable: true }
+        limit: { type: integer }
+        count: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+
     Article:
       type: object
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
         summary: { type: string }
-        url: { type: string, format: uri }
+        url: { type: string, format: uri, nullable: true }
         sourceName: { type: string }
         ecosystem: { type: string }
         riskCategory: { type: string }
         tags: { type: array, items: { type: string } }
+        status: { type: string }
         publishedAt: { type: string, format: date-time }
         publishedAtDisplay: { type: string }
         updatedAt: { type: string, format: date-time }
@@ -230,3 +387,227 @@ components:
           properties:
             content: { type: string, description: Markdown 正文 }
             canonicalUrl: { type: string, nullable: true }
+
+    SecurityEcosystemTotals:
+      type: object
+      properties:
+        npm: { type: integer }
+        pypi: { type: integer }
+        go: { type: integer }
+        crates-io: { type: integer }
+
+    PackageCoordinate:
+      type: object
+      required: [ecosystem, name]
+      properties:
+        ecosystem: { type: string, enum: [npm, pypi, go, crates-io] }
+        name: { type: string }
+        version: { type: string, nullable: true }
+
+    PackageCheckResponse:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            source: { type: string, enum: [local-osv-mirror] }
+            lastSyncedAt: { type: string, format: date-time, nullable: true }
+            stale: { type: boolean }
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityFinding"
+
+    PackageProfile:
+      type: object
+      properties:
+        package:
+          type: object
+          properties:
+            ecosystem: { type: string, enum: [npm, pypi, go, crates-io] }
+            name: { type: string }
+            version: { type: string, nullable: true }
+        meta:
+          $ref: "#/components/schemas/PackageCheckResponse/properties/meta"
+        summary:
+          type: object
+          properties:
+            totalFindings: { type: integer }
+            affectedCount: { type: integer }
+            inconclusiveCount: { type: integer }
+            highestRisk:
+              type: object
+              nullable: true
+              properties:
+                level: { type: string, enum: [critical, high, medium, low, unknown] }
+                score: { type: number }
+            latestUpdatedAt: { type: string, format: date-time, nullable: true }
+            recommendedFixedVersions: { type: array, items: { type: string } }
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityFinding"
+
+    SecurityFinding:
+      type: object
+      properties:
+        affected: { type: boolean }
+        confidence: { type: string, enum: [high, medium, low, undetermined] }
+        matchReason:
+          type: string
+          enum:
+            - explicit_affected_version
+            - version_in_ecosystem_range
+            - version_outside_ecosystem_range
+            - range_present_but_inconclusive
+            - package_match_without_version
+        matchSummary: { type: string }
+        package:
+          type: object
+          properties:
+            ecosystem: { type: string, enum: [npm, pypi, go, crates-io] }
+            name: { type: string }
+            version: { type: string, nullable: true }
+            purl: { type: string, nullable: true }
+        advisory:
+          $ref: "#/components/schemas/SecurityAdvisoryBase"
+        affectedPackage:
+          $ref: "#/components/schemas/PackageImpact"
+        cveEnrichments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CveEnrichment"
+        risk:
+          type: object
+          properties:
+            level: { type: string, enum: [critical, high, medium, low, unknown] }
+            score: { type: number }
+            signals: { type: array, items: { type: string } }
+
+    SecurityAdvisoryListMeta:
+      type: object
+      properties:
+        q: { type: string }
+        ecosystem: { type: string, nullable: true }
+        packageName: { type: string }
+        cve: { type: string, nullable: true }
+        riskType: { type: string, nullable: true }
+        kev: { type: boolean, nullable: true }
+        withdrawn: { type: boolean, nullable: true }
+        cvssMin: { type: number, nullable: true }
+        epssMin: { type: number, nullable: true }
+        updatedAfter: { type: string, format: date-time, nullable: true }
+        limit: { type: integer }
+        page: { type: integer }
+        count: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+
+    SecurityAdvisoryBase:
+      type: object
+      properties:
+        id: { type: string }
+        source: { type: string }
+        sourceUrl: { type: string, format: uri, nullable: true }
+        riskType: { type: string, enum: [unknown, vulnerability, malicious-package] }
+        summary: { type: string }
+        details: { type: string, nullable: true }
+        aliases: { type: array, items: { type: string } }
+        related: { type: array, items: { type: string } }
+        upstream: { type: array, items: { type: string } }
+        severity: { type: array, items: { type: object } }
+        references: { type: array, items: { type: object } }
+        maliciousOrigins: { type: array, items: { type: object } }
+        publishedAt: { type: string, format: date-time, nullable: true }
+        modifiedAt: { type: string, format: date-time, nullable: true }
+        withdrawnAt: { type: string, format: date-time, nullable: true }
+
+    SecurityAdvisory:
+      allOf:
+        - $ref: "#/components/schemas/SecurityAdvisoryBase"
+        - type: object
+          properties:
+            packageImpacts:
+              type: array
+              items:
+                $ref: "#/components/schemas/PackageImpact"
+            cveEnrichments:
+              type: array
+              items:
+                $ref: "#/components/schemas/CveEnrichment"
+
+    PackageImpact:
+      type: object
+      properties:
+        ecosystem: { type: string, enum: [npm, pypi, go, crates-io] }
+        packageName: { type: string }
+        packageKey: { type: string }
+        purl: { type: string, nullable: true }
+        affectedVersions: { type: array, items: { type: string } }
+        ranges: { type: array, items: { type: object } }
+        fixedVersions: { type: array, items: { type: string } }
+
+    CveDetail:
+      type: object
+      properties:
+        cveId: { type: string }
+        enrichment:
+          oneOf:
+            - $ref: "#/components/schemas/CveEnrichment"
+            - type: "null"
+        advisories:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityAdvisory"
+
+    CveEnrichment:
+      type: object
+      properties:
+        cveId: { type: string }
+        title: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        cvssMetrics: { type: array, items: { type: object } }
+        bestCvssScore: { type: string, nullable: true }
+        bestCvssSeverity: { type: string, nullable: true }
+        cweIds: { type: array, items: { type: string } }
+        epss: { type: string, nullable: true }
+        epssPercentile: { type: string, nullable: true }
+        epssScoreDate: { type: string, format: date-time, nullable: true }
+        epssModelVersion: { type: string, nullable: true }
+        kevListed: { type: boolean }
+        kevDateAdded: { type: string, format: date-time, nullable: true }
+        kevDueDate: { type: string, format: date-time, nullable: true }
+        kevKnownRansomwareCampaignUse: { type: string, nullable: true }
+        kevRequiredAction: { type: string, nullable: true }
+        kevVendorProject: { type: string, nullable: true }
+        kevProduct: { type: string, nullable: true }
+        kevNotes: { type: string, nullable: true }
+        nvdPublishedAt: { type: string, format: date-time, nullable: true }
+        nvdModifiedAt: { type: string, format: date-time, nullable: true }
+
+    SecuritySyncStatusResponse:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            sourceCount: { type: integer }
+            staleAfterMs: { type: integer }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              source: { type: string }
+              scope: { type: string }
+              status: { type: string, enum: [idle, running, success, failed] }
+              lastProcessedModifiedAt: { type: string, format: date-time, nullable: true }
+              cursorJson: { type: object }
+              lastStartedAt: { type: string, format: date-time, nullable: true }
+              lastSuccessAt: { type: string, format: date-time, nullable: true }
+              lastError: { type: string, nullable: true }
+              recordsSeen: { type: integer }
+              recordsImported: { type: integer }
+              recordsFailed: { type: integer }
+              updatedAt: { type: string, format: date-time }
+              stale: { type: boolean }

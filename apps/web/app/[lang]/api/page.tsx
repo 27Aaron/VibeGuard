@@ -311,6 +311,163 @@ export default async function ApiPage({ params: routeParams }: ApiPageProps) {
                     },
                   ]}
                 />
+
+                <EndpointCard
+                  method="GET"
+                  path="/api/security/advisories"
+                  lang={lang}
+                  description={lang === "zh"
+                    ? "查询结构化漏洞公告，可按包、CVE、风险类型、KEV、CVSS、EPSS、撤回状态和更新时间筛选。"
+                    : "Search structured advisories by package, CVE, risk type, KEV, CVSS, EPSS, withdrawal state, and update time."}
+                  params={[
+                    {
+                      key: "package",
+                      label: lang === "zh" ? "包名" : "package",
+                      detail: lang === "zh"
+                        ? "配合 ecosystem 使用，查询某个包相关的所有公告。"
+                        : "Use with ecosystem to return advisories for a package.",
+                      examples: [
+                        { label: "/api/security/advisories?ecosystem=npm&package=axios", href: "/api/security/advisories?ecosystem=npm&package=axios" },
+                      ],
+                    },
+                    {
+                      key: "cve",
+                      label: "CVE",
+                      detail: lang === "zh"
+                        ? "按 CVE 编号筛选，自动规范为大写格式。"
+                        : "Filter by CVE id. The API normalizes it to uppercase.",
+                      examples: [
+                        { label: "/api/security/advisories?cve=CVE-2026-25639", href: "/api/security/advisories?cve=CVE-2026-25639" },
+                      ],
+                    },
+                    {
+                      key: "kev",
+                      label: "CISA KEV",
+                      detail: lang === "zh"
+                        ? "true 只返回已进入 CISA KEV 的公告，false 返回未进入 KEV 的公告。"
+                        : "true returns CISA KEV-listed advisories; false returns non-KEV advisories.",
+                      examples: [
+                        { label: "/api/security/advisories?kev=true", href: "/api/security/advisories?kev=true" },
+                      ],
+                    },
+                    {
+                      key: "cvssMin",
+                      label: "CVSS",
+                      detail: lang === "zh"
+                        ? "只返回最高 CVSS 分数不低于该值的公告，例如 7 或 9。"
+                        : "Return advisories whose best CVSS score is at least this value, e.g. 7 or 9.",
+                    },
+                    {
+                      key: "epssMin",
+                      label: "EPSS",
+                      detail: lang === "zh"
+                        ? "只返回 EPSS percentile 不低于该值的公告，例如 0.9。"
+                        : "Return advisories whose EPSS percentile is at least this value, e.g. 0.9.",
+                    },
+                  ]}
+                />
+
+                <EndpointCard
+                  method="GET"
+                  path="/api/security/advisories/{id}"
+                  lang={lang}
+                  description={lang === "zh"
+                    ? "根据 GHSA、MAL 或 OSV external id 获取单条公告详情，包含影响包、修复版本、关联记录和 CVE 富集信息。"
+                    : "Get one advisory by GHSA, MAL, or OSV external id, including package impact, fixes, related records, and CVE enrichment."}
+                  params={[
+                    {
+                      key: "id",
+                      label: lang === "zh" ? "公告 ID" : "advisory ID",
+                      detail: lang === "zh"
+                        ? "例如 GHSA-43fc-jf86-j433 或 MAL-2026-xxxx。"
+                        : "For example GHSA-43fc-jf86-j433 or MAL-2026-xxxx.",
+                      examples: [
+                        { label: "/api/security/advisories/GHSA-43fc-jf86-j433", href: "/api/security/advisories/GHSA-43fc-jf86-j433" },
+                      ],
+                    },
+                  ]}
+                />
+
+                <EndpointCard
+                  method="GET"
+                  path="/api/security/packages/{ecosystem}/{name}"
+                  lang={lang}
+                  description={lang === "zh"
+                    ? "获取单个包的风险画像：命中数量、确认影响数量、最高风险、最近更新和推荐修复版本。"
+                    : "Get a package risk profile: finding count, confirmed hits, highest risk, latest update, and recommended fixed versions."}
+                  params={[
+                    {
+                      key: "ecosystem",
+                      label: lang === "zh" ? "生态系统" : "ecosystem",
+                      detail: lang === "zh"
+                        ? "支持 npm、pypi、go、crates-io。"
+                        : "Supports npm, pypi, go, and crates-io.",
+                    },
+                    {
+                      key: "name",
+                      label: lang === "zh" ? "包名" : "package name",
+                      detail: lang === "zh"
+                        ? "支持 npm scope 和 Go module 多段路径。"
+                        : "Supports npm scoped packages and multi-segment Go module paths.",
+                      examples: [
+                        { label: "/api/security/packages/npm/axios", href: "/api/security/packages/npm/axios" },
+                        { label: "/api/security/packages/go/golang.org/x/net", href: "/api/security/packages/go/golang.org/x/net" },
+                      ],
+                    },
+                    {
+                      key: "version",
+                      label: lang === "zh" ? "版本" : "version",
+                      detail: lang === "zh"
+                        ? "可选；传入后按版本范围判断是否确认命中。"
+                        : "Optional. When present, the API checks whether that version is affected.",
+                      examples: [
+                        { label: "/api/security/packages/npm/axios?version=1.0.0", href: "/api/security/packages/npm/axios?version=1.0.0" },
+                      ],
+                    },
+                  ]}
+                />
+
+                <EndpointCard
+                  method="GET"
+                  path="/api/security/cves/{id}"
+                  lang={lang}
+                  description={lang === "zh"
+                    ? "获取 CVE 富集详情，包含 CVSS、CWE、EPSS、CISA KEV、NVD 时间和关联公告。"
+                    : "Get CVE enrichment, including CVSS, CWE, EPSS, CISA KEV, NVD timestamps, and related advisories."}
+                  params={[
+                    {
+                      key: "id",
+                      label: "CVE",
+                      detail: lang === "zh"
+                        ? "CVE 编号，例如 CVE-2026-25639。"
+                        : "CVE id, for example CVE-2026-25639.",
+                      examples: [
+                        { label: "/api/security/cves/CVE-2026-25639", href: "/api/security/cves/CVE-2026-25639" },
+                      ],
+                    },
+                  ]}
+                />
+
+                <EndpointCard
+                  method="GET"
+                  path="/api/security/sync/status"
+                  lang={lang}
+                  description={lang === "zh"
+                    ? "查看 OSV、NVD、FIRST EPSS、CISA KEV 等安全数据源的同步状态和数据新鲜度。"
+                    : "Inspect sync status and freshness for OSV, NVD, FIRST EPSS, CISA KEV, and other security data sources."}
+                  params={[
+                    {
+                      key: "response",
+                      label: lang === "zh" ? "返回字段" : "response",
+                      detail: lang === "zh"
+                        ? "返回 source、scope、status、lastSuccessAt、recordsImported、recordsFailed、stale 等字段。"
+                        : "Returns source, scope, status, lastSuccessAt, recordsImported, recordsFailed, stale, and related fields.",
+                      examples: [
+                        { label: "/api/security/sync/status", href: "/api/security/sync/status" },
+                      ],
+                    },
+                  ]}
+                />
               </div>
             </div>
           </div>
