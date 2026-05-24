@@ -1,3 +1,12 @@
+import {
+  getLlmHeaders,
+  normalizeLlmError,
+  parseRetryAfterMs,
+  resolveLlmRetryConfig,
+  resolveRetryDelayMs,
+  type LlmRetryConfig,
+} from "./retry-policy";
+
 type ChatCompletionContentPart = {
   type?: string;
   text?: string;
@@ -29,6 +38,8 @@ type ChatMessage = {
   content: string;
 };
 
+type WaitFunction = (ms: number) => Promise<void>;
+
 export type UsageResult = {
   promptTokens: number;
   completionTokens: number;
@@ -48,7 +59,7 @@ export type ChatCompletionsClient = {
   };
 };
 
-function wait(ms: number) {
+function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
@@ -75,9 +86,17 @@ export async function createChatCompletionTextWithRetry(input: {
   userContent: string;
   maxAttempts?: number;
   retryDelayMs?: number;
+  retryConfig?: LlmRetryConfig;
+  wait?: WaitFunction;
+  random?: () => number;
 }) {
-  const maxAttempts = input.maxAttempts ?? 3;
-  const retryDelayMs = input.retryDelayMs ?? 250;
+  const retryConfig =
+    input.retryConfig ??
+    resolveLlmRetryConfig({
+      maxAttempts: input.maxAttempts,
+      retryBaseMs: input.retryDelayMs,
+    });
+  const waitFor = input.wait ?? wait;
   let lastError: unknown = new Error("Unknown error");
 
   const messages: ChatMessage[] = [];
@@ -86,7 +105,7 @@ export async function createChatCompletionTextWithRetry(input: {
   }
   messages.push({ role: "user", content: input.userContent });
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt += 1) {
     try {
       const result = await input.client.chat.completions.create({
         model: input.model,
@@ -98,17 +117,27 @@ export async function createChatCompletionTextWithRetry(input: {
         usage: extractUsage(result),
       };
     } catch (error) {
-      lastError = error;
+      const normalizedError = normalizeLlmError(error);
+      lastError = normalizedError;
 
-      if (attempt >= maxAttempts) {
+      if (!normalizedError.retryable || attempt >= retryConfig.maxAttempts) {
         break;
       }
 
-      await wait(retryDelayMs * Math.pow(2, attempt - 1));
+      const retryAfterMs = parseRetryAfterMs(getLlmHeaders(error));
+      const delayMs = resolveRetryDelayMs({
+        attempt,
+        baseMs: retryConfig.retryBaseMs,
+        maxMs: retryConfig.retryMaxMs,
+        retryAfterMs,
+        random: input.random,
+      });
+
+      await waitFor(delayMs);
     }
   }
 
-  throw lastError;
+  throw normalizeLlmError(lastError);
 }
 
 function stripThinkingTags(text: string): string {
