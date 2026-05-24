@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { articles, llmUsageLogs, schema } from "@vibeguard/db";
+import { articles, llmSettings, llmUsageLogs, schema } from "@vibeguard/db";
 import {
   createOpenAIClient,
   decryptSecret,
@@ -206,9 +206,35 @@ async function checkClaimedJobControl(
   }
 }
 
+// --- LLM 设置缓存：batch 级别共享 ---
+
+type LlmSettingsCache = {
+  promise?: Promise<
+    (typeof llmSettings)["$inferSelect"] | undefined
+  >;
+};
+
+function cachedLlmSettingsLoader(
+  db: ContentDb,
+  cache: LlmSettingsCache,
+): () => Promise<(typeof llmSettings)["$inferSelect"] | undefined> {
+  return () => {
+    if (!cache.promise) {
+      cache.promise = db.query.llmSettings.findFirst({
+        where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
+      });
+    }
+    return cache.promise;
+  };
+}
+
 // --- 已认领任务的核心处理流程 ---
 
-async function processClaimedJob(db: ContentDb, job: JobRecord) {
+async function processClaimedJob(
+  db: ContentDb,
+  job: JobRecord,
+  llmCache?: LlmSettingsCache,
+) {
   try {
     const checkJobControl = () =>
       checkClaimedJobControl(db, { jobId: job.id, articleId: job.articleId });
@@ -218,10 +244,12 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
         db.query.articles.findFirst({
           where: (table, { eq: whereEq }) => whereEq(table.id, articleId),
         }),
-      loadActiveLlmSettings: () =>
-        db.query.llmSettings.findFirst({
-          where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
-        }),
+      loadActiveLlmSettings: llmCache
+        ? cachedLlmSettingsLoader(db, llmCache)
+        : () =>
+            db.query.llmSettings.findFirst({
+              where: (table, { eq: whereEq }) => whereEq(table.isActive, true),
+            }),
       markArticleStatus: (articleId, status, error) =>
         markArticleStatus(db, articleId, status, error),
       updateArticleContent: (articleId, content) =>
@@ -382,7 +410,13 @@ export async function processQueuedJobs(
   const results: ProcessedJobResult[] = [];
   const batchSize = resolveWorkerBatchSize(options.batchSize);
   const concurrency = Math.min(batchSize, 5);
-  const processNextJob = options.processNextJob ?? processNextQueuedJob;
+  const llmCache: LlmSettingsCache = {};
+  const processNextJob =
+    options.processNextJob ??
+    (async (nextDb: ContentDb) => {
+      const job = await claimNextQueuedJob(nextDb);
+      return job ? processClaimedJob(nextDb, job, llmCache) : null;
+    });
   const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs;
   let claimedSlots = 0;
 
@@ -441,7 +475,13 @@ export async function processAllRemainingJobs(
   options: ProcessQueuedJobsOptions = {},
 ) {
   const concurrency = Math.min(resolveWorkerBatchSize(options.batchSize), 5);
-  const processNextJob = options.processNextJob ?? processNextQueuedJob;
+  const llmCache: LlmSettingsCache = {};
+  const processNextJob =
+    options.processNextJob ??
+    (async (nextDb: ContentDb) => {
+      const job = await claimNextQueuedJob(nextDb);
+      return job ? processClaimedJob(nextDb, job, llmCache) : null;
+    });
   const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs;
 
   await resetStaleJobs(db);
@@ -455,10 +495,15 @@ export async function processAvailableQueuedJobs(
 ) {
   const maxConcurrency = Math.min(resolveWorkerBatchSize(options.batchSize), 5);
   const readRunningCount = options.countRunningJobs ?? countRunningJobs;
+  const llmCache: LlmSettingsCache = {};
   const processNextJob =
     options.processNextJob ??
-    ((nextDb: ContentDb) =>
-      processNextAvailableQueuedJob(nextDb, maxConcurrency));
+    (async (nextDb: ContentDb) => {
+      const job = await claimNextQueuedJob(nextDb, new Date(), {
+        maxRunningJobs: maxConcurrency,
+      });
+      return job ? processClaimedJob(nextDb, job, llmCache) : null;
+    });
   const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs;
 
   await resetStaleJobs(db);
@@ -477,7 +522,13 @@ export async function processQueuedJobsByIds(
   const results: ProcessedJobResult[] = [];
   const batchSize = resolveWorkerBatchSize(options.batchSize);
   const concurrency = Math.min(batchSize, 5);
-  const processJobById = options.processJobById ?? processQueuedJobById;
+  const llmCache: LlmSettingsCache = {};
+  const processJobById =
+    options.processJobById ??
+    (async (nextDb: ContentDb, jobId: string) => {
+      const job = await claimQueuedJobById(nextDb, jobId);
+      return job ? processClaimedJob(nextDb, job, llmCache) : null;
+    });
   const resetStaleJobs = options.resetStaleJobs ?? resetStaleRunningJobs;
   let cursor = 0;
 
