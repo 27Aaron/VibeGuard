@@ -283,24 +283,24 @@ function ExpandableMarkdownBlock({
 }: ExpandableMarkdownBlockProps) {
   const [expanded, setExpanded] = useState(false)
   const [canExpand, setCanExpand] = useState(false)
-  const [measured, setMeasured] = useState(false)
-  const previewRef = useRef<HTMLDivElement | null>(null)
+  const measureRef = useRef<HTMLDivElement | null>(null)
   const previewText = buildSummaryPreviewText(content)
 
   useEffect(() => {
-    const element = previewRef.current
+    const measureElement = measureRef.current
 
-    if (!element) {
+    if (!measureElement) {
       return
     }
 
     setCanExpand(false)
-    setMeasured(false)
 
     const measureOverflow = () => {
-      const nextCanExpand = element.scrollHeight > element.clientHeight + 1
-      setCanExpand((current) => current || nextCanExpand)
-      setMeasured(true)
+      const styles = window.getComputedStyle(measureElement)
+      const lineHeight = Number.parseFloat(styles.lineHeight)
+      const collapsedHeight = (Number.isFinite(lineHeight) ? lineHeight : 24) * 2
+      const nextCanExpand = measureElement.scrollHeight > collapsedHeight + 1
+      setCanExpand(nextCanExpand)
     }
 
     measureOverflow()
@@ -311,7 +311,7 @@ function ExpandableMarkdownBlock({
     }
 
     const observer = new ResizeObserver(measureOverflow)
-    observer.observe(element)
+    observer.observe(measureElement)
     window.addEventListener("resize", measureOverflow)
 
     return () => {
@@ -339,8 +339,8 @@ function ExpandableMarkdownBlock({
           </Button>
         ) : null}
       </div>
-      <div className="rounded-2xl border border-black/6 bg-white/65 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.035] dark:shadow-none">
-        {expanded || (measured && !canExpand) ? (
+      <div className="relative rounded-2xl border border-black/6 bg-white/65 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.035] dark:shadow-none">
+        {expanded ? (
           <MarkdownRenderer
             content={content}
             variant="public"
@@ -348,13 +348,18 @@ function ExpandableMarkdownBlock({
             className="text-sm leading-6 text-zinc-600 dark:text-stone-300 [&_p]:text-inherit [&_ul]:text-inherit [&_ol]:text-inherit [&_.markdown-body]:text-inherit"
           />
         ) : (
-          <div
-            ref={previewRef}
-            className="line-clamp-2 text-sm leading-6 text-zinc-600 dark:text-stone-300"
-          >
+          <div className="line-clamp-2 text-sm leading-6 text-zinc-600 dark:text-stone-300">
             {previewText}
           </div>
         )}
+        <div
+          ref={measureRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-4 top-3 text-sm leading-6 text-zinc-600 dark:text-stone-300"
+          style={{ visibility: "hidden" }}
+        >
+          {previewText}
+        </div>
       </div>
     </div>
   )

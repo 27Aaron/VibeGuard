@@ -90,6 +90,7 @@ describe("public check page scaffolding", () => {
     expect(component).toContain("MarkdownRenderer")
     expect(component).toContain("buildSummaryPreviewText")
     expect(component).toContain("line-clamp-2")
+    expect(component).not.toContain("expanded || (measured && !canExpand)")
     expect(component).toContain("finding.matchSummary")
     expect(component).not.toContain("finding.matchReason")
     expect(component).not.toContain("finding.confidence")
