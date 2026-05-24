@@ -1,8 +1,8 @@
 import type { AppLang } from "@/lib/i18n"
 
 /**
- * Pipeline stages in execution order.
- * Covers the full lifecycle from waiting through completed.
+ * 流水线处理阶段，按执行顺序排列。
+ * 覆盖从等待（waiting）到完成（completed）的完整生命周期。
  */
 export const PIPELINE_STAGES = [
   "waiting",
@@ -20,15 +20,15 @@ export const PIPELINE_STAGES = [
 export type PipelineStage = (typeof PIPELINE_STAGES)[number]
 
 /**
- * Active pipeline stages (excludes waiting and completed).
- * Useful for progress indicators that only count processing steps.
+ * 活跃的流水线处理阶段（排除 waiting 和 completed）。
+ * 适用于只需要计数实际处理步骤的进度指示器。
  */
 export const ACTIVE_PIPELINE_STAGES = PIPELINE_STAGES.filter(
   (s) => s !== "waiting" && s !== "completed",
 )
 
 /**
- * Returns a localized human-readable label for a pipeline stage or filter value.
+ * 返回流水线阶段或筛选值的本地化可读标签。
  */
 export function stageLabel(stage: string, lang: AppLang): string {
   switch (stage) {

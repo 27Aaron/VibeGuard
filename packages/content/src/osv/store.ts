@@ -31,8 +31,8 @@ type UpsertOptions = {
   affectedPackageInsertChunkSize?: number
 }
 
-// EXCLUDED.* references are hardcoded column names (not user input), so they are safe.
-// Using sql`` template tag instead of sql.raw() for consistency with Drizzle conventions.
+// EXCLUDED.* 引用的是硬编码的列名（而非用户输入），因此不存在 SQL 注入风险，可以安全使用。
+// 使用 sql`` 模板标签而非 sql.raw()，是为了与项目中 Drizzle ORM 的编码惯例保持一致。
 const advisoryConflictUpdateSet = {
   sourceUrl: sql`excluded.source_url`,
   rawHash: sql`excluded.raw_hash`,

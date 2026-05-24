@@ -90,7 +90,7 @@ export function normalizeUserFacingError(error: unknown, lang: AppLang = "zh") {
       : "An API key is required when creating a new model profile."
   }
 
-  // Avoid leaking internal error details in production.
+  // 生产环境下返回通用错误信息，避免将内部错误细节（如堆栈跟踪、数据库错误等）泄露给用户。
   if (process.env.NODE_ENV === "production") {
     return fallback
   }

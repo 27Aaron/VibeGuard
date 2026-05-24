@@ -1,36 +1,36 @@
 export function stripMarkdown(value: string): string {
   return (
     value
-      // fenced code blocks
+      // 移除围栏代码块（``` 包裹的多行代码块）
       .replace(/```[\s\S]*?```/g, "")
-      // inline code
+      // 移除行内代码的反引号标记，保留代码内容
       .replace(/`([^`]+)`/g, "$1")
-      // images
+      // 移除图片语法（![alt](url)），不保留替代文本
       .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-      // links: [text](url) → text
+      // 移除链接语法，只保留链接文本：[text](url) → text
       .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-      // headings
+      // 移除标题前的 # 标记（1-6 级标题）
       .replace(/^#{1,6}\s+/gm, "")
-      // bold / italic
+      // 依次移除粗斜体（***）、粗体（**/__）、斜体（*/_）标记，保留文本内容
       .replace(/\*\*\*([^*]+)\*\*\*/g, "$1")
       .replace(/\*\*([^*]+)\*\*/g, "$1")
       .replace(/\*([^*]+)\*/g, "$1")
       .replace(/___([^_]+)___/g, "$1")
       .replace(/__([^_]+)__/g, "$1")
       .replace(/_([^_]+)_/g, "$1")
-      // strikethrough
+      // 移除删除线标记（~~），保留文本内容
       .replace(/~~([^~]+)~~/g, "$1")
-      // blockquotes
+      // 移除引用块前缀（>）
       .replace(/^>\s+/gm, "")
-      // unordered list markers
+      // 移除无序列表标记（-、*、+）
       .replace(/^[\s]*[-*+]\s+/gm, "")
-      // ordered list markers
+      // 移除有序列表标记（数字加点号）
       .replace(/^[\s]*\d+\.\s+/gm, "")
-      // horizontal rules
+      // 移除水平分隔线（三个及以上的 -、*、_ 组成的独立行）
       .replace(/^[-*_]{3,}\s*$/gm, "")
-      // HTML tags
+      // 移除 HTML 标签
       .replace(/<[^>]+>/g, "")
-      // collapse whitespace
+      // 合并多余空白：多个空格/制表符合并为一个空格，连续三个以上换行合并为两个
       .replace(/[ \t]+/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .trim()

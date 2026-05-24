@@ -96,9 +96,10 @@ function renderImageCaption(alt: string | undefined, palette: (typeof variantCla
 }
 
 function normalizeMarkdownEmphasis(raw: string): string {
-  // CJK/fullwidth punctuation (U+3000-U+303F, U+FF00-U+FFEF) before closing
-  // emphasis markers (* / ** / ***) breaks Commonmark right-flanking delimiter
-  // detection. Insert a zero-width space to fix: **text：** → bold rendered.
+  // CJK/全角标点（U+3000-U+303F, U+FF00-U+FFEF）紧邻闭合强调标记（* / ** / ***）
+  // 会破坏 Commonmark 的 right-flanking delimiter 检测规则，导致加粗/斜体无法正确渲染。
+  // 通过在标点和星号之间插入零宽空格（U+200B）来修复此问题。
+  // 示例：**text：**  →  修复后可以正确渲染为粗体。
   return raw.replace(
     /([\u3000-\u303f\uff00-\uffef])(\*{1,3})/g,
     (_, punct: string, stars: string) => punct + "\u200b" + stars,
@@ -355,8 +356,8 @@ export function MarkdownRenderer({
               )
             },
             pre: ({ children }) => {
-              // Only unwrap <pre> elements that contain a <code> child (fenced code
-              // blocks rendered by react-markdown). Preserve standalone <pre> elements.
+              // 仅解包包含 <code> 子元素的 <pre> 标签（即 react-markdown 渲染的围栏代码块）。
+              // 对于独立的 <pre> 元素保持原样，不做任何处理。
               const hasCodeChild =
                 Array.isArray(children)
                   ? children.some(

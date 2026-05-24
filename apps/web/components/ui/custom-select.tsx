@@ -45,7 +45,7 @@ export function CustomSelect({
       setActiveIndex(-1)
       return
     }
-    // Set initial active index to current selection
+    // 下拉菜单打开时，将初始激活项设置为当前已选中的选项，如果没有选中则默认第一项
     const idx = options.findIndex((o) => o.value === value)
     setActiveIndex(idx >= 0 ? idx : 0)
   }, [open, options, value])
@@ -61,7 +61,7 @@ export function CustomSelect({
         return
       }
       if (e.key === "Tab") {
-        // Basic focus trap: close dropdown on Tab so focus returns naturally
+        // 基础焦点陷阱：按下 Tab 时关闭下拉菜单，让焦点自然返回到页面的 Tab 序列中
         setOpen(false)
         return
       }
@@ -87,7 +87,7 @@ export function CustomSelect({
     }
   }, [open, options, activeIndex, onChange])
 
-  // Scroll active option into view
+  // 将当前激活的选项滚动到可视区域内，确保键盘导航时不会出现选中项不可见的情况
   useEffect(() => {
     if (!open || activeIndex < 0) return
     optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" })

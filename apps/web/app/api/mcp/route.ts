@@ -20,12 +20,11 @@ const MCP_SESSION_TTL_MS = normalizeInt(
 )
 const MCP_API_TOKEN = process.env.VIBEGUARD_MCP_API_TOKEN?.trim()
 
-// NOTE: MCP sessions are stored in process memory. This means:
-// 1. Sessions are lost on process restart — clients must re-initialize.
-// 2. In multi-instance deployments, sessions are not shared across instances,
-//    so a client must be routed to the same instance (e.g. via sticky sessions).
-//    For production multi-instance setups, consider moving session state to
-//    Redis or similar shared store.
+// 注意：MCP 会话存储在进程内存中，具有以下限制：
+// 1. 进程重启后会话丢失 —— 客户端必须重新发起初始化握手。
+// 2. 在多实例部署中，各实例之间不共享会话状态，
+//    因此客户端必须被路由到同一个实例（例如通过 sticky sessions 粘性会话）。
+//    对于生产环境的多实例部署，建议将 会话状态迁移至 Redis 等共享存储。
 const transports = new Map<string, SessionContext>()
 
 function jsonRpcError(status: number, code: number, message: string) {
@@ -106,7 +105,7 @@ async function closeSession(sessionId: string) {
   try {
     await session.server.close()
   } catch {
-    // Ignore close errors in best-effort cleanup.
+    // 尽力清理：忽略关闭过程中的错误，避免因清理失败影响主流程。
   }
 }
 

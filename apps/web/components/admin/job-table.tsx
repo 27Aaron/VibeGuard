@@ -24,8 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-// Rows beyond this threshold use content-visibility: auto for
-// browser-native virtualization (skip off-screen layout/paint).
+// 当表格行数超过此阈值时启用 content-visibility: auto，
+// 利用浏览器原生虚拟化能力跳过屏幕外行的布局和绘制，提升大列表渲染性能。
 const VIRTUALIZE_THRESHOLD = 30
 const ESTIMATED_ROW_HEIGHT = 56
 

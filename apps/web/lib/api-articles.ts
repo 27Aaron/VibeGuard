@@ -117,16 +117,16 @@ export async function listArticles(searchParams: URLSearchParams) {
     params.source ? eq(feeds.name, params.source) : undefined,
     params.ecosystem ? eq(articles.ecosystem, params.ecosystem as ArticleEcosystem) : undefined,
     params.riskCategory ? eq(articles.riskCategory, params.riskCategory as ArticleRiskCategory) : undefined,
-    // TODO: A GIN index on the `tags` column (using gin_toast_trgm or jsonb_path_ops)
-    // would significantly speed up the `?` operator query below.
-    // e.g. CREATE INDEX idx_articles_tags_gin ON articles USING gin (tags jsonb_path_ops);
+    // TODO: 在 tags 列上创建 GIN 索引（使用 gin_toast_trgm 或 jsonb_path_ops）
+    // 可以显著加速下方的 JSONB `?` 运算符查询。
+    // 示例：CREATE INDEX idx_articles_tags_gin ON articles USING gin (tags jsonb_path_ops);
     params.tag ? sql`${articles.tags} ? ${params.tag}` : undefined,
-    // TODO: Leading `%` in ILIKE prevents B-tree index usage, causing full table scans.
-    // Consider enabling the pg_trgm extension and creating a GIN trigram index:
+    // TODO: ILIKE 中前导 `%` 会导致无法使用 B-tree 索引，从而触发全表扫描。
+    // 建议启用 pg_trgm 扩展并创建 GIN 三字元索引以提升模糊搜索性能：
     //   CREATE EXTENSION IF NOT EXISTS pg_trgm;
     //   CREATE INDEX idx_articles_title_en_trgm ON articles USING gin (title_en gin_trgm_ops);
     //   CREATE INDEX idx_articles_title_zh_trgm ON articles USING gin (title_zh gin_trgm_ops);
-    // Then replace ILIKE with `%` wildcards with pg_trgm-powered queries for better performance.
+    // 然后将 ILIKE + `%` 通配符查询替换为基于 pg_trgm 的查询以获得更好的性能。
     params.query
       ? or(
           ilike(articles.titleEn, `%${params.query}%`),
@@ -144,8 +144,8 @@ export async function listArticles(searchParams: URLSearchParams) {
   ].filter(Boolean)
   const where = filters.length > 0 ? and(...filters) : undefined
 
-  // Run count and data queries in parallel. The data query uses the raw page
-  // offset; results are validated against the actual count after both resolve.
+  // 并行执行计数查询和数据查询以提升性能。数据查询使用原始页码偏移量，
+  // 在两个查询都完成后，再根据实际计数结果对页码进行校正。
   const preliminaryOffset = (params.page - 1) * params.limit
   const [countRows, rows] = await Promise.all([
     db

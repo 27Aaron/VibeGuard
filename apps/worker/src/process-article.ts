@@ -31,7 +31,8 @@ import { fetchArticleHtml } from "@vibeguard/content/extract/article-html"
 import { extractMarkdownFromHtml } from "@vibeguard/content"
 import { JobStatus } from "@vibeguard/shared"
 
-// Re-export public API from article-pipeline for backward compatibility
+// 向后兼容：将 article-pipeline 模块的公共 API 重新导出，
+// 使外部依赖 process-article 模块的调用方无需修改 import 路径。
 export { buildLocalizedSummaryPrompt } from "@vibeguard/llm"
 export { JobCancelledSignal, JobPausedSignal, processArticleJob } from "./article-pipeline"
 export type { ProcessArticleJobDependencies } from "./article-pipeline"
@@ -58,7 +59,7 @@ type ArticlePatch = Partial<
 >
 const CANCELLED_JOB_MESSAGE = "任务已取消。"
 
-// --- DB adapter functions ---
+// --- 数据库适配层：封装所有与数据库交互的底层操作 ---
 
 async function markArticleStatus(
   db: ContentDb,
@@ -193,7 +194,7 @@ async function checkClaimedJobControl(
   }
 }
 
-// --- processClaimedJob ---
+// --- 已认领任务的核心处理流程 ---
 
 async function processClaimedJob(db: ContentDb, job: JobRecord) {
   try {
@@ -277,7 +278,7 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
     try {
       await markArticleStatus(db, job.articleId, ArticleStatus.FAILED, message)
     } catch (secondary) {
-      // Log but don't mask original error
+      // 仅记录日志，不抛出异常，避免掩盖原始错误信息
     }
 
     try {
@@ -288,7 +289,7 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
         error: message,
       })
     } catch (secondary) {
-      // Log but don't mask original error
+      // 仅记录日志，不抛出异常，避免掩盖原始错误信息
     }
 
     return {
@@ -300,7 +301,7 @@ async function processClaimedJob(db: ContentDb, job: JobRecord) {
   }
 }
 
-// --- Orchestration functions ---
+// --- 任务调度编排函数：负责从队列中领取任务并驱动处理流程 ---
 
 export async function processNextQueuedJob(db: ContentDb) {
   const job = await claimNextQueuedJob(db)

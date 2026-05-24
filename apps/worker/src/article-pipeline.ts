@@ -225,8 +225,9 @@ async function processExtractJob(input: {
   const requiredContentMdEn = requireArticleField(contentMdEn, "English body")
 
   // 相关性检查：提取内容后立即判断，不相关的文章跳过后续所有 LLM 步骤。
-  // If a paused job resumes after extraction, raw content already exists, but
-  // the relevance marker may not. Run the check before translation in that case.
+  // 当一个暂停的任务在内容提取之后恢复时，原始内容已经存在数据库中，
+  // 但相关性标记（relevance marker）可能尚未写入。因此在进入翻译流程之前，
+  // 必须先执行一次相关性判定，确保已恢复的任务不会跳过这一关键检查。
   if (!hasRelevanceCheck(rawMeta)) {
     await markStageAndCheck(input.dependencies, JobPipelineStage.CLASSIFY_RELEVANCE)
     const relevanceResult = await timedLlmCall(

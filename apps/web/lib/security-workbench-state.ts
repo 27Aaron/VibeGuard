@@ -101,7 +101,7 @@ export function loadPersistedSecurityWorkbenchState(
       return parsed
     }
   } catch {
-    // Keep the in-memory fallback below.
+    // 解析失败时保持内存中的降级状态，确保当前标签页会话期间的状态不丢失。
   }
 
   return inMemoryState
@@ -119,7 +119,7 @@ export function savePersistedSecurityWorkbenchState(
       JSON.stringify(state),
     )
   } catch {
-    // The in-memory fallback still preserves state during this tab session.
+    // sessionStorage 写入失败时，内存中的降级副本仍然可以保持当前标签页会话期间的状态。
   }
 }
 
@@ -131,6 +131,6 @@ export function clearPersistedSecurityWorkbenchState(
   try {
     storage?.removeItem(SECURITY_WORKBENCH_STATE_STORAGE_KEY)
   } catch {
-    // Ignore unavailable browser storage.
+    // 浏览器存储不可用时忽略错误，不影响内存状态的清理。
   }
 }

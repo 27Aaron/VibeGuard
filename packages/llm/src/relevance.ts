@@ -26,7 +26,7 @@ function safeSlice(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
 
   let end = maxChars;
-  // Step back to avoid splitting a multi-byte character
+  // 向前回退，避免在多字节字符（如中文、emoji）的中间位置截断，导致产生无效的 Unicode 字符串
   while (end > 0 && (text.charCodeAt(end) & 0xfc00) === 0xdc00) {
     end -= 1;
   }

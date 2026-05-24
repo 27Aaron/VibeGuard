@@ -17,7 +17,7 @@ const runUtilsSource = fs.readFileSync("apps/worker/src/run-utils.ts", "utf8")
 describe("I01 — UUID v7 optimization opportunity noted", () => {
   it("schema.ts contains a comment mentioning UUID v7 for high-write tables", () => {
     expect(schemaSource).toMatch(/UUID v7/)
-    expect(schemaSource).toMatch(/high-write/)
+    expect(schemaSource).toMatch(/高写入/)
   })
 })
 
@@ -27,11 +27,11 @@ describe("I01 — UUID v7 optimization opportunity noted", () => {
 describe("I02 — Boolean index low-selectivity noted", () => {
   it("schema.ts has a comment about the enabled boolean index selectivity", () => {
     expect(schemaSource).toMatch(/feeds_enabled_idx/)
-    expect(schemaSource).toMatch(/selectivity/)
+    expect(schemaSource).toMatch(/选择性/)
   })
 
   it("mentions partial index as an alternative", () => {
-    expect(schemaSource).toMatch(/partial index|WHERE enabled/)
+    expect(schemaSource).toMatch(/部分索引|partial index|WHERE enabled/)
   })
 })
 
@@ -40,9 +40,9 @@ describe("I02 — Boolean index low-selectivity noted", () => {
 // ===========================================================================
 describe("I03 — Singleton pattern documented", () => {
   it("client.ts has a comment about the singleton pattern and thread safety", () => {
-    expect(clientSource).toMatch(/Singleton/)
+    expect(clientSource).toMatch(/单例模式/)
     expect(clientSource).toMatch(/closeDb/)
-    expect(clientSource).toMatch(/re-creation/)
+    expect(clientSource).toMatch(/重新创建/)
   })
 })
 
@@ -121,13 +121,12 @@ describe("I16 — articleEcosystemValues and articleRiskCategoryValues usage", (
 // ===========================================================================
 describe("I17 — Module-level mutable global state noted", () => {
   it("client.ts has a comment about module-level mutable globals", () => {
-    expect(clientSource).toMatch(/mutable global/i)
+    expect(clientSource).toMatch(/可变全局变量/)
   })
 
   it("notes the testing difficulty", () => {
-    // The comment spans multiple lines, so check for key phrases separately
-    expect(clientSource).toContain("hard")
-    expect(clientSource).toContain("to test in isolation")
+    expect(clientSource).toMatch(/难以在隔离环境中/)
+    expect(clientSource).toMatch(/单元测试/)
   })
 })
 

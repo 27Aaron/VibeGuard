@@ -22,11 +22,10 @@ const UNSAFE_SESSION_SECRETS = new Set([
 const MAX_TRACKED_LOGIN_KEYS = 2_000
 const MAX_FAILURES_PER_KEY = 32
 const LOGIN_FAIL_MAP_PRUNE_INTERVAL_MS = 15_000
-// NOTE: Rate-limit state lives in process memory. This means:
-// 1. State is lost on process restart (users get a fresh slate).
-// 2. In multi-instance deployments, each instance tracks independently,
-//    so an attacker could make N requests per instance. For production
-//    multi-instance setups, consider moving this to Redis or similar.
+// 注意：登录频率限制的状态存储在进程内存中，具有以下限制：
+// 1. 进程重启后状态丢失（用户重新获得完整的登录机会）。
+// 2. 多实例部署时各实例独立计数，攻击者可在每个实例分别尝试 N 次。
+//    对于生产环境的多实例部署，建议将此状态迁移至 Redis 等共享存储。
 const failedLoginAttempts = new Map<string, number[]>()
 let lastLoginFailureCleanupAt = 0
 
@@ -191,7 +190,7 @@ function constantTimeEqual(left: string, right: string) {
   const maxLength = Math.max(left.length, right.length)
   let diff = left.length ^ right.length
 
-  // Always iterate over the full maxLength to avoid leaking length info.
+  // 始终遍历完整的 maxLength 以避免通过比较时间泄露字符串长度信息（防止时序攻击）。
   for (let index = 0; index < maxLength; index += 1) {
     const leftCode = index < left.length ? left.charCodeAt(index) : 0
     const rightCode = index < right.length ? right.charCodeAt(index) : 0
@@ -249,7 +248,7 @@ export function clearLoginFailures(key: string) {
 }
 
 function setLoginFailures(key: string, failures: number[]) {
-  // Keep recently used keys at the end for bounded eviction.
+  // 先删除再重新插入，使最近使用的 key 保持在 Map 末尾，便于基于插入顺序的有界淘汰。
   failedLoginAttempts.delete(key)
   failedLoginAttempts.set(key, failures)
 }

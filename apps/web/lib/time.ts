@@ -1,6 +1,6 @@
 const SHANGHAI_TIME_ZONE = "Asia/Shanghai"
 
-// Cache DateTimeFormat instances to avoid creating a new one on every call.
+// 缓存 DateTimeFormat 实例，避免每次调用时重复创建新的格式化对象，提升频繁调用时的性能。
 const shanghaiPartsFormatter = new Intl.DateTimeFormat("zh-CN", {
   timeZone: SHANGHAI_TIME_ZONE,
   year: "numeric",

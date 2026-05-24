@@ -427,9 +427,8 @@ export async function reprocessArticleAction(formData: FormData) {
 
           const { rawMeta: _, ...patchWithoutRawMeta } = result.patch
 
-          // Use a status guard in the UPDATE to close the TOCTOU window:
-          // only apply changes if the article hasn't been modified by a
-          // concurrent request that changed its status in the meantime.
+          // 在 UPDATE 中使用状态守卫来关闭 TOCTOU（Time-of-check to time-of-use）竞态窗口：
+          // 仅当文章状态未被并发请求修改时才应用变更，防止覆盖其他请求的结果。
           await db.transaction(async (tx) => {
             const current = await tx.query.articles.findFirst({
               where: eq(articles.id, articleId),

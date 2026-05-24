@@ -55,7 +55,7 @@ function formatElapsed(seconds: number | null) {
   return `${min}m${sec}s`
 }
 
-/** 进度阶段列表 — only active stages (no waiting/completed) */
+/** 进度阶段列表 —— 仅包含活跃的处理阶段（排除 waiting 和 completed） */
 const PIPELINE_STAGES: readonly string[] = ACTIVE_PIPELINE_STAGES
 
 function stagePercent(stage: string): number {
@@ -64,7 +64,7 @@ function stagePercent(stage: string): number {
   return Math.round(((idx + 1) / PIPELINE_STAGES.length) * 100)
 }
 
-/** 单条任务的分步圆点进度 */
+/** 单条任务的分步圆点进度 —— 用圆点颜色标识当前执行到流水线的哪一步 */
 function TaskStepDots({ stage }: { stage: string }) {
   const currentIdx = PIPELINE_STAGES.indexOf(stage)
 

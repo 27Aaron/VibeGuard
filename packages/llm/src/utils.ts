@@ -1,7 +1,7 @@
 export function stripJsonFence(value: string) {
   let result = value.trim();
 
-  // Remove all code fences (opening and closing) iteratively
+  // 循环移除所有 Markdown 代码围栏标记（包括开头和结尾的 ``` 及可选的 json 语言标识）
   while (result.startsWith("```")) {
     result = result.replace(/^```(?:json)?\s*/i, "");
   }
@@ -17,7 +17,7 @@ export function tryParseJsonCandidates(candidates: string[]): unknown | null {
     try {
       return JSON.parse(candidate)
     } catch {
-      // Try the next candidate.
+      // 当前候选字符串解析失败，继续尝试下一个候选字符串
     }
   }
 

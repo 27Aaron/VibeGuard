@@ -11,8 +11,8 @@ export type AdminAuthResult =
   | { authorized: false; response: Response }
 
 /**
- * Core auth check that can be tested without Next.js request context.
- * Returns a 401/503 response when auth fails, or { authorized: true } on success.
+ * 核心身份验证检查，可在不依赖 Next.js 请求上下文的情况下进行单元测试。
+ * 验证失败时返回 401（未认证）或 503（服务不可用）响应，成功时返回 { authorized: true }。
  */
 export async function checkAdminAuthFromSession(
   sessionToken: string | undefined,
@@ -43,9 +43,9 @@ export async function checkAdminAuthFromSession(
 }
 
 /**
- * Defense-in-depth auth check for admin API route handlers.
- * The middleware in proxy.ts already gates /api/admin/* paths, but this
- * provides a redundant handler-level guard in case middleware is bypassed.
+ * 纵深防御式的身份验证检查，用于管理后台 API 路由处理器。
+ * proxy.ts 中的中间件已经对 /api/admin/* 路径进行了拦截，
+ * 但这里提供了一层冗余的处理函数级别防护，以防止中间件被绕过的情况。
  */
 export async function requireAdminAuth(): Promise<AdminAuthResult> {
   const cookieStore = await cookies()

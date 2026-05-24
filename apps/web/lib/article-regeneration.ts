@@ -110,8 +110,8 @@ function toRawMetaRecord(value: unknown): Record<string, unknown> {
 }
 
 function buildContentHash(title: string, content: string) {
-  // Normalize newlines in title to prevent hash collisions caused by
-  // titles that differ only in embedded newlines vs. separator newlines.
+  // 对标题中的换行符进行归一化处理，防止因标题中嵌入的换行符与分隔符换行符不同
+  // 而导致的哈希碰撞问题。
   const normalizedTitle = title.replace(/[\r\n]+/g, " ")
   return createHash("sha256").update(`${normalizedTitle}\n${content}`).digest("hex")
 }

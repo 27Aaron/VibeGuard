@@ -10,9 +10,9 @@ import { resolveLang } from "@/lib/i18n"
 import { normalizeProviderErrorMessage } from "@/lib/provider-models"
 
 /**
- * Whitelist of allowed provider hostnames derived from PROVIDER_PRESETS.
- * Only these domains (plus localhost/127.0.0.1 in development) may be used
- * as baseUrl targets to prevent SSRF attacks.
+ * 从 PROVIDER_PRESETS 派生的允许服务商主机名白名单。
+ * 仅允许这些域名（以及开发环境下的 localhost/127.0.0.1）作为 baseUrl 目标，
+ * 用于防止 SSRF（服务端请求伪造）攻击，确保模型服务请求不会被恶意重定向到内网地址。
  */
 const ALLOWED_PROVIDER_HOSTNAMES: ReadonlySet<string> = new Set([
   "api.deepseek.com",
@@ -47,7 +47,7 @@ function isAllowedProviderUrl(baseUrl: string): boolean {
     return true
   }
 
-  // Allow localhost only in development
+  // 仅在开发环境下允许 localhost 及本地回环地址
   if (
     LOCALHOST_HOSTNAMES.has(hostname) &&
     process.env.NODE_ENV === "development"

@@ -75,10 +75,10 @@ export const articleRiskCategoryEnum = pgEnum(
   articleRiskCategoryValues,
 );
 
-// OPTIMIZATION(I01): For high-write tables (articles, processing_jobs), consider
-// switching from UUID v4 (defaultRandom) to UUID v7 (time-ordered) to reduce
-// B-tree index fragmentation and improve INSERT performance. This requires a
-// migration and application-level UUID v7 generation, so it is deferred.
+// 性能优化：对于高写入频率的表（如 articles、processing_jobs），建议将
+// UUID v4（defaultRandom）替换为 UUID v7（时间有序）。UUID v7 的时间递增特性
+// 可以显著减少 B-tree 索引的页分裂与碎片化，从而提升 INSERT 性能。但该改动
+// 需要编写数据库迁移脚本并在应用层实现 UUID v7 生成逻辑，因此暂时搁置。
 export const feeds = pgTable(
   "feeds",
   {
@@ -100,10 +100,10 @@ export const feeds = pgTable(
       .$onUpdateFn(() => new Date()),
   },
   (table) => [
-    // TODO(I02): Boolean single-column index has very low selectivity (~50% true).
-    // Consider converting to a partial index: `WHERE enabled = true` which would
-    // only index the active feeds and be much smaller. Drizzle supports partial
-    // indexes via `.where()` on the index builder, but this requires a migration.
+    // 待办：布尔类型单列索引的选择性极低（约 50% 的行为 true），导致索引效率不高。
+    // 建议改为部分索引（partial index），即 `WHERE enabled = true`，仅对活跃的
+    // feed 建立索引，这样索引体积会小得多，查询性能也更优。Drizzle ORM 的索引
+    // 构建器支持通过 `.where()` 方法创建部分索引，但需要编写数据库迁移脚本来落地。
     index("feeds_enabled_idx").on(table.enabled),
     index("feeds_last_polled_at_idx").on(table.lastPolledAt),
   ],
@@ -294,10 +294,11 @@ export const securitySyncState = pgTable(
   ],
 );
 
-// NOTE: securityAdvisories and securityAffectedPackages lack an automatic updatedAt
-// trigger because Drizzle ORM's .$onUpdateFn() only fires on Drizzle-mediated updates.
-// If true DB-level auto-update on ANY write is needed, add a PostgreSQL trigger via
-// a dedicated migration (e.g. CREATE TRIGGER ... BEFORE UPDATE SET updated_at = NOW()).
+// 注意：securityAdvisories 和 securityAffectedPackages 表的 updatedAt 字段没有数据库
+// 级别的自动更新触发器。原因是 Drizzle ORM 的 .$onUpdateFn() 仅在使用 Drizzle API
+// 执行更新操作时才会触发，无法覆盖原始 SQL 或其他 ORM 发起的写入。如果需要在任何
+// 写入方式下都保证 updated_at 自动刷新，应通过独立的数据库迁移脚本添加 PostgreSQL
+// 触发器，例如：CREATE TRIGGER ... BEFORE UPDATE ON ... SET updated_at = NOW()。
 
 export const securityAdvisories = pgTable(
   "security_advisories",
@@ -346,7 +347,7 @@ export const securityAdvisories = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    // updatedAt lacks a DB-level trigger — see note above securityAdvisories
+    // updatedAt 缺少数据库级别的自动更新触发器——详见上方 securityAdvisories 表前的注释
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
@@ -388,7 +389,7 @@ export const securityAffectedPackages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    // updatedAt lacks a DB-level trigger — see note above securityAdvisories
+    // updatedAt 缺少数据库级别的自动更新触发器——详见上方 securityAdvisories 表前的注释
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()

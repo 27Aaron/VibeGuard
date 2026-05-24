@@ -126,6 +126,6 @@ describe("W38 — schema.ts security tables updatedAt documentation", () => {
   const source = fs.readFileSync("packages/db/src/schema.ts", "utf8")
 
   it("contains a comment noting the DB-level trigger limitation", () => {
-    expect(source).toMatch(/DB-level auto-update|DB-level trigger|PostgreSQL trigger/i)
+    expect(source).toMatch(/PostgreSQL[^]*触发器/)
   })
 })

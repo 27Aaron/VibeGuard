@@ -50,7 +50,8 @@ import { PROVIDER_PRESETS, resolvePresetLabel } from "@/lib/provider-presets"
 import { cn } from "@/lib/utils"
 
 // ---------------------------------------------------------------------------
-// Reducer: consolidates 15+ useState into a single state machine
+// Reducer：将原本分散的 15+ 个 useState 整合为统一的状态机，
+// 集中管理表单字段、模型列表加载、预设应用等所有状态变更逻辑。
 // ---------------------------------------------------------------------------
 
 interface FormState {
@@ -290,14 +291,14 @@ export function LlmSettingsForm({
     [form.model, form.modelOptions],
   )
 
-  // Sync from preset query param (new profile from preset link)
+  // 从 URL 的 preset 查询参数同步预设配置（用于从预设链接创建新配置的场景）
   useEffect(() => {
     if (presetIndex != null && presetIndex >= 0 && presetIndex < PROVIDER_PRESETS.length) {
       dispatch({ type: "APPLY_PRESET", presetIndex })
     }
   }, [presetIndex])
 
-  // Sync from server data (provider/pipeline changed)
+  // 从服务端数据同步（当 provider 或 pipeline 在外部被修改时，将最新数据推送到表单状态）
   useEffect(() => {
     dispatch({ type: "SYNC_PROVIDER", provider, pipeline })
   }, [

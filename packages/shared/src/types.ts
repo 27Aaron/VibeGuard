@@ -23,14 +23,13 @@ const articleStatuses = defineStatuses([
 
 export const ARTICLE_STATUS_VALUES = articleStatuses.values;
 /**
- * Runtime map: `ArticleStatus.READY` → `"ready"` (uppercase key → lowercase value).
+ * 运行时映射表：`ArticleStatus.READY` → `"ready"`（大写键映射到小写值）。
  *
- * Note: `ArticleStatus` is both a **const value** (the map object) and a **type**
- * (the union `"pending" | "processing" | ...`).  This is intentional — the type
- * represents the valid status strings, while the const provides a safe runtime
- * lookup so consumers never hard-code raw strings.  TypeScript merges the two
- * declarations via declaration merging, so importing `ArticleStatus` gives
- * access to both the type and the runtime object.
+ * 说明：`ArticleStatus` 既是**常量值**（映射对象），又是**类型**（联合类型
+ * `"pending" | "processing" | ...`）。这是有意为之的设计——类型代表合法的状态
+ * 字符串，常量则提供安全的运行时查找，避免消费者在代码中硬编码原始字符串。
+ * TypeScript 通过声明合并（declaration merging）将两者统一，因此导入
+ * `ArticleStatus` 即可同时获得类型和运行时对象。
  */
 export const ArticleStatus = articleStatuses.map;
 export type ArticleStatus = (typeof ARTICLE_STATUS_VALUES)[number];
@@ -151,12 +150,11 @@ const securityPackageMatchConfidences = defineStatuses([
 export const SECURITY_PACKAGE_MATCH_CONFIDENCE_VALUES =
   securityPackageMatchConfidences.values;
 /**
- * Confidence levels for package-to-advisory matching.
+ * 包与安全公告（advisory）匹配结果的置信度等级。
  *
- * - `"high"` / `"medium"` / `"low"` — a match was found with the given confidence.
- * - `"undetermined"` — **no conclusive match was found**.  This means the package was not
- *   determined to be affected or unaffected; the advisory data was insufficient
- *   to make any determination.  It does *not* mean the package is explicitly safe.
+ * - `"high"` / `"medium"` / `"low"` — 找到了匹配结果，置信度分别为高、中、低。
+ * - `"undetermined"` — **未得出确定性结论**。表示安全公告的数据不足以判断该包
+ *   是否受影响或不受影响，但这并不意味着该包一定是安全的。
  */
 export const SecurityPackageMatchConfidence =
   securityPackageMatchConfidences.map;

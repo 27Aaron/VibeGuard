@@ -37,7 +37,7 @@ export async function createFeedAction(
     try {
       await db.insert(feeds).values(payload)
     } catch (error: unknown) {
-      // Handle duplicate feedUrl uniquely — the DB enforces a unique constraint.
+      // 处理 feedUrl 重复的情况 —— 数据库层面通过唯一约束来保证数据一致性。
       if (error instanceof Error && (error.message.includes("unique") || error.message.includes("duplicate"))) {
         return errorResult(lang === "zh" ? "已存在相同订阅地址的来源。" : "A source with the same feed URL already exists.")
       }
@@ -77,8 +77,8 @@ export async function updateFeedAction(
       return errorResult(lang === "zh" ? "未找到该来源。" : "Source not found.")
     }
 
-    // Check for duplicate feedUrl excluding the current feed.
-    // The DB unique constraint also catches races missed by this check.
+    // 检查除当前 feed 之外是否存在重复的 feedUrl。
+    // 数据库唯一约束也会捕获此检查遗漏的竞态条件，作为双重保障。
     const duplicateFeed = await db.query.feeds.findFirst({
       where: eq(feeds.feedUrl, payload.feedUrl),
     })
@@ -90,7 +90,7 @@ export async function updateFeedAction(
     try {
       await db.update(feeds).set(payload).where(eq(feeds.id, feedId))
     } catch (error: unknown) {
-      // Handle duplicate feedUrl — the DB unique constraint catches races.
+      // 处理 feedUrl 重复 —— 数据库唯一约束会捕获竞态条件导致的重复。
       if (error instanceof Error && (error.message.includes("unique") || error.message.includes("duplicate"))) {
         return errorResult(lang === "zh" ? "已存在相同订阅地址的来源。" : "A source with the same feed URL already exists.")
       }

@@ -4,16 +4,16 @@ import { Pool } from "pg";
 import { normalizeInt } from "@vibeguard/shared";
 import { schema } from "./schema";
 
-// NOTE(I03): Singleton pattern — getPool()/getDb() lazily create one Pool/Drizzle
-// instance per process. Not thread-safe (not a concern in Node.js single-threaded
-// event loop). However, closeDb() resets the singletons to undefined, allowing
-// re-creation on the next call — callers must ensure no concurrent operations
-// are in-flight when calling closeDb().
+// 注意：本模块采用单例模式——getPool()/getDb() 会在首次调用时惰性创建一个
+// PostgreSQL 连接池和 Drizzle 实例，此后同一进程中所有调用共享同一实例。
+// 由于 Node.js 事件循环是单线程的，因此不存在线程安全问题。但需要注意：
+// closeDb() 会将单例重置为 undefined，允许下次调用时重新创建——调用方在
+// 调用 closeDb() 前必须确保没有正在进行中的数据库操作。
 //
-// NOTE(I17): Module-level mutable globals (pool, database) make this module hard
-// to test in isolation — tests share state across runs within the same process.
-// To test properly, use dependency injection at the call site rather than
-// importing getDb/getPool directly in the code under test.
+// 注意：模块级别的可变全局变量（pool、database）导致本模块难以在隔离环境中
+// 进行单元测试——同一进程内的多个测试会共享这些状态，造成测试间相互干扰。
+// 如需正确测试，建议在调用方使用依赖注入（dependency injection）传入数据库
+// 实例，而非在被测代码中直接导入 getDb/getPool。
 let pool: Pool | undefined;
 let database: NodePgDatabase<typeof schema> | undefined;
 

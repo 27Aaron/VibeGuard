@@ -151,7 +151,8 @@ export async function claimNextQueuedJob(
 ) {
   if (options.maxRunningJobs) {
     return db.transaction(async (tx) => {
-      // Serialize bounded claims across worker processes before counting RUNNING rows.
+      // 在统计 RUNNING 状态行数之前，通过 PostgreSQL 事务级咨询锁（advisory lock）
+      // 对跨进程的有界认领操作进行串行化，防止多个 worker 进程同时计数导致超出并发上限。
       await tx.execute(sql`SELECT pg_advisory_xact_lock(86152865, 5200520)`);
 
       const result = await tx.execute(sql`
@@ -371,7 +372,7 @@ export async function resetStaleRunningJobs(
       status: JobStatus.QUEUED,
       startedAt: null,
       pipelineStage: JobPipelineStage.WAITING,
-      lastError: "Reset after stale detection",
+      lastError: "检测到任务执行超时（stale），已重置状态并重新排队。",
       runAfter: now,
       updatedAt: new Date(),
     })

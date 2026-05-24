@@ -447,9 +447,9 @@ export async function retrySelectedJobsAction(formData: FormData) {
     const db = getDb()
     const matchedJobs = await loadSelectedJobs(db, ids)
 
-    // Process sequentially to avoid partial failures in batch retries.
-    // Each job update is independent but sequential processing ensures
-    // predictable error handling and avoids transaction issues.
+    // 顺序处理以避免批量重试中的部分失败问题。
+    // 每个任务的更新是独立的，但顺序处理可以确保错误处理的可预测性，
+    // 并避免事务冲突问题。
     for (const job of matchedJobs) {
       await queueJobForManualRun({ db, job })
     }

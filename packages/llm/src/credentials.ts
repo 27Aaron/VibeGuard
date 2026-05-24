@@ -57,7 +57,7 @@ export function encryptSecret(plaintext: string) {
 export function decryptSecret(ciphertext: string) {
   const parts = ciphertext.split(".")
 
-  // New format: salt.iv.tag.encrypted (4 parts, scrypt-derived key)
+  // 新格式密文：salt.iv.tag.encrypted（共 4 段，使用 scrypt 派生密钥）
   if (parts.length === 4) {
     const [salt, iv, tag, encrypted] = parts
 
@@ -87,7 +87,7 @@ export function decryptSecret(ciphertext: string) {
     }
   }
 
-  // Legacy format: iv.tag.encrypted (3 parts, SHA-256-derived key)
+  // 旧格式密文：iv.tag.encrypted（共 3 段，使用 SHA-256 派生密钥，仅用于向后兼容）
   if (parts.length === 3) {
     const [iv, tag, encrypted] = parts
 

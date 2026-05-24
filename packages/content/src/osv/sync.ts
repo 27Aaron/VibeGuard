@@ -645,9 +645,8 @@ export async function bootstrapAllOsvEcosystems({
 }: BootstrapAllOsvEcosystemsInput) {
   const results = new Array<SyncOsvEcosystemSummary>(ecosystems.length)
   const maxConcurrency = Math.max(1, Math.floor(concurrency))
-  // Shared index counter is safe because JS is single-threaded: the read and
-  // increment happen synchronously before any await, so no data race can occur
-  // between concurrent workers in the Promise.all pool.
+  // 共享的索引计数器是线程安全的：JavaScript 运行时是单线程的，索引的读取和自增操作
+  // 在任何 await 之前同步完成，因此在 Promise.all 并发工作池中不会出现数据竞争。
   let nextIndex = 0
 
   async function runOne() {

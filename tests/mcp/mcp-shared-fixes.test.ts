@@ -185,8 +185,7 @@ describe("I14: ArticleStatus naming pattern is documented", () => {
   const source = fs.readFileSync(typesPath, "utf8")
 
   it("has a comment explaining the dual const/type pattern", () => {
-    // Should mention that ArticleStatus is both a const value and a type
-    expect(source).toMatch(/Note.*ArticleStatus.*both.*const.*type|both.*type.*const/si)
+    expect(source).toMatch(/既是.*常量.*又是.*类型/)
   })
 })
 
@@ -198,8 +197,8 @@ describe("I15: SecurityPackageMatchConfidence 'undetermined' semantics", () => {
   const source = fs.readFileSync(typesPath, "utf8")
 
   it("has JSDoc explaining 'undetermined' means no conclusive match (not explicitly safe)", () => {
-    expect(source).toMatch(/"undetermined".*no conclusive match/i)
-    expect(source).toMatch(/does\s*not.*mean.*safe|not.*explicitly\s+safe|not.*explicitly\s+unaffected/i)
+    expect(source).toMatch(/未得出确定性结论/)
+    expect(source).toMatch(/不.*意味着.*安全/)
   })
 
   it("confidence values are correct", () => {
