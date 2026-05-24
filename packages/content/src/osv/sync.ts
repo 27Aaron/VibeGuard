@@ -554,7 +554,6 @@ export async function bootstrapOsvEcosystem({
           `[osv/bootstrap] ${ecosystem}: 已处理 ${recordsSeen} 条（导入=${recordsImported} 新增=${recordsNew} 跳过=${recordsSkipped} 失败=${recordsFailed}）`,
         );
       }
-      recordsSkipped += result.skippedCount;
       return;
     } catch {
       for (const record of batch) {
