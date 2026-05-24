@@ -277,7 +277,7 @@ export async function startOsvSyncScheduler(
 // --- Worker Loop ---
 
 function resolvePollInterval(value: number, fallback: number) {
-  // Skip String→parseInt round-trip when already a number (I04)
+  // 已为数字时跳过 String→parseInt 转换
   const parsed =
     typeof value === "number" && Number.isFinite(value)
       ? value
