@@ -617,11 +617,7 @@ async function syncPatches({
   }
 }
 
-export async function syncCisaKevCatalog({
-  db,
-}: {
-  db: ContentDb;
-}) {
+export async function syncCisaKevCatalog({ db }: { db: ContentDb }) {
   console.log("[enrichment] 正在下载 CISA KEV 漏洞目录…");
   const cached = await downloadToCache({
     url: CISA_KEV_JSON_URL,
@@ -646,11 +642,7 @@ export async function syncCisaKevCatalog({
   });
 }
 
-export async function syncFirstEpssScores({
-  db,
-}: {
-  db: ContentDb;
-}) {
+export async function syncFirstEpssScores({ db }: { db: ContentDb }) {
   console.log("[enrichment] 正在下载 FIRST EPSS 评分数据…");
   const cached = await downloadToCache({
     url: FIRST_EPSS_CURRENT_CSV_GZ_URL,
@@ -684,11 +676,7 @@ export async function syncFirstEpssScores({
   });
 }
 
-export async function syncNvdModifiedFeed({
-  db,
-}: {
-  db: ContentDb;
-}) {
+export async function syncNvdModifiedFeed({ db }: { db: ContentDb }) {
   console.log("[enrichment] 正在下载 NVD 增量数据（modified feed）…");
   const cached = await downloadToCache({
     url: buildNvdModifiedFeedUrl(),
@@ -720,10 +708,7 @@ export async function syncNvdModifiedFeed({
   });
 }
 
-export async function syncNvdYearFeed({
-  db,
-  year,
-}: SyncNvdYearFeedInput) {
+export async function syncNvdYearFeed({ db, year }: SyncNvdYearFeedInput) {
   const cached = await downloadToCache({
     url: buildNvdYearFeedUrl(year),
     fileName: `nvd-${year}.json.gz`,
@@ -785,6 +770,23 @@ export async function syncNvdFullHistory({
 }: SyncNvdFullHistoryInput): Promise<SecurityEnrichmentSyncSummary> {
   const startedAt = now();
   const resolvedYears = resolveNvdFullYears(years, startedAt);
+
+  if (resolvedYears.length === 0) {
+    const emptySummary: SecurityEnrichmentSyncSummary = {
+      source: "nvd",
+      scope: "full",
+      recordsSeen: 0,
+      recordsImported: 0,
+      recordsFailed: 0,
+    };
+    await upsertSyncState(db, "full", {
+      source: "nvd",
+      status: SecuritySyncStatus.SUCCESS,
+      now: startedAt,
+      cursorJson: { mode: "bootstrap", years: [] },
+    });
+    return emptySummary;
+  }
 
   await upsertSyncState(db, "full", {
     source: "nvd",
@@ -884,16 +886,21 @@ export async function syncAllSecurityEnrichmentSources(
   const syncModified = options.syncNvdModifiedFeed ?? syncNvdModifiedFeed;
   const syncFull = options.syncNvdFullHistory ?? syncNvdFullHistory;
 
-  return [
-    await syncKev({ db }),
-    await syncEpss({ db }),
+  const nvdTask =
     mode === "bootstrap"
-      ? await syncFull({
+      ? syncFull({
           db,
           ...(options.nvdYears ? { years: options.nvdYears } : {}),
         })
-      : await syncModified({ db }),
-  ];
+      : syncModified({ db });
+
+  const [kevResult, epssResult, nvdResult] = await Promise.all([
+    syncKev({ db }),
+    syncEpss({ db }),
+    nvdTask,
+  ]);
+
+  return [kevResult, epssResult, nvdResult];
 }
 
 export function buildSecurityEnrichmentSyncStateUpdate(
