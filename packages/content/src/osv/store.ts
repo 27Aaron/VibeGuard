@@ -354,8 +354,7 @@ export async function upsertNormalizedOsvRecordsBatch(
       await db
         .insert(affectedPackagesTable)
         .values(chunk)
-        .onConflictDoNothing()
-        .returning();
+        .onConflictDoNothing();
     }
   }
 
@@ -398,5 +397,4 @@ export async function upsertSecuritySyncState(
       target: [syncStateTable.source, syncStateTable.scope],
       set: values,
     })
-    .returning();
 }

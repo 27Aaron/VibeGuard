@@ -93,8 +93,6 @@ export async function upsertSecurityCveEnrichments(
         target: table.cveId,
         set: cveEnrichmentConflictUpdateSet,
       })
-      .returning();
-
     importedCount += values.length;
   }
 
