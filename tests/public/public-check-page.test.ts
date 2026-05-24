@@ -29,6 +29,14 @@ describe("public check page scaffolding", () => {
     expect(fs.existsSync(componentPath)).toBe(true);
 
     const component = fs.readFileSync(componentPath, "utf8");
+    const utils = fs.readFileSync(
+      "apps/web/components/security/package-check-utils.ts",
+      "utf8",
+    );
+    const expandable = fs.readFileSync(
+      "apps/web/components/security/package-check-expandable-content.tsx",
+      "utf8",
+    );
 
     expect(route).toContain("PublicHeader");
     expect(route).toContain("PackageCheckWorkbench");
@@ -39,7 +47,8 @@ describe("public check page scaffolding", () => {
     expect(route).not.toContain("publicCheckDescription");
     expect(component).toContain('fetch("/api/security/check/packages"');
     expect(component).toContain("buildSecurityCheckRequestBody");
-    expect(component).toContain("parseSecurityCheckPayload");
+    expect(component).toContain("parseCheckResponse");
+    expect(utils).toContain("parseSecurityCheckPayload");
     expect(component).toContain("setResult(null)");
     expect(component).toContain("publicCheckSubmit");
     expect(component).toContain("publicCheckSubmitting");
@@ -72,7 +81,7 @@ describe("public check page scaffolding", () => {
     );
     expect(component).toContain("buildSecurityResultSummary");
     expect(component).not.toContain("formatSecurityMatchReason");
-    expect(component).toContain("getSecurityFindingTone");
+    expect(utils).toContain("getSecurityFindingTone");
     expect(component).toContain("toneBadgeVariant");
     expect(component).toContain("toneLabel");
     expect(component).toContain("getSecurityFindingLatestUpdatedAt");
@@ -91,19 +100,19 @@ describe("public check page scaffolding", () => {
     expect(component).not.toContain('来源" : "Source"');
     expect(component).not.toContain("SHA256");
     expect(component).not.toContain("border-red-500/15 bg-red-50/45");
-    expect(component).toContain("OSV 原始记录");
+    expect(utils).toContain("OSV 原始记录");
     expect(component).toContain("withdrawnLabel");
     expect(component).toContain("advisoryRelationItems");
     expect(component).toContain("关联记录");
-    expect(component).toContain("已撤回");
-    expect(component).toContain("不再适用");
+    expect(utils).toContain("已撤回");
+    expect(utils).toContain("不再适用");
     expect(component).toContain("cvssLevelFromScore");
     expect(component).toContain("cvssLevelBadgeClassName");
     expect(component).toContain("cvssLevelLabel");
     expect(component).not.toContain("cveBadgeClassName");
     expect(component).toContain("fixedVersionBadgeClassName");
-    expect(component).toContain('variant: "secondary" as const');
-    expect(component).toContain('className: ""');
+    expect(utils).toContain('variant: "secondary" as const');
+    expect(utils).toContain('className: ""');
     expect(component).not.toContain("summaryCvssLevel");
     expect(component).not.toContain("最高 CVSS");
     expect(component).not.toContain("highestCvssScore ? (");
@@ -123,9 +132,9 @@ describe("public check page scaffolding", () => {
     expect(component).toContain("finding.advisory.summary");
     expect(component).toContain("finding.advisory.details");
     expect(component).toContain("MarkdownSummary");
-    expect(component).toContain("MarkdownRenderer");
-    expect(component).toContain("buildSummaryPreviewText");
-    expect(component).toContain("line-clamp-2");
+    expect(expandable).toContain("MarkdownRenderer");
+    expect(expandable).toContain("buildSummaryPreviewText");
+    expect(expandable).toContain("line-clamp-2");
     expect(component).not.toContain("expanded || (measured && !canExpand)");
     expect(component).toContain("finding.matchSummary");
     expect(component).not.toContain("finding.matchReason");
@@ -133,13 +142,13 @@ describe("public check page scaffolding", () => {
     expect(component).toContain("finding.affectedPackage.affectedVersions");
     expect(component).toContain("formatAffectedRanges");
     expect(component).toContain("finding.affectedPackage.fixedVersions");
-    expect(component).toContain("finding.advisory.references");
+    expect(utils).toContain("finding.advisory.references");
     expect(component).not.toContain("<details");
     expect(component).not.toContain("<summary");
     expect(component).not.toContain("bestCvssSeverity");
     expect(component).not.toContain("cvss-severity");
     expect(component).toContain("bestCvssScore");
-    expect(component).toContain("epssPercentile");
+    expect(utils).toContain("epssPercentile");
     expect(component).toContain("修复版本");
     expect(component).toContain("className={fixedVersionBadgeClassName()}");
     expect(component).not.toContain(
