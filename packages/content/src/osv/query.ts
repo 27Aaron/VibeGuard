@@ -337,9 +337,47 @@ export async function checkPackagesAgainstLocalDb(
     return { meta, findings: [] };
   }
 
-  // Batch step 2: query all advisories in one shot
+  // Pre-group affected packages by packageKey for O(1) lookup
+  const affectedByPackageKey = new Map<
+    string,
+    (typeof allAffectedPackages)[0][]
+  >();
+  for (const ap of allAffectedPackages) {
+    const list = affectedByPackageKey.get(ap.packageKey);
+    if (list) list.push(ap);
+    else affectedByPackageKey.set(ap.packageKey, [ap]);
+  }
+
+  // Evaluate versions first — only collect matched pairs
+  const matchedPairs: Array<{
+    original: (typeof packageLookupKeys)[0]["original"];
+    affectedPackage: (typeof allAffectedPackages)[0];
+  }> = [];
+  for (const { original, packageKey } of packageLookupKeys) {
+    const candidates = affectedByPackageKey.get(packageKey) ?? [];
+    for (const ap of candidates) {
+      const match = evaluateAffectedPackageVersion({
+        ecosystem: original.ecosystem,
+        version: original.version,
+        affectedVersions: ap.affectedVersions,
+        ranges: ap.ranges,
+      });
+      if (
+        match.affected ||
+        match.matchReason === "package_match_without_version"
+      ) {
+        matchedPairs.push({ original, affectedPackage: ap });
+      }
+    }
+  }
+
+  if (matchedPairs.length === 0) {
+    return { meta, findings: [] };
+  }
+
+  // Batch step 2: query advisories only for matched advisory IDs
   const advisoryIds = Array.from(
-    new Set(allAffectedPackages.map((ap) => ap.advisoryId)),
+    new Set(matchedPairs.map((p) => p.affectedPackage.advisoryId)),
   );
   const allAdvisories = await db.query.securityAdvisories.findMany({
     where: inArray(securityAdvisories.id, advisoryIds),
@@ -369,94 +407,80 @@ export async function checkPackagesAgainstLocalDb(
     allCveEnrichments.map((row) => [row.cveId, formatCveEnrichment(row)]),
   );
 
-  // Batch step 3: join in memory
+  // Batch step 3: join in memory (only matched pairs)
   const findings = [];
 
-  for (const { original, packageKey } of packageLookupKeys) {
-    const matchedAffectedPackages = allAffectedPackages.filter(
-      (ap) =>
-        ap.ecosystem === original.ecosystem && ap.packageKey === packageKey,
+  for (const { original, affectedPackage } of matchedPairs) {
+    const advisory = advisoryById.get(affectedPackage.advisoryId);
+
+    if (!advisory) {
+      continue;
+    }
+
+    const match = evaluateAffectedPackageVersion({
+      ecosystem: original.ecosystem,
+      version: original.version,
+      affectedVersions: affectedPackage.affectedVersions,
+      ranges: affectedPackage.ranges,
+    });
+
+    const advisoryCveIds = extractCveAliases(
+      advisoryCveEnrichmentIds(advisory),
     );
+    const cveEnrichments = advisoryCveIds.flatMap((cveId) => {
+      const enrichment = enrichmentByCve.get(cveId);
+      return enrichment ? [enrichment] : [];
+    });
+    const risk = calculateSecurityFindingRisk({
+      affected: match.affected,
+      confidence: match.confidence,
+      fixedVersions: affectedPackage.fixedVersions,
+      cveEnrichments,
+    });
 
-    for (const affectedPackage of matchedAffectedPackages) {
-      const advisory = advisoryById.get(affectedPackage.advisoryId);
-
-      if (!advisory) {
-        continue;
-      }
-
-      const match = evaluateAffectedPackageVersion({
-        ecosystem: original.ecosystem,
-        version: original.version,
-        affectedVersions: affectedPackage.affectedVersions,
-        ranges: affectedPackage.ranges,
-      });
-
-      if (
-        !match.affected &&
-        match.matchReason !== "package_match_without_version"
-      ) {
-        continue;
-      }
-
-      const advisoryCveIds = extractCveAliases(
-        advisoryCveEnrichmentIds(advisory),
-      );
-      const cveEnrichments = advisoryCveIds.flatMap((cveId) => {
-        const enrichment = enrichmentByCve.get(cveId);
-        return enrichment ? [enrichment] : [];
-      });
-      const risk = calculateSecurityFindingRisk({
-        affected: match.affected,
-        confidence: match.confidence,
-        fixedVersions: affectedPackage.fixedVersions,
-        cveEnrichments,
-      });
-
-      findings.push({
+    findings.push({
+      affected: match.affected,
+      confidence: match.confidence,
+      matchReason: match.matchReason,
+      matchSummary: buildPackageMatchSummary({
         affected: match.affected,
         confidence: match.confidence,
         matchReason: match.matchReason,
-        matchSummary: buildPackageMatchSummary({
-          affected: match.affected,
-          confidence: match.confidence,
-          matchReason: match.matchReason,
-          ecosystem: original.ecosystem,
-          name: original.name,
-          version: original.version,
-        }),
-        package: {
-          ecosystem: original.ecosystem,
-          name: original.name,
-          version: original.version ?? null,
-          purl: affectedPackage.purl,
-        },
-        advisory: {
-          id: advisory.externalId,
-          source: advisory.source,
-          sourceUrl: advisory.sourceUrl,
-          riskType: normalizedAdvisoryRiskType(advisory),
-          summary: advisory.summary,
-          details: advisory.details,
-          aliases: advisory.aliases,
-          related: advisory.relatedIds ?? [],
-          upstream: advisory.upstreamIds ?? [],
-          severity: advisory.severity,
-          references: normalizeAdvisoryReferences(advisory.references),
-          maliciousOrigins: advisory.maliciousOrigins ?? [],
-          publishedAt: advisory.publishedAt?.toISOString() ?? null,
-          modifiedAt: advisory.modifiedAt?.toISOString() ?? null,
-          withdrawnAt: advisory.withdrawnAt?.toISOString() ?? null,
-        },
-        affectedPackage: {
-          affectedVersions: affectedPackage.affectedVersions,
-          ranges: affectedPackage.ranges,
-          fixedVersions: affectedPackage.fixedVersions,
-        },
-        cveEnrichments,
-        risk,
-      });
-    }
+        ecosystem: original.ecosystem,
+        name: original.name,
+        version: original.version,
+      }),
+      package: {
+        ecosystem: original.ecosystem,
+        name: original.name,
+        version: original.version ?? null,
+        purl: affectedPackage.purl,
+      },
+      advisory: {
+        id: advisory.externalId,
+        source: advisory.source,
+        sourceUrl: advisory.sourceUrl,
+        riskType: normalizedAdvisoryRiskType(advisory),
+        summary: advisory.summary,
+        details: advisory.details,
+        aliases: advisory.aliases,
+        related: advisory.relatedIds ?? [],
+        upstream: advisory.upstreamIds ?? [],
+        severity: advisory.severity,
+        references: normalizeAdvisoryReferences(advisory.references),
+        maliciousOrigins: advisory.maliciousOrigins ?? [],
+        publishedAt: advisory.publishedAt?.toISOString() ?? null,
+        modifiedAt: advisory.modifiedAt?.toISOString() ?? null,
+        withdrawnAt: advisory.withdrawnAt?.toISOString() ?? null,
+      },
+      affectedPackage: {
+        affectedVersions: affectedPackage.affectedVersions,
+        ranges: affectedPackage.ranges,
+        fixedVersions: affectedPackage.fixedVersions,
+      },
+      cveEnrichments,
+      risk,
+    });
   }
 
   return {
