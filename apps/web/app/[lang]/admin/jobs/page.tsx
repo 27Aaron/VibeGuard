@@ -188,7 +188,7 @@ export default async function JobsPage({ params: routeParams, searchParams }: Jo
                 "disabled:cursor-not-allowed disabled:opacity-50",
               )}
             >
-              {lang === "zh" ? "执行选中" : "Run selected"}
+              {lang === "zh" ? "执行" : "Run"}
             </button>
             <button
               type="submit"

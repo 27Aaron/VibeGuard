@@ -73,7 +73,7 @@ describe("admin job pagination", () => {
     expect(page).toContain("pauseSelectedJobsAction")
     expect(page).toContain("resumeSelectedJobsAction")
     expect(page).toContain("cancelSelectedJobsAction")
-    expect(page).toContain("执行选中")
+    expect(page).toContain("执行")
     expect(page).toContain("暂停")
     expect(page).toContain("恢复")
     expect(page).toContain("取消")
