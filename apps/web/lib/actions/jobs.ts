@@ -15,6 +15,12 @@ import { revalidateLocalizedPaths } from "../revalidate";
 const MANUAL_SELECTED_JOB_BATCH_SIZE = 5;
 const CANCELLED_JOB_MESSAGE = "任务已取消。";
 
+const RETRYABLE_JOB_STATUSES: ReadonlySet<JobStatus> = new Set([
+  JobStatus.FAILED,
+  JobStatus.SUCCEEDED,
+  JobStatus.FILTERED,
+]);
+
 type JobsRedirectContext = {
   status?: string;
   stage?: string;
@@ -65,6 +71,8 @@ async function queueJobForManualRun(input: {
   db: ReturnType<typeof getDb>;
   job: typeof processingJobs.$inferSelect;
 }) {
+  if (!RETRYABLE_JOB_STATUSES.has(input.job.status)) return;
+
   const clearGeneratedContent = input.job.status === JobStatus.SUCCEEDED;
 
   await input.db
