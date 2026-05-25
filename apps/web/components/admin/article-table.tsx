@@ -103,7 +103,7 @@ export function ArticleTable({
                   />
                 </label>
               </TableCell>
-              <TableCell className="max-w-[420px] px-4 py-3 align-middle font-medium">
+              <TableCell className="max-w-105 px-4 py-3 align-middle font-medium">
                 <div className="flex min-w-0 flex-col gap-1">
                   <Link
                     href={`/${lang}/admin/articles/${article.id}`}
