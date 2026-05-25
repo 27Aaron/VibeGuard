@@ -9,11 +9,13 @@
     "start:stack": "node scripts/start-stack.mjs",
     "build:web": "node scripts/with-env.mjs --local-defaults pnpm --filter web build",
     "lint": "node scripts/with-env.mjs pnpm --filter web lint",
+    "format": "node scripts/with-env.mjs pnpm --filter web exec eslint . --fix",
     "db:generate": "node scripts/with-env.mjs --local-defaults drizzle-kit generate",
     "db:migrate": "node scripts/with-env.mjs --local-defaults drizzle-kit migrate",
     "db:migrate:runtime": "node scripts/with-env.mjs node packages/db/scripts/migrate.mjs",
     "osv:sync": "node scripts/with-env.mjs --local-defaults pnpm --filter worker exec tsx src/sync-osv.ts",
     "test": "node scripts/with-env.mjs vitest run",
+    "test:watch": "node scripts/with-env.mjs vitest",
     "typecheck": "node scripts/with-env.mjs pnpm --dir apps/web exec tsc --noEmit --project tsconfig.json && node scripts/with-env.mjs pnpm exec tsc --noEmit --project tsconfig.workspace.json"
   },
   "dependencies": {
