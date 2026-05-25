@@ -40,9 +40,48 @@ function FeedActionButton({
   const { pending } = useFormStatus();
   return (
     <Button {...props} disabled={pending}>
-      {pending ? <RefreshCw className="size-3.5 animate-spin" /> : null}
       {children}
     </Button>
+  );
+}
+
+function FetchFeedButtonInner({
+  lang,
+  enabled,
+}: {
+  lang: AppLang;
+  enabled: boolean;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      type="submit"
+      size="sm"
+      variant="outline"
+      disabled={pending || !enabled}
+      className="inline-flex items-center gap-1.5"
+    >
+      <RefreshCw className={cn("size-3.5", pending && "animate-spin")} />
+      {lang === "zh" ? "立即抓取" : "Fetch now"}
+    </Button>
+  );
+}
+
+function FetchFeedButton({
+  feedId,
+  lang,
+  enabled,
+}: {
+  feedId: string;
+  lang: AppLang;
+  enabled: boolean;
+}) {
+  return (
+    <form action={fetchFeedNowAction}>
+      <input type="hidden" name="id" value={feedId} />
+      <input type="hidden" name="lang" value={lang} />
+      <FetchFeedButtonInner lang={lang} enabled={enabled} />
+    </form>
   );
 }
 
@@ -174,20 +213,11 @@ export function FeedTable({
                     <PencilLine className="size-3.5" />
                     {lang === "zh" ? "编辑" : "Edit"}
                   </Link>
-                  <form action={fetchFeedNowAction}>
-                    <input type="hidden" name="id" value={feed.id} />
-                    <input type="hidden" name="lang" value={lang} />
-                    <FeedActionButton
-                      type="submit"
-                      size="sm"
-                      variant="outline"
-                      disabled={!feed.enabled}
-                      className="inline-flex items-center gap-1.5"
-                    >
-                      <RefreshCw className="size-3.5" />
-                      {lang === "zh" ? "立即抓取" : "Fetch now"}
-                    </FeedActionButton>
-                  </form>
+                  <FetchFeedButton
+                    feedId={feed.id}
+                    lang={lang}
+                    enabled={feed.enabled}
+                  />
                   <form action={toggleFeedAction}>
                     <input type="hidden" name="id" value={feed.id} />
                     <input type="hidden" name="lang" value={lang} />
