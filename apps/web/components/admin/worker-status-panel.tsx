@@ -118,7 +118,7 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
   return (
     <section className="flex flex-col gap-3">
       {/* 切换标签 */}
-      <div className="flex items-center gap-1 rounded-[0.9rem] bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+      <div className="flex items-center gap-1 rounded-[0.9rem] bg-black/4 p-1 dark:bg-white/6">
         <button
           type="button"
           onClick={() => setView("running")}
@@ -151,7 +151,7 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
 
       {/* 运行中的任务 */}
       {view === "running" && status.running.length > 0 && (
-        <div className="flex max-h-[500px] flex-col gap-1.5 overflow-y-auto">
+        <div className="flex max-h-125 flex-col gap-1.5 overflow-y-auto">
           {status.running.map((job) => (
             <div
               key={job.id}
@@ -215,11 +215,11 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
 
       {/* 排队中的任务 */}
       {view === "queued" && status.queued.length > 0 && (
-        <div className="flex max-h-[420px] flex-col gap-1.5 overflow-y-auto">
+        <div className="flex max-h-125 flex-col gap-1.5 overflow-y-auto">
           {status.queued.map((job) => (
             <div
               key={job.id}
-              className="flex items-center gap-3 rounded-lg border border-black/5 bg-white/40 px-3 py-2 dark:border-white/5 dark:bg-white/[0.02]"
+              className="flex items-center gap-3 rounded-lg border border-black/5 bg-white/40 px-3 py-2 dark:border-white/5 dark:bg-white/2"
             >
               <Clock className="size-3.5 shrink-0 text-zinc-400" />
               <div className="min-w-0 flex-1">
