@@ -22,13 +22,15 @@ COPY packages/mcp-server/package.json packages/mcp-server/package.json
 COPY packages/mcp-server/bin packages/mcp-server/bin
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
 FROM deps AS web-builder
 
 COPY . .
 
-RUN pnpm build:web
+RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
+    pnpm build:web
 
 FROM base AS worker-prod-deps
 
@@ -39,7 +41,8 @@ COPY packages/db/package.json packages/db/package.json
 COPY packages/llm/package.json packages/llm/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN pnpm install --prod --frozen-lockfile --filter worker...
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --prod --frozen-lockfile --filter worker...
 
 FROM node:24-alpine AS runner
 
