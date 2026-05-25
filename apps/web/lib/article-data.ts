@@ -36,9 +36,6 @@ export async function getArticleRows(
   const pageSize = input.pageSize ?? DEFAULT_ADMIN_ARTICLE_PAGE_SIZE;
   const requestedPage = Math.max(1, Math.floor(input.page ?? 1));
   const search = input.search?.trim();
-  // TODO: ILIKE 中前导 `%` 会导致无法使用 B-tree 索引，从而触发全表扫描。
-  // 建议启用 pg_trgm 扩展并在 title_en 和 title_zh 列上创建 GIN 三字元索引，
-  // 以提升全文搜索性能。
   const searchFilter = search
     ? sql`(${articles.titleEn} ILIKE ${`%${search}%`} OR ${articles.titleZh} ILIKE ${`%${search}%`})`
     : undefined;
