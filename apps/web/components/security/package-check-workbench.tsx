@@ -306,7 +306,7 @@ export function PackageCheckWorkbench({
                 type="button"
                 aria-haspopup="listbox"
                 aria-expanded={selectOpen}
-                className="flex h-11 w-full items-center justify-between rounded-full border border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 outline-none transition-colors hover:border-black/10 focus-visible:border-emerald-700/30 focus-visible:ring-2 focus-visible:ring-emerald-700/10 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:hover:border-white/15 dark:focus-visible:border-emerald-200/30 dark:focus-visible:ring-emerald-200/10"
+                className="flex h-11 w-full items-center justify-between rounded-full border border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 outline-none transition-colors hover:border-black/10 focus-visible:border-emerald-700/30 focus-visible:ring-2 focus-visible:ring-emerald-700/10 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:hover:border-white/15 dark:focus-visible:border-emerald-200/30 dark:focus-visible:ring-emerald-200/10"
                 onClick={() => setSelectOpen((current) => !current)}
                 disabled={pending}
               >
@@ -365,7 +365,7 @@ export function PackageCheckWorkbench({
               placeholder={
                 ecosystem === "npm" ? "@scope/package" : "package-name"
               }
-              className="h-11 min-w-0 flex-1 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
+              className="h-11 min-w-0 flex-1 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
               disabled={pending}
               required
             />
@@ -386,7 +386,7 @@ export function PackageCheckWorkbench({
                 );
               }}
               placeholder="1.0.0"
-              className="h-11 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 lg:w-[180px] dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
+              className="h-11 rounded-full border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-visible:border-emerald-700/30 lg:w-[180px] dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:shadow-none"
               disabled={pending}
             />
             <Button

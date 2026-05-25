@@ -38,7 +38,7 @@ export function NotFoundContent({ lang }: NotFoundContentProps) {
                   </span>
                 </div>
 
-                <div className="inline-flex h-7 items-center gap-2 rounded-full border border-black/6 bg-white/72 px-3 text-xs font-medium text-zinc-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.74),0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-300 dark:shadow-none">
+                <div className="inline-flex h-7 items-center gap-2 rounded-full border border-black/6 bg-white/72 px-3 text-xs font-medium text-zinc-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.74),0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-white/5.5 dark:text-stone-300 dark:shadow-none">
                   <Radio className="size-3 text-emerald-700 dark:text-emerald-300" />
                   {isZh ? "路径信号丢失" : "Route signal lost"}
                 </div>

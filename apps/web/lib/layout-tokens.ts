@@ -19,11 +19,11 @@ export function getTableSurfaceClassName() {
 }
 
 export function getSelectClassName() {
-  return "admin-select h-10 rounded-full border border-black/6 bg-[#fcfcfa] px-3 text-sm text-zinc-950 outline-none transition-colors hover:bg-white focus:border-emerald-700/30 focus:ring-2 focus:ring-emerald-700/10 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:hover:bg-white/[0.08] dark:focus:border-emerald-200/30 dark:focus:ring-emerald-200/10";
+  return "admin-select h-10 rounded-full border border-black/6 bg-[#fcfcfa] px-3 text-sm text-zinc-950 outline-none transition-colors hover:bg-white focus:border-emerald-700/30 focus:ring-2 focus:ring-emerald-700/10 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:hover:bg-white/[0.08] dark:focus:border-emerald-200/30 dark:focus:ring-emerald-200/10";
 }
 
 export function getFilterSelectClassName() {
-  return "admin-select h-7 rounded-full border border-black/8 bg-white/70 pl-2.5 pr-7 text-xs font-medium text-zinc-700 outline-none transition-colors hover:border-emerald-900/20 hover:bg-white focus:border-emerald-700/30 focus:ring-2 focus:ring-emerald-700/10 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-200 dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.08] dark:focus:border-emerald-200/30 dark:focus:ring-emerald-200/10";
+  return "admin-select h-7 rounded-full border border-black/8 bg-white/70 pl-2.5 pr-7 text-xs font-medium text-zinc-700 outline-none transition-colors hover:border-emerald-900/20 hover:bg-white focus:border-emerald-700/30 focus:ring-2 focus:ring-emerald-700/10 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-200 dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.08] dark:focus:border-emerald-200/30 dark:focus:ring-emerald-200/10";
 }
 
 export function getSectionOuterClassName() {

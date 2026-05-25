@@ -459,7 +459,7 @@ export function MarkdownRenderer({
                           "inline-flex size-7 items-center justify-center rounded-full border text-[11px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60",
                           copied
                             ? "border-emerald-300/60 bg-emerald-500/10 text-emerald-600 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200"
-                            : "border-black/8 bg-white text-zinc-500 hover:border-emerald-900/18 hover:text-emerald-800 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-400 dark:hover:border-emerald-200/20 dark:hover:text-emerald-300",
+                            : "border-black/8 bg-white text-zinc-500 hover:border-emerald-900/18 hover:text-emerald-800 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-400 dark:hover:border-emerald-200/20 dark:hover:text-emerald-300",
                         )}
                       >
                         {copied ? (

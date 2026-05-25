@@ -151,7 +151,7 @@ export default async function PublicHomePage({
           <div className={getSectionInnerClassName()}>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-normal text-zinc-600 dark:text-stone-300">
-                <span className="inline-flex h-7 items-center gap-2 rounded-full border border-black/6 bg-white/72 px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.74),0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-white/[0.055] dark:shadow-none">
+                <span className="inline-flex h-7 items-center gap-2 rounded-full border border-black/6 bg-white/72 px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.74),0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-white/5.5 dark:shadow-none">
                   <span className="size-1.5 rounded-full bg-emerald-700 shadow-[0_0_0_5px_rgba(4,120,87,0.12)] dark:bg-emerald-300 dark:shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
                   {text.publicEyebrowLive}
                 </span>
@@ -181,7 +181,7 @@ export default async function PublicHomePage({
                   name="q"
                   defaultValue={query}
                   placeholder={text.publicSearchPlaceholder}
-                  className="h-11 min-w-0 flex-1 rounded-full border border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-emerald-700/30 focus:outline-none dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-emerald-200/30 dark:shadow-none"
+                  className="h-11 min-w-0 flex-1 rounded-full border border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-emerald-700/30 focus:outline-none dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-emerald-200/30 dark:shadow-none"
                 />
                 <button
                   type="submit"
@@ -202,7 +202,7 @@ export default async function PublicHomePage({
                     title={text.clear}
                     className={cn(
                       buttonVariants({ size: "icon", variant: "outline" }),
-                      "size-11 rounded-full border-black/6 bg-white/80 text-zinc-600 hover:bg-white hover:text-zinc-950 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-200 dark:hover:bg-white/10 dark:hover:text-white",
+                      "size-11 rounded-full border-black/6 bg-white/80 text-zinc-600 hover:bg-white hover:text-zinc-950 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-200 dark:hover:bg-white/10 dark:hover:text-white",
                     )}
                   >
                     <X className="size-4" />
@@ -244,7 +244,7 @@ export default async function PublicHomePage({
                       tag: "",
                       page: 1,
                     })}
-                    className="ml-auto inline-flex h-8 items-center rounded-full border border-black/6 bg-white/70 px-3 text-sm text-zinc-500 transition-colors hover:bg-white hover:text-zinc-950 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-300 dark:hover:bg-white/10 dark:hover:text-stone-100"
+                    className="ml-auto inline-flex h-8 items-center rounded-full border border-black/6 bg-white/70 px-3 text-sm text-zinc-500 transition-colors hover:bg-white hover:text-zinc-950 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-300 dark:hover:bg-white/10 dark:hover:text-stone-100"
                   >
                     {text.clearAllFilters}
                   </Link>
@@ -278,7 +278,7 @@ export default async function PublicHomePage({
                     <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500 dark:text-stone-400">
                       <Badge
                         variant="outline"
-                        className="border-black/6 bg-white/70 text-[11px] font-semibold tracking-[0.18em] text-zinc-600 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-300"
+                        className="border-black/6 bg-white/70 text-[11px] font-semibold tracking-[0.18em] text-zinc-600 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-300"
                       >
                         {article.sourceName.toUpperCase()}
                       </Badge>
@@ -309,7 +309,7 @@ export default async function PublicHomePage({
                           <Badge
                             key={`${article.id}-${tag}`}
                             variant="outline"
-                            className="border-black/6 bg-white/65 text-zinc-500 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-400"
+                            className="border-black/6 bg-white/65 text-zinc-500 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-400"
                           >
                             {tag}
                           </Badge>

@@ -139,7 +139,7 @@ export function PublicTagFilter({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={labels.search}
-                  className="mb-3 h-10 w-full rounded-full border border-black/6 bg-[#fcfcfa] px-3 text-sm text-zinc-950 outline-none placeholder:text-zinc-400 transition-colors focus:border-emerald-700/30 focus:ring-2 focus:ring-emerald-700/10 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-emerald-200/30 dark:focus:ring-emerald-200/10"
+                  className="mb-3 h-10 w-full rounded-full border border-black/6 bg-[#fcfcfa] px-3 text-sm text-zinc-950 outline-none placeholder:text-zinc-400 transition-colors focus:border-emerald-700/30 focus:ring-2 focus:ring-emerald-700/10 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-emerald-200/30 dark:focus:ring-emerald-200/10"
                 />
                 <div className="max-h-[24rem] overflow-y-auto pr-1">
                   {filteredPopoverTags.length > 0 ? (

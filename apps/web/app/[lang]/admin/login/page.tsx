@@ -32,7 +32,7 @@ export default async function AdminLoginPage({
       <div className={getAdminBackdropClassName()} />
       <div className={getAdminShellClassName()}>
         <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="w-full max-w-sm rounded-[1.4rem] border border-black/6 bg-white/80 p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_2px_8px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/[0.055] dark:shadow-none">
+          <div className="w-full max-w-sm rounded-[1.4rem] border border-black/6 bg-white/80 p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_2px_8px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5.5 dark:shadow-none">
             <h1 className="text-lg font-semibold text-zinc-950 dark:text-stone-100">
               {lang === "zh" ? "后台登录" : "Admin login"}
             </h1>
@@ -72,7 +72,7 @@ export default async function AdminLoginPage({
                   autoFocus
                   disabled={!isConfigured}
                   autoComplete="current-password"
-                  className="h-10 w-full rounded-full border border-black/6 bg-[#fcfcfa] px-3 text-base text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none placeholder:text-zinc-400 focus-visible:border-emerald-700/30 focus-visible:ring-2 focus-visible:ring-emerald-700/10 dark:border-white/10 dark:bg-white/[0.055] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:focus-visible:ring-emerald-200/10"
+                  className="h-10 w-full rounded-full border border-black/6 bg-[#fcfcfa] px-3 text-base text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none placeholder:text-zinc-400 focus-visible:border-emerald-700/30 focus-visible:ring-2 focus-visible:ring-emerald-700/10 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus-visible:border-emerald-200/30 dark:focus-visible:ring-emerald-200/10"
                 />
               </div>
               <button
