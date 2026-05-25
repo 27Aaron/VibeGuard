@@ -1,0 +1,2 @@
+CREATE INDEX "articles_status_published_at_idx" ON "articles" USING btree ("status","published_at" desc);--> statement-breakpoint
+CREATE INDEX "articles_feed_id_published_at_idx" ON "articles" USING btree ("feed_id","published_at" desc);

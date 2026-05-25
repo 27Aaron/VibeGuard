@@ -14,9 +14,13 @@ describe("database migrations", () => {
       readFileSync(join(migrationsDir, "meta/_journal.json"), "utf8"),
     ) as { entries: Array<{ tag: string }> };
 
-    expect(sqlFiles).toEqual(["0000_vibeguard_init.sql"]);
+    expect(sqlFiles).toEqual([
+      "0000_vibeguard_init.sql",
+      "0001_lazy_kitty_pryde.sql",
+    ]);
     expect(journal.entries).toEqual([
       expect.objectContaining({ tag: "0000_vibeguard_init" }),
+      expect.objectContaining({ tag: "0001_lazy_kitty_pryde" }),
     ]);
   });
 

@@ -152,6 +152,8 @@ export const articles = pgTable(
     index("articles_risk_category_idx").on(table.riskCategory),
     index("articles_published_at_idx").on(desc(table.publishedAt)),
     index("articles_feed_id_idx").on(table.feedId),
+    index("articles_status_published_at_idx").on(table.status, desc(table.publishedAt)),
+    index("articles_feed_id_published_at_idx").on(table.feedId, desc(table.publishedAt)),
   ],
 );
 
