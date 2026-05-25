@@ -1,4 +1,4 @@
-import { DEFAULT_USER_AGENT, safeFetch } from "../shared/http";
+import { DEFAULT_USER_AGENT, readBodyWithByteLimit, safeFetch } from "../shared/http";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BYTES = 2_000_000;
@@ -31,11 +31,7 @@ export async function fetchArticleHtml(
       throw new Error("Article HTML response is too large.");
     }
 
-    const html = await response.text();
-
-    if (html.length > DEFAULT_MAX_BYTES) {
-      throw new Error("Article HTML response is too large.");
-    }
+    const html = await readBodyWithByteLimit(response, DEFAULT_MAX_BYTES);
 
     return html;
   } finally {

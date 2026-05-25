@@ -1,4 +1,5 @@
 import { lookup } from "node:dns/promises";
+import { TextDecoder } from "node:util";
 
 export const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
@@ -70,5 +71,38 @@ export async function safeFetch(
     }
 
     return response;
+  }
+}
+
+export async function readBodyWithByteLimit(
+  response: Response,
+  maxBytes: number,
+): Promise<string> {
+  if (!response.body) {
+    return "";
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      received += value.byteLength;
+      if (received > maxBytes) {
+        throw new Error(`Response body exceeded ${maxBytes} byte limit`);
+      }
+
+      text += decoder.decode(value, { stream: true });
+    }
+
+    text += decoder.decode();
+    return text;
+  } finally {
+    reader.releaseLock();
   }
 }

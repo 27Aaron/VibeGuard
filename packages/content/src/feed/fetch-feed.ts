@@ -1,7 +1,7 @@
 import Parser from "rss-parser";
 
 import type { FeedItemInput } from "./normalize";
-import { DEFAULT_USER_AGENT, safeFetch } from "../shared/http";
+import { DEFAULT_USER_AGENT, readBodyWithByteLimit, safeFetch } from "../shared/http";
 
 type ParsedFeed = Parser.Output<FeedItemInput>;
 
@@ -36,11 +36,7 @@ export async function fetchFeed(feedUrl: string): Promise<ParsedFeed> {
       throw new Error("Feed response is too large.");
     }
 
-    const body = await response.text();
-
-    if (body.length > DEFAULT_MAX_BYTES) {
-      throw new Error("Feed response is too large.");
-    }
+    const body = await readBodyWithByteLimit(response, DEFAULT_MAX_BYTES);
 
     return parser.parseString(body);
   } finally {
