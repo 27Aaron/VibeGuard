@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 
 import { upsertSecuritySyncState } from "@vibeguard/content/osv/store";
 import { closeDb, getDb, securitySyncState } from "@vibeguard/db";
-import { SecuritySyncStatus } from "@vibeguard/shared";
+import { SecuritySyncStatus, validateRequiredEnv } from "@vibeguard/shared";
 
 import { pollActiveFeeds } from "./poll-feeds";
 import { processAvailableQueuedJobs } from "./process-article";
@@ -467,6 +467,7 @@ export async function main() {
 }
 
 if (isDirectExecution(import.meta.url)) {
+  validateRequiredEnv();
   main().catch((error) => {
     console.error(error);
     process.exit(1);
