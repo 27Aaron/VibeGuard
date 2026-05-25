@@ -204,7 +204,7 @@ export default async function ArticleDetailPage({
           <ArrowLeft className="size-3.5" />
           {resolvedLang === "zh" ? "返回文章列表" : "Back to articles"}
         </Link>
-        <div className="flex w-fit items-center gap-1 rounded-full border border-black/8 bg-[#eef2f7] p-[3px] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)]">
+        <div className="flex w-fit items-center gap-1 rounded-full border border-black/8 bg-[#eef2f7] p-0.75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)]">
           <Link
             href={`/zh/admin/articles/${article.id}`}
             className={getInteractiveChipClassName(localized.locale === "zh")}

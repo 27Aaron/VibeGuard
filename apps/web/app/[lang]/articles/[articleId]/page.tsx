@@ -143,7 +143,7 @@ export default async function PublicArticlePage({
                   </a>
                 </div>
 
-                <h1 className="mt-6 max-w-5xl text-2xl font-semibold leading-tight tracking-normal text-zinc-950 [overflow-wrap:anywhere] md:text-3xl dark:text-stone-50">
+                <h1 className="mt-6 max-w-5xl text-2xl font-semibold leading-tight tracking-normal text-zinc-950 wrap-anywhere md:text-3xl dark:text-stone-50">
                   {resolvedArticle.title}
                 </h1>
               </div>

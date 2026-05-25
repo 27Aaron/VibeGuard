@@ -12,7 +12,7 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-4 overflow-hidden rounded-[1.65rem] border border-black/5 bg-white/58 py-5 text-sm text-card-foreground shadow-[0_20px_44px_-30px_rgba(10,10,10,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-4 data-[size=sm]:has-data-[slot=card-footer]:pb-0 dark:border-white/10 dark:bg-white/[0.05] dark:shadow-none *:[img:first-child]:rounded-t-[1.65rem] *:[img:last-child]:rounded-b-[1.65rem]",
+        "group/card flex flex-col gap-4 overflow-hidden rounded-[1.65rem] border border-black/5 bg-white/58 py-5 text-sm text-card-foreground shadow-[0_20px_44px_-30px_rgba(10,10,10,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-4 data-[size=sm]:has-data-[slot=card-footer]:pb-0 dark:border-white/10 dark:bg-white/5 dark:shadow-none *:[img:first-child]:rounded-t-[1.65rem] *:[img:last-child]:rounded-b-[1.65rem]",
         className,
       )}
       {...props}

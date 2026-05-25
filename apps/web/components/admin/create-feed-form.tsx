@@ -127,7 +127,7 @@ export function CreateFeedForm({ action, lang }: CreateFeedFormProps) {
           </div>
           <label
             className={cn(
-              "flex min-h-16 items-center justify-between gap-4 text-sm transition-colors hover:bg-white dark:hover:bg-white/[0.065]",
+              "flex min-h-16 items-center justify-between gap-4 text-sm transition-colors hover:bg-white dark:hover:bg-white/6.5",
               getAdminSubtlePanelClassName(),
             )}
           >

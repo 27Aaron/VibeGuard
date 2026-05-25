@@ -138,7 +138,7 @@ export function CustomSelect({
                   active
                     ? "bg-black/[0.045] text-zinc-950 dark:bg-white/[0.08] dark:text-stone-50"
                     : isHighlighted
-                      ? "bg-black/[0.03] text-zinc-950 dark:bg-white/[0.05] dark:text-stone-50"
+                      ? "bg-black/[0.03] text-zinc-950 dark:bg-white/5 dark:text-stone-50"
                       : "text-zinc-700 hover:bg-black/[0.03] dark:text-stone-200 dark:hover:bg-white/[0.05]",
                 )}
                 onClick={() => {

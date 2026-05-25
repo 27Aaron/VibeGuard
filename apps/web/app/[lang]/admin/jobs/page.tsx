@@ -147,7 +147,7 @@ export default async function JobsPage({
               key={item.status}
               href={href}
               className={cn(
-                "rounded-[1.2rem] border border-black/5 bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[background-color,border-color,transform] hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/4.5 dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]",
+                "rounded-[1.2rem] border border-black/5 bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[background-color,border-color,transform] hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/4.5 dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/6.5",
                 active &&
                   "border-emerald-900/18 bg-[#f7fbf8] dark:border-emerald-200/14 dark:bg-[#121b17]",
               )}
@@ -264,7 +264,7 @@ export default async function JobsPage({
               <span className="text-xs text-muted-foreground">
                 {lang === "zh" ? "每页展示" : "Rows per page"}
               </span>
-              <div className="flex items-center gap-1 rounded-full border border-black/8 bg-[#eef2f7] p-[3px] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)]">
+              <div className="flex items-center gap-1 rounded-full border border-black/8 bg-[#eef2f7] p-0.75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#11161d] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.28)]">
                 {ADMIN_JOB_PAGE_SIZE_OPTIONS.map((option) => (
                   <SoftLink
                     key={option}

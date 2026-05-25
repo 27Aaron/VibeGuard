@@ -253,7 +253,7 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
                           {group.tools.map((tool) => (
                             <div
                               key={tool.name}
-                              className="grid min-h-[4.5rem] content-start gap-2 rounded-[0.85rem] border border-black/5 bg-white/70 px-3.5 py-3 dark:border-white/8 dark:bg-black/10"
+                              className="grid min-h-18 content-start gap-2 rounded-[0.85rem] border border-black/5 bg-white/70 px-3.5 py-3 dark:border-white/8 dark:bg-black/10"
                             >
                               <code className="block w-fit max-w-full self-start rounded-md border border-emerald-900/10 bg-[#f0f7f2] px-1.5 py-0.5 text-xs font-mono text-emerald-800 dark:border-emerald-200/10 dark:bg-emerald-300/8 dark:text-emerald-200">
                                 {tool.name}

@@ -80,7 +80,7 @@ export function RssPageClient({
       </div>
 
       {/* How to use */}
-      <div className="rounded-[1.5rem] border border-black/5 bg-white/30 p-5 dark:border-white/8 dark:bg-white/[0.025]">
+      <div className="rounded-[1.5rem] border border-black/5 bg-white/30 p-5 dark:border-white/8 dark:bg-white/2.5">
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-stone-100">
           <BookOpen className="size-4 text-emerald-700 dark:text-emerald-300" />
           {lang === "zh" ? "如何使用" : "How to use"}
@@ -171,7 +171,7 @@ function FeedCard({
           <Link
             href={feedUrl}
             target="_blank"
-            className="flex size-8 items-center justify-center rounded-full border border-black/8 bg-white text-zinc-600 transition-colors hover:bg-black/5 hover:text-zinc-950 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-stone-100"
+            className="flex size-8 items-center justify-center rounded-full border border-black/8 bg-white text-zinc-600 transition-colors hover:bg-black/5 hover:text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-stone-100"
             aria-label="XML"
           >
             <ExternalLink className="size-3.5" />
@@ -180,7 +180,7 @@ function FeedCard({
             type="button"
             onClick={handleCopy}
             className={cn(
-              "flex size-8 items-center justify-center rounded-full border border-black/8 bg-white text-zinc-600 transition-colors hover:bg-black/5 hover:text-zinc-950 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-stone-100",
+              "flex size-8 items-center justify-center rounded-full border border-black/8 bg-white text-zinc-600 transition-colors hover:bg-black/5 hover:text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-stone-100",
               copied &&
                 "border-emerald-900/15 bg-emerald-50 text-emerald-800 dark:border-emerald-200/20 dark:bg-emerald-900/20 dark:text-emerald-200",
             )}
@@ -208,7 +208,7 @@ function StepCard({
   description: string;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-[1.1rem] border border-black/5 bg-white/40 p-3.5 dark:border-white/8 dark:bg-white/[0.03]">
+    <div className="flex flex-col gap-2 rounded-[1.1rem] border border-black/5 bg-white/40 p-3.5 dark:border-white/8 dark:bg-white/3">
       <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
         {icon}
         <span className="text-xs font-semibold">{title}</span>

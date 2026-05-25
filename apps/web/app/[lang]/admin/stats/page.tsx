@@ -202,9 +202,9 @@ export default async function StatsPage({ params }: StatsPageProps) {
             return (
               <Card
                 key={card.label}
-                className="min-h-[116px] justify-center py-4"
+                className="min-h-29 justify-center py-4"
               >
-                <CardContent className="grid min-h-[88px] content-center gap-3 px-5">
+                <CardContent className="grid min-h-22 content-center gap-3 px-5">
                   <div className="flex items-start justify-between gap-3">
                     <CardDescription className="leading-none">
                       {card.label}

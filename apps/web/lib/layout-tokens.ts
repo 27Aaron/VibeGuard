@@ -35,5 +35,5 @@ export function getSectionInnerClassName() {
 }
 
 export function getCardSurfaceClassName() {
-  return "rounded-[1.65rem] border border-black/5 bg-white/50 p-1.5 shadow-[0_20px_44px_-30px_rgba(10,10,10,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-emerald-900/15 hover:shadow-[0_28px_64px_-34px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.82)] dark:border-white/10 dark:bg-white/[0.05] dark:shadow-none dark:hover:border-emerald-200/25";
+  return "rounded-[1.65rem] border border-black/5 bg-white/50 p-1.5 shadow-[0_20px_44px_-30px_rgba(10,10,10,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-emerald-900/15 hover:shadow-[0_28px_64px_-34px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.82)] dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-emerald-200/25";
 }

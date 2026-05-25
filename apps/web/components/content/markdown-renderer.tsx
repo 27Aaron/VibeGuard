@@ -400,7 +400,7 @@ export function MarkdownRenderer({
                   return (
                     <code
                       className={cn(
-                        "max-w-full whitespace-normal rounded-md font-mono text-[0.92em] [overflow-wrap:anywhere]",
+                        "max-w-full whitespace-normal rounded-md font-mono text-[0.92em] wrap-anywhere",
                         palette.codeInline,
                       )}
                       {...props}
@@ -507,7 +507,7 @@ export function MarkdownRenderer({
                 ) : (
                   <pre
                     className={cn(
-                      "my-6 max-w-full whitespace-pre-wrap rounded-2xl px-4 py-3 font-mono text-[0.92em] leading-7 [overflow-wrap:anywhere]",
+                      "my-6 max-w-full whitespace-pre-wrap rounded-2xl px-4 py-3 font-mono text-[0.92em] leading-7 wrap-anywhere",
                       palette.codeBlock,
                     )}
                   >
