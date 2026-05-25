@@ -86,12 +86,23 @@ export async function listSecurityAdvisories(
     );
   }
 
-  if (params.kev !== null || params.cvssMin !== null || params.epssMin !== null) {
+  if (params.kev === false) {
+    conditions.push(
+      sql`not exists (
+        select 1 from ${securityCveEnrichments}
+        where ${securityCveEnrichments.kevListed} = true
+        and (
+          ${securityCveEnrichments.cveId} in (select elem::text from jsonb_array_elements_text(${securityAdvisories.aliases}) elem)
+          or ${securityCveEnrichments.cveId} in (select elem::text from jsonb_array_elements_text(${securityAdvisories.upstreamIds}) elem)
+        )
+      )`,
+    );
+  }
+
+  if (params.kev === true || params.cvssMin !== null || params.epssMin !== null) {
     const enrichmentConditions = [];
     if (params.kev === true) {
       enrichmentConditions.push(eq(securityCveEnrichments.kevListed, true));
-    } else if (params.kev === false) {
-      enrichmentConditions.push(sql`coalesce(${securityCveEnrichments.kevListed}, false) = false`);
     }
     if (params.cvssMin !== null) {
       enrichmentConditions.push(
