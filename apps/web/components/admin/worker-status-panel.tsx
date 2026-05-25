@@ -151,11 +151,11 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
 
       {/* 运行中的任务 */}
       {view === "running" && status.running.length > 0 && (
-        <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto">
+        <div className="flex max-h-[500px] flex-col gap-1.5 overflow-y-auto">
           {status.running.map((job) => (
             <div
               key={job.id}
-              className="flex flex-col gap-2.5 rounded-[1rem] border border-emerald-900/10 bg-[#f7fbf8] px-4 py-3 dark:border-emerald-200/10 dark:bg-[#121b17]"
+              className="flex flex-col gap-1.5 rounded-[1rem] border border-emerald-900/10 bg-[#f7fbf8] px-3.5 py-2.5 dark:border-emerald-200/10 dark:bg-[#121b17]"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -184,7 +184,7 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <TaskStepDots stage={job.pipelineStage} />
                   <span className="text-xs text-emerald-700 dark:text-emerald-300">
