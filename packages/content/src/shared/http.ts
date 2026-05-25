@@ -1,4 +1,5 @@
 import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { TextDecoder } from "node:util";
 
 export const DEFAULT_USER_AGENT =
@@ -6,23 +7,41 @@ export const DEFAULT_USER_AGENT =
 
 const MAX_SAFE_REDIRECTS = 5;
 
-function isPrivateIp(ip: string): boolean {
-  const parts = ip.split(".");
-  if (parts.length === 4) {
-    const [a, b] = parts.map(Number);
-    if (a === 10) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 127) return true;
-    if (a === 169 && b === 254) return true;
-    if (a === 0) return true;
-    if (a === 100 && b >= 64 && b <= 127) return true;
-    if (a === 198 && (b === 18 || b === 19)) return true;
-  }
+const IPV4_PRIVATE_RANGES: ReadonlyArray<readonly [number, number]> = [
+  [0, 0], // 0.0.0.0/8
+  [10, 10], // 10.0.0.0/8
+  [100, 100], // 100.64.0.0/10 (CGN)
+  [127, 127], // 127.0.0.0/8
+  [169, 169], // 169.254.0.0/16
+  [172, 172], // 172.16.0.0/12
+  [192, 192], // 192.0.0.0/24, 192.168.0.0/16, 192.18/19.0.0/15
+  [198, 198], // 198.18/19.0.0/15
+];
 
+function isPrivateIp(ip: string): boolean {
   if (ip === "::1" || ip === "::") return true;
   if (ip.startsWith("fc") || ip.startsWith("fd")) return true;
   if (ip.startsWith("fe80")) return true;
+
+  // IPv4-mapped IPv6: ::ffff:x.x.x.x
+  const v4Mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  const v4Str = v4Mapped ? v4Mapped[1] : ip;
+
+  const parts = v4Str.split(".");
+  if (parts.length !== 4) return false;
+
+  const [a, b] = parts.map(Number);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+
+  for (const [lo, hi] of IPV4_PRIVATE_RANGES) {
+    if (a === lo) {
+      if (lo === 172) return b >= 16 && b <= 31;
+      if (lo === 100) return b >= 64 && b <= 127;
+      if (lo === 192) return b === 0 || b === 168 || b === 18 || b === 19;
+      if (lo === 198) return b === 18 || b === 19;
+      return true;
+    }
+  }
 
   return false;
 }
