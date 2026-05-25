@@ -448,10 +448,17 @@ export async function runWorkerLoop({
 
 export async function main() {
   const controller = new AbortController();
-  const stop = () => controller.abort();
+  let shuttingDown = false;
 
-  process.once("SIGINT", stop);
-  process.once("SIGTERM", stop);
+  const shutdown = (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    log.info(`Received ${signal}, shutting down gracefully...`);
+    controller.abort();
+  };
+
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
 
   try {
     await Promise.all([
@@ -462,9 +469,10 @@ export async function main() {
       startOsvSyncScheduler(controller.signal),
     ]);
   } finally {
-    process.off("SIGINT", stop);
-    process.off("SIGTERM", stop);
+    process.off("SIGINT", () => shutdown("SIGINT"));
+    process.off("SIGTERM", () => shutdown("SIGTERM"));
     await closeDb();
+    log.info("Shutdown complete");
   }
 }
 
