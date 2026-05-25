@@ -307,7 +307,7 @@ export function SecuritySyncPanel({ lang }: { lang: AppLang }) {
       </div>
 
       {syncLogs && syncLogs.length > 0 ? (
-        <div className="rounded-[0.9rem] border border-black/5 bg-white/60 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+        <div className="rounded-[0.9rem] border border-black/5 bg-white/60 p-3 dark:border-white/10 dark:bg-white/4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">
               {lang === "zh" ? "同步日志" : "Sync Logs"}

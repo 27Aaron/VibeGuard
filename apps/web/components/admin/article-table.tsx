@@ -39,7 +39,7 @@ export function ArticleTable({
 }) {
   if (articles.length === 0) {
     return (
-      <div className="rounded-[1.2rem] border border-dashed border-black/10 bg-white/58 px-6 py-10 text-center dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="rounded-[1.2rem] border border-dashed border-black/10 bg-white/58 px-6 py-10 text-center dark:border-white/10 dark:bg-white/4">
         <p className="text-sm font-medium text-zinc-950 dark:text-stone-100">
           {lang === "zh" ? "还没有文章" : "No articles yet"}
         </p>

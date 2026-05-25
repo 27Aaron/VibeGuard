@@ -204,7 +204,7 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
       )}
 
       {view === "running" && status.running.length === 0 && (
-        <div className="rounded-[1rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 text-center dark:border-white/10 dark:bg-white/[0.04]">
+        <div className="rounded-[1rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 text-center dark:border-white/10 dark:bg-white/4">
           <p className="text-sm text-muted-foreground">
             {lang === "zh"
               ? "当前没有运行中的任务"
@@ -236,7 +236,7 @@ export function WorkerStatusPanel({ lang }: { lang: AppLang }) {
       )}
 
       {view === "queued" && status.queued.length === 0 && (
-        <div className="rounded-[1rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 text-center dark:border-white/10 dark:bg-white/[0.04]">
+        <div className="rounded-[1rem] border border-dashed border-black/10 bg-white/60 px-4 py-5 text-center dark:border-white/10 dark:bg-white/4">
           <p className="text-sm text-muted-foreground">
             {lang === "zh"
               ? "当前没有排队中的任务"

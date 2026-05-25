@@ -113,7 +113,7 @@ export default async function SkillPage({
                   {lang === "zh" ? "安装" : "Install"}
                 </h2>
 
-                <div className="rounded-[1rem] border border-black/5 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="rounded-[1rem] border border-black/5 bg-white/70 p-4 dark:border-white/10 dark:bg-white/4">
                   <p className="mb-3 text-xs text-zinc-500 dark:text-stone-400">
                     {lang === "zh"
                       ? "在支持 Skill 的 AI 编程助手中发送以下命令："

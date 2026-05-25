@@ -196,7 +196,7 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
                   {lang === "zh" ? "接入地址" : "Endpoint"}
                 </h2>
 
-                <div className="rounded-[1rem] border border-black/5 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="rounded-[1rem] border border-black/5 bg-white/70 p-4 dark:border-white/10 dark:bg-white/4">
                   <p className="mb-3 text-xs text-zinc-500 dark:text-stone-400">
                     {lang === "zh"
                       ? "Streamable HTTP — 在支持 MCP 的 AI 工具中配置以下地址："

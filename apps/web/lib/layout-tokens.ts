@@ -15,7 +15,7 @@ export function getSubtlePanelClassName() {
 }
 
 export function getTableSurfaceClassName() {
-  return "overflow-hidden rounded-[1.25rem] border border-black/5 bg-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none";
+  return "overflow-hidden rounded-[1.25rem] border border-black/5 bg-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none";
 }
 
 export function getSelectClassName() {

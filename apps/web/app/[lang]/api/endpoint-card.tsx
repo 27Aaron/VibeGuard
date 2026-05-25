@@ -28,7 +28,7 @@ export function EndpointCard({
   const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
-    <div className="rounded-[1.4rem] border border-black/5 bg-white/50 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+    <div className="rounded-[1.4rem] border border-black/5 bg-white/50 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2.5">
           <Badge
@@ -60,7 +60,7 @@ export function EndpointCard({
                 className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[0.65rem] transition-all cursor-pointer ${
                   expanded === p.key
                     ? "border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20"
-                    : "border-black/6 bg-[#f7f7f5] dark:border-white/8 dark:bg-white/[0.04] hover:border-black/12 dark:hover:border-white/16"
+                    : "border-black/6 bg-[#f7f7f5] dark:border-white/8 dark:bg-white/4 hover:border-black/12 dark:hover:border-white/16"
                 }`}
               >
                 <span className="font-mono font-semibold text-zinc-800 dark:text-stone-200">

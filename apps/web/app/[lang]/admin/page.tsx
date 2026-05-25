@@ -191,7 +191,7 @@ export default async function AdminHomePage({
               {runDetails.map((detail) => (
                 <div
                   key={`${detail.articleId}-${detail.status}`}
-                  className="rounded-[0.9rem] border border-black/5 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
+                  className="rounded-[0.9rem] border border-black/5 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-white/4"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="truncate text-sm font-medium">

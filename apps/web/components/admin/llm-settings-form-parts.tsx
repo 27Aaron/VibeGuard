@@ -46,7 +46,7 @@ export function CollapsiblePromptField({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="flex flex-col gap-2 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+    <div className="flex flex-col gap-2 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none">
       <div className="flex items-center justify-between gap-2">
         <label htmlFor={id} className="text-sm font-medium">
           {label}

@@ -109,7 +109,7 @@ export function FeedTable({
 
   if (feeds.length === 0) {
     return (
-      <div className="rounded-[1.45rem] border border-dashed border-black/10 bg-white/58 px-6 py-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+      <div className="rounded-[1.45rem] border border-dashed border-black/10 bg-white/58 px-6 py-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none">
         <div className="flex flex-col items-start gap-4">
           <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-2 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
             <Orbit className="size-4" />

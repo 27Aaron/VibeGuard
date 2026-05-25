@@ -54,7 +54,7 @@ const variantClasses = {
     link: "text-emerald-800 underline decoration-emerald-900/20 underline-offset-4 hover:text-emerald-950 hover:decoration-emerald-900/40 dark:text-emerald-300 dark:decoration-emerald-200/20 dark:hover:text-emerald-100 dark:hover:decoration-emerald-200/40",
     hr: "border-black/5 dark:border-white/10",
     image:
-      "border border-black/5 bg-white/58 dark:border-white/10 dark:bg-white/[0.04]",
+      "border border-black/5 bg-white/58 dark:border-white/10 dark:bg-white/4",
     caption: "text-zinc-500 dark:text-stone-400",
     imageHint:
       "bg-white/90 text-zinc-900 ring-1 ring-black/5 shadow-[0_12px_30px_rgba(15,23,42,0.12)] dark:bg-black/60 dark:text-stone-100 dark:ring-white/15 dark:shadow-none",
@@ -77,7 +77,7 @@ const variantClasses = {
     link: "text-emerald-800 underline decoration-emerald-900/20 underline-offset-4 hover:text-emerald-950 hover:decoration-emerald-900/40 dark:text-emerald-300 dark:decoration-emerald-200/20 dark:hover:text-emerald-100 dark:hover:decoration-emerald-200/40",
     hr: "border-black/5 dark:border-white/10",
     image:
-      "border border-black/5 bg-white/58 dark:border-white/10 dark:bg-white/[0.04]",
+      "border border-black/5 bg-white/58 dark:border-white/10 dark:bg-white/4",
     caption: "text-zinc-500 dark:text-stone-400",
     imageHint:
       "bg-white/90 text-zinc-900 ring-1 ring-black/5 shadow-[0_12px_30px_rgba(15,23,42,0.12)] dark:bg-black/60 dark:text-stone-100 dark:ring-white/15 dark:shadow-none",

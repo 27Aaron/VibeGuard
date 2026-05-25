@@ -266,7 +266,7 @@ export default async function ArticleDetailPage({
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 px-5 pb-5 sm:grid-cols-3">
-              <div className="rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+              <div className="rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none">
                 <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
                   <CalendarClock className="size-3.5" />
                   {resolvedLang === "zh" ? "发布时间" : "Published"}
@@ -275,7 +275,7 @@ export default async function ArticleDetailPage({
                   {publishedAt}
                 </p>
               </div>
-              <div className="rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+              <div className="rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none">
                 <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
                   <Clock3 className="size-3.5" />
                   {resolvedLang === "zh" ? "抓取时间" : "Fetched"}
@@ -284,7 +284,7 @@ export default async function ArticleDetailPage({
                   {fetchedAt}
                 </p>
               </div>
-              <div className="rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+              <div className="rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none">
                 <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-stone-500">
                   <RefreshCw className="size-3.5" />
                   {resolvedLang === "zh" ? "更新时间" : "Updated"}
@@ -309,7 +309,7 @@ export default async function ArticleDetailPage({
               </CardDescription>
             </CardHeader>
             <CardContent className="px-5 pb-5">
-              <div className="rounded-[1.25rem] border border-black/5 bg-white/62 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+              <div className="rounded-[1.25rem] border border-black/5 bg-white/62 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none">
                 <MarkdownSummary
                   content={
                     localized.summary ||
@@ -384,7 +384,7 @@ export default async function ArticleDetailPage({
                   return (
                     <div
                       key={option.target}
-                      className="rounded-[1.15rem] border border-black/5 bg-white/58 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none"
+                      className="rounded-[1.15rem] border border-black/5 bg-white/58 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none"
                     >
                       <div className="flex items-start gap-3">
                         <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-black/6 bg-[#f7fbf8] text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">

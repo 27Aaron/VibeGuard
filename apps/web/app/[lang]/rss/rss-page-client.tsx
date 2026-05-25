@@ -148,7 +148,7 @@ function FeedCard({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-[1.4rem] border border-black/5 bg-white/50 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+    <div className="flex flex-col gap-3 rounded-[1.4rem] border border-black/5 bg-white/50 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none">
       <div className="flex items-center gap-2.5">
         <Rss className="size-4 text-emerald-700 dark:text-emerald-300" />
         <h3 className="text-sm font-semibold text-zinc-950 dark:text-stone-100">
@@ -164,7 +164,7 @@ function FeedCard({
       </p>
 
       <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1 rounded-full border border-black/6 bg-[#f7f7f5] px-3 py-1.5 font-mono text-[0.65rem] text-zinc-600 dark:border-white/8 dark:bg-white/[0.04] dark:text-stone-400">
+        <div className="min-w-0 flex-1 rounded-full border border-black/6 bg-[#f7f7f5] px-3 py-1.5 font-mono text-[0.65rem] text-zinc-600 dark:border-white/8 dark:bg-white/4 dark:text-stone-400">
           <span className="block truncate">{fullUrl}</span>
         </div>
         <div className="flex shrink-0 items-center gap-1">

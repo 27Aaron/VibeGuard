@@ -255,7 +255,7 @@ export default async function PublicHomePage({
         </section>
 
         {feed.items.length === 0 ? (
-          <section className="rounded-[2rem] border border-dashed border-black/10 bg-white/55 px-6 py-12 text-center shadow-[0_18px_48px_rgba(10,10,10,0.06)] dark:border-white/15 dark:bg-white/[0.04] dark:shadow-none">
+          <section className="rounded-[2rem] border border-dashed border-black/10 bg-white/55 px-6 py-12 text-center shadow-[0_18px_48px_rgba(10,10,10,0.06)] dark:border-white/15 dark:bg-white/4 dark:shadow-none">
             <p className="text-lg font-medium text-zinc-950 dark:text-stone-100">
               {text.emptyFeedTitle}
             </p>
