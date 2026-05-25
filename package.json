@@ -29,7 +29,8 @@
     "drizzle-kit": "^0.31.10",
     "react": "19.2.6",
     "tsx": "^4.20.6",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.7",
+    "yaml": "^2.9.0"
   },
   "pnpm": {
     "overrides": {
