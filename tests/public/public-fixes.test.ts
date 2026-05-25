@@ -122,23 +122,23 @@ describe("search-toast guards against duplicate toasts", () => {
 });
 
 describe("markdown-renderer pre component only unwraps code blocks", () => {
-  const renderer = fs.readFileSync(
-    "apps/web/components/content/markdown-renderer.tsx",
+  const codeBlock = fs.readFileSync(
+    "apps/web/components/content/markdown-code-block.tsx",
     "utf8",
   );
 
   it("has a check for code children before unwrapping", () => {
-    expect(renderer).toContain("hasCodeChild");
+    expect(codeBlock).toContain("hasCodeChild");
   });
 
   it("preserves <pre> for non-code content", () => {
-    expect(renderer).toContain("<pre");
-    expect(renderer).toContain("whitespace-pre-wrap");
+    expect(codeBlock).toContain("<pre");
+    expect(codeBlock).toContain("whitespace-pre-wrap");
   });
 
   it("unwraps code-containing <pre> elements", () => {
     // The unwrapping should be conditional
-    expect(renderer).toMatch(
+    expect(codeBlock).toMatch(
       /hasCodeChild\s*\?\s*\(\s*<>\s*\{children\}\s*<\/>\s*\)/,
     );
   });
