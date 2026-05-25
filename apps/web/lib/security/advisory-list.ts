@@ -23,12 +23,9 @@ export async function listSecurityAdvisories(
 
   const conditions = [];
 
-  if (params.ecosystem || params.packageName) {
-    const pkgParts = [];
-    if (params.ecosystem) {
-      pkgParts.push(eq(securityAffectedPackages.ecosystem, params.ecosystem));
-    }
-    if (params.packageName && params.ecosystem) {
+  if (params.ecosystem) {
+    const pkgParts = [eq(securityAffectedPackages.ecosystem, params.ecosystem)];
+    if (params.packageName) {
       pkgParts.push(
         eq(
           securityAffectedPackages.packageKey,
@@ -36,11 +33,8 @@ export async function listSecurityAdvisories(
         ),
       );
     }
-    const pkgCond = and(...pkgParts);
     conditions.push(
-      pkgCond
-        ? sql`exists (select 1 from ${securityAffectedPackages} where ${securityAffectedPackages.advisoryId} = ${securityAdvisories.id} and ${pkgCond})`
-        : sql`exists (select 1 from ${securityAffectedPackages} where ${securityAffectedPackages.advisoryId} = ${securityAdvisories.id})`,
+      sql`exists (select 1 from ${securityAffectedPackages} where ${securityAffectedPackages.advisoryId} = ${securityAdvisories.id} and ${and(...pkgParts)})`,
     );
   }
 
