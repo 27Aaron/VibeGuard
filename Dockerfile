@@ -51,7 +51,8 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-RUN addgroup -S -g 1001 nodejs \
+RUN apk add --no-cache su-exec \
+  && addgroup -S -g 1001 nodejs \
   && adduser -S -u 1001 vibeguard -G nodejs
 
 COPY --from=web-builder --chown=vibeguard:nodejs /app/apps/web/.next/standalone ./
@@ -73,17 +74,17 @@ COPY --from=web-builder --chown=vibeguard:nodejs /app/packages/llm/package.json 
 COPY --from=web-builder --chown=vibeguard:nodejs /app/packages/llm/src ./packages/llm/src
 COPY --from=web-builder --chown=vibeguard:nodejs /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=web-builder --chown=vibeguard:nodejs /app/packages/shared/src ./packages/shared/src
+COPY --from=web-builder --chown=root:root /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 COPY --from=web-builder --chown=vibeguard:nodejs /app/scripts/load-env.mjs ./scripts/load-env.mjs
 COPY --from=web-builder --chown=vibeguard:nodejs /app/scripts/start-stack.mjs ./scripts/start-stack.mjs
 
 RUN mkdir -p data/osv-cache data/osv-bootstrap data/enrichment-cache \
   && chown -R vibeguard:nodejs data
 
-USER vibeguard
-
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=5 \
   CMD node -e "const port=process.env.PORT||3000;fetch('http://127.0.0.1:'+port+'/api/overview').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
+ENTRYPOINT ["sh", "/app/scripts/docker-entrypoint.sh"]
 CMD ["node", "scripts/start-stack.mjs"]

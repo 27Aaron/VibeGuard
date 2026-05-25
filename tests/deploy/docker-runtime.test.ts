@@ -15,10 +15,32 @@ describe("Docker production runtime", () => {
     );
     expect(dockerfile).toContain("/app/apps/web/.next/standalone");
     expect(dockerfile).toContain("/app/node_modules ./node_modules");
+    expect(dockerfile).toContain("apk add --no-cache su-exec");
+    expect(dockerfile).toContain(
+      "COPY --from=web-builder --chown=root:root /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh",
+    );
+    expect(dockerfile).toContain(
+      'ENTRYPOINT ["sh", "/app/scripts/docker-entrypoint.sh"]',
+    );
     expect(dockerfile).toContain("HEALTHCHECK");
     expect(dockerfile.split("FROM node:24-alpine AS runner")[1]).not.toContain(
       "COPY . .",
     );
+  });
+
+  it("repairs writable data mount permissions before dropping privileges", () => {
+    const entrypoint = fs.readFileSync("scripts/docker-entrypoint.sh", "utf8");
+
+    expect(entrypoint).toContain('ensure_writable_dir "/app/data/osv-cache"');
+    expect(entrypoint).toContain(
+      'ensure_writable_dir "/app/data/osv-bootstrap"',
+    );
+    expect(entrypoint).toContain(
+      'ensure_writable_dir "/app/data/enrichment-cache"',
+    );
+    expect(entrypoint).toContain("chown -R vibeguard:nodejs");
+    expect(entrypoint).toContain("chmod -R u+rwX");
+    expect(entrypoint).toContain('exec su-exec vibeguard:nodejs "$@"');
   });
 
   it("starts database migration, web, and worker from the production entrypoint", () => {
