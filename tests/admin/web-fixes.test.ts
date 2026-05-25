@@ -22,7 +22,7 @@ describe("worker-status-panel 轮询间隔改为 5 秒", () => {
 // ---------------------------------------------------------------------------
 describe("loadProviderModels 使用 AbortController", () => {
   const src = fs.readFileSync(
-    "apps/web/components/admin/llm-settings-form.tsx",
+    "apps/web/components/admin/provider-model-loader.tsx",
     "utf8",
   );
 

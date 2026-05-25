@@ -3,9 +3,7 @@
 import {
   useActionState,
   useEffect,
-  useMemo,
   useReducer,
-  useRef,
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -54,20 +52,20 @@ import {
 } from "@/lib/actions/settings";
 import type { AppLang } from "@/lib/i18n";
 import { resolveLang } from "@/lib/i18n";
-import { mergeModelOptions } from "@/lib/provider-models";
 import { PROVIDER_PRESETS, resolvePresetLabel } from "@/lib/provider-presets";
 import { cn } from "@/lib/utils";
 
 import {
-  type FormState,
   formReducer,
   initFormState,
 } from "@/components/admin/llm-settings-form-reducer";
 import {
-  CollapsiblePromptField,
   FeedbackMessage,
   SubmitButton,
 } from "@/components/admin/llm-settings-form-parts";
+import { PipelinePrompts } from "@/components/admin/pipeline-prompts";
+import { ProfileActiveSwitcher } from "@/components/admin/profile-active-switcher";
+import { ProviderModelLoader } from "@/components/admin/provider-model-loader";
 
 type LlmSettingsFormProps = {
   profiles: LlmSettingsRow[];
@@ -101,10 +99,6 @@ export function LlmSettingsForm({
       initFormState(p, pl, pi),
   );
   const [isActionPending, startActionTransition] = useTransition();
-  const mergedModelOptions = useMemo(
-    () => mergeModelOptions(form.model, form.modelOptions),
-    [form.model, form.modelOptions],
-  );
 
   // 从 URL 的 preset 查询参数同步预设配置（用于从预设链接创建新配置的场景）
   useEffect(() => {
@@ -136,65 +130,6 @@ export function LlmSettingsForm({
     pipeline.relevancePrompt,
   ]);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  async function loadProviderModels() {
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    dispatch({ type: "START_LOADING_MODELS" });
-
-    try {
-      const response = await fetch("/api/admin/provider-models", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          profileId: provider.id,
-          baseUrl: form.baseUrl,
-          apiKey: form.apiKey,
-          lang,
-        }),
-        signal: controller.signal,
-      });
-      const payload = (await response.json()) as {
-        ok: boolean;
-        message?: string;
-        models?: string[];
-      };
-
-      if (!response.ok || !payload.ok) {
-        throw new Error(
-          payload.message ||
-            (resolvedLang === "zh"
-              ? "获取模型失败。"
-              : "Failed to load models."),
-        );
-      }
-
-      const nextOptions = mergeModelOptions(form.model, payload.models ?? []);
-      dispatch({
-        type: "MODELS_LOADED",
-        options: nextOptions,
-        feedback:
-          resolvedLang === "zh"
-            ? `已获取 ${nextOptions.length} 个模型。`
-            : `Loaded ${nextOptions.length} models.`,
-      });
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      dispatch({
-        type: "MODELS_ERROR",
-        feedback:
-          error instanceof Error
-            ? error.message
-            : resolvedLang === "zh"
-              ? "获取模型失败。"
-              : "Failed to load models.",
-      });
-    }
-  }
-
   function resetPipelineDraft() {
     dispatch({ type: "RESET_PIPELINE", pipeline });
   }
@@ -215,32 +150,7 @@ export function LlmSettingsForm({
                 {resolvedLang === "zh" ? "处理链路" : "Pipeline"}
               </TabsTrigger>
             </TabsList>
-            {profiles.length > 0 ? (
-              <div className="ml-auto flex items-center gap-2">
-                <label className="text-sm text-muted-foreground">
-                  {resolvedLang === "zh" ? "生效配置：" : "Active config:"}
-                </label>
-                <CustomSelect
-                  className="min-w-[220px]"
-                  value={profiles.find((p) => p.isActive)?.id ?? ""}
-                  onChange={(targetId) => {
-                    if (!targetId) return;
-                    startActionTransition(async () => {
-                      const fd = new FormData();
-                      fd.set("id", targetId);
-                      fd.set("lang", String(lang));
-                      await activateLlmSettingsAction(fd);
-                      router.refresh();
-                    });
-                  }}
-                  disabled={isActionPending}
-                  options={profiles.map((p) => ({
-                    value: p.id,
-                    label: `${p.name} (${p.model})`,
-                  }))}
-                />
-              </div>
-            ) : null}
+            <ProfileActiveSwitcher profiles={profiles} lang={resolvedLang} />
           </div>
 
           <TabsContent value="provider" keepMounted>
@@ -502,80 +412,15 @@ export function LlmSettingsForm({
                     </p>
                   ) : null}
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="model" className="text-sm font-medium">
-                    {resolvedLang === "zh" ? "模型" : "Model"}
-                  </label>
-                  {form.modelOptions.length > 0 ? (
-                    <>
-                      <input type="hidden" name="model" value={form.model} />
-                      <CustomSelect
-                        value={form.model}
-                        onChange={(val) =>
-                          dispatch({
-                            type: "SET_FIELD",
-                            field: "model",
-                            value: val,
-                          })
-                        }
-                        options={mergedModelOptions.map((option) => ({
-                          value: option,
-                          label: option,
-                        }))}
-                      />
-                    </>
-                  ) : (
-                    <Input
-                      id="model"
-                      name="model"
-                      value={form.model}
-                      onChange={(event) =>
-                        dispatch({
-                          type: "SET_FIELD",
-                          field: "model",
-                          value: event.target.value,
-                        })
-                      }
-                      placeholder={
-                        resolvedLang === "zh"
-                          ? "输入模型名称或点击获取模型列表"
-                          : "Enter model name or load model list"
-                      }
-                    />
-                  )}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={loadProviderModels}
-                      disabled={form.isLoadingModels}
-                    >
-                      {form.isLoadingModels
-                        ? resolvedLang === "zh"
-                          ? "获取模型中..."
-                          : "Loading models..."
-                        : resolvedLang === "zh"
-                          ? "获取模型列表"
-                          : "Load model list"}
-                    </Button>
-                    {form.modelOptions.length > 0 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-muted-foreground"
-                        onClick={() => dispatch({ type: "CLEAR_MODEL_LIST" })}
-                      >
-                        {resolvedLang === "zh" ? "清除列表" : "Clear list"}
-                      </Button>
-                    ) : null}
-                  </div>
-                  {form.modelFeedback ? (
-                    <p className="text-sm text-muted-foreground">
-                      {form.modelFeedback}
-                    </p>
-                  ) : null}
-                </div>
+                <ProviderModelLoader
+                  form={form}
+                  profileId={provider.id}
+                  lang={resolvedLang}
+                  onFieldChange={(field, value) =>
+                    dispatch({ type: "SET_FIELD", field, value })
+                  }
+                  onAction={(action) => dispatch(action)}
+                />
                 <div
                   className={cn(
                     "flex items-center justify-between gap-4 rounded-[1.15rem] border border-black/5 bg-white/58 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4 dark:shadow-none",
@@ -622,104 +467,14 @@ export function LlmSettingsForm({
           <TabsContent value="pipeline" keepMounted>
             <Card>
               <CardContent className="pt-6">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <CollapsiblePromptField
-                    id="relevance-prompt"
-                    name="relevancePrompt"
-                    label={
-                      resolvedLang === "zh"
-                        ? "相关性判断"
-                        : "Classify relevance"
-                    }
-                    value={form.relevancePrompt}
-                    onChange={(v) =>
-                      dispatch({
-                        type: "SET_FIELD",
-                        field: "relevancePrompt",
-                        value: v,
-                      })
-                    }
-                    lang={resolvedLang}
-                  />
-                  <CollapsiblePromptField
-                    id="title-prompt"
-                    name="translateTitlePrompt"
-                    label={
-                      resolvedLang === "zh" ? "标题翻译" : "Translate title"
-                    }
-                    value={form.translationTitlePrompt}
-                    onChange={(v) =>
-                      dispatch({
-                        type: "SET_FIELD",
-                        field: "translationTitlePrompt",
-                        value: v,
-                      })
-                    }
-                    lang={resolvedLang}
-                  />
-                  <CollapsiblePromptField
-                    id="content-prompt"
-                    name="translateContentPrompt"
-                    label={
-                      resolvedLang === "zh" ? "正文翻译" : "Translate body"
-                    }
-                    value={form.translationContentPrompt}
-                    onChange={(v) =>
-                      dispatch({
-                        type: "SET_FIELD",
-                        field: "translationContentPrompt",
-                        value: v,
-                      })
-                    }
-                    lang={resolvedLang}
-                  />
-                  <CollapsiblePromptField
-                    id="summary-prompt-en"
-                    name="summaryPromptEn"
-                    label={
-                      resolvedLang === "zh" ? "英文摘要" : "English summary"
-                    }
-                    value={form.summaryPromptEn}
-                    onChange={(v) =>
-                      dispatch({
-                        type: "SET_FIELD",
-                        field: "summaryPromptEn",
-                        value: v,
-                      })
-                    }
-                    lang={resolvedLang}
-                  />
-                  <CollapsiblePromptField
-                    id="summary-prompt-zh"
-                    name="summaryPromptZh"
-                    label={
-                      resolvedLang === "zh" ? "中文摘要" : "Chinese summary"
-                    }
-                    value={form.summaryPromptZh}
-                    onChange={(v) =>
-                      dispatch({
-                        type: "SET_FIELD",
-                        field: "summaryPromptZh",
-                        value: v,
-                      })
-                    }
-                    lang={resolvedLang}
-                  />
-                  <CollapsiblePromptField
-                    id="tag-prompt"
-                    name="tagPrompt"
-                    label={resolvedLang === "zh" ? "标签提取" : "Generate tags"}
-                    value={form.tagPrompt}
-                    onChange={(v) =>
-                      dispatch({
-                        type: "SET_FIELD",
-                        field: "tagPrompt",
-                        value: v,
-                      })
-                    }
-                    lang={resolvedLang}
-                  />
-                </div>
+                <PipelinePrompts
+                  form={form}
+                  lang={resolvedLang}
+                  onFieldChange={(field, value) =>
+                    dispatch({ type: "SET_FIELD", field, value })
+                  }
+                  onResetPipeline={resetPipelineDraft}
+                />
                 <div className="mt-3">
                   <Button
                     variant="outline"
