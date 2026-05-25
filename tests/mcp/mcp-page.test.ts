@@ -57,9 +57,9 @@ describe("MCP documentation page", () => {
   it("keeps available tools readable in a compact two-zone layout", () => {
     expect(pageSource).toContain("lg:grid-cols-[minmax(0,16rem)_1fr]");
     expect(pageSource).toContain("xl:grid-cols-2");
-    expect(pageSource).toContain("grid min-h-[4.5rem] content-start gap-2");
+    expect(pageSource).toContain("grid min-h-18 content-start gap-2");
     expect(pageSource).toContain("block w-fit");
-    expect(pageSource).toContain("min-h-[4.5rem]");
+    expect(pageSource).toContain("min-h-18");
     expect(pageSource).not.toContain(
       "flex items-start gap-3 rounded-[0.85rem]",
     );

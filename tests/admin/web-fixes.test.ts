@@ -132,7 +132,7 @@ describe("feed-table useFormStatus 加载状态", () => {
 
   it("uses FeedActionButton in inline forms", () => {
     expect(src).toContain("<FeedActionButton");
-    expect(src).not.toMatch(/<Button[^>]*type="submit"/);
+    expect(src.match(/<FeedActionButton/g)).toHaveLength(2);
   });
 });
 

@@ -103,8 +103,8 @@ describe("Docker production runtime", () => {
       "utf8",
     );
 
-    expect(workflow).toContain("on:\n  workflow_dispatch:");
-    expect(workflow).not.toContain("\n  push:\n");
+    expect(workflow).toContain("on:\n  push:\n");
+    expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).not.toContain("\n  pull_request:\n");
     expect(workflow).toContain("REGISTRY: ghcr.io");
     expect(workflow).toContain("docker/setup-qemu-action@v4");

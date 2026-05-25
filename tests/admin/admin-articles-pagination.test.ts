@@ -76,6 +76,6 @@ describe("admin article pagination", () => {
       'TableHeader className="bg-white/56 dark:bg-white/[0.035]"',
     );
     expect(table).toContain('<TableHead className="px-4"');
-    expect(table).toContain("max-w-[420px] px-4 py-3");
+    expect(table).toContain("max-w-105 px-4 py-3");
   });
 });

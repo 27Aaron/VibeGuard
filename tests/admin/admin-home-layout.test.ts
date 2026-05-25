@@ -52,10 +52,10 @@ describe("admin home layout", () => {
   it("keeps overview metric cards compact with more comfortable horizontal padding", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/admin/page.tsx", "utf8");
 
-    expect(page).toContain("min-h-[104px]");
+    expect(page).toContain("min-h-26");
     expect(page).toContain("justify-center py-4");
     expect(page).toContain(
-      'CardContent className="grid min-h-[80px] content-center gap-2.5 px-5"',
+      'CardContent className="grid min-h-20 content-center gap-2.5 px-5"',
     );
     expect(page).toContain('CardDescription className="leading-none"');
     expect(page).not.toContain('className="min-h-[128px]"');

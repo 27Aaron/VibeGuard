@@ -18,7 +18,7 @@ describe("markdown article overflow guards", () => {
   });
 
   it("prevents long inline code and fallback pre content from widening articles", () => {
-    expect(renderer).toContain("[overflow-wrap:anywhere]");
+    expect(renderer).toContain("wrap-anywhere");
     expect(renderer).toContain("whitespace-pre-wrap");
     expect(renderer).toContain("max-w-full");
   });
