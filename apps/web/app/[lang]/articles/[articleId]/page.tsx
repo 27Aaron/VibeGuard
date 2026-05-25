@@ -171,7 +171,7 @@ export default async function PublicArticlePage({
 
                 <div
                   className={cn(
-                    "mt-4 rounded-[1.2rem] border border-black/5 bg-white/72 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none",
+                    "mt-4 rounded-[1.2rem] border border-black/5 bg-white/72 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none",
                     getPublicArticleSummaryContainerClass(),
                   )}
                 >

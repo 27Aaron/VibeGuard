@@ -253,7 +253,7 @@ export default async function AdminHomePage({
                   <Link
                     key={entry.href}
                     href={entry.href}
-                    className="group flex items-center justify-between gap-2 rounded-[1.15rem] border border-black/5 bg-white/68 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]"
+                    className="group flex items-center justify-between gap-2 rounded-[1.15rem] border border-black/5 bg-white/68 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/4.5 dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]"
                   >
                     <div className="flex items-center gap-2">
                       <span className="rounded-full border border-black/6 bg-[#f7fbf8] p-1 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">

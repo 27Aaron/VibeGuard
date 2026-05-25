@@ -170,7 +170,7 @@ export default async function PublicHomePage({
               </div>
             </div>
 
-            <div className="mt-4 rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
+            <div className="mt-4 rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none">
               <form
                 action={`/${lang}`}
                 className="flex flex-wrap items-center gap-2"

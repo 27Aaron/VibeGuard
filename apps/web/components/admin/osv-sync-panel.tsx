@@ -171,7 +171,7 @@ function SourceCard({
   label: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
+    <div className="flex items-center justify-between gap-3 rounded-[1.15rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none">
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="shrink-0 rounded-full border border-black/6 bg-[#f7fbf8] p-1.5 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[#18241e] dark:text-emerald-300 dark:shadow-none">
           {icon}

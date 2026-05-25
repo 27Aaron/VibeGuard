@@ -147,7 +147,7 @@ export default async function JobsPage({
               key={item.status}
               href={href}
               className={cn(
-                "rounded-[1.2rem] border border-black/5 bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[background-color,border-color,transform] hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]",
+                "rounded-[1.2rem] border border-black/5 bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-[background-color,border-color,transform] hover:-translate-y-0.5 hover:border-emerald-900/15 hover:bg-white dark:border-white/10 dark:bg-white/4.5 dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:bg-white/[0.065]",
                 active &&
                   "border-emerald-900/18 bg-[#f7fbf8] dark:border-emerald-200/14 dark:bg-[#121b17]",
               )}

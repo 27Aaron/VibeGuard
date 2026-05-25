@@ -49,7 +49,7 @@ const variantClasses = {
     quote:
       "border-l-2 border-emerald-900/20 bg-[#f7fbf8] text-zinc-600 dark:border-emerald-200/20 dark:bg-[#121b17] dark:text-stone-300",
     tableHead:
-      "bg-white/56 text-zinc-950 dark:bg-white/[0.045] dark:text-stone-100",
+      "bg-white/56 text-zinc-950 dark:bg-white/4.5 dark:text-stone-100",
     tableCell: "border-black/5 dark:border-white/10",
     link: "text-emerald-800 underline decoration-emerald-900/20 underline-offset-4 hover:text-emerald-950 hover:decoration-emerald-900/40 dark:text-emerald-300 dark:decoration-emerald-200/20 dark:hover:text-emerald-100 dark:hover:decoration-emerald-200/40",
     hr: "border-black/5 dark:border-white/10",
@@ -72,7 +72,7 @@ const variantClasses = {
     quote:
       "border-l-2 border-emerald-900/20 bg-[#f7fbf8] text-zinc-600 dark:border-emerald-200/20 dark:bg-[#121b17] dark:text-stone-300",
     tableHead:
-      "bg-white/56 text-zinc-950 dark:bg-white/[0.045] dark:text-stone-100",
+      "bg-white/56 text-zinc-950 dark:bg-white/4.5 dark:text-stone-100",
     tableCell: "border-black/5 dark:border-white/10",
     link: "text-emerald-800 underline decoration-emerald-900/20 underline-offset-4 hover:text-emerald-950 hover:decoration-emerald-900/40 dark:text-emerald-300 dark:decoration-emerald-200/20 dark:hover:text-emerald-100 dark:hover:decoration-emerald-200/40",
     hr: "border-black/5 dark:border-white/10",

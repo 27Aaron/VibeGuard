@@ -274,7 +274,7 @@ export function PackageCheckWorkbench({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
+      <div className="rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none">
         <form
           action="#"
           className="flex flex-col gap-3"

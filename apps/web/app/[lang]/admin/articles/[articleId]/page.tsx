@@ -258,7 +258,7 @@ export default async function ArticleDetailPage({
                   href={article.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex max-w-full items-center gap-2 rounded-full border border-black/6 bg-white/62 px-3 py-2 text-xs font-medium text-zinc-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-colors hover:border-emerald-900/18 hover:text-emerald-800 dark:border-white/10 dark:bg-white/[0.045] dark:text-stone-300 dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:text-emerald-300"
+                  className="inline-flex max-w-full items-center gap-2 rounded-full border border-black/6 bg-white/62 px-3 py-2 text-xs font-medium text-zinc-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] transition-colors hover:border-emerald-900/18 hover:text-emerald-800 dark:border-white/10 dark:bg-white/4.5 dark:text-stone-300 dark:shadow-none dark:hover:border-emerald-200/20 dark:hover:text-emerald-300"
                 >
                   <ExternalLink className="size-3.5 shrink-0" />
                   <span className="truncate">{article.url}</span>

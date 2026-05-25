@@ -11,7 +11,7 @@ export function getBackdropClassName() {
 }
 
 export function getSubtlePanelClassName() {
-  return "rounded-[1.2rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none";
+  return "rounded-[1.2rem] border border-black/5 bg-white/68 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none";
 }
 
 export function getTableSurfaceClassName() {
@@ -27,7 +27,7 @@ export function getFilterSelectClassName() {
 }
 
 export function getSectionOuterClassName() {
-  return "rounded-[2rem] border border-black/5 bg-white/48 p-1.5 shadow-[0_22px_62px_-42px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-[0_24px_70px_-48px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)]";
+  return "rounded-[2rem] border border-black/5 bg-white/48 p-1.5 shadow-[0_22px_62px_-42px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-[0_24px_70px_-48px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)]";
 }
 
 export function getSectionInnerClassName() {

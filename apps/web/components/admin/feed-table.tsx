@@ -202,7 +202,7 @@ export function FeedTable({
                 {feed.lastSyncedAt}
               </TableCell>
               <TableCell className="px-4 py-3 text-center align-middle">
-                <div className="inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-black/5 bg-white/68 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-none">
+                <div className="inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-black/5 bg-white/68 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none">
                   <Link
                     href={`/${lang}/admin/feeds/${feed.id}`}
                     className={cn(
