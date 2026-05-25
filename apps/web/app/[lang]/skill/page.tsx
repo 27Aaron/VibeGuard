@@ -46,8 +46,8 @@ type SkillPageProps = {
 
 function getInstallCommand(lang: "zh" | "en") {
   return lang === "zh"
-    ? "帮我安装这个 skill：https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard"
-    : "Install this skill: https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard";
+    ? "帮我安装这个 skill：https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard/SKILL.md"
+    : "Install this skill: https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard/SKILL.md";
 }
 
 const features = [

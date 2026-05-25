@@ -195,3 +195,19 @@ describe("Skill nav icon differentiated from homepage brand icon", () => {
     expect(brandSection).toContain("ShieldCheck");
   });
 });
+
+describe("Skill install command copy", () => {
+  const skillPage = fs.readFileSync(
+    "apps/web/app/[lang]/skill/page.tsx",
+    "utf8",
+  );
+
+  it("points users directly at the raw Skill markdown file path", () => {
+    expect(skillPage).toContain(
+      "帮我安装这个 skill：https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard/SKILL.md",
+    );
+    expect(skillPage).toContain(
+      "Install this skill: https://github.com/27Aaron/VibeGuard/blob/main/skill/vibeguard/SKILL.md",
+    );
+  });
+});
