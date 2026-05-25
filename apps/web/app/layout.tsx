@@ -14,6 +14,18 @@ export const metadata = {
   icons: {
     icon: "/icon.svg",
   },
+  openGraph: {
+    title: "VibeGuard",
+    description: "面向中文用户的供应链攻击、依赖风险与开源安全内容流。",
+    type: "website",
+    locale: "zh_CN",
+    alternateLocale: "en_US",
+  },
+  twitter: {
+    card: "summary",
+    title: "VibeGuard",
+    description: "面向中文用户的供应链攻击、依赖风险与开源安全内容流。",
+  },
 };
 
 export default async function RootLayout({
