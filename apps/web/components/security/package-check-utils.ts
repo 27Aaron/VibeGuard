@@ -8,7 +8,7 @@ import {
 } from "@/lib/security-workbench";
 import { formatDateTimeInShanghai } from "@/lib/time";
 
-export type CvssLevel = "critical" | "high" | "medium" | "low";
+type CvssLevel = "critical" | "high" | "medium" | "low";
 
 export function ecosystemLabel(ecosystem: SecurityPackageEcosystem) {
   switch (ecosystem) {
@@ -53,13 +53,13 @@ export function toneLabel(finding: SecurityFinding, lang: AppLang) {
   }
 }
 
-export function formatPercent(value: string | number | null | undefined) {
+function formatPercent(value: string | number | null | undefined) {
   if (!value) return null;
   const parsed = typeof value === "number" ? value : Number.parseFloat(value);
   return Number.isFinite(parsed) ? `${Math.round(parsed * 100)}%` : null;
 }
 
-export function numberFromDecimal(value: string | number | null | undefined) {
+function numberFromDecimal(value: string | number | null | undefined) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
   }
@@ -77,7 +77,7 @@ export function formatFindingTime(value: string | null | undefined, lang: AppLan
   return value ? formatDateTimeInShanghai(value, { lang }) : null;
 }
 
-export function primaryCveLabel(finding: SecurityFinding) {
+function primaryCveLabel(finding: SecurityFinding) {
   return (
     finding.cveEnrichments[0]?.cveId ??
     finding.advisory.aliases.find((alias) => alias.startsWith("CVE-")) ??
@@ -146,7 +146,7 @@ export function affectedRangeBadgeClassName() {
   return "h-6 px-2.5";
 }
 
-export function riskTypeLabel(riskType: string, lang: AppLang) {
+function riskTypeLabel(riskType: string, lang: AppLang) {
   if (riskType === "malicious-package") {
     return lang === "zh" ? "恶意包" : "Malicious package";
   }

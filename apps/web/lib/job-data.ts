@@ -94,37 +94,6 @@ export async function getDashboardOverview(lang: AppLang = "zh") {
   ] as const;
 }
 
-export async function getJobPreviewRows() {
-  const db = getDb();
-  const rows = await db
-    .select({
-      id: processingJobs.id,
-      jobType: processingJobs.jobType,
-      status: processingJobs.status,
-      runAfter: processingJobs.runAfter,
-      articleTitle: articles.titleZh,
-      fallbackTitle: articles.titleEn,
-    })
-    .from(processingJobs)
-    .innerJoin(articles, sql`${processingJobs.articleId} = ${articles.id}`)
-    .where(
-      inArray(processingJobs.status, [
-        JobStatus.QUEUED,
-        ...RUNNING_JOB_STATUSES,
-      ]),
-    )
-    .orderBy(desc(processingJobs.createdAt))
-    .limit(5);
-
-  return rows.map((row) => ({
-    id: row.id,
-    articleTitle: row.articleTitle || row.fallbackTitle,
-    jobType: row.jobType,
-    status: row.status,
-    runAt: formatDateTime(row.runAfter),
-  }));
-}
-
 export async function getJobStatusCounts(lang: AppLang = "zh") {
   const db = getDb();
   const counts = await db

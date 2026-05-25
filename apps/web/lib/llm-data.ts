@@ -17,10 +17,10 @@ export { DEFAULT_TAG_PROMPT };
 const LEGACY_TRANSLATION_CONTENT_PROMPT =
   "Translate the article body into natural Chinese. Preserve links, package names, version strings, code snippets, and technical terms when needed.";
 
-export const DEFAULT_TRANSLATION_CONTENT_PROMPT =
+const DEFAULT_TRANSLATION_CONTENT_PROMPT =
   "Translate the article body into natural, fluent Simplified Chinese. Preserve the original meaning precisely. Keep all technical accuracy; do not simplify, embellish, or paraphrase security terminology. Keep fenced code blocks, inline code, shell commands, configuration keys, package names, version strings, URLs, and file paths exactly unchanged.";
 
-export function normalizeLocalizedSummaryPrompt(input: {
+function normalizeLocalizedSummaryPrompt(input: {
   prompt: string | null | undefined;
   fallback: string;
 }) {
@@ -33,7 +33,7 @@ export function normalizeLocalizedSummaryPrompt(input: {
   return normalized;
 }
 
-export function normalizeTranslationContentPrompt(
+function normalizeTranslationContentPrompt(
   input: string | null | undefined,
 ) {
   const normalized = String(input ?? "").trim();
@@ -49,11 +49,11 @@ export function normalizeTagPrompt(input: string | null | undefined) {
   return resolveTagPrompt(input);
 }
 
-export function normalizeRelevancePrompt(input: string | null | undefined) {
+function normalizeRelevancePrompt(input: string | null | undefined) {
   return resolveRelevancePrompt(input);
 }
 
-export async function getActiveLlmSettings() {
+async function getActiveLlmSettings() {
   const db = getDb();
   const row =
     (await db.query.llmSettings.findFirst({
