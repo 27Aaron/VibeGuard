@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-import { SecuritySyncStatus } from "@vibeguard/shared";
+import { createLogger, SecuritySyncStatus } from "@vibeguard/shared";
 
 import {
   buildOsvVulnerabilityUrl,
@@ -25,6 +25,8 @@ import {
   parseModifiedIdCsv,
 } from "./sync-utils";
 
+const log = createLogger("osv/sync");
+
 export async function syncOsvEcosystem({
   db,
   ecosystem,
@@ -43,7 +45,7 @@ export async function syncOsvEcosystem({
     now: syncedAt,
   });
 
-  console.log(`[osv/sync] 开始增量同步 ${ecosystem}，下载 modified_id.csv…`);
+  log.info(`开始增量同步 ${ecosystem}，下载 modified_id.csv…`);
   const modifiedCsv = await fetchText(
     buildModifiedIdCsvUrl(ecosystem),
     MAX_MODIFIED_ID_CSV_BYTES,
@@ -53,8 +55,8 @@ export async function syncOsvEcosystem({
     MAX_MODIFIED_ID_ROW_LIMIT,
   );
   const rows = parseModifiedIdCsv(modifiedCsv, Math.max(0, effectiveLimit));
-  console.log(
-    `[osv/sync] ${ecosystem}: 解析到 ${rows.length} 条变更记录，开始逐条处理…`,
+  log.info(
+    `${ecosystem}: 解析到 ${rows.length} 条变更记录，开始逐条处理…`,
   );
   const fetchTextForVulnerability = (url: string) =>
     fetchText(url, MAX_VULNERABILITY_TEXT_BYTES);
@@ -112,7 +114,7 @@ export async function syncOsvEcosystem({
     } catch (error) {
       recordsFailed += 1;
       await deleteCachedOsvFile(filePath).catch(() => {});
-      console.error(`[osv/sync] Failed to process ${row.externalId}:`, error);
+      log.error(`Failed to process ${row.externalId}:`, error);
       continue;
     }
   }

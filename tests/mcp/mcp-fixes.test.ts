@@ -46,8 +46,8 @@ describe("client.ts HTTPS 强制校验和 URL 验证", () => {
 describe("server.ts sanitized error messages", () => {
   const source = fs.readFileSync("packages/mcp-server/src/server.ts", "utf8");
 
-  it("catch block logs the full error server-side via console.error", () => {
-    expect(source).toMatch(/console\.error/);
+  it("catch block logs the full error server-side via structured logger", () => {
+    expect(source).toMatch(/log\.error/);
   });
 
   it("returns a generic error message to the client (not the raw message)", () => {

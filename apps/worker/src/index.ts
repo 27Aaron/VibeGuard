@@ -2,11 +2,13 @@ import { and, eq } from "drizzle-orm";
 
 import { upsertSecuritySyncState } from "@vibeguard/content/osv/store";
 import { closeDb, getDb, securitySyncState } from "@vibeguard/db";
-import { SecuritySyncStatus, validateRequiredEnv } from "@vibeguard/shared";
+import { createLogger, SecuritySyncStatus, validateRequiredEnv } from "@vibeguard/shared";
 
 import { pollActiveFeeds } from "./poll-feeds";
 import { processAvailableQueuedJobs } from "./process-article";
 import { isDirectExecution } from "./run-utils";
+
+const log = createLogger("worker");
 
 export { pollActiveFeeds, pollFeedNow } from "./poll-feeds";
 export {
@@ -469,7 +471,7 @@ export async function main() {
 if (isDirectExecution(import.meta.url)) {
   validateRequiredEnv();
   main().catch((error) => {
-    console.error(error);
+    log.error(error);
     process.exit(1);
   });
 }

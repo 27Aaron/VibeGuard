@@ -6,6 +6,10 @@ import {
   scryptSync,
 } from "node:crypto";
 
+import { createLogger } from "@vibeguard/shared";
+
+const log = createLogger("llm/credentials");
+
 const KEY_LENGTH = 32;
 const SCRYPT_COST = 16384;
 const SCRYPT_BLOCK_SIZE = 8;
@@ -85,7 +89,7 @@ export function decryptSecret(ciphertext: string) {
 
       return decrypted.toString("utf8");
     } catch (error) {
-      console.warn(
+      log.warn(
         "Decryption failed (scrypt):",
         error instanceof Error ? error.message : String(error),
       );
@@ -118,7 +122,7 @@ export function decryptSecret(ciphertext: string) {
 
       return decrypted.toString("utf8");
     } catch (error) {
-      console.warn(
+      log.warn(
         "Decryption failed (legacy):",
         error instanceof Error ? error.message : String(error),
       );

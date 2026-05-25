@@ -7,7 +7,7 @@ import parserStream from "stream-json";
 import pick from "stream-json/filters/pick.js";
 import streamArray from "stream-json/streamers/stream-array.js";
 
-import { SecuritySyncStatus } from "@vibeguard/shared";
+import { createLogger, SecuritySyncStatus } from "@vibeguard/shared";
 
 import { deleteCacheFile, downloadToCache } from "./cache";
 import { upsertSecurityCveEnrichments } from "./enrichment-db";
@@ -42,6 +42,8 @@ import {
   MAX_NVD_FEED_JSON_BYTES,
   NVD_FULL_FEED_START_YEAR,
 } from "./enrichment-types";
+
+const log = createLogger("enrichment");
 
 const DEFAULT_NVD_STREAM_BATCH_SIZE = 500;
 
@@ -209,7 +211,7 @@ async function syncPatches({
 }
 
 export async function syncCisaKevCatalog({ db }: { db: ContentDb }) {
-  console.log("[enrichment] 正在下载 CISA KEV 漏洞目录…");
+  log.info("正在下载 CISA KEV 漏洞目录…");
   const cached = await downloadToCache({
     url: CISA_KEV_JSON_URL,
     fileName: "cisa-kev.json",
@@ -218,8 +220,8 @@ export async function syncCisaKevCatalog({ db }: { db: ContentDb }) {
   const rawJson = await fs.readFile(cached, "utf8");
   await deleteCacheFile(cached);
   const patches = parseKevCatalog(rawJson);
-  console.log(
-    `[enrichment] CISA KEV: 解析到 ${patches.length} 条漏洞，开始写入…`,
+  log.info(
+    `CISA KEV: 解析到 ${patches.length} 条漏洞，开始写入…`,
   );
   return syncPatches({
     db,
@@ -234,7 +236,7 @@ export async function syncCisaKevCatalog({ db }: { db: ContentDb }) {
 }
 
 export async function syncFirstEpssScores({ db }: { db: ContentDb }) {
-  console.log("[enrichment] 正在下载 FIRST EPSS 评分数据…");
+  log.info("正在下载 FIRST EPSS 评分数据…");
   const cached = await downloadToCache({
     url: FIRST_EPSS_CURRENT_CSV_GZ_URL,
     fileName: "epss-current.csv.gz",
@@ -248,7 +250,7 @@ export async function syncFirstEpssScores({ db }: { db: ContentDb }) {
     MAX_EPSS_CSV_TEXT_BYTES,
   );
   const patches = parseEpssCsv(csv);
-  console.log(`[enrichment] EPSS: 解析到 ${patches.length} 条评分，开始写入…`);
+  log.info(`EPSS: 解析到 ${patches.length} 条评分，开始写入…`);
   const scoreDate = patches.find((patch) => patch.epssScoreDate)?.epssScoreDate;
   const modelVersion = patches.find(
     (patch) => patch.epssModelVersion,
@@ -268,7 +270,7 @@ export async function syncFirstEpssScores({ db }: { db: ContentDb }) {
 }
 
 export async function syncNvdModifiedFeed({ db }: { db: ContentDb }) {
-  console.log("[enrichment] 正在下载 NVD 增量数据（modified feed）…");
+  log.info("正在下载 NVD 增量数据（modified feed）…");
   const cached = await downloadToCache({
     url: buildNvdModifiedFeedUrl(),
     fileName: "nvd-modified.json.gz",
@@ -335,7 +337,7 @@ async function syncNvdCachedGzipFeed({
   });
 
   try {
-    console.log(`[enrichment] ${label}: 开始流式解析并按批写入…`);
+    log.info(`${label}: 开始流式解析并按批写入…`);
     const result = await streamNvdGzipFeedPatches({
       filePath,
       label,
@@ -343,8 +345,8 @@ async function syncNvdCachedGzipFeed({
         await upsertSecurityCveEnrichments(db, patches);
       },
     });
-    console.log(
-      `[enrichment] ${label}: 解析到 ${result.recordsSeen} 条 CVE，导入=${result.recordsImported}。`,
+    log.info(
+      `${label}: 解析到 ${result.recordsSeen} 条 CVE，导入=${result.recordsImported}。`,
     );
     await upsertSecuritySyncState(db, scope, {
       source: "nvd",
@@ -437,8 +439,8 @@ export async function syncNvdFullHistory({
   });
 
   try {
-    console.log(
-      `[enrichment] 开始 NVD 全量引导，共 ${resolvedYears.length} 个年份（${resolvedYears[0]}–${resolvedYears[resolvedYears.length - 1]}）`,
+    log.info(
+      `开始 NVD 全量引导，共 ${resolvedYears.length} 个年份（${resolvedYears[0]}–${resolvedYears[resolvedYears.length - 1]}）`,
     );
     const results: SecurityEnrichmentSyncSummary[] = [];
     const concurrency = Math.max(
@@ -453,7 +455,7 @@ export async function syncNvdFullHistory({
       while (queue.length > 0) {
         const year = queue.shift();
         if (year != null) {
-          console.log(`[enrichment]   正在下载 NVD ${year} 年数据…`);
+          log.info(`  正在下载 NVD ${year} 年数据…`);
           results.push(await syncYear({ db, year }));
         }
       }
@@ -472,8 +474,8 @@ export async function syncNvdFullHistory({
       (total, result) => total + result.recordsFailed,
       0,
     );
-    console.log(
-      `[enrichment] NVD 全量引导完成：${resolvedYears.length} 个年份，共 ${recordsSeen} 条（导入=${recordsImported} 失败=${recordsFailed}）`,
+    log.info(
+      `NVD 全量引导完成：${resolvedYears.length} 个年份，共 ${recordsSeen} 条（导入=${recordsImported} 失败=${recordsFailed}）`,
     );
     const completedAt = now();
 

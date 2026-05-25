@@ -1,4 +1,4 @@
-import { SecuritySyncStatus } from "@vibeguard/shared";
+import { createLogger, SecuritySyncStatus } from "@vibeguard/shared";
 
 import {
   buildOsvBootstrapArchiveUrl,
@@ -25,6 +25,8 @@ import {
 } from "./sync-types";
 import { defaultIterateArchiveEntries } from "./sync-utils";
 
+const log = createLogger("osv/bootstrap");
+
 export async function bootstrapOsvEcosystem({
   db,
   ecosystem,
@@ -48,8 +50,8 @@ export async function bootstrapOsvEcosystem({
     now: syncedAt,
   });
 
-  console.log(
-    `[osv/bootstrap] 开始全量引导 ${ecosystem}，下载 all.zip 压缩包…`,
+  log.info(
+    `开始全量引导 ${ecosystem}，下载 all.zip 压缩包…`,
   );
   const archivePath = assertSafeArchivePath(
     await downloadArchive({
@@ -59,7 +61,7 @@ export async function bootstrapOsvEcosystem({
       url: buildOsvBootstrapArchiveUrl(ecosystem),
     }),
   );
-  console.log(`[osv/bootstrap] ${ecosystem}: 压缩包已下载，开始逐条解析…`);
+  log.info(`${ecosystem}: 压缩包已下载，开始逐条解析…`);
 
   let recordsSeen = 0;
   let recordsImported = 0;
@@ -86,8 +88,8 @@ export async function bootstrapOsvEcosystem({
       recordsChanged += result.changedCount;
       recordsSkipped += result.skippedCount;
       if (recordsSeen > 0 && recordsSeen % 2000 === 0) {
-        console.log(
-          `[osv/bootstrap] ${ecosystem}: 已处理 ${recordsSeen} 条（导入=${recordsImported} 新增=${recordsNew} 跳过=${recordsSkipped} 失败=${recordsFailed}）`,
+        log.info(
+          `${ecosystem}: 已处理 ${recordsSeen} 条（导入=${recordsImported} 新增=${recordsNew} 跳过=${recordsSkipped} 失败=${recordsFailed}）`,
         );
       }
       return;
@@ -152,8 +154,8 @@ export async function bootstrapOsvEcosystem({
     }
 
     await flushPendingRecords();
-    console.log(
-      `[osv/bootstrap] ${ecosystem}: 全量引导完成，共 ${recordsSeen} 条（导入=${recordsImported} 新增=${recordsNew} 变更=${recordsChanged} 失败=${recordsFailed}）`,
+    log.info(
+      `${ecosystem}: 全量引导完成，共 ${recordsSeen} 条（导入=${recordsImported} 新增=${recordsNew} 变更=${recordsChanged} 失败=${recordsFailed}）`,
     );
   } finally {
     await deleteCachedFile(archivePath);

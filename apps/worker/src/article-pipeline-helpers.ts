@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import {
+  createLogger,
   JobPipelineStage,
 } from "@vibeguard/shared";
 import type { UsageResult } from "@vibeguard/llm";
@@ -10,6 +11,8 @@ import type {
   ArticleRecord,
   ProcessArticleJobDependencies,
 } from "./article-pipeline-types";
+
+const log = createLogger("worker/pipeline");
 
 export function hasText(value: string | null | undefined): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -127,7 +130,7 @@ export async function updateArticlePatchWithFallback(
           : toRawMetaRecord(article.rawMeta),
     });
   } catch (error) {
-    console.error(
+    log.error(
       `updateArticlePatchWithFallback failed for article ${article.id}:`,
       error,
     );

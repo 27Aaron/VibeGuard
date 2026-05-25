@@ -8,8 +8,11 @@ import {
   syncAllSecurityEnrichmentSources,
   type SecurityEnrichmentSyncSummary,
 } from "@vibeguard/content/security/enrichment";
+import { createLogger } from "@vibeguard/shared";
 
 import { isDirectExecution } from "./run-utils";
+
+const log = createLogger("worker/sync");
 
 export type OsvSyncMode = "bootstrap" | "incremental";
 
@@ -122,14 +125,14 @@ export async function main(argv = process.argv.slice(2)) {
           });
 
     for (const result of results) {
-      console.log(formatSyncSummaryLine(mode, result));
+      log.info(formatSyncSummaryLine(mode, result));
     }
 
     const enrichmentResults = await syncAllSecurityEnrichmentSources(getDb(), {
       mode: getEnrichmentSyncMode(mode),
     });
     for (const result of enrichmentResults) {
-      console.log(formatEnrichmentSyncSummaryLine(result));
+      log.info(formatEnrichmentSyncSummaryLine(result));
     }
   } finally {
     await closeDb();
@@ -138,7 +141,7 @@ export async function main(argv = process.argv.slice(2)) {
 
 if (isDirectExecution(import.meta.url)) {
   main().catch((error) => {
-    console.error(error);
+    log.error(error);
     process.exit(1);
   });
 }

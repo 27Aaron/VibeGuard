@@ -1,3 +1,5 @@
+import { createLogger } from "@vibeguard/shared";
+
 import { buildLocalizedSummaryPrompt } from "./prompts";
 import {
   createChatCompletionTextWithRetry,
@@ -5,6 +7,8 @@ import {
   type PromptCacheOptions,
   type UsageResult,
 } from "./chat";
+
+const log = createLogger("llm/summarize");
 
 const MAX_SUMMARY_SOURCE_LENGTH = 100_000;
 
@@ -17,7 +21,7 @@ export async function summarizeText(input: {
   let sourceText = input.sourceText;
 
   if (sourceText.length > MAX_SUMMARY_SOURCE_LENGTH) {
-    console.warn(
+    log.warn(
       `Summarize input truncated from ${sourceText.length} to ${MAX_SUMMARY_SOURCE_LENGTH} characters.`,
     );
     sourceText = sourceText.slice(0, MAX_SUMMARY_SOURCE_LENGTH);

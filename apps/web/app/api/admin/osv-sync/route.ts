@@ -7,8 +7,11 @@ import {
   securityCveEnrichments,
   securitySyncState,
 } from "@vibeguard/db";
+import { createLogger } from "@vibeguard/shared";
 
 import { requireAdminAuth } from "@/lib/admin-api-auth";
+
+const log = createLogger("api/osv-sync");
 
 export const dynamic = "force-dynamic";
 
@@ -109,26 +112,26 @@ export async function POST() {
   syncInProgress = true;
   const logs: string[] = [];
 
-  function log(message: string) {
-    console.log(`[security-sync] ${message}`);
+  function appendLog(message: string) {
+    log.info(message);
     logs.push(message);
   }
 
   try {
-    log("开始增量同步所有安全数据源…");
+    appendLog("开始增量同步所有安全数据源…");
     const db = getDb();
 
-    log("正在同步 OSV 漏洞数据库…");
+    appendLog("正在同步 OSV 漏洞数据库…");
     const { syncAllOsvEcosystems } =
       await import("@vibeguard/content/osv/sync");
     const osvResults = await syncAllOsvEcosystems({ db });
     for (const r of osvResults) {
-      log(
+      appendLog(
         `  OSV/${r.ecosystem}: 导入=${r.recordsImported} 新增=${r.recordsNew} 变更=${r.recordsChanged} 跳过=${r.recordsSkipped} 失败=${r.recordsFailed}`,
       );
     }
 
-    log("正在同步安全增强数据源 (NVD, CISA KEV, EPSS)…");
+    appendLog("正在同步安全增强数据源 (NVD, CISA KEV, EPSS)…");
 
     const kevBefore =
       Number(
@@ -181,12 +184,12 @@ export async function POST() {
 
     for (const r of enrichmentResults) {
       const diff = snapshotDiff[`${r.source}:${r.scope}`];
-      log(
+      appendLog(
         `  ${r.source}/${r.scope}: 导入=${r.recordsImported}${diff != null && diff > 0 ? ` 新增=${diff}` : ""} 失败=${r.recordsFailed}`,
       );
     }
 
-    log("所有安全数据源同步完成。");
+    appendLog("所有安全数据源同步完成。");
 
     return Response.json({
       ok: true,
@@ -210,7 +213,7 @@ export async function POST() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    log(`同步失败: ${message}`);
+    appendLog(`同步失败: ${message}`);
     return Response.json({ ok: false, error: message, logs }, { status: 500 });
   } finally {
     syncInProgress = false;

@@ -5,8 +5,12 @@ import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
+import { createLogger } from "@vibeguard/shared";
+
 import type { VibeGuardClient } from "./client";
 import { tools } from "./tools";
+
+const log = createLogger("mcp");
 
 async function readPackageVersion(): Promise<string> {
   try {
@@ -48,7 +52,7 @@ export function createMcpServer(client: VibeGuardClient) {
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
-          console.error("[MCP tool error]", tool.name, message);
+          log.error(`MCP tool error ${tool.name}: ${message}`);
 
           return {
             content: [{ type: "text", text: "内部错误，请稍后重试" }],
