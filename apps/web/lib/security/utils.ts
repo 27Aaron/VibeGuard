@@ -74,11 +74,12 @@ export function parseSecurityAdvisoryListParams(
 ): SecurityAdvisoryListParams {
   const ecosystemParam = searchParams.get("ecosystem")?.trim() ?? "";
   const riskTypeParam = searchParams.get("riskType")?.trim() ?? "";
+  const ecosystem = isSupportedEcosystem(ecosystemParam) ? ecosystemParam : null;
 
   return {
     q: clampStringLength(searchParams.get("q")?.trim() ?? "", 256),
-    ecosystem: isSupportedEcosystem(ecosystemParam) ? ecosystemParam : null,
-    packageName: clampStringLength(searchParams.get("package")?.trim() ?? "", 256),
+    ecosystem,
+    packageName: ecosystem ? clampStringLength(searchParams.get("package")?.trim() ?? "", 256) : null,
     cve: normalizeSecurityCveId(searchParams.get("cve") ?? ""),
     riskType: isSupportedRiskType(riskTypeParam) ? riskTypeParam : null,
     kev: optionalBoolean(searchParams.get("kev")),

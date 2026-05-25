@@ -332,7 +332,7 @@ describe("markdown-renderer 组件 memo 化", () => {
 
   it("has dependency array for useMemo", () => {
     expect(src).toMatch(
-      /\[\s*palette,\s*lang,\s*sourceUrl,\s*copiedCodeBlock,\s*resolvedTheme,\s*text\.copiedCode,\s*text\.copyCode,\s*\]/,
+      /\[\s*palette,\s*lang,\s*sourceUrl,\s*copiedCodeBlock,\s*resolvedTheme,\s*text\.copiedCode,\s*text\.copyCode,\s*openLightbox,\s*\]/,
     );
   });
 });

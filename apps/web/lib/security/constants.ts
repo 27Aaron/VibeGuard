@@ -17,7 +17,7 @@ export const SECURITY_API_STALE_AFTER_MS = 3 * 60 * 60 * 1000;
 export type SecurityAdvisoryListParams = {
   q: string;
   ecosystem: SecurityPackageEcosystem | null;
-  packageName: string;
+  packageName: string | null;
   cve: string | null;
   riskType: SecurityRiskType | null;
   kev: boolean | null;

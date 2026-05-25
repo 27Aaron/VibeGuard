@@ -269,6 +269,7 @@ export function MarkdownRenderer({
               resolvedTheme,
               text.copiedCode,
               text.copyCode,
+              openLightbox,
             ],
           )}
         >

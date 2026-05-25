@@ -18,7 +18,6 @@ const CANCELLED_JOB_MESSAGE = "任务已取消。";
 const RETRYABLE_JOB_STATUSES: ReadonlySet<JobStatus> = new Set([
   JobStatus.FAILED,
   JobStatus.SUCCEEDED,
-  JobStatus.FILTERED,
 ]);
 
 type JobsRedirectContext = {
@@ -70,8 +69,8 @@ function getJobsRedirectContext(formData: FormData): JobsRedirectContext {
 async function queueJobForManualRun(input: {
   db: ReturnType<typeof getDb>;
   job: typeof processingJobs.$inferSelect;
-}) {
-  if (!RETRYABLE_JOB_STATUSES.has(input.job.status)) return;
+}): Promise<boolean> {
+  if (!RETRYABLE_JOB_STATUSES.has(input.job.status)) return false;
 
   const clearGeneratedContent = input.job.status === JobStatus.SUCCEEDED;
 
@@ -111,6 +110,8 @@ async function queueJobForManualRun(input: {
       END`,
     })
     .where(eq(articles.id, input.job.articleId));
+
+  return true;
 }
 
 function buildJobPauseRequestedUpdate(now = new Date()) {
@@ -453,22 +454,21 @@ export async function retrySelectedJobsAction(formData: FormData) {
   try {
     const db = getDb();
     const matchedJobs = await loadSelectedJobs(db, ids);
+    let changedCount = 0;
 
-    // 顺序处理以避免批量重试中的部分失败问题。
-    // 每个任务的更新是独立的，但顺序处理可以确保错误处理的可预测性，
-    // 并避免事务冲突问题。
     for (const job of matchedJobs) {
-      await queueJobForManualRun({ db, job });
+      const changed = await queueJobForManualRun({ db, job });
+      if (changed) changedCount++;
     }
 
     revalidateLocalizedPaths("/admin", "/admin/articles", "/admin/jobs");
 
     redirectTarget = buildJobsRedirect(
-      matchedJobs.length > 0 ? "success" : "error",
-      matchedJobs.length > 0
+      changedCount > 0 ? "success" : "error",
+      changedCount > 0
         ? buildSelectedJobsQueuedMessage({
             lang,
-            queuedCount: matchedJobs.length,
+            queuedCount: changedCount,
             backgroundStartLimit: MANUAL_SELECTED_JOB_BATCH_SIZE,
           })
         : lang === "zh"
