@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 
 import {
   CodeBlockRenderer,
-  isMarkdownCodeChild,
   PreBlockRenderer,
 } from "./markdown-code-block";
 import {
