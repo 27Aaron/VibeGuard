@@ -1,6 +1,7 @@
 import { lookup } from "node:dns/promises";
 
-export const DEFAULT_USER_AGENT = "vibeguard-bot/0.1 (+https://vibeguard.dev)";
+export const DEFAULT_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 
 const MAX_SAFE_REDIRECTS = 5;
 
@@ -39,7 +40,10 @@ export async function assertHttpUrl(url: string) {
   }
 }
 
-export async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+export async function safeFetch(
+  url: string,
+  init?: RequestInit,
+): Promise<Response> {
   let currentUrl = url;
   let redirects = 0;
 
@@ -50,9 +54,13 @@ export async function safeFetch(url: string, init?: RequestInit): Promise<Respon
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
-      try { await response.body?.cancel(); } catch {}
+      try {
+        await response.body?.cancel();
+      } catch {}
       if (!location) {
-        throw new Error(`Redirect response missing Location header (${response.status})`);
+        throw new Error(
+          `Redirect response missing Location header (${response.status})`,
+        );
       }
       if (++redirects > MAX_SAFE_REDIRECTS) {
         throw new Error(`Too many redirects (exceeded ${MAX_SAFE_REDIRECTS})`);
