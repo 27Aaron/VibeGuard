@@ -15,7 +15,7 @@ const COPY_BUTTON = fs.readFileSync(
   "utf8",
 );
 const MARKDOWN_RENDERER = fs.readFileSync(
-  "apps/web/components/content/markdown-renderer.tsx",
+  "apps/web/components/content/markdown-code-block.tsx",
   "utf8",
 );
 

@@ -4,17 +4,17 @@ import { describe, expect, it } from "vitest";
 
 describe("markdown code block controls", () => {
   it("renders a copy action instead of the old code label", () => {
-    const renderer = fs.readFileSync(
-      "apps/web/components/content/markdown-renderer.tsx",
+    const codeBlock = fs.readFileSync(
+      "apps/web/components/content/markdown-code-block.tsx",
       "utf8",
     );
 
-    expect(renderer).toContain("navigator.clipboard.writeText");
-    expect(renderer).toContain("Copy");
-    expect(renderer).toContain("Check");
-    expect(renderer).toContain("text.copyCode");
-    expect(renderer).toContain("text.copiedCode");
-    expect(renderer).not.toContain("<span>{text.codeLabel}</span>");
+    expect(codeBlock).toContain("navigator.clipboard.writeText");
+    expect(codeBlock).toContain("Copy");
+    expect(codeBlock).toContain("Check");
+    expect(codeBlock).toContain("copyCodeLabel");
+    expect(codeBlock).toContain("copiedCodeLabel");
+    expect(codeBlock).not.toContain("<span>{text.codeLabel}</span>");
   });
 
   it("defines localized copy labels", () => {

@@ -3,23 +3,27 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("markdown article overflow guards", () => {
-  const renderer = fs.readFileSync(
-    "apps/web/components/content/markdown-renderer.tsx",
+  const shared = fs.readFileSync(
+    "apps/web/components/content/markdown-shared.ts",
+    "utf8",
+  );
+  const codeBlock = fs.readFileSync(
+    "apps/web/components/content/markdown-code-block.tsx",
     "utf8",
   );
 
   it("treats no-language fenced code as a block instead of inline code", () => {
-    expect(renderer).toContain("function isMarkdownCodeBlock");
-    expect(renderer).toContain("node?.position?.start?.line");
-    expect(renderer).toContain(
+    expect(shared).toContain("function isMarkdownCodeBlock");
+    expect(shared).toContain("node?.position?.start?.line");
+    expect(codeBlock).toContain(
       "const inline = !isMarkdownCodeBlock(codeClassName, node);",
     );
-    expect(renderer).toContain('codeBlockLanguage(codeClassName) || "text"');
+    expect(codeBlock).toContain('codeBlockLanguage(codeClassName) || "text"');
   });
 
   it("prevents long inline code and fallback pre content from widening articles", () => {
-    expect(renderer).toContain("wrap-anywhere");
-    expect(renderer).toContain("whitespace-pre-wrap");
-    expect(renderer).toContain("max-w-full");
+    expect(codeBlock).toContain("wrap-anywhere");
+    expect(codeBlock).toContain("whitespace-pre-wrap");
+    expect(codeBlock).toContain("max-w-full");
   });
 });

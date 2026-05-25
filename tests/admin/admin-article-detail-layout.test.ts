@@ -19,7 +19,7 @@ describe("admin article detail layout", () => {
 
   it("gives admin markdown the same light and dark surface language", () => {
     const file = fs.readFileSync(
-      "apps/web/components/content/markdown-renderer.tsx",
+      "apps/web/components/content/markdown-shared.ts",
       "utf8",
     );
 
