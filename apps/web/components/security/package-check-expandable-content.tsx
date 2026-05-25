@@ -2,8 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { AppLang } from "@/lib/i18n";
+import { buildSummaryPreviewText } from "@/lib/summary-preview";
 
 const MarkdownRenderer = dynamic(
   () =>
@@ -12,9 +15,6 @@ const MarkdownRenderer = dynamic(
     ),
   { ssr: false },
 );
-import type { AppLang } from "@/lib/i18n";
-import { buildSummaryPreviewText } from "@/lib/summary-preview";
-import { ChevronDown, ChevronRight } from "lucide-react";
 
 type ExpandableMarkdownBlockProps = {
   label: string;

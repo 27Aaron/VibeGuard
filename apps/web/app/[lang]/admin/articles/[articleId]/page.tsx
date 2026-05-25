@@ -1,5 +1,4 @@
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -16,19 +15,12 @@ import {
 
 import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import {
+  MarkdownRenderer,
   MarkdownSummary,
 } from "@/components/content/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { SearchToast } from "@/components/ui/search-toast";
-
-const MarkdownRenderer = dynamic(
-  () =>
-    import("@/components/content/markdown-renderer").then(
-      (m) => m.MarkdownRenderer,
-    ),
-  { ssr: false },
-);
 import {
   Card,
   CardContent,

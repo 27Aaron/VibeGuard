@@ -1,22 +1,14 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink, FileText, Link2, Tags } from "lucide-react";
 
 import {
+  MarkdownRenderer,
   MarkdownSummary,
 } from "@/components/content/markdown-renderer";
 import { PublicHeader } from "@/components/public-header";
-
-const MarkdownRenderer = dynamic(
-  () =>
-    import("@/components/content/markdown-renderer").then(
-      (m) => m.MarkdownRenderer,
-    ),
-  { ssr: false },
-);
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getArticleById as _getArticleById } from "@/lib/api-articles";
