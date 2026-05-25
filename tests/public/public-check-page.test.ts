@@ -29,6 +29,14 @@ describe("public check page scaffolding", () => {
     expect(fs.existsSync(componentPath)).toBe(true);
 
     const component = fs.readFileSync(componentPath, "utf8");
+    const findingCard = fs.readFileSync(
+      "apps/web/components/security/package-check-finding-card.tsx",
+      "utf8",
+    );
+    const pagination = fs.readFileSync(
+      "apps/web/components/security/package-check-pagination.tsx",
+      "utf8",
+    );
     const utils = fs.readFileSync(
       "apps/web/components/security/package-check-utils.ts",
       "utf8",
@@ -82,11 +90,11 @@ describe("public check page scaffolding", () => {
     expect(component).toContain("buildSecurityResultSummary");
     expect(component).not.toContain("formatSecurityMatchReason");
     expect(utils).toContain("getSecurityFindingTone");
-    expect(component).toContain("toneBadgeVariant");
-    expect(component).toContain("toneLabel");
-    expect(component).toContain("getSecurityFindingLatestUpdatedAt");
-    expect(component).toContain("findingMetaParts");
-    expect(component).toContain("findingMetricBadges");
+    expect(findingCard).toContain("toneBadgeVariant");
+    expect(findingCard).toContain("toneLabel");
+    expect(findingCard).toContain("getSecurityFindingLatestUpdatedAt");
+    expect(findingCard).toContain("findingMetaParts");
+    expect(findingCard).toContain("findingMetricBadges");
     expect(component).not.toContain("maliciousPackageOrigins");
     expect(component).not.toContain("maliciousPackageInfo");
     expect(component).not.toContain("maliciousPackageLabel");
@@ -101,14 +109,14 @@ describe("public check page scaffolding", () => {
     expect(component).not.toContain("SHA256");
     expect(component).not.toContain("border-red-500/15 bg-red-50/45");
     expect(utils).toContain("OSV 原始记录");
-    expect(component).toContain("withdrawnLabel");
-    expect(component).toContain("advisoryRelationItems");
-    expect(component).toContain("关联记录");
+    expect(findingCard).toContain("withdrawnLabel");
+    expect(findingCard).toContain("advisoryRelationItems");
+    expect(findingCard).toContain("关联记录");
     expect(utils).toContain("已撤回");
     expect(utils).toContain("不再适用");
-    expect(component).toContain("cvssLevelFromScore");
-    expect(component).toContain("cvssLevelBadgeClassName");
-    expect(component).toContain("cvssLevelLabel");
+    expect(findingCard).toContain("cvssLevelFromScore");
+    expect(findingCard).toContain("cvssLevelBadgeClassName");
+    expect(findingCard).toContain("cvssLevelLabel");
     expect(component).not.toContain("cveBadgeClassName");
     expect(component).toContain("fixedVersionBadgeClassName");
     expect(utils).toContain('variant: "secondary" as const');
@@ -119,37 +127,37 @@ describe("public check page scaffolding", () => {
     expect(component).not.toContain(
       "riskLevelLabel(resultSummary.highestRisk.level",
     );
-    expect(component).toContain("参考链接");
+    expect(findingCard).toContain("参考链接");
     expect(component).not.toContain("publicCheckSummaryLabel");
-    expect(component).toContain("publicCheckDetailsLabel");
-    expect(component).toContain("publicCheckDetailsToggle");
-    expect(component).toContain("publicCheckDetailsCollapse");
-    expect(component).toContain("ChevronRight");
+    expect(findingCard).toContain("publicCheckDetailsLabel");
+    expect(findingCard).toContain("publicCheckDetailsToggle");
+    expect(findingCard).toContain("publicCheckDetailsCollapse");
+    expect(pagination).toContain("ChevronRight");
     expect(component).toContain("ChevronDown");
     expect(component).not.toContain("publicCheckAffectedVersionsLabel");
-    expect(component).toContain("publicCheckAffectedRangesLabel");
+    expect(findingCard).toContain("publicCheckAffectedRangesLabel");
     expect(component).toContain("publicCheckNoFindings");
-    expect(component).toContain("finding.advisory.summary");
-    expect(component).toContain("finding.advisory.details");
-    expect(component).toContain("MarkdownSummary");
+    expect(findingCard).toContain("finding.advisory.summary");
+    expect(findingCard).toContain("finding.advisory.details");
+    expect(findingCard).toContain("MarkdownSummary");
     expect(expandable).toContain("MarkdownRenderer");
     expect(expandable).toContain("buildSummaryPreviewText");
     expect(expandable).toContain("line-clamp-2");
     expect(component).not.toContain("expanded || (measured && !canExpand)");
-    expect(component).toContain("finding.matchSummary");
+    expect(findingCard).toContain("finding.matchSummary");
     expect(component).not.toContain("finding.matchReason");
     expect(component).not.toContain("finding.confidence");
-    expect(component).toContain("finding.affectedPackage.affectedVersions");
-    expect(component).toContain("formatAffectedRanges");
-    expect(component).toContain("finding.affectedPackage.fixedVersions");
+    expect(findingCard).toContain("finding.affectedPackage.affectedVersions");
+    expect(findingCard).toContain("formatAffectedRanges");
+    expect(findingCard).toContain("finding.affectedPackage.fixedVersions");
     expect(utils).toContain("finding.advisory.references");
     expect(component).not.toContain("<details");
     expect(component).not.toContain("<summary");
     expect(component).not.toContain("bestCvssSeverity");
     expect(component).not.toContain("cvss-severity");
-    expect(component).toContain("bestCvssScore");
+    expect(findingCard).toContain("bestCvssScore");
     expect(utils).toContain("epssPercentile");
-    expect(component).toContain("修复版本");
+    expect(findingCard).toContain("修复版本");
     expect(component).toContain("className={fixedVersionBadgeClassName()}");
     expect(component).not.toContain(
       "resultSummary.recommendedFixedVersions.slice(0, 6)",
