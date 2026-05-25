@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { hasSuccessfulSyncMarker } from "../../apps/worker/src/index";
+import {
+  hasSuccessfulSyncMarker,
+  resolveSecuritySyncPlan,
+} from "../../apps/worker/src/index";
 import {
   formatEnrichmentSyncSummaryLine,
   formatSyncSummaryLine,
@@ -70,5 +73,34 @@ describe("hasSuccessfulSyncMarker", () => {
       true,
     );
     expect(findFirst).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("resolveSecuritySyncPlan", () => {
+  it("runs first-start bootstrap automatically when full markers are missing by default", () => {
+    expect(
+      resolveSecuritySyncPlan({
+        hasSuccessfulOsvSync: false,
+        hasSuccessfulNvdSync: false,
+      }),
+    ).toEqual({
+      osvMode: "bootstrap",
+      enrichmentMode: "bootstrap",
+      skippedBootstrap: false,
+    });
+  });
+
+  it("can disable first-start bootstrap for constrained local environments", () => {
+    expect(
+      resolveSecuritySyncPlan({
+        hasSuccessfulOsvSync: false,
+        hasSuccessfulNvdSync: false,
+        bootstrapOnStart: false,
+      }),
+    ).toEqual({
+      osvMode: "incremental",
+      enrichmentMode: "incremental",
+      skippedBootstrap: true,
+    });
   });
 });

@@ -117,6 +117,61 @@ function resolveOsvSyncInterval(env = process.env) {
   return parsed;
 }
 
+function resolveBooleanEnv(
+  value: string | undefined,
+  fallback = false,
+) {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+}
+
+export function resolveSecurityBootstrapOnStart(env = process.env) {
+  return resolveBooleanEnv(
+    env.VIBEGUARD_SECURITY_SYNC_BOOTSTRAP_ON_START,
+    true,
+  );
+}
+
+export function resolveSecuritySyncPlan({
+  hasSuccessfulOsvSync,
+  hasSuccessfulNvdSync,
+  bootstrapOnStart = resolveSecurityBootstrapOnStart(),
+}: {
+  hasSuccessfulOsvSync: boolean;
+  hasSuccessfulNvdSync: boolean;
+  bootstrapOnStart?: boolean;
+}) {
+  const needsOsvBootstrap = !hasSuccessfulOsvSync;
+  const needsNvdBootstrap = !hasSuccessfulNvdSync;
+
+  if (bootstrapOnStart) {
+    return {
+      osvMode: needsOsvBootstrap ? "bootstrap" : "incremental",
+      enrichmentMode: needsNvdBootstrap ? "bootstrap" : "incremental",
+      skippedBootstrap: false,
+    } as const;
+  }
+
+  return {
+    osvMode: "incremental",
+    enrichmentMode: "incremental",
+    skippedBootstrap: needsOsvBootstrap || needsNvdBootstrap,
+  } as const;
+}
+
 export async function hasSuccessfulSyncMarker(
   db: ContentDb,
   source: string,
@@ -203,9 +258,23 @@ export async function runOsvSyncCycle(logger: WorkerLogger = console) {
       "nvd",
       "full",
     ));
+    const syncPlan = resolveSecuritySyncPlan({
+      hasSuccessfulOsvSync: !shouldBootstrapOsv,
+      hasSuccessfulNvdSync: !shouldBootstrapNvd,
+    });
+
+    if (syncPlan.skippedBootstrap) {
+      const message =
+        "[security-sync] 检测到 full marker 缺失，但 VIBEGUARD_SECURITY_SYNC_BOOTSTRAP_ON_START=false；本轮仅执行增量同步。";
+      if (typeof logger.warn === "function") {
+        logger.warn(message);
+      } else {
+        logger.log(message);
+      }
+    }
 
     logger.log(
-      `[security-sync] 开始安全数据同步（OSV=${shouldBootstrapOsv ? "全量引导" : "增量"}，NVD=${shouldBootstrapNvd ? "全量引导" : "增量"}）`,
+      `[security-sync] 开始安全数据同步（OSV=${syncPlan.osvMode === "bootstrap" ? "全量引导" : "增量"}，NVD=${syncPlan.enrichmentMode === "bootstrap" ? "全量引导" : "增量"}）`,
     );
 
     const { bootstrapAllOsvEcosystems, syncAllOsvEcosystems } =
@@ -214,24 +283,24 @@ export async function runOsvSyncCycle(logger: WorkerLogger = console) {
       await import("@vibeguard/content/security/enrichment");
 
     logger.log(
-      `[security-sync] 正在${shouldBootstrapOsv ? "全量引导" : "增量同步"} OSV 漏洞数据库…`,
+      `[security-sync] 正在${syncPlan.osvMode === "bootstrap" ? "全量引导" : "增量同步"} OSV 漏洞数据库…`,
     );
-    const results = shouldBootstrapOsv
-      ? await bootstrapAllOsvEcosystems({ db, concurrency: 2 })
+    const results = syncPlan.osvMode === "bootstrap"
+      ? await bootstrapAllOsvEcosystems({ db, concurrency: 1 })
       : await syncAllOsvEcosystems({ db });
     for (const result of results) {
       logger.log(
         `[security-sync]   OSV/${result.ecosystem}: 导入=${result.recordsImported} 新增=${result.recordsNew} 变更=${result.recordsChanged} 跳过=${result.recordsSkipped} 失败=${result.recordsFailed}`,
       );
     }
-    if (shouldBootstrapOsv) {
+    if (syncPlan.osvMode === "bootstrap") {
       await markOsvFullSyncMarker(db, results);
       logger.log("[security-sync] OSV 全量引导标记已写入。");
     }
 
-    const enrichmentMode = shouldBootstrapNvd ? "bootstrap" : "incremental";
+    const enrichmentMode = syncPlan.enrichmentMode;
     logger.log(
-      `[security-sync] 正在${shouldBootstrapNvd ? "全量引导" : "增量同步"}安全增强数据源（NVD, CISA KEV, EPSS）…`,
+      `[security-sync] 正在${enrichmentMode === "bootstrap" ? "全量引导" : "增量同步"}安全增强数据源（NVD, CISA KEV, EPSS）…`,
     );
     const enrichmentResults = await syncAllSecurityEnrichmentSources(db, {
       mode: enrichmentMode,

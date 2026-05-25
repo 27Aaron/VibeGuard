@@ -1,4 +1,11 @@
+import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
+import { Transform, Writable, type TransformCallback } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { createGunzip } from "node:zlib";
+import parserStream from "stream-json";
+import pick from "stream-json/filters/pick.js";
+import streamArray from "stream-json/streamers/stream-array.js";
 
 import { SecuritySyncStatus } from "@vibeguard/shared";
 
@@ -7,7 +14,7 @@ import { upsertSecurityCveEnrichments } from "./enrichment-db";
 import {
   parseEpssCsv,
   parseKevCatalog,
-  parseNvdModifiedFeed,
+  parseNvdVulnerabilityEntry,
   buildNvdModifiedFeedUrl,
   buildNvdYearFeedUrl,
 } from "./enrichment-parsers";
@@ -35,6 +42,119 @@ import {
   MAX_NVD_FEED_JSON_BYTES,
   NVD_FULL_FEED_START_YEAR,
 } from "./enrichment-types";
+
+const DEFAULT_NVD_STREAM_BATCH_SIZE = 500;
+
+type NvdStreamArrayChunk = {
+  key: number;
+  value: unknown;
+};
+
+type StreamNvdGzipFeedPatchesInput = {
+  filePath: string;
+  label: string;
+  batchSize?: number;
+  maxBytes?: number;
+  onBatch: (patches: SecurityCveEnrichmentPatch[]) => Promise<void>;
+};
+
+function resolveNvdStreamBatchSize(value: number | undefined) {
+  if (!Number.isFinite(value) || !value || value < 1) {
+    return DEFAULT_NVD_STREAM_BATCH_SIZE;
+  }
+
+  return Math.floor(value);
+}
+
+function createDecompressedByteLimitTransform(label: string, maxBytes: number) {
+  let received = 0;
+
+  return new Transform({
+    transform(chunk: Buffer, _encoding: BufferEncoding, callback: TransformCallback) {
+      received += chunk.byteLength;
+      if (received > maxBytes) {
+        callback(
+          new Error(
+            `${label} is too large after decompression (${received} bytes, max ${maxBytes})`,
+          ),
+        );
+        return;
+      }
+
+      callback(null, chunk);
+    },
+  });
+}
+
+export async function streamNvdGzipFeedPatches({
+  filePath,
+  label,
+  batchSize,
+  maxBytes = MAX_NVD_FEED_JSON_BYTES,
+  onBatch,
+}: StreamNvdGzipFeedPatchesInput): Promise<
+  Pick<
+    SecurityEnrichmentSyncSummary,
+    "recordsSeen" | "recordsImported" | "recordsFailed"
+  >
+> {
+  const effectiveBatchSize = resolveNvdStreamBatchSize(batchSize);
+  let recordsSeen = 0;
+  let recordsImported = 0;
+  let pendingPatches: SecurityCveEnrichmentPatch[] = [];
+
+  async function flushPendingPatches() {
+    if (pendingPatches.length === 0) {
+      return;
+    }
+
+    const batch = pendingPatches;
+    pendingPatches = [];
+    await onBatch(batch);
+    recordsImported += batch.length;
+  }
+
+  async function handleChunk(chunk: NvdStreamArrayChunk) {
+    recordsSeen += 1;
+    const patch = parseNvdVulnerabilityEntry(chunk.value);
+
+    if (!patch) {
+      return;
+    }
+
+    pendingPatches.push(patch);
+    if (pendingPatches.length >= effectiveBatchSize) {
+      await flushPendingPatches();
+    }
+  }
+
+  await pipeline(
+    createReadStream(filePath),
+    createGunzip(),
+    createDecompressedByteLimitTransform(label, maxBytes),
+    parserStream(),
+    pick.asStream({ filter: "vulnerabilities" }),
+    streamArray.asStream(),
+    new Writable({
+      objectMode: true,
+      write(chunk, _encoding, callback) {
+        handleChunk(chunk as NvdStreamArrayChunk).then(
+          () => callback(),
+          (error: unknown) =>
+            callback(error instanceof Error ? error : new Error(String(error))),
+        );
+      },
+    }),
+  );
+
+  await flushPendingPatches();
+
+  return {
+    recordsSeen,
+    recordsImported,
+    recordsFailed: 0,
+  };
+}
 
 async function syncPatches({
   db,
@@ -154,29 +274,20 @@ export async function syncNvdModifiedFeed({ db }: { db: ContentDb }) {
     fileName: "nvd-modified.json.gz",
     maxBytes: MAX_NVD_FEED_GZ_BYTES,
   });
-  const bytes = await fs.readFile(cached);
-  await deleteCacheFile(cached);
-  const payload = JSON.parse(
-    await gunzipSecurityFeedText(
-      bytes,
-      "NVD modified feed",
-      MAX_NVD_FEED_JSON_BYTES,
-    ),
-  );
-  const patches = parseNvdModifiedFeed(payload);
-  console.log(
-    `[enrichment] NVD modified: 解析到 ${patches.length} 条 CVE，开始写入…`,
-  );
-  return syncPatches({
-    db,
-    source: "nvd",
-    scope: "modified",
-    cursorJson: {
-      mode: "incremental",
-      url: buildNvdModifiedFeedUrl(),
-    },
-    patches,
-  });
+  try {
+    return await syncNvdCachedGzipFeed({
+      db,
+      filePath: cached,
+      label: "NVD modified feed",
+      scope: "modified",
+      cursorJson: {
+        mode: "incremental",
+        url: buildNvdModifiedFeedUrl(),
+      },
+    });
+  } finally {
+    await deleteCacheFile(cached);
+  }
 }
 
 export async function syncNvdYearFeed({ db, year }: SyncNvdYearFeedInput) {
@@ -185,30 +296,86 @@ export async function syncNvdYearFeed({ db, year }: SyncNvdYearFeedInput) {
     fileName: `nvd-${year}.json.gz`,
     maxBytes: MAX_NVD_FEED_GZ_BYTES,
   });
-  const bytes = await fs.readFile(cached);
-  await deleteCacheFile(cached);
-  const payload = JSON.parse(
-    await gunzipSecurityFeedText(
-      bytes,
-      `NVD ${year} feed`,
-      MAX_NVD_FEED_JSON_BYTES,
-    ),
-  );
-  const patches = parseNvdModifiedFeed(payload);
-  console.log(
-    `[enrichment] NVD ${year}: 解析到 ${patches.length} 条 CVE，开始写入…`,
-  );
-  return syncPatches({
-    db,
+  try {
+    return await syncNvdCachedGzipFeed({
+      db,
+      filePath: cached,
+      label: `NVD ${year} feed`,
+      scope: `year-${year}`,
+      cursorJson: {
+        mode: "bootstrap",
+        year,
+        url: buildNvdYearFeedUrl(year),
+      },
+    });
+  } finally {
+    await deleteCacheFile(cached);
+  }
+}
+
+async function syncNvdCachedGzipFeed({
+  db,
+  filePath,
+  label,
+  scope,
+  cursorJson,
+}: {
+  db: ContentDb;
+  filePath: string;
+  label: string;
+  scope: string;
+  cursorJson: Record<string, unknown>;
+}): Promise<SecurityEnrichmentSyncSummary> {
+  const now = new Date();
+
+  await upsertSecuritySyncState(db, scope, {
     source: "nvd",
-    scope: `year-${year}`,
-    cursorJson: {
-      mode: "bootstrap",
-      year,
-      url: buildNvdYearFeedUrl(year),
-    },
-    patches,
+    status: SecuritySyncStatus.RUNNING,
+    now,
   });
+
+  try {
+    console.log(`[enrichment] ${label}: 开始流式解析并按批写入…`);
+    const result = await streamNvdGzipFeedPatches({
+      filePath,
+      label,
+      onBatch: async (patches) => {
+        await upsertSecurityCveEnrichments(db, patches);
+      },
+    });
+    console.log(
+      `[enrichment] ${label}: 解析到 ${result.recordsSeen} 条 CVE，导入=${result.recordsImported}。`,
+    );
+    await upsertSecuritySyncState(db, scope, {
+      source: "nvd",
+      status: SecuritySyncStatus.SUCCESS,
+      now,
+      cursorJson,
+      recordsSeen: result.recordsSeen,
+      recordsImported: result.recordsImported,
+      recordsFailed: result.recordsFailed,
+    });
+
+    return {
+      source: "nvd",
+      scope,
+      recordsSeen: result.recordsSeen,
+      recordsImported: result.recordsImported,
+      recordsFailed: result.recordsFailed,
+    };
+  } catch (error) {
+    await upsertSecuritySyncState(db, scope, {
+      source: "nvd",
+      status: SecuritySyncStatus.FAILED,
+      now,
+      cursorJson,
+      lastError: error instanceof Error ? error.message : String(error),
+      recordsSeen: 0,
+      recordsImported: 0,
+      recordsFailed: 1,
+    });
+    throw error;
+  }
 }
 
 function resolveNvdFullYears(years: number[] | undefined, now: Date) {
@@ -366,13 +533,18 @@ export async function syncAllSecurityEnrichmentSources(
   const syncModified = options.syncNvdModifiedFeed ?? syncNvdModifiedFeed;
   const syncFull = options.syncNvdFullHistory ?? syncNvdFullHistory;
 
-  const nvdTask =
-    mode === "bootstrap"
-      ? syncFull({
-          db,
-          ...(options.nvdYears ? { years: options.nvdYears } : {}),
-        })
-      : syncModified({ db });
+  if (mode === "bootstrap") {
+    const kevResult = await syncKev({ db });
+    const epssResult = await syncEpss({ db });
+    const nvdResult = await syncFull({
+      db,
+      ...(options.nvdYears ? { years: options.nvdYears } : {}),
+    });
+
+    return [kevResult, epssResult, nvdResult];
+  }
+
+  const nvdTask = syncModified({ db });
 
   const [kevResult, epssResult, nvdResult] = await Promise.all([
     syncKev({ db }),

@@ -217,6 +217,32 @@ function extractCweIds(weaknesses: unknown) {
   );
 }
 
+export function parseNvdVulnerabilityEntry(
+  entry: unknown,
+): SecurityCveEnrichmentPatch | null {
+  if (!isRecord(entry) || !isRecord(entry.cve) || !isCveId(entry.cve.id)) {
+    return null;
+  }
+
+  const cve = entry.cve;
+  const cveId = typeof cve.id === "string" ? cve.id : "";
+  const cvssMetrics = extractCvssMetrics(cve.metrics);
+  const bestCvss = selectBestCvssMetric(cvssMetrics);
+  const description = firstEnglishDescription(cve.descriptions);
+
+  return {
+    cveId: normalizeCveId(cveId),
+    title: description ? description.split(".")[0] : null,
+    description,
+    cvssMetrics,
+    bestCvssScore: bestCvss?.baseScore ?? null,
+    bestCvssSeverity: bestCvss?.baseSeverity ?? null,
+    cweIds: extractCweIds(cve.weaknesses),
+    nvdPublishedAt: parseDate(cve.published),
+    nvdModifiedAt: parseDate(cve.lastModified),
+  };
+}
+
 export function parseNvdModifiedFeed(
   payload: unknown,
 ): SecurityCveEnrichmentPatch[] {
@@ -225,26 +251,7 @@ export function parseNvdModifiedFeed(
   }
 
   return payload.vulnerabilities.flatMap((entry) => {
-    if (!isRecord(entry) || !isRecord(entry.cve) || !isCveId(entry.cve.id)) {
-      return [];
-    }
-
-    const cve = entry.cve;
-    const cveId = typeof cve.id === "string" ? cve.id : "";
-    const cvssMetrics = extractCvssMetrics(cve.metrics);
-    const bestCvss = selectBestCvssMetric(cvssMetrics);
-    const description = firstEnglishDescription(cve.descriptions);
-
-    return {
-      cveId: normalizeCveId(cveId),
-      title: description ? description.split(".")[0] : null,
-      description,
-      cvssMetrics,
-      bestCvssScore: bestCvss?.baseScore ?? null,
-      bestCvssSeverity: bestCvss?.baseSeverity ?? null,
-      cweIds: extractCweIds(cve.weaknesses),
-      nvdPublishedAt: parseDate(cve.published),
-      nvdModifiedAt: parseDate(cve.lastModified),
-    };
+    const patch = parseNvdVulnerabilityEntry(entry);
+    return patch ? [patch] : [];
   });
 }

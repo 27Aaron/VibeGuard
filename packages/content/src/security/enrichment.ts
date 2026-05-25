@@ -26,6 +26,7 @@ export {
   buildNvdYearFeedUrl,
   parseKevCatalog,
   parseEpssCsv,
+  parseNvdVulnerabilityEntry,
   parseNvdModifiedFeed,
 } from "./enrichment-parsers";
 
@@ -45,6 +46,7 @@ export {
   syncFirstEpssScores,
   syncNvdModifiedFeed,
   syncNvdYearFeed,
+  streamNvdGzipFeedPatches,
   syncNvdFullHistory,
   syncAllSecurityEnrichmentSources,
   buildSecurityEnrichmentSyncStateUpdate,

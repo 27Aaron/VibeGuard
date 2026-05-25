@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import zlib from "node:zlib";
 
 import { describe, expect, it, vi } from "vitest";
@@ -10,6 +13,7 @@ import {
   parseEpssCsv,
   parseKevCatalog,
   parseNvdModifiedFeed,
+  streamNvdGzipFeedPatches,
   syncAllSecurityEnrichmentSources,
   syncNvdFullHistory,
   upsertSecurityCveEnrichments,
@@ -155,7 +159,133 @@ describe("security enrichment payload limits", () => {
   });
 });
 
+describe("streamNvdGzipFeedPatches", () => {
+  it("streams NVD gzip feeds into bounded patch batches", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibeguard-nvd-"));
+    const filePath = path.join(tmpDir, "nvd.json.gz");
+    await fs.writeFile(
+      filePath,
+      zlib.gzipSync(
+        Buffer.from(
+          JSON.stringify({
+            vulnerabilities: Array.from({ length: 3 }, (_, index) => ({
+              cve: {
+                id: `CVE-2026-900${index}`,
+                published: "2026-05-22T18:00:11.503",
+                lastModified: "2026-05-23T08:00:01.260",
+                descriptions: [
+                  {
+                    lang: "en",
+                    value: `Streaming vulnerability ${index}.`,
+                  },
+                ],
+                metrics: {},
+                weaknesses: [],
+              },
+            })),
+          }),
+          "utf8",
+        ),
+      ),
+    );
+    const batches: string[][] = [];
+
+    await expect(
+      streamNvdGzipFeedPatches({
+        filePath,
+        label: "NVD test feed",
+        batchSize: 2,
+        onBatch: async (patches) => {
+          batches.push(patches.map((patch) => patch.cveId));
+        },
+      }),
+    ).resolves.toEqual({
+      recordsSeen: 3,
+      recordsImported: 3,
+      recordsFailed: 0,
+    });
+
+    expect(batches).toEqual([
+      ["CVE-2026-9000", "CVE-2026-9001"],
+      ["CVE-2026-9002"],
+    ]);
+  });
+
+  it("rejects decompressed NVD streams that exceed the byte limit", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibeguard-nvd-"));
+    const filePath = path.join(tmpDir, "nvd.json.gz");
+    await fs.writeFile(
+      filePath,
+      zlib.gzipSync(Buffer.from('{"vulnerabilities":[]}', "utf8")),
+    );
+
+    await expect(
+      streamNvdGzipFeedPatches({
+        filePath,
+        label: "NVD tiny limit",
+        maxBytes: 5,
+        onBatch: vi.fn(),
+      }),
+    ).rejects.toThrow(/too large after decompression/);
+  });
+});
+
 describe("security enrichment sync modes", () => {
+  it("runs bootstrap enrichment sources sequentially to keep peak memory bounded", async () => {
+    const db = {} as never;
+    const events: string[] = [];
+    const createSync = (
+      label: string,
+      result: {
+        source: string;
+        scope: string;
+        recordsSeen: number;
+        recordsImported: number;
+        recordsFailed: number;
+      },
+    ) =>
+      vi.fn().mockImplementation(async () => {
+        events.push(`${label}:start`);
+        await Promise.resolve();
+        events.push(`${label}:end`);
+        return result;
+      });
+
+    await syncAllSecurityEnrichmentSources(db, {
+      mode: "bootstrap",
+      syncCisaKevCatalog: createSync("kev", {
+        source: "cisa-kev",
+        scope: "global",
+        recordsSeen: 1,
+        recordsImported: 1,
+        recordsFailed: 0,
+      }),
+      syncFirstEpssScores: createSync("epss", {
+        source: "first-epss",
+        scope: "current",
+        recordsSeen: 2,
+        recordsImported: 2,
+        recordsFailed: 0,
+      }),
+      syncNvdFullHistory: createSync("nvd", {
+        source: "nvd",
+        scope: "full",
+        recordsSeen: 3,
+        recordsImported: 3,
+        recordsFailed: 0,
+      }),
+    });
+
+    expect(events).toEqual([
+      "kev:start",
+      "kev:end",
+      "epss:start",
+      "epss:end",
+      "nvd:start",
+      "nvd:end",
+    ]);
+  });
+
   it("uses NVD full history during bootstrap and NVD modified during incremental refreshes", async () => {
     const db = {} as never;
     const syncCisaKevCatalog = vi.fn().mockResolvedValue({

@@ -26,6 +26,7 @@
     "linkedom": "^0.18.12",
     "rss-parser": "^3.13.0",
     "semver": "^7.8.1",
+    "stream-json": "^3.1.0",
     "yauzl-promise": "4.0.0"
   }
 }
