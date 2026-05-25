@@ -1,9 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 
-import { MarkdownRenderer } from "@/components/content/markdown-renderer";
 import { Button } from "@/components/ui/button";
+
+const MarkdownRenderer = dynamic(
+  () =>
+    import("@/components/content/markdown-renderer").then(
+      (m) => m.MarkdownRenderer,
+    ),
+  { ssr: false },
+);
 import type { AppLang } from "@/lib/i18n";
 import { buildSummaryPreviewText } from "@/lib/summary-preview";
 import { ChevronDown, ChevronRight } from "lucide-react";
