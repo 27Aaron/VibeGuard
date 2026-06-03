@@ -5,26 +5,26 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 
 # VibeGuard 项目安全检查
 
-对用户项目做一次只读安全扫描，产出安全报告和可交互的 HTML 报告。流程：扫描 → 分析分级 → 生成报告 → 打开。
+对用户项目做一次本地只读安全扫描，产出 Markdown 审计报告和只读 HTML 报告。流程：扫描 -> 分析分级 -> 生成 Markdown -> 生成并打开 HTML。修复不在网页里执行，只在用户看完报告并在对话里明确同意后由 agent 执行。
 
 ## 核心边界
 
 - 只在本地读取用户项目文件；不要上传源码、完整 lockfile、`.env`、私钥、证书、数据库、日志或任意项目文件。
 - 调用 VibeGuard API 时，只发送最小必要信息：`ecosystem`、`name`、`version`。
-- 不上传源码、lockfile、env 或密钥；报告里也不要泄露完整密钥，只能写文件、行号、类型和脱敏预览。
-- 完整项目安全扫描必须先在当前工作目录的 `docs/` 下生成 Markdown 审计报告，例如 `docs/security-report-YYYY-MM-DD.md`。用户阅读报告后明确允许修复，才可以执行升级、删除缓存跟踪、修改 `.gitignore`、清理历史或轮换凭证相关操作。
+- 报告里不要泄露完整密钥，只能写文件、行号、类型和脱敏预览。
+- 完整项目安全扫描必须先在当前工作目录的 `docs/` 下生成 Markdown 审计报告，例如 `docs/security-report-YYYY-MM-DD.md`。
 - API 地址：`https://vibeguard.ou.al`。本 skill 只使用 `POST https://vibeguard.ou.al/api/security/check/packages` 做依赖漏洞检查，不处理系统软件版本判断或泛安全情报查询。
 
 ## 铁律
 
-- **全程只读。** scan.py 只读文件、调 API，不修改任何项目内容。
-- **修复操作需确认。** 报告里的修复按钮由 server.py 执行，每次操作前浏览器会弹 confirm。即使用户在对话里说"帮我修"，也要先让用户阅读报告并明确允许。
+- **全程只读。** `scan.py` 只读文件、调 API，不修改任何项目内容。
+- **报告先完整生成，再打开。** 必须等 Markdown 报告和 analysis JSON 都写完后，再启动 `server.py`；不要同时打开静态 HTML 和本地服务，避免用户看到两次网页。
+- **网页只读。** HTML 只用于阅读报告，不提供任何会触发本地操作的按钮。
+- **修复操作需确认。** 用户看完报告后，在对话里回复 `同意` / `修复` / `OK` / `Yes` 等明确话术，agent 才能执行修复。
 - **不要把"依赖过旧"说成"存在漏洞"。** 只有命中漏洞数据时才说有漏洞。
 - **不要制造恐慌。** 没有证据时说"不确定"，不要说"肯定安全"或"肯定中招"。
 
-## 执行流程
-
-### Step 1 扫描（Python 脚本，全自动）
+## Step 1 扫描
 
 ```bash
 # macOS / Linux
@@ -35,54 +35,65 @@ python3 scripts/scan.py --api-concurrency 8 --outdated-concurrency 4 [project_pa
 python3 scripts/scan.py --skip-outdated [project_path] > /tmp/vibeguard_scan.json
 # 调试模式：输出完整包清单；默认只输出包数量和来源摘要，避免大项目 JSON 过大
 python3 scripts/scan.py --include-packages [project_path] > /tmp/vibeguard_scan.json
-# 严格只扫指定目录，不向上识别 git 根目录：
+# 严格只扫指定目录，不向上识别 git 根目录
 python3 scripts/scan.py --no-root-discovery [project_path] > /tmp/vibeguard_scan.json
 # Windows
 python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
 ```
 
-`scan.py` 自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）→ 生态识别与依赖提取（支持 npm/pnpm/yarn、pypi、go、crates-io 四大生态）→ 调用 VibeGuard API 查漏洞（100 个一批，默认 8 并发）→ 过旧依赖检查（默认按生态并发）。本地卫生检查、漏洞 API、过旧依赖检查会并行执行；输出里的 `step_seconds` 可用于判断慢点。扫描较慢时优先使用 `--skip-outdated`，或调低/调高 `--api-concurrency`、`--outdated-concurrency`。默认不输出完整 `packages` 清单，只输出 `package_count` 和 `package_sources`，需要排查解析问题时再加 `--include-packages`。
+`scan.py` 自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）-> 生态识别与依赖提取（npm/pnpm/yarn、pypi、go、crates-io）-> 调用 VibeGuard API 查漏洞（100 个一批，默认 8 并发）-> 过旧依赖检查（默认按生态并发）。本地卫生检查、漏洞 API、过旧依赖检查会并行执行；输出里的 `step_seconds` 可用于判断慢点。扫描较慢时优先使用 `--skip-outdated`，或调整 `--api-concurrency`、`--outdated-concurrency`。
 
-### Step 2 分析与分级
+## Step 2 分析与分级
 
-读 scan 输出的 JSON，做三灯分级判断：
+读 scan 输出的 JSON 后，构建 analysis JSON（schema 见 `scripts/build_report.py` 顶部注释）：
 
-1. **所有漏洞按严重度排序**（critical > high > medium > low），全部放入 `top_issues`，不要只放前 5 个。`top_issues` 中每项**必须透传** scan.py 输出中的 `advisory_id`、`aliases`、`cve_id`、`package`、`version`、`severity`、`summary` 字段——这些是漏洞总览表格的显示数据，漏了列就是空的。
-2. **三灯分级**：
-   - 🟢 **可自动修复**：有明确修复方案且风险可控（有 fix version 的 JS/Go/Rust 依赖漏洞、.gitignore 缺失规则、git rm --cached）。每项给 `fix_config`（upgrade / gitignore / git_rm_cached 三种类型）。`upgrade` 只填结构化字段：`type`、`ecosystem`、`package`、`version`，JS 生态可加 `manager`（npm / pnpm / yarn）；不要依赖自由文本 `command` 执行。Python/PyPI 逐项漏洞修复必须先确认虚拟环境和锁文件，默认放 🟡 手动处理。
-   - 🟡 **需人工判断**：含用户数据或需确认风险（硬编码密钥、可疑依赖、版本范围模糊）。给内容画像 + 处置路径 + 风险提示。所有黄灯项在服务模式下有「在编辑器打开」按钮。
-   - 🔴 **高危/需专业处理**：不可自动修复（密钥已入 git 历史、恶意包）。给具体处理步骤，不给操作按钮。
-3. **每一项（green / yellow / red）都必须设置 `severity` 字段**，值为 `critical`、`high`、`medium`、`low`、`info` 之一。这是进度条着色的数据来源，漏了整条进度条就是灰色。
-   - 漏洞类：直接用 scan.py 返回的 severity。
-   - 仓库卫生类（gitignore、敏感文件、硬编码密钥）：按风险判断赋值——密钥泄露用 `high`/`critical`，gitignore 规则缺失用 `medium`，过旧依赖用 `low`。
-4. **构建 risk_summary**：`{ "critical": N, "high": N, "medium": N, "low": N, "info": N }`，严格使用这五个 key，统计各严重等级数量。
-5. **必须构建 summary**：每份 analysis JSON 都要有 `summary.overview`、`summary.priority`。报告面向偏产品经理、项目负责人和非安全背景读者，表述要像产品/项目风险摘要：少用术语，讲清楚「是否影响发布」「是否需要马上安排」「需要研发/运维确认什么」。`priority` 对应网页里的「报告总结」行动项，必须是字符串数组，不要写成带换行编号的单个字符串。即使没有发现风险，也要写保留报告、定期复查、依赖升级验证这类建议。
+- **命中漏洞**：所有漏洞按严重度排序（critical > high > medium > low），全部放入 `top_issues`，不要只放前 5 个。必须透传 `advisory_id`、`aliases`、`cve_id`、`package`、`version`、`severity`、`summary`、`fixed_versions` 等字段，网页会完整展示 GHSA。
+- **仓库卫生扫描**：透传 `hygiene.gitignore_missing`、`hygiene.tracked_secrets`、`hygiene.sensitive_tracked`。密钥内容必须脱敏，只写位置、类型、可信度和预览。
+- **过期依赖**：透传 `outdated`。过期依赖是维护信号，不等同于漏洞；用低风险、排期处理的语言描述。
+- **风险项分级**：`red` 放需优先处理或专业处理的事项；`yellow` 放需业务/部署确认的事项；`green` 可保留给 agent 的内部修复计划，但网页不再单独展示低风险维护区块。
+- **每一项都必须设置 `severity`**：`critical`、`high`、`medium`、`low`、`info` 之一。
+- **必须构建 `risk_summary`**：`{ "critical": N, "high": N, "medium": N, "low": N, "info": N }`。
+- **必须构建 `summary`**：每份 analysis JSON 都要有 `summary.tldr`、`summary.detail`、`summary.priority`。报告面向偏产品经理、项目负责人和非安全背景读者，少用术语，讲清楚"是否影响发布"、"是否需要马上安排"、"需要研发/运维确认什么"。`priority` 必须是字符串数组。
+- 必须透传 scan.py 输出中的 `generated_at` 和 `scan_seconds`，它们用于计算全流程耗时。
 
-把分析结果写成 analysis JSON（schema 见 `scripts/build_report.py` 顶部注释）。**必须透传 scan.py 输出中的 `generated_at` 和 `scan_seconds` 字段**，它们是计算全流程耗时（扫描 + 分析 + 报告生成）的数据来源。
+## Step 3 Markdown 报告
 
-**🟢 项必须带 `fix_config`**——这是网页修复按钮的前提，漏了按钮就不出现。
+先把结论写到当前工作目录的 `docs/security-report-YYYY-MM-DD.md`。Markdown 必须使用普通人能看懂的产品风险语言，并按以下顺序组织：
 
-### Step 3 生成报告
+1. `# 安全扫描报告`
+2. `## 报告总结`
+   - `TL;DR`：一句话摘要。
+   - 详细说明：更完整地解释风险范围、是否影响发布、建议谁来处理。
+3. `## 命中漏洞`：列出已确认漏洞，按修复优先级排序；没有命中也要写清楚。
+4. `## 仓库卫生扫描`：说明硬编码密钥、敏感文件跟踪、`.gitignore` 规则缺失情况。
+5. `## 过期依赖`：说明过期依赖数量和维护建议，明确"过期不等于漏洞"。
+6. `## 需要人工确认的事项`：如密钥、访问控制、部署配置、恶意包等。
+7. `## 扫描错误`：列出失败的 API、包管理器或工具链检查。
+8. `## 下一步建议`：只给用户阅读后的决策建议，不要求用户在网页点击按钮。
 
-先把结论写到当前工作目录的 `docs/security-report-YYYY-MM-DD.md`，内容包括：扫描范围、隐私边界、最高风险、漏洞命中、硬编码密钥/敏感文件、过旧依赖、扫描错误、下一步建议。这个 Markdown 是可审计交付物。
+## Step 4 HTML 报告
 
-然后生成可交互 HTML。默认用一键修复模式（`server.py`）打开报告；必须等 Markdown 报告和 analysis JSON 都写完后，再启动 `server.py`，避免半成品或静态 HTML 被提前打开。真正执行修复仍需要用户在报告页二次确认。
-
-**交互模式（`server.py`）**：
+默认用只读服务模式打开报告；不要在同一次完整扫描里同时打开静态 HTML 和本地服务。
 
 ```bash
 # macOS / Linux
 python3 scripts/server.py /tmp/vibeguard_analysis.json
-# 如果已经有报告页打开，只想打印 URL：
+# 如果已经有报告页打开，只想打印 URL
 python3 scripts/server.py --no-open /tmp/vibeguard_analysis.json
 # Windows
 python scripts/server.py %TEMP%\vibeguard_analysis.json
-# 自动开浏览器，Ctrl+C 停
 ```
 
-`server.py` 起在 127.0.0.1 + 随机端口 + 随机 token。🟢 项给「执行修复」按钮（二次确认）；🟢 标题右侧给「一键修复」按钮，用于在用户确认风险后批量运行依赖更新命令；🟡 项给「在编辑器打开」按钮；🔴 项只给文字建议。逐项修复白名单由服务端按 `fix_config` 生成随机 action id，并按结构化字段重新生成命令；不会执行 analysis JSON 里的自由文本命令。
+`server.py` 起在 `127.0.0.1` 随机端口，只提供只读报告。它会避免同一份报告短时间内重复打开浏览器标签页。终端里告诉用户：
 
-仅当用户明确只想要一份可分享/留存的只读文件时，才用静态模式；不要在同一次完整扫描里同时打开静态 HTML 和交互服务：
+- `报告已生成: <url>`
+- `看完确认要修复后，在对话里回复：同意 / 修复 / OK / Yes。`
+- `确认后会先关闭本地报告服务，再按主要修复 -> 次要修复处理。`
+
+HTML 阅读流：项目概览 -> 报告总结 -> 命中漏洞 -> 仓库卫生扫描 -> 过期依赖 -> 优先处理的高风险项 -> 需要业务或部署确认的事项 -> 扫描错误。
+
+仅当用户明确只想要一份可分享/留存的只读文件时，才用静态模式：
+
 ```bash
 # macOS / Linux
 python3 scripts/build_report.py /tmp/vibeguard_analysis.json ~/Desktop/security-report.html
@@ -90,22 +101,28 @@ python3 scripts/build_report.py /tmp/vibeguard_analysis.json ~/Desktop/security-
 python scripts/build_report.py %TEMP%\vibeguard_analysis.json %USERPROFILE%\Desktop\security-report.html
 ```
 
-**排障：网页上没有修复按钮** = 要么开的是静态报告（改用 `server.py`），要么 🟢 项漏了 `fix_config`（补上重启服务）。
+## Step 5 用户确认后的修复
 
-报告阅读流：项目概览（项目名 + 生态 + 依赖数 + 漏洞数 + 风险分布条）→ 报告总结（面向产品经理/项目负责人）→ 漏洞总览（全部漏洞，按严重度排序，不要只截取前 N 项，GHSA 完整展示）→ 🟢🟡🔴 三级可折叠卡片（命令一键复制）→ 扫描错误。
+如果用户在看完报告后回复 `同意` / `修复` / `OK` / `Yes` / `可以修` 等明确授权：
+
+1. 先停止刚刚启动的 `server.py` 进程，释放本地端口。
+2. 按"主要修复 -> 次要修复"执行：
+   - 主要修复：已确认的严重/高危漏洞升级、有明确修复版本的依赖、用户明确同意处理的真实凭证风险。
+   - 次要修复：`.gitignore` 补规则、低风险维护项、过期依赖升级计划。
+3. 不要在没有额外确认时执行凭证轮换、git 历史清理、删除文件、批量跨大版本升级。
+4. 修复后运行项目已有测试、构建或最小验证命令，并把结果告诉用户。
 
 ## 依赖与运行前提
 
-- 全部脚本是 **Python 3 标准库**，零第三方依赖（不用 pip install）。
-- **macOS/Linux** 自带 python3，开箱即用。
-- **Windows** 默认没装 Python——需先装 Python 3，命令改为 `python` 或 `py -3`。
-- 依赖扫描支持 **4 类代码项目**：JavaScript/TypeScript（npm/pnpm/yarn lockfile）、Python（pypi）、Go、Rust（crates-io）。
-- 本 skill 是 **agent 驱动**：扫描出数据后由 agent 做分级分析，不是双击即用的独立 App。
+- 全部脚本是 Python 3 标准库，零第三方依赖（不用 pip install）。
+- macOS/Linux 自带 python3；Windows 需先装 Python 3，命令改为 `python` 或 `py -3`。
+- 依赖扫描支持 JavaScript/TypeScript（npm/pnpm/yarn lockfile）、Python（pypi）、Go、Rust（crates-io）。
+- 本 skill 是 agent 驱动：扫描出数据后由 agent 做分级分析，不是双击即用的独立 App。
 
 ## 修复建议规则
 
-- 密钥泄露：立刻撤销或轮换密钥，删除代码中的明文；如果进入 git 历史，用 BFG Repo Cleaner 清理。
-- 确认受影响的依赖：升级到修复版本，然后运行测试和构建。给升级建议时同时提醒兼容性风险。
+- 密钥泄露：先撤销或轮换密钥，再删除代码中的明文；如果进入 git 历史，需单独确认后再用 BFG Repo Cleaner 等工具清理。
+- 确认受影响的依赖：升级到修复版本，然后运行测试和构建。提醒兼容性风险。
 - 恶意包：立即移除，检查 CI 环境凭证并轮换。
 - 版本不明确：说明只命中包名，需要 lockfile 才能确认。
 - 依赖过旧：建议纳入升级计划，但不要在没有漏洞证据时当作安全事故处理。
