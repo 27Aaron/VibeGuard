@@ -637,6 +637,16 @@
                 d.project.total_vulnerabilities = d.project.total_vulnerabilities || d.vulnerability_count || 0;
                 // Summary: may be top-level or nested
                 d.summary = d.summary || {};
+                const toList = (value) => {
+                    if (!value) return [];
+                    if (Array.isArray(value)) {
+                        return value.map((x) => String(x).trim()).filter(Boolean);
+                    }
+                    return String(value)
+                        .split(/\n+/)
+                        .map((x) => x.trim())
+                        .filter(Boolean);
+                };
                 if (Array.isArray(d.recommendations)) {
                     const longTermPattern = /定期|持续|长期|自动化|Dependabot|pre-commit|CI|监控|关注|轮换|基线/;
                     const immediate = d.recommendations.filter((x) => !longTermPattern.test(String(x)));
@@ -654,6 +664,8 @@
                 if (d.priority_items && !d.summary.priority) {
                     d.summary.priority = d.priority_items;
                 }
+                d.summary.priority = toList(d.summary.priority);
+                d.summary.long_term = toList(d.summary.long_term);
                 if (!d.summary.long_term || !d.summary.long_term.length) {
                     d.summary.long_term = [
                         "定期运行安全扫描并复查新增漏洞。",
