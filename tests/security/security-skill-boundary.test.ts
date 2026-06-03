@@ -50,4 +50,31 @@ describe("security skill boundary", () => {
     expect(skillText).toContain("`ecosystem`、`name`、`version`");
     expect(skillText).toContain("不上传源码、lockfile、env 或密钥");
   });
+
+  it("requires an ecosystem preflight before full dependency scanning", () => {
+    expect(skillText).toContain("生态预检");
+    expect(skillText).toContain("JavaScript/TypeScript、Python、Go、Rust");
+    expect(skillText).toContain("`language_support.supported` 为 `true`");
+    expect(skillText).toContain("漏洞 API 检查");
+    expect(skillText).toContain("暂不支持依赖漏洞扫描");
+    expect(skillText).toContain("只做仓库卫生扫描");
+    expect(skillText).toContain("硬编码密钥");
+    expect(skillText).toContain("敏感文件跟踪");
+    expect(skillText).toContain("不要调用漏洞 API");
+  });
+
+  it("documents the preflight script and scoped OS package-manager detection", () => {
+    expect(skillText).toContain("scripts/preflight.py");
+    expect(skillText).toContain("python3 scripts/preflight.py");
+    expect(skillText).toContain("py -3 scripts/preflight.py");
+    expect(skillText).not.toContain("python scripts/preflight.py [project_path]");
+    expect(skillText).not.toContain("python3 scripts/preflight.py [project_path]");
+    expect(skillText).toContain("%TEMP%");
+    expect(skillText).toContain("依赖文件");
+    expect(skillText).toContain("操作系统");
+    expect(skillText).toContain("Linux 发行版");
+    expect(skillText).toContain("包管理器");
+    expect(skillText).toContain("系统更新工具");
+    expect(skillText).toContain("不要在预检阶段执行软件更新");
+  });
 });

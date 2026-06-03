@@ -18,11 +18,31 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 ## 铁律
 
 - **全程只读。** `scan.py` 只读文件、调 API，不修改任何项目内容。
+- **先做生态预检。** 完整依赖漏洞扫描只支持 JavaScript/TypeScript、Python、Go、Rust；没有命中支持文件时，先提示用户暂不支持依赖漏洞扫描，只做仓库卫生扫描。
 - **报告先完整生成，再打开。** 必须等 Markdown 报告和 analysis JSON 都写完后，再启动 `server.py`；不要同时打开静态 HTML 和本地服务，避免用户看到两次网页。
 - **网页只读。** HTML 只用于阅读报告，不提供任何会触发本地操作的按钮。
 - **修复操作需确认。** 用户看完报告后，在对话里回复 `同意` / `修复` / `OK` / `Yes` 等明确话术，agent 才能执行修复。
 - **不要把"依赖过旧"说成"存在漏洞"。** 只有命中漏洞数据时才说有漏洞。
 - **不要制造恐慌。** 没有证据时说"不确定"，不要说"肯定安全"或"肯定中招"。
+
+## Step 0 生态预检
+
+运行完整扫描前，先执行只读预检脚本：
+
+```bash
+# macOS / Linux
+python3 scripts/preflight.py
+# Windows
+py -3 scripts/preflight.py
+```
+
+`scripts/preflight.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。它会把 JSON 打印到终端，并把同一份结果保存到临时目录；Windows 默认优先使用 `%TEMP%`。结果里的 `output_file` 是实际保存路径。先读 preflight JSON，再决定扫描模式。
+
+如果 `language_support.supported` 为 `true`，继续执行完整流程：仓库卫生扫描 -> 依赖提取 -> 漏洞 API 检查 -> 过旧依赖检查。
+
+如果 `language_support.supported` 为 `false`，先告诉用户：`当前项目没有发现 VibeGuard 支持的依赖文件，暂不支持依赖漏洞扫描；本次只做仓库卫生扫描，检查硬编码密钥、敏感文件跟踪和 .gitignore 风险。` 然后仍可运行 `scan.py --skip-outdated` 生成只包含仓库卫生扫描、硬编码密钥和敏感文件跟踪结论的报告；不要调用漏洞 API，也不要暗示已经检查过依赖漏洞。
+
+预检脚本负责只读检测支持的依赖文件、操作系统、Linux 发行版、包管理器和系统更新工具；不要在预检阶段执行软件更新、系统更新或内核更新检查。
 
 ## Step 1 扫描
 
