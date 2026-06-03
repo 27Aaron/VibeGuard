@@ -37,17 +37,22 @@ describe("MCP security API tools", () => {
     expect(toolsSource).toContain("client.securitySyncStatus");
   });
 
-  it("VibeGuard skill documents the expanded API surface", () => {
+  it("VibeGuard skill keeps project scanning focused on package checks", () => {
+    expect(skillSource).toContain("本 skill 只使用");
     expect(skillSource).toContain(
+      "POST https://vibeguard.ou.al/api/security/check/packages",
+    );
+    expect(skillSource).toContain("不处理系统软件版本判断或泛安全情报查询");
+    expect(skillSource).not.toContain(
       "GET https://vibeguard.ou.al/api/security/advisories",
     );
-    expect(skillSource).toContain(
+    expect(skillSource).not.toContain(
       "GET https://vibeguard.ou.al/api/security/packages/{ecosystem}/{name}",
     );
-    expect(skillSource).toContain(
+    expect(skillSource).not.toContain(
       "GET https://vibeguard.ou.al/api/security/cves/{cveId}",
     );
-    expect(skillSource).toContain(
+    expect(skillSource).not.toContain(
       "GET https://vibeguard.ou.al/api/security/sync/status",
     );
   });
