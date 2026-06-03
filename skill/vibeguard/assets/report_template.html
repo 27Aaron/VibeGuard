@@ -6,77 +6,197 @@
         <title>安全扫描报告</title>
         <style>
             :root {
-                --bg: #f6f7f9;
-                --card: #ffffff;
-                --ink: #1d2129;
-                --sub: #86909c;
-                --line: #e5e6eb;
-                --green: #00b42a;
-                --yellow: #ff7d00;
-                --red: #f53f3f;
-                --green-bg: #e8ffea;
-                --yellow-bg: #fff7e8;
-                --red-bg: #ffece8;
-                --accent: #165dff;
-                --accent-bg: #e8f3ff;
-                --critical: #f53f3f;
-                --high: #ff7d00;
-                --medium: #ffb400;
-                --low: #00b42a;
-                --info: #86909c;
-                --radius: 14px;
+                color-scheme: light dark;
+                --bg: #f2f2f0;
+                --card: #fcfcfa;
+                --ink: #18181b;
+                --sub: #64748b;
+                --line: rgba(148, 163, 184, 0.28);
+                --line-strong: rgba(15, 23, 42, 0.08);
+                --panel: rgba(252, 252, 250, 0.92);
+                --panel-soft: rgba(255, 255, 255, 0.5);
+                --panel-muted: rgba(238, 242, 247, 0.7);
+                --green: #059669;
+                --yellow: #d97706;
+                --red: #dc2626;
+                --green-bg: #ecfdf5;
+                --yellow-bg: #fffbeb;
+                --red-bg: #fef2f2;
+                --accent: #047857;
+                --accent-ink: #064e3b;
+                --accent-bg: #e9f2ec;
+                --critical: #dc2626;
+                --high: #ea580c;
+                --medium: #d97706;
+                --low: #059669;
+                --info: #64748b;
+                --radius: 1.4rem;
+                --radius-sm: 0.85rem;
+                --radius-lg: 2rem;
                 --shadow:
-                    0 1px 3px rgba(0, 0, 0, 0.04),
-                    0 8px 24px rgba(0, 0, 0, 0.04);
+                    0 22px 62px -42px rgba(10, 10, 10, 0.42),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+                --shadow-card:
+                    0 20px 44px -30px rgba(10, 10, 10, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.72);
             }
             * {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
             }
+            html {
+                min-height: 100%;
+                background: var(--bg);
+            }
             body {
+                min-height: 100svh;
                 font-family:
                     -apple-system, "SF Pro SC", "PingFang SC", system-ui,
                     sans-serif;
-                background: var(--bg);
                 color: var(--ink);
                 line-height: 1.6;
-                padding: 32px 20px 80px;
+                background:
+                    linear-gradient(135deg, rgba(31, 77, 63, 0.1), transparent 34%),
+                    linear-gradient(180deg, #faf9f3 0%, #f1f1ed 48%, #e7ece9 100%);
+                padding: 24px 20px 72px;
+                position: relative;
                 -webkit-font-smoothing: antialiased;
+                text-rendering: optimizeLegibility;
+            }
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                opacity: 0.22;
+                background-image:
+                    linear-gradient(rgba(15, 23, 42, 0.08) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+                background-size: 72px 72px;
+            }
+            button,
+            input,
+            textarea,
+            select {
+                font: inherit;
             }
             .wrap {
-                max-width: 1040px;
+                width: min(100%, 1120px);
                 margin: 0 auto;
+                position: relative;
+                z-index: 1;
+            }
+            #app {
+                display: flex;
+                flex-direction: column;
+                gap: 22px;
             }
             header {
-                margin-bottom: 28px;
+                margin-bottom: 22px;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                border-radius: var(--radius-lg);
+                background: rgba(255, 255, 255, 0.48);
+                padding: 6px;
+                box-shadow: var(--shadow);
+            }
+            .hero-panel {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 14px;
+                border-radius: 1.55rem;
+                background: var(--panel);
+                padding: 28px 24px;
+                text-align: center;
+                box-shadow:
+                    inset 0 0 0 1px rgba(10, 10, 10, 0.04),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+            }
+            .hero-icon {
+                display: inline-flex;
+                width: 56px;
+                height: 56px;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(6, 78, 59, 0.12);
+                border-radius: 1.1rem;
+                background: var(--accent-bg);
+                color: var(--accent-ink);
+                font-size: 13px;
+                font-weight: 800;
+                box-shadow:
+                    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+                    0 2px 8px rgba(15, 23, 42, 0.08);
+            }
+            .hero-icon svg {
+                width: 24px;
+                height: 24px;
+                stroke: currentColor;
+                stroke-width: 2;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                fill: none;
             }
             h1 {
                 font-size: 26px;
-                font-weight: 700;
-                letter-spacing: -0.5px;
+                font-weight: 750;
+                letter-spacing: 0;
+                line-height: 1.2;
             }
             .meta {
                 color: var(--sub);
                 font-size: 13px;
-                margin-top: 6px;
+                margin-top: 8px;
             }
 
             /* overview */
             .overview {
-                background: var(--card);
-                border-radius: var(--radius);
+                position: relative;
+                overflow: hidden;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                border-radius: var(--radius-lg);
+                background: rgba(255, 255, 255, 0.48);
+                padding: 6px;
                 box-shadow: var(--shadow);
-                padding: 24px;
-                margin-bottom: 24px;
+            }
+            .overview::before {
+                content: "";
+                position: absolute;
+                inset: 6px;
+                border-radius: 1.55rem;
+                background: var(--panel);
+                box-shadow:
+                    inset 0 0 0 1px rgba(10, 10, 10, 0.04),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+                z-index: 0;
+            }
+            .overview > * {
+                position: relative;
+                z-index: 1;
+            }
+            .overview .stats,
+            .overview .bar-label,
+            .overview .bar,
+            .overview .pills,
+            .overview .sysgrid {
+                margin-left: 18px;
+                margin-right: 18px;
+            }
+            .overview .stats {
+                margin-top: 18px;
+            }
+            .overview .sysgrid {
+                margin-bottom: 18px;
             }
             .bar {
-                height: 16px;
-                border-radius: 8px;
-                background: var(--line);
+                height: 10px;
+                border-radius: 999px;
+                background: rgba(148, 163, 184, 0.22);
                 overflow: hidden;
                 display: flex;
-                margin: 16px 0 12px;
+                margin-top: 8px;
+                margin-bottom: 12px;
             }
             .bar i {
                 display: block;
@@ -98,35 +218,54 @@
                 background: var(--info);
             }
             .bar i + i {
-                border-left: 1.5px solid #fff;
+                border-left: 1.5px solid rgba(252, 252, 250, 0.9);
             }
             .lead {
                 font-size: 14px;
                 line-height: 1.7;
                 margin-bottom: 12px;
+                color: #3f3f46;
             }
             .stats {
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 10px;
+            }
+            .stat {
+                min-width: 0;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                border-radius: 1.2rem;
+                background: rgba(255, 255, 255, 0.68);
+                padding: 13px 14px;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
             }
             .stat .k {
                 font-size: 12px;
                 color: var(--sub);
             }
             .stat .v {
+                margin-top: 2px;
+                min-width: 0;
                 font-size: 18px;
-                font-weight: 600;
+                font-weight: 650;
+                line-height: 1.35;
                 font-variant-numeric: tabular-nums;
+                word-break: break-word;
             }
             .sysgrid {
                 display: grid;
                 grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
-                gap: 10px 24px;
-                margin-top: 20px;
-                padding-top: 18px;
-                border-top: 1px solid var(--line);
+                gap: 10px 12px;
+                margin-top: 18px;
+                padding-top: 16px;
+                border-top: 1px solid var(--line-strong);
             }
             .sysgrid div {
+                min-width: 0;
+                border: 1px solid rgba(0, 0, 0, 0.04);
+                border-radius: 1rem;
+                background: rgba(247, 247, 245, 0.72);
+                padding: 9px 11px;
                 font-size: 13px;
             }
             .sysgrid span {
@@ -139,29 +278,60 @@
                 word-break: break-all;
             }
             .pills {
-                margin: 14px 0 0;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 12px;
             }
             .bar-label {
                 font-size: 12px;
                 color: var(--sub);
-                margin-bottom: 4px;
+                margin-top: 16px;
+                margin-bottom: 0;
             }
 
             /* sections */
             .sec {
-                margin-bottom: 28px;
+                margin: 0;
             }
             .sec h2 {
-                font-size: 18px;
-                font-weight: 700;
-                margin-bottom: 14px;
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                min-width: 0;
+                margin-bottom: 12px;
+                color: var(--ink);
+                font-size: 16px;
+                font-weight: 700;
+                line-height: 1.35;
+                letter-spacing: 0;
+            }
+            .section-icon {
+                display: inline-flex;
+                width: 16px;
+                height: 16px;
+                flex: 0 0 auto;
+                align-items: center;
+                justify-content: center;
+                color: var(--accent);
+            }
+            .section-icon svg {
+                width: 16px;
+                height: 16px;
+                stroke: currentColor;
+                stroke-width: 2;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                fill: none;
+            }
+            .section-title {
+                min-width: 0;
+                overflow-wrap: anywhere;
             }
             .sec h2 .count {
-                font-size: 13px;
+                flex: 0 0 auto;
                 color: var(--sub);
+                font-size: 13px;
                 font-weight: 500;
             }
             .sec-actions {
@@ -171,33 +341,39 @@
                 gap: 8px;
             }
 
-            /* top5 table */
+            /* vulnerability table */
             table {
                 width: 100%;
                 border-collapse: collapse;
-                background: var(--card);
-                border-radius: var(--radius);
-                overflow: hidden;
-                box-shadow: var(--shadow);
+                background: transparent;
             }
             th,
             td {
                 text-align: left;
                 padding: 12px 14px;
+                border-bottom: 1px solid rgba(15, 23, 42, 0.06);
                 font-size: 13px;
-                border-bottom: 1px solid var(--line);
+                vertical-align: top;
             }
             th {
-                background: #fafbfc;
-                color: var(--sub);
-                font-weight: 600;
+                background: rgba(238, 242, 247, 0.62);
+                color: #475569;
                 font-size: 12px;
+                font-weight: 650;
                 white-space: nowrap;
+            }
+            tbody tr {
+                transition: background-color 0.16s;
+            }
+            tbody tr:hover {
+                background: rgba(4, 120, 87, 0.035);
             }
             .table-scroll {
                 overflow-x: auto;
+                border: 1px solid var(--line-strong);
                 border-radius: var(--radius);
-                box-shadow: var(--shadow);
+                background: rgba(255, 255, 255, 0.65);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
             }
             .vuln-extra {
                 display: none;
@@ -207,10 +383,10 @@
             }
             .vuln-toggle td {
                 text-align: center;
-                padding: 10px !important;
+                padding: 12px !important;
             }
             .table-scroll table {
-                min-width: 600px;
+                min-width: 680px;
                 box-shadow: none;
             }
             tr:last-child td {
@@ -238,27 +414,33 @@
             .adv-list {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 2px 8px;
+                gap: 3px 8px;
             }
             .adv-list a {
+                overflow: hidden;
                 color: var(--accent);
-                text-decoration: none;
                 font-family: "SF Mono", ui-monospace, monospace;
                 font-size: 11px;
+                text-decoration: none;
+                text-overflow: ellipsis;
                 white-space: nowrap;
             }
             .adv-list a:hover {
+                color: var(--accent-ink);
                 text-decoration: underline;
             }
             td.summary-cell {
-                font-size: 12px;
+                min-width: 260px;
                 color: var(--sub);
-                line-height: 1.6;
+                font-size: 12px;
+                line-height: 1.65;
+                white-space: normal;
             }
             .dot {
                 display: inline-block;
                 width: 9px;
                 height: 9px;
+                flex: 0 0 auto;
                 border-radius: 50%;
             }
             .dot.green {
@@ -273,184 +455,295 @@
 
             /* severity badges */
             .sev-badge {
-                display: inline-block;
-                padding: 2px 10px;
-                border-radius: 20px;
+                display: inline-flex;
+                min-height: 21px;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid transparent;
+                border-radius: 999px;
+                padding: 2px 9px;
                 font-size: 12px;
-                font-weight: 600;
+                font-weight: 650;
+                line-height: 1.2;
                 white-space: nowrap;
             }
             .sev-critical {
-                background: var(--red-bg);
-                color: var(--red);
+                border-color: rgba(185, 28, 28, 0.12);
+                background: #fee2e2;
+                color: #b91c1c;
             }
             .sev-high {
-                background: var(--yellow-bg);
-                color: var(--high);
+                border-color: rgba(194, 65, 12, 0.12);
+                background: #fff7ed;
+                color: #c2410c;
             }
             .sev-medium {
-                background: #fff7e8;
-                color: var(--medium);
+                border-color: rgba(161, 98, 7, 0.14);
+                background: #fef9c3;
+                color: #a16207;
             }
             .sev-low {
+                border-color: rgba(4, 120, 87, 0.14);
                 background: var(--green-bg);
-                color: var(--green);
+                color: var(--accent);
             }
             .sev-info {
-                background: #f2f3f5;
-                color: var(--sub);
+                border-color: rgba(15, 23, 42, 0.06);
+                background: #eef2f7;
+                color: #475569;
             }
 
             /* item cards */
             .item {
-                background: var(--card);
-                border-radius: var(--radius);
-                box-shadow: var(--shadow);
-                margin-bottom: 12px;
-                border-left: 4px solid var(--line);
                 overflow: hidden;
+                margin-bottom: 12px;
+                border: 1px solid var(--line-strong);
+                border-radius: var(--radius);
+                background: var(--panel-soft);
+                box-shadow: var(--shadow-card);
+                transition:
+                    border-color 0.18s,
+                    background-color 0.18s,
+                    transform 0.18s;
+            }
+            .item:hover {
+                border-color: rgba(6, 78, 59, 0.16);
             }
             .item.green {
-                border-left-color: var(--green);
+                border-color: rgba(4, 120, 87, 0.16);
             }
             .item.yellow {
-                border-left-color: var(--yellow);
+                border-color: rgba(217, 119, 6, 0.18);
             }
             .item.red {
-                border-left-color: var(--red);
+                border-color: rgba(185, 28, 28, 0.16);
             }
             .item-head {
                 display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 16px 18px;
+                align-items: flex-start;
+                gap: 14px;
+                min-width: 0;
+                padding: 16px;
                 cursor: pointer;
                 user-select: none;
             }
             .item-head:hover {
-                background: #fafbfc;
+                background: rgba(4, 120, 87, 0.035);
             }
-            .item-name {
-                font-weight: 600;
-                font-size: 15px;
+            .item-main {
+                min-width: 0;
                 flex: 1;
             }
-            .item-badge {
+            .item-kicker {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 7px;
+                margin-bottom: 8px;
+            }
+            .tier-badge {
+                display: inline-flex;
+                min-height: 21px;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid transparent;
+                border-radius: 999px;
+                padding: 2px 9px;
                 font-size: 12px;
-                font-weight: 600;
-                color: var(--green);
+                font-weight: 700;
+                line-height: 1.2;
+                white-space: nowrap;
+            }
+            .tier-badge.green {
+                border-color: rgba(37, 99, 235, 0.12);
+                background: #eff6ff;
+                color: #1d4ed8;
+            }
+            .tier-badge.yellow {
+                border-color: rgba(217, 119, 6, 0.18);
+                background: var(--yellow-bg);
+                color: #92400e;
+            }
+            .tier-badge.red {
+                border-color: rgba(185, 28, 28, 0.12);
+                background: var(--red-bg);
+                color: #b91c1c;
+            }
+            .item-route {
+                min-width: 0;
+                overflow: hidden;
+                color: var(--sub);
+                font-family: "SF Mono", ui-monospace, monospace;
+                font-size: 12px;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .item-name {
+                min-width: 0;
+                font-size: 15px;
+                font-weight: 650;
+                line-height: 1.45;
+                word-break: break-word;
+            }
+            .item-badge {
+                border: 1px solid rgba(4, 120, 87, 0.14);
+                border-radius: 999px;
                 background: var(--green-bg);
-                padding: 2px 10px;
-                border-radius: 20px;
+                color: var(--accent);
+                padding: 2px 9px;
+                font-size: 12px;
+                font-weight: 650;
                 white-space: nowrap;
             }
             .item-badge:empty {
                 display: none;
             }
             .item.fixed .item-name {
-                text-decoration: line-through;
                 color: var(--sub);
                 font-weight: 500;
+                text-decoration: line-through;
             }
             .item.fixed {
-                opacity: 0.85;
+                opacity: 0.82;
             }
             .item-sev {
                 font-weight: 700;
                 white-space: nowrap;
             }
             .chev {
+                flex: 0 0 auto;
+                margin-top: 3px;
                 color: var(--sub);
-                transition: transform 0.2s;
                 font-size: 12px;
+                transition: transform 0.2s;
             }
             .item.open .chev {
                 transform: rotate(90deg);
             }
             .item-body {
                 display: none;
-                padding: 0 18px 18px;
+                border-top: 1px solid var(--line-strong);
+                background: rgba(255, 255, 255, 0.2);
+                padding: 14px 16px 16px;
+                color: #3f3f46;
                 font-size: 14px;
             }
             .item.open .item-body {
                 display: block;
             }
             .item-path {
+                margin-bottom: 12px;
+                border: 1px solid rgba(0, 0, 0, 0.04);
+                border-radius: 0.95rem;
+                background: rgba(247, 247, 245, 0.82);
+                color: var(--sub);
+                padding: 9px 11px;
                 font-family: "SF Mono", ui-monospace, monospace;
                 font-size: 12px;
-                color: var(--sub);
                 word-break: break-all;
-                margin-bottom: 12px;
-                padding: 8px 10px;
-                background: #fafbfc;
-                border-radius: 8px;
             }
             .field {
-                margin: 10px 0;
+                margin: 11px 0;
+                border: 1px solid rgba(4, 120, 87, 0.12);
+                border-radius: 0.95rem;
+                background: rgba(236, 253, 245, 0.36);
+                padding: 10px 12px;
             }
             .field .label {
-                font-size: 12px;
-                color: var(--sub);
-                font-weight: 600;
-                margin-bottom: 3px;
-            }
-            .tag {
-                display: inline-block;
-                background: var(--accent-bg);
+                margin-bottom: 4px;
                 color: var(--accent);
                 font-size: 12px;
-                padding: 2px 8px;
-                border-radius: 6px;
+                font-weight: 650;
+            }
+            .case-links {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 10px;
+            }
+            .case-link {
+                display: inline-flex;
+                align-items: center;
+                border: 1px solid rgba(4, 120, 87, 0.14);
+                border-radius: 999px;
+                background: rgba(236, 253, 245, 0.52);
+                color: var(--accent);
+                padding: 5px 10px;
+                font-size: 12px;
+                font-weight: 650;
+                text-decoration: none;
+            }
+            .case-link:hover {
+                border-color: rgba(4, 120, 87, 0.24);
+                background: rgba(209, 250, 229, 0.72);
+                color: var(--accent-ink);
+            }
+            .tag {
+                display: inline-flex;
+                align-items: center;
+                border: 1px solid rgba(4, 120, 87, 0.14);
+                border-radius: 999px;
+                background: var(--accent-bg);
+                color: var(--accent-ink);
                 margin: 2px 4px 2px 0;
+                padding: 2px 8px;
+                font-size: 12px;
             }
             .risk {
-                background: var(--red-bg);
-                color: var(--red);
-                padding: 8px 12px;
-                border-radius: 8px;
-                font-size: 13px;
                 margin-top: 10px;
+                border: 1px solid rgba(185, 28, 28, 0.12);
+                border-radius: 0.95rem;
+                background: var(--red-bg);
+                color: #b91c1c;
+                padding: 9px 12px;
+                font-size: 13px;
             }
 
             /* command block */
             .cmd {
                 position: relative;
-                background: #1d2129;
-                color: #e5e6eb;
-                border-radius: 10px;
-                padding: 14px 14px;
+                overflow-x: auto;
                 margin: 8px 0;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 0.95rem;
+                background: #10161d;
+                color: #f5f5f4;
+                padding: 14px 14px;
                 font-family: "SF Mono", ui-monospace, monospace;
                 font-size: 12.5px;
                 line-height: 1.7;
-                overflow-x: auto;
                 white-space: pre;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
             }
             .cmd .copy {
                 position: absolute;
                 top: 8px;
                 right: 8px;
-                background: #2d3138;
-                color: #c9cdd4;
-                border: none;
-                border-radius: 6px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.06);
+                color: #d4d4d8;
                 padding: 4px 10px;
-                font-size: 11px;
                 cursor: pointer;
                 font-family: inherit;
+                font-size: 11px;
+                transition:
+                    background-color 0.16s,
+                    color 0.16s;
             }
             .cmd .copy:hover {
-                background: #3d424a;
+                background: rgba(255, 255, 255, 0.12);
                 color: #fff;
             }
             .cmd .copy.done {
+                border-color: rgba(16, 185, 129, 0.4);
                 background: var(--green);
                 color: #fff;
             }
             .cmd-label {
-                font-size: 11px;
-                color: var(--sub);
                 margin: 10px 0 2px;
+                color: var(--sub);
+                font-size: 11px;
             }
 
             /* fix action buttons */
@@ -462,53 +755,69 @@
                 margin-top: 4px;
             }
             .fix-btn {
-                border: none;
-                border-radius: 8px;
-                padding: 7px 16px;
-                font-size: 13px;
-                font-weight: 600;
+                border: 1px solid transparent;
+                border-radius: 999px;
+                padding: 7px 15px;
                 cursor: pointer;
+                font-size: 13px;
+                font-weight: 650;
+                line-height: 1.35;
+                transition:
+                    background-color 0.16s,
+                    border-color 0.16s,
+                    color 0.16s,
+                    transform 0.12s;
+            }
+            .fix-btn:active:not(:disabled) {
+                transform: translateY(1px);
             }
             .fix-btn.safe {
+                border-color: rgba(4, 120, 87, 0.16);
                 background: var(--green-bg);
-                color: var(--green);
+                color: var(--accent);
             }
             .fix-btn.safe:hover {
-                background: #c8f5cf;
+                background: #d1fae5;
+                border-color: rgba(4, 120, 87, 0.24);
             }
             .fix-btn.open {
-                background: #f2f3f5;
+                border-color: rgba(0, 0, 0, 0.06);
+                background: #f7f7f5;
                 color: var(--ink);
             }
             .fix-btn.open:hover {
-                background: #e5e6eb;
+                border-color: rgba(4, 120, 87, 0.18);
+                background: #ffffff;
             }
             .fix-btn.danger {
+                border-color: rgba(185, 28, 28, 0.12);
                 background: var(--red-bg);
-                color: var(--red);
+                color: #b91c1c;
             }
             .fix-btn.danger:hover {
-                background: #ffd4cc;
+                background: #fee2e2;
             }
             .fix-btn:disabled {
                 opacity: 0.45;
                 cursor: default;
+                transform: none;
             }
             .fix-status {
+                color: var(--sub);
                 font-size: 13px;
             }
             .fix-status.ok {
                 color: var(--green);
-                font-weight: 600;
+                font-weight: 650;
             }
             .fix-status.err {
                 color: var(--red);
             }
             .fix-note {
-                font-size: 12px;
-                color: var(--sub);
-                line-height: 1.6;
                 margin-top: 8px;
+                color: var(--sub);
+                font-size: 12px;
+                line-height: 1.6;
             }
             .fix-note b {
                 color: var(--ink);
@@ -516,10 +825,11 @@
 
             /* summary */
             .summary {
-                background: var(--card);
+                border: 1px solid var(--line-strong);
                 border-radius: var(--radius);
-                box-shadow: var(--shadow);
-                padding: 24px;
+                background: rgba(255, 255, 255, 0.65);
+                padding: 16px;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
             }
             .summary h3 {
                 font-size: 15px;
@@ -532,56 +842,387 @@
                 padding-left: 20px;
             }
             .summary li {
-                margin: 4px 0;
+                margin: 5px 0;
+                color: #3f3f46;
                 font-size: 14px;
+            }
+            .summary-list {
+                display: grid;
+                gap: 8px;
+            }
+            .summary-point {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 10px;
+                align-items: flex-start;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                border-radius: 0.95rem;
+                background: rgba(247, 247, 245, 0.72);
+                padding: 9px 11px;
+                color: #3f3f46;
+                font-size: 14px;
+                line-height: 1.65;
+            }
+            .summary-index {
+                display: inline-flex;
+                width: 22px;
+                height: 22px;
+                align-items: center;
+                justify-content: center;
+                border-radius: 999px;
+                background: var(--accent-bg);
+                color: var(--accent-ink);
+                font-size: 11px;
+                font-weight: 750;
+                font-variant-numeric: tabular-nums;
             }
             .pill {
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
-                background: #fafbfc;
-                border: 1px solid var(--line);
-                border-radius: 20px;
-                padding: 6px 14px;
+                border: 1px solid rgba(0, 0, 0, 0.06);
+                border-radius: 999px;
+                background: #f7f7f5;
+                padding: 5px 12px;
                 font-size: 13px;
-                margin: 4px 8px 4px 0;
-                font-weight: 600;
+                font-weight: 650;
             }
             .pill b {
                 font-variant-numeric: tabular-nums;
             }
 
             .note {
-                font-size: 12px;
                 color: var(--sub);
+                font-size: 12px;
                 margin-top: 8px;
             }
             .denied {
+                margin-top: 12px;
+                border: 1px solid rgba(217, 119, 6, 0.18);
+                border-radius: 0.95rem;
                 background: var(--yellow-bg);
-                border: 1px solid #ffd591;
-                border-radius: 10px;
+                color: #92400e;
                 padding: 12px 14px;
                 font-size: 13px;
-                margin-top: 12px;
             }
-            @media (max-width: 720px) {
+            footer {
+                margin-top: 34px;
+                color: var(--sub);
+                font-size: 12px;
+                text-align: center;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #070b0f;
+                    --card: #11161d;
+                    --ink: #f5f5f4;
+                    --sub: #94a3b8;
+                    --line: rgba(255, 255, 255, 0.1);
+                    --line-strong: rgba(255, 255, 255, 0.1);
+                    --panel: rgba(16, 22, 29, 0.92);
+                    --panel-soft: rgba(255, 255, 255, 0.05);
+                    --panel-muted: rgba(23, 29, 37, 0.82);
+                    --green: #10b981;
+                    --yellow: #f59e0b;
+                    --red: #f87171;
+                    --green-bg: rgba(16, 185, 129, 0.14);
+                    --yellow-bg: rgba(245, 158, 11, 0.14);
+                    --red-bg: rgba(248, 113, 113, 0.14);
+                    --accent: #34d399;
+                    --accent-ink: #d1fae5;
+                    --accent-bg: rgba(110, 231, 183, 0.1);
+                    --critical: #f87171;
+                    --high: #fb923c;
+                    --medium: #fbbf24;
+                    --low: #34d399;
+                    --info: #94a3b8;
+                    --shadow:
+                        0 24px 70px -48px rgba(0, 0, 0, 0.9),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                    --shadow-card: none;
+                }
+                html {
+                    background: var(--bg);
+                }
+                body {
+                    background:
+                        linear-gradient(135deg, rgba(74, 124, 104, 0.18), transparent 34%),
+                        linear-gradient(180deg, #070b0f 0%, #0e151a 52%, #111820 100%);
+                }
+                body::before {
+                    opacity: 0.13;
+                    background-image:
+                        linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+                }
+                header,
+                .overview {
+                    border-color: rgba(255, 255, 255, 0.1);
+                    background: rgba(255, 255, 255, 0.045);
+                }
+                .hero-panel,
+                .overview::before {
+                    background: var(--panel);
+                    box-shadow:
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+                }
+                .hero-icon {
+                    border-color: rgba(110, 231, 183, 0.14);
+                    background: rgba(110, 231, 183, 0.1);
+                    color: var(--accent-ink);
+                    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                }
+                .lead,
+                .item-body,
+                .summary li,
+                .summary-point {
+                    color: #d6d3d1;
+                }
+                .stat,
+                .sysgrid div,
+                .item-path {
+                    border-color: rgba(255, 255, 255, 0.08);
+                    background: rgba(255, 255, 255, 0.055);
+                    box-shadow: none;
+                }
+                .bar {
+                    background: rgba(148, 163, 184, 0.24);
+                }
+                .bar i + i {
+                    border-left-color: rgba(16, 22, 29, 0.95);
+                }
+                .section-icon {
+                    color: var(--accent);
+                }
+                th {
+                    background: rgba(23, 29, 37, 0.86);
+                    color: #cbd5e1;
+                }
+                td {
+                    border-bottom-color: rgba(255, 255, 255, 0.08);
+                }
+                tbody tr:hover,
+                .item-head:hover {
+                    background: rgba(255, 255, 255, 0.035);
+                }
+                .table-scroll,
+                .summary {
+                    border-color: rgba(255, 255, 255, 0.1);
+                    background: rgba(255, 255, 255, 0.04);
+                    box-shadow: none;
+                }
+                .adv-list a {
+                    color: #6ee7b7;
+                }
+                .adv-list a:hover {
+                    color: #a7f3d0;
+                }
+                .item {
+                    border-color: rgba(255, 255, 255, 0.1);
+                    background: rgba(255, 255, 255, 0.05);
+                    box-shadow: none;
+                }
+                .item.green {
+                    border-color: rgba(52, 211, 153, 0.16);
+                }
+                .item.yellow {
+                    border-color: rgba(245, 158, 11, 0.18);
+                }
+                .item.red {
+                    border-color: rgba(248, 113, 113, 0.18);
+                }
+                .item:hover {
+                    border-color: rgba(110, 231, 183, 0.25);
+                }
+                .item-body {
+                    border-top-color: rgba(255, 255, 255, 0.1);
+                    background: rgba(255, 255, 255, 0.03);
+                }
+                .field,
+                .summary-point {
+                    border-color: rgba(110, 231, 183, 0.14);
+                    background: rgba(110, 231, 183, 0.06);
+                }
+                .case-link {
+                    border-color: rgba(110, 231, 183, 0.14);
+                    background: rgba(110, 231, 183, 0.08);
+                    color: #a7f3d0;
+                }
+                .case-link:hover {
+                    border-color: rgba(110, 231, 183, 0.24);
+                    background: rgba(110, 231, 183, 0.14);
+                    color: #d1fae5;
+                }
+                .summary-index {
+                    background: rgba(110, 231, 183, 0.1);
+                    color: var(--accent-ink);
+                }
+                .tag {
+                    border-color: rgba(110, 231, 183, 0.14);
+                    background: rgba(110, 231, 183, 0.1);
+                    color: var(--accent-ink);
+                }
+                .pill,
+                .fix-btn.open {
+                    border-color: rgba(255, 255, 255, 0.08);
+                    background: rgba(255, 255, 255, 0.055);
+                    color: var(--ink);
+                }
+                .fix-btn.open:hover {
+                    border-color: rgba(110, 231, 183, 0.2);
+                    background: rgba(255, 255, 255, 0.08);
+                }
+                .sev-critical,
+                .risk,
+                .fix-btn.danger {
+                    border-color: rgba(248, 113, 113, 0.24);
+                    background: rgba(248, 113, 113, 0.14);
+                    color: #fecaca;
+                }
+                .sev-high {
+                    border-color: rgba(251, 146, 60, 0.24);
+                    background: rgba(251, 146, 60, 0.14);
+                    color: #fed7aa;
+                }
+                .sev-medium {
+                    border-color: rgba(251, 191, 36, 0.24);
+                    background: rgba(251, 191, 36, 0.14);
+                    color: #fde68a;
+                }
+                .sev-low,
+                .item-badge,
+                .fix-btn.safe,
+                .tier-badge.green {
+                    border-color: rgba(52, 211, 153, 0.22);
+                    background: rgba(16, 185, 129, 0.14);
+                    color: #a7f3d0;
+                }
+                .tier-badge.yellow {
+                    border-color: rgba(245, 158, 11, 0.22);
+                    background: rgba(245, 158, 11, 0.14);
+                    color: #fde68a;
+                }
+                .tier-badge.red {
+                    border-color: rgba(248, 113, 113, 0.24);
+                    background: rgba(248, 113, 113, 0.14);
+                    color: #fecaca;
+                }
+                .sev-info {
+                    border-color: rgba(255, 255, 255, 0.08);
+                    background: rgba(148, 163, 184, 0.14);
+                    color: #cbd5e1;
+                }
+                .fix-btn.safe:hover {
+                    border-color: rgba(52, 211, 153, 0.32);
+                    background: rgba(16, 185, 129, 0.2);
+                }
+                .fix-btn.danger:hover {
+                    background: rgba(248, 113, 113, 0.2);
+                }
+                .denied {
+                    border-color: rgba(245, 158, 11, 0.22);
+                    background: rgba(245, 158, 11, 0.14);
+                    color: #fde68a;
+                }
+            }
+
+            @media (max-width: 900px) {
+                .stats {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
                 .sysgrid {
                     grid-template-columns: 1fr;
                 }
             }
-            footer {
-                text-align: center;
-                color: var(--sub);
-                font-size: 12px;
-                margin-top: 40px;
+            @media (max-width: 640px) {
+                body {
+                    padding: 14px 12px 48px;
+                }
+                .hero-panel {
+                    padding: 22px 16px;
+                }
+                h1 {
+                    font-size: 23px;
+                }
+                .overview .stats,
+                .overview .bar-label,
+                .overview .bar,
+                .overview .pills,
+                .overview .sysgrid {
+                    margin-left: 12px;
+                    margin-right: 12px;
+                }
+                .stats {
+                    grid-template-columns: 1fr;
+                }
+                .sec h2 {
+                    align-items: flex-start;
+                    flex-wrap: wrap;
+                }
+                .sec-actions {
+                    width: 100%;
+                    margin-left: 0;
+                }
+                .item-head {
+                    align-items: flex-start;
+                    gap: 9px;
+                    padding: 14px;
+                }
+                .item-sev {
+                    margin-left: auto;
+                }
+                .item-body {
+                    padding: 0 14px 14px;
+                }
+                .adv-list {
+                    grid-template-columns: 1fr;
+                }
+            }
+            @media print {
+                body {
+                    background: #fff;
+                    padding: 0;
+                }
+                body::before {
+                    display: none;
+                }
+                .wrap {
+                    width: 100%;
+                }
+                header,
+                .overview,
+                .summary,
+                .table-scroll,
+                .item {
+                    box-shadow: none;
+                }
+                .copy,
+                .fix-actions,
+                .sec-actions {
+                    display: none !important;
+                }
             }
         </style>
     </head>
     <body>
         <div class="wrap">
             <header>
-                <h1>安全扫描报告</h1>
-                <div class="meta" id="meta"></div>
+                <div class="hero-panel">
+                    <div class="hero-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                            <path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1 1 1 0 0 1 1 1v1a1 1 0 0 0 1 1" />
+                            <path d="M14 18a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-1a1 1 0 0 0-1-1" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1>安全扫描报告</h1>
+                        <div class="meta" id="meta"></div>
+                    </div>
+                </div>
             </header>
             <div id="app"></div>
             <footer>VibeGuard · 只读安全扫描 · 修复操作请在确认后执行</footer>
@@ -673,15 +1314,20 @@
                         "为敏感配置启用模板文件和密钥轮换流程。",
                     ];
                 }
-                // Risk summary: compute if missing
-                if (!d.risk_summary || Object.values(d.risk_summary).every(v => !v)) {
+                // Risk summary: compute only when missing. Explicit all-zero summaries mean "no confirmed risk".
+                if (!d.risk_summary) {
                     const rs = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-                    [...d.green, ...d.yellow, ...d.red].forEach(it => {
+                    [...d.green, ...d.yellow, ...d.red, ...d.vulns].forEach(it => {
                         const s = (it.severity || 'info').toLowerCase();
                         if (s in rs) rs[s]++;
                         else rs.info++;
                     });
                     d.risk_summary = rs;
+                } else {
+                    const rs = d.risk_summary;
+                    ["critical", "high", "medium", "low", "info"].forEach((k) => {
+                        rs[k] = Number(rs[k] || 0);
+                    });
                 }
                 if (!d.summary.overview) {
                     const rs = d.risk_summary || {};
@@ -765,6 +1411,188 @@
                         info: "信息",
                     }[sev] || sev;
                 return `<span class="sev-badge ${cls}">${esc(text)}</span>`;
+            }
+
+            function sectionIcon(kind) {
+                const icons = {
+                    search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>',
+                    advice: '<svg viewBox="0 0 24 24"><path d="M12 2v4" /><path d="M12 18v4" /><path d="m4.93 4.93 2.83 2.83" /><path d="m16.24 16.24 2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="m4.93 19.07 2.83-2.83" /><path d="m16.24 7.76 2.83-2.83" /></svg>',
+                    fix: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4-3-3Z" /></svg>',
+                    review: '<svg viewBox="0 0 24 24"><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M10.3 3.3 2.4 17a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.3a2 2 0 0 0-3.4 0Z" /></svg>',
+                    risk: '<svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1Z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>',
+                    long: '<svg viewBox="0 0 24 24"><path d="M8 6h13" /><path d="M8 12h13" /><path d="M8 18h13" /><path d="M3 6h.01" /><path d="M3 12h.01" /><path d="M3 18h.01" /></svg>',
+                    default: '<svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /></svg>',
+                };
+                return `<span class="section-icon" aria-hidden="true">${icons[kind] || icons.default}</span>`;
+            }
+
+            function tierBadge(tier) {
+                const text = {
+                    green: "低风险维护",
+                    yellow: "需要确认",
+                    red: "优先处理",
+                }[tier] || "事项";
+                return `<span class="tier-badge ${esc(tier)}">${text}</span>`;
+            }
+
+            const SEVERITY_RANK = {
+                critical: 5,
+                high: 4,
+                medium: 3,
+                low: 2,
+                info: 1,
+            };
+
+            function sortBySeverity(items) {
+                return (items || [])
+                    .slice()
+                    .sort(
+                        (a, b) =>
+                            (SEVERITY_RANK[(b.severity || "info").toLowerCase()] || 0) -
+                            (SEVERITY_RANK[(a.severity || "info").toLowerCase()] || 0),
+                    );
+            }
+
+            function fieldBlock(label, value) {
+                if (!value) return "";
+                return `<div class="field"><div class="label">${esc(label)}</div>${esc(value)}</div>`;
+            }
+
+            function impactText(it, tier) {
+                if (it.impact || it.business_impact || it.pm_impact) {
+                    return it.impact || it.business_impact || it.pm_impact;
+                }
+                const text = [
+                    it.type,
+                    it.name,
+                    it.summary,
+                    it.description,
+                    it.risk,
+                    it.path,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                if (/secret|token|password|credential|key|\.env|凭证|密钥|密码/.test(text)) {
+                    return "如果该配置进入生产或被外部人员拿到，可能造成未授权访问、数据泄露，或需要紧急轮换密钥。";
+                }
+                if (/mcp|api/.test(text)) {
+                    return "如果访问控制没有配置好，外部用户可能调用本不该开放的接口，影响系统数据和服务稳定性。";
+                }
+                if (/depend|package|vuln|cve|ghsa|依赖|漏洞/.test(text)) {
+                    return tier === "green"
+                        ? "当前更像维护风险，不代表已经被攻击；但长期不处理会增加未来升级成本和供应链暴露面。"
+                        : "如果该依赖被攻击者利用，可能影响用户数据、服务可用性或业务连续性。";
+                }
+                if (/gitignore|pem|p12|pfx|证书|私钥/.test(text)) {
+                    return "现在未必已经出问题，但缺少保护规则会提高未来误提交敏感文件的概率。";
+                }
+                return tier === "red"
+                    ? "该问题可能直接影响用户数据、线上稳定性或安全合规，应优先安排处理。"
+                    : "该问题需要结合业务和部署环境确认，避免把潜在风险带到生产环境。";
+            }
+
+            function actionText(it, tier) {
+                if (it.action || it.recommendation || it.suggested_action || it.suggested_fix || it.disposal || it.indirect_release) {
+                    return it.action || it.recommendation || it.suggested_action || it.suggested_fix || it.disposal || it.indirect_release;
+                }
+                if (tier === "green") {
+                    return "在不影响当前发布节奏的窗口内处理，执行后跑测试或构建验证。";
+                }
+                if (tier === "red") {
+                    return "先暂停相关发布或变更，确认影响范围，再按最小风险路径修复；涉及凭证时先轮换，再清理历史记录。";
+                }
+                return "请产品、研发或运维确认真实使用场景，再决定是否修复、延期或记录为可接受风险。";
+            }
+
+            function problemText(it, tier) {
+                if (it.problem || it.why_manual || it.why_keep || it.risk_note) {
+                    return it.problem || it.why_manual || it.why_keep || it.risk_note;
+                }
+                if (tier === "green") {
+                    return "这类事项已有明确处理路径，通常不需要业务判断，但仍建议在代码已保存并可回滚的前提下执行。";
+                }
+                if (tier === "red") {
+                    return "这类事项可能已经影响线上安全或用户信任，不能用普通批量修复方式处理。";
+                }
+                return "扫描工具只能发现迹象，不能知道它在真实业务、部署环境或团队流程中的含义。";
+            }
+
+            function normalizeLinks(value) {
+                if (!value) return [];
+                const arr = Array.isArray(value) ? value : [value];
+                return arr
+                    .map((x) => {
+                        if (!x) return null;
+                        if (typeof x === "string") {
+                            return { label: x, url: x };
+                        }
+                        const url = x.url || x.href || x.link;
+                        const label = x.label || x.title || x.name || url;
+                        return url ? { label, url } : null;
+                    })
+                    .filter(Boolean);
+            }
+
+            function inferredCaseLinks(it) {
+                const text = [
+                    it.type,
+                    it.name,
+                    it.summary,
+                    it.description,
+                    it.risk,
+                    it.path,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                if (/secret|token|password|credential|key|\.env|凭证|密钥|密码/.test(text)) {
+                    return [
+                        {
+                            label: "案例：GitHub 防止密钥泄露",
+                            url: "https://github.blog/news-insights/product-news/push-protection-is-generally-available-and-free-for-all-public-repositories/",
+                        },
+                        {
+                            label: "处置参考：泄露密钥修复",
+                            url: "https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/remediating-a-leaked-secret",
+                        },
+                    ];
+                }
+                if (/depend|package|vuln|cve|ghsa|依赖|漏洞/.test(text)) {
+                    return [
+                        {
+                            label: "案例：Log4Shell 供应链漏洞",
+                            url: "https://www.cisa.gov/news-events/news/apache-log4j-vulnerability-guidance",
+                        },
+                    ];
+                }
+                if (/git|pem|p12|pfx|证书|私钥/.test(text)) {
+                    return [
+                        {
+                            label: "参考：移除仓库敏感数据",
+                            url: "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository",
+                        },
+                    ];
+                }
+                return [];
+            }
+
+            function caseLinks(it) {
+                const links = [
+                    ...normalizeLinks(it.case_links || it.caseLinks || it.references || it.links),
+                    ...inferredCaseLinks(it),
+                ];
+                const seen = new Set();
+                const unique = links.filter((link) => {
+                    if (seen.has(link.url)) return false;
+                    seen.add(link.url);
+                    return true;
+                });
+                if (!unique.length) return "";
+                return `<div class="field"><div class="label">现实案例 / 参考资料</div><div class="case-links">${unique
+                    .slice(0, 2)
+                    .map((link) => `<a class="case-link" href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.label)}</a>`)
+                    .join("")}</div></div>`;
             }
 
             function issueDescription(r) {
@@ -921,8 +1749,9 @@
 
             function renderVulnTable(rows) {
                 if (!rows || !rows.length) return "";
-                const needToggle = rows.length > VULN_SHOW;
-                const body = rows
+                const sortedRows = sortBySeverity(rows);
+                const needToggle = sortedRows.length > VULN_SHOW;
+                const body = sortedRows
                     .map(
                         (r, idx) => {
                             const displayIds = securityIds(r);
@@ -944,12 +1773,17 @@
                     )
                     .join("");
                 const toggle = needToggle
-                    ? `<tr class="vuln-toggle"><td colspan="5"><button class="fix-btn open" onclick="toggleVulns(this)">显示更多（还有 ${rows.length - VULN_SHOW} 项）</button></td></tr>`
+                    ? `<tr class="vuln-toggle"><td colspan="5"><button class="fix-btn open" onclick="toggleVulns(this)">显示更多（还有 ${sortedRows.length - VULN_SHOW} 项）</button></td></tr>`
                     : '';
-                return `<div class="sec"><h2>漏洞总览 <span class="count">${rows.length} 项</span></h2>
-    <div class="table-scroll"><table>
+                return section(
+                    "已确认漏洞（按修复优先级排序）",
+                    sortedRows.length,
+                    `<div class="table-scroll"><table>
     <thead><tr><th>严重度</th><th>包名</th><th>版本</th><th>GHSA</th><th>说明</th></tr></thead>
-    <tbody>${body}${toggle}</tbody></table></div></div>`;
+    <tbody>${body}${toggle}</tbody></table></div>`,
+                    "",
+                    "search",
+                );
             }
 
             function toggleVulns(btn) {
@@ -973,26 +1807,35 @@
                         ? sumList(sm.priority)
                         : `<p>${esc(sm.priority)}</p>`
                     : "";
-                return `<div class="sec"><h2>执行建议</h2><div class="summary">${intro}${body}</div></div>`;
+                return section(
+                    "关键结论与下一步",
+                    Array.isArray(sm.priority) ? sm.priority.length : null,
+                    `<div class="summary">${intro}${body}</div>`,
+                    "",
+                    "advice",
+                );
             }
 
             // ---- Green: auto-fixable ----
             function renderGreen(items) {
                 if (!items || !items.length) return "";
-                const cards = items
+                const cards = sortBySeverity(items)
                     .map((it) => {
                         const cmds = (it.fix_commands || [])
                             .map(cmdBlock)
                             .join("");
+                        const fact = it.fact || it.summary || it.description || "发现一个已有明确处理路径的维护项。";
                         return card(
                             "green",
                             it.name,
                             it.severity,
                             it.path || it.file || "",
-                            `<div class="field"><div class="label">修复命令</div>${cmds || (it.fix_config ? '<span class="note">见下方一键修复</span>' : '<span class="note">未提供可复制命令</span>')}</div>` +
-                                (it.summary
-                                    ? `<div class="field"><div class="label">风险说明</div>${esc(it.summary)}</div>`
-                                    : "") +
+                            fieldBlock("事实", fact) +
+                                fieldBlock("为什么要关注", problemText(it, "green")) +
+                                fieldBlock("可能影响", impactText(it, "green")) +
+                                fieldBlock("建议动作", actionText(it, "green")) +
+                                caseLinks(it) +
+                                `<div class="field"><div class="label">给研发的执行命令</div>${cmds || (it.fix_config ? '<span class="note">见下方一键修复</span>' : '<span class="note">未提供可复制命令</span>')}</div>` +
                                 (it.fix_error
                                     ? `<div class="denied">该项未启用一键修复：${esc(it.fix_error)}</div>`
                                     : "") +
@@ -1001,10 +1844,11 @@
                     })
                     .join("");
                 return section(
-                    "🟢 快速修复（可直接执行的低风险项）",
+                    "可低风险处理的维护项",
                     items.length,
                     cards,
                     greenBatchActions(items),
+                    "fix",
                 );
             }
 
@@ -1036,26 +1880,21 @@
             // ---- Yellow: manual review ----
             function renderYellow(items) {
                 if (!items || !items.length) return "";
-                const cards = items
+                const cards = sortBySeverity(items)
                     .map((it) => {
                         const cmds = (it.fix_commands || [])
                             .map(cmdBlock)
                             .join("");
                         let inner = "";
                         // Accept both detailed and simplified field names
-                        const desc = it.content_profile || it.description || '';
-                        const why = it.why_manual || it.risk_note || '';
-                        const how = it.disposal || it.suggested_fix || '';
-                        if (desc)
-                            inner += `<div class="field"><div class="label">内容描述</div>${esc(desc)}</div>`;
-                        if (why)
-                            inner += `<div class="field"><div class="label">为什么需要人工判断</div>${esc(why)}</div>`;
-                        if (how)
-                            inner += `<div class="field"><div class="label">处置路径</div>${esc(how)}</div>`;
+                        const desc = it.fact || it.content_profile || it.description || it.summary || '发现一个需要结合业务或部署环境确认的事项。';
+                        inner += fieldBlock("事实", desc);
+                        inner += fieldBlock("为什么要关注", problemText(it, "yellow"));
+                        inner += fieldBlock("可能影响", impactText(it, "yellow"));
+                        inner += fieldBlock("建议动作", actionText(it, "yellow"));
+                        inner += caseLinks(it);
                         if (cmds)
-                            inner += `<div class="field"><div class="label">修复命令（自行确认后执行）</div>${cmds}</div>`;
-                        if (it.risk)
-                            inner += `<div class="risk">⚠️ ${esc(it.risk)}</div>`;
+                            inner += `<div class="field"><div class="label">给研发的执行命令（确认后执行）</div>${cmds}</div>`;
                         inner += yellowActions(it);
                         return card(
                             "yellow",
@@ -1067,9 +1906,11 @@
                     })
                     .join("");
                 return section(
-                    "🟡 需人工判断（含用户数据或需确认风险）",
+                    "需要业务或部署确认的事项",
                     items.length,
                     cards,
+                    "",
+                    "review",
                 );
             }
 
@@ -1090,15 +1931,15 @@
             // ---- Red: high-risk ----
             function renderRed(items) {
                 if (!items || !items.length) return "";
-                const cards = items
+                const cards = sortBySeverity(items)
                     .map((it) => {
                         let inner = "";
-                        if (it.why_keep)
-                            inner += `<div class="field"><div class="label">为什么需要专业处理</div>${esc(it.why_keep)}</div>`;
-                        if (it.indirect_release)
-                            inner += `<div class="field"><div class="label">处理步骤</div>${esc(it.indirect_release)}</div>`;
-                        if (it.risk)
-                            inner += `<div class="risk">⚠️ ${esc(it.risk)}</div>`;
+                        const fact = it.fact || it.content_profile || it.description || it.summary || it.name;
+                        inner += fieldBlock("事实", fact);
+                        inner += fieldBlock("为什么要关注", problemText(it, "red"));
+                        inner += fieldBlock("可能影响", impactText(it, "red"));
+                        inner += fieldBlock("建议动作", actionText(it, "red"));
+                        inner += caseLinks(it);
                         return card(
                             "red",
                             it.name,
@@ -1109,9 +1950,11 @@
                     })
                     .join("");
                 return section(
-                    "🔴 高危 / 需专业处理（不可自动修复，需谨慎操作）",
+                    "优先处理的高风险项",
                     items.length,
                     cards,
+                    "",
+                    "risk",
                 );
             }
 
@@ -1124,7 +1967,13 @@
             // ---- Long-term ----
             function renderLongTerm(sm) {
                 if (!sm || !sm.long_term || !sm.long_term.length) return "";
-                return `<div class="sec"><h2>长期安全建议</h2><div class="summary">${sumList(sm.long_term)}</div></div>`;
+                return section(
+                    "长期安全建议",
+                    sm.long_term.length,
+                    `<div class="summary">${sumList(sm.long_term)}</div>`,
+                    "",
+                    "long",
+                );
             }
 
             // ---- Shared helpers ----
@@ -1132,27 +1981,37 @@
                 const sevHtml = sev
                     ? `<span class="item-sev">${sevBadge(sev)}</span>`
                     : "";
+                const route = path
+                    ? `<span class="item-route" title="${esc(path)}">${esc(path)}</span>`
+                    : "";
                 return `<div class="item ${tier}">
     <div class="item-head" onclick="this.parentNode.classList.toggle('open')">
-      <span class="dot ${tier}"></span>
-      <span class="item-name">${esc(name)}</span>
+      <div class="item-main">
+        <div class="item-kicker">${tierBadge(tier)}${sevHtml}${route}</div>
+        <div class="item-name">${esc(name)}</div>
+      </div>
       <span class="item-badge"></span>
-      ${sevHtml}
       <span class="chev">▶</span>
     </div>
     <div class="item-body">
-      ${path ? `<div class="item-path">${esc(path)}</div>` : ""}
       ${inner}
     </div></div>`;
             }
 
-            function section(title, count, inner, actions) {
-                return `<div class="sec"><h2>${esc(title)} <span class="count">${count} 项</span>${actions || ""}</h2>${inner}</div>`;
+            function section(title, count, inner, actions, kind) {
+                const countHtml =
+                    count == null
+                        ? ""
+                        : `<span class="count">${Number(count) || 0} 项</span>`;
+                return `<div class="sec"><h2>${sectionIcon(kind)}<span class="section-title">${esc(title)}</span>${countHtml}${actions || ""}</h2>${inner}</div>`;
             }
 
             const sumList = (a) =>
                 a && a.length
-                    ? `<ul>${a.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`
+                    ? `<div class="summary-list">${a.map((x, i) => {
+                        const text = String(x).replace(/^\s*\d+[.、)]\s*/, "");
+                        return `<div class="summary-point"><span class="summary-index">${i + 1}</span><span>${esc(text)}</span></div>`;
+                    }).join("")}</div>`
                     : "";
             const b64 = (o) =>
                 btoa(unescape(encodeURIComponent(JSON.stringify(o))));
@@ -1300,11 +2159,11 @@
             const app = document.getElementById("app");
             app.innerHTML =
                 renderOverview(DATA.project || {}, DATA.risk_summary) +
+                renderRed(DATA.red) +
                 renderVulnTable(DATA.vulns) +
                 renderPriority(DATA.summary) +
-                renderGreen(DATA.green) +
                 renderYellow(DATA.yellow) +
-                renderRed(DATA.red) +
+                renderGreen(DATA.green) +
                 renderErrors() +
                 renderLongTerm(DATA.summary);
 
