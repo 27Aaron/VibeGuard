@@ -12,25 +12,19 @@ STRICTLY READ-ONLY: 只读文件、运行只读命令，不修改任何内容。
 Usage:
     python3 scan.py [project_path]              # 默认向上识别项目根目录
     python3 scan.py --no-root-discovery <path>  # 严格扫描传入目录
+    python3 scan.py --api-concurrency 4 <path>  # 并发检查漏洞 API
+    python3 scan.py --outdated-concurrency 4 <path>
     python3 scan.py                             # 等同于 python3 scan.py .
 
 VibeGuard API (https://vibeguard.ou.al):
   POST /api/security/check/packages       批量检查漏洞（100个一批）
-  GET  /api/security/check/overview        漏洞数据概览
-  GET  /api/security/advisories            结构化漏洞公告（可按包/CVE/KEV/CVSS筛选）
-  GET  /api/security/advisories/{id}       单条公告详情（GHSA/MAL/OSV）
-  GET  /api/security/packages/{eco}/{name} 包风险画像和推荐修复版本
-  GET  /api/security/cves/{cveId}          CVE 详情（CVSS/CWE/EPSS/CISA KEV）
-  GET  /api/security/sync/status           数据源同步状态
-  GET  /api/articles                       安全资讯、漏洞解读、供应链事件
-  GET  /api/articles/{id}                  单篇文章详情
 
   包检查请求: {"packages": [{"ecosystem":"npm","name":"next","version":"15.5.1"}]}
-  支持 4 种生态: npm (含 pnpm/yarn), pypi, go, crates-io
-  查询参数: q=关键词, lang=zh, limit=N, ecosystem, riskCategory, tag
+  支持 4 类代码项目: JavaScript/TypeScript(npm/pnpm/yarn), Python(pypi), Go, Rust(crates-io)
 """
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import re
@@ -874,92 +868,127 @@ def post_json(url, payload, timeout=120):
     return json.loads(raw)
 
 
-def check_vulnerabilities(packages, batch_size=100, errors=None):
+def parse_vulnerability_findings(data):
+    vulns = []
+    for item in data.get("findings", []):
+        if not item.get("affected"):
+            continue
+        adv = item.get("advisory") or {}
+        ap = item.get("affectedPackage") or {}
+        pkg = item.get("package") or {}
+        risk = item.get("risk") or {}
+        aliases = adv.get("aliases") or []
+        # Severity: prefer CVSS-based level, fallback to risk.level
+        cvss_vector = ""
+        cvss = None
+        for s in adv.get("severity") or []:
+            if s.get("score"):
+                cvss = s["score"]
+                cvss_vector = s["score"]
+                break
+        sev = _cvss_to_severity(cvss_vector) or risk.get("level", "unknown")
+        fixed = ap.get("fixedVersions") or []
+        vulns.append(
+            {
+                "package": pkg.get("name", ""),
+                "version": pkg.get("version", ""),
+                "ecosystem": pkg.get("ecosystem", ""),
+                "affected": True,
+                "match_reason": item.get("matchReason", ""),
+                "match_summary": item.get("matchSummary", ""),
+                "confidence": item.get("confidence", ""),
+                "advisory_id": adv.get("id", ""),
+                "aliases": aliases,
+                "cve_id": best_advisory_alias(aliases),
+                "severity": sev,
+                "cvss": cvss,
+                "fixed_versions": fixed,
+                "summary": adv.get("summary", ""),
+                "risk_signals": risk.get("signals", []),
+            }
+        )
+    return vulns
+
+
+def check_vulnerability_batch(batch_no, batch):
+    payload = {
+        "packages": [
+            {
+                "ecosystem": p["ecosystem"],
+                "name": p["name"],
+                "version": p["version"],
+            }
+            for p in batch
+        ]
+    }
+    try:
+        data = post_json(f"{API_BASE}/api/security/check/packages", payload)
+    except urllib.error.HTTPError as e:
+        return [], [
+            {
+                "step": "vulnerability_check",
+                "message": f"第 {batch_no} 批 API 返回 HTTP {e.code}",
+            }
+        ]
+    except urllib.error.URLError as e:
+        return [], [
+            {
+                "step": "vulnerability_check",
+                "message": f"第 {batch_no} 批 API 连接失败：{e.reason}",
+            }
+        ]
+    except (json.JSONDecodeError, TimeoutError, OSError) as e:
+        return [], [
+            {
+                "step": "vulnerability_check",
+                "message": f"第 {batch_no} 批 API 响应解析失败：{e}",
+            }
+        ]
+    return parse_vulnerability_findings(data), []
+
+
+def check_vulnerabilities(packages, batch_size=100, errors=None, concurrency=4):
     if not packages:
         return []
     if errors is None:
         errors = []
-    vulns = []
-    for i in range(0, len(packages), batch_size):
-        batch = packages[i : i + batch_size]
-        payload = {
-            "packages": [
-                {
-                    "ecosystem": p["ecosystem"],
-                    "name": p["name"],
-                    "version": p["version"],
-                }
-                for p in batch
-            ]
-        }
-        batch_no = i // batch_size + 1
-        try:
-            data = post_json(f"{API_BASE}/api/security/check/packages", payload)
-        except urllib.error.HTTPError as e:
-            errors.append(
-                {
-                    "step": "vulnerability_check",
-                    "message": f"第 {batch_no} 批 API 返回 HTTP {e.code}",
-                }
-            )
-            continue
-        except urllib.error.URLError as e:
-            errors.append(
-                {
-                    "step": "vulnerability_check",
-                    "message": f"第 {batch_no} 批 API 连接失败：{e.reason}",
-                }
-            )
-            continue
-        except (json.JSONDecodeError, TimeoutError, OSError) as e:
-            errors.append(
-                {
-                    "step": "vulnerability_check",
-                    "message": f"第 {batch_no} 批 API 响应解析失败：{e}",
-                }
-            )
-            continue
-        # API returns { meta, findings: [...] }
-        for item in data.get("findings", []):
-            if not item.get("affected"):
-                continue
-            adv = item.get("advisory") or {}
-            ap = item.get("affectedPackage") or {}
-            pkg = item.get("package") or {}
-            risk = item.get("risk") or {}
-            aliases = adv.get("aliases") or []
-            # Severity: prefer CVSS-based level, fallback to risk.level
-            # Parse CVSS vector to estimate severity level from impact metrics
-            cvss_vector = ""
-            cvss = None
-            for s in adv.get("severity") or []:
-                if s.get("score"):
-                    cvss = s["score"]
-                    cvss_vector = s["score"]
-                    break
-            sev = _cvss_to_severity(cvss_vector) or risk.get("level", "unknown")
-            # Extract fixed versions
-            fixed = ap.get("fixedVersions") or []
-            vulns.append(
-                {
-                    "package": pkg.get("name", ""),
-                    "version": pkg.get("version", ""),
-                    "ecosystem": pkg.get("ecosystem", ""),
-                    "affected": True,
-                    "match_reason": item.get("matchReason", ""),
-                    "match_summary": item.get("matchSummary", ""),
-                    "confidence": item.get("confidence", ""),
-                    "advisory_id": adv.get("id", ""),
-                    "aliases": aliases,
-                    "cve_id": best_advisory_alias(aliases),
-                    "severity": sev,
-                    "cvss": cvss,
-                    "fixed_versions": fixed,
-                    "summary": adv.get("summary", ""),
-                    "risk_signals": risk.get("signals", []),
-                }
-            )
-    return vulns
+    batches = [
+        (i // batch_size + 1, packages[i : i + batch_size])
+        for i in range(0, len(packages), batch_size)
+    ]
+    workers = max(1, min(int(concurrency or 1), len(batches), 16))
+
+    if workers == 1:
+        results = []
+        for batch_no, batch in batches:
+            vulns, batch_errors = check_vulnerability_batch(batch_no, batch)
+            results.append((batch_no, vulns, batch_errors))
+    else:
+        results = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_batch = {
+                executor.submit(check_vulnerability_batch, batch_no, batch): batch_no
+                for batch_no, batch in batches
+            }
+            for future in as_completed(future_to_batch):
+                batch_no = future_to_batch[future]
+                try:
+                    vulns, batch_errors = future.result()
+                except Exception as e:
+                    vulns = []
+                    batch_errors = [
+                        {
+                            "step": "vulnerability_check",
+                            "message": f"第 {batch_no} 批 API 检查失败：{e}",
+                        }
+                    ]
+                results.append((batch_no, vulns, batch_errors))
+
+    all_vulns = []
+    for _, vulns, batch_errors in sorted(results, key=lambda x: x[0]):
+        all_vulns.extend(vulns)
+        errors.extend(batch_errors)
+    return all_vulns
 
 
 # ---------------------------------------------------------------------------
@@ -967,24 +996,71 @@ def check_vulnerabilities(packages, batch_size=100, errors=None):
 # ---------------------------------------------------------------------------
 
 
-def check_outdated(project_path, ecosystems, errors=None):
-    outdated = []
+def run_outdated_task(index, task):
+    local_errors = []
+    try:
+        items = task(local_errors)
+    except Exception as e:
+        items = []
+        local_errors.append({"step": "outdated_check", "message": str(e)})
+    return index, items, local_errors
+
+
+def check_outdated(project_path, ecosystems, errors=None, concurrency=4):
+    if errors is None:
+        errors = []
+    tasks = []
     if "npm" in ecosystems:
-        outdated.extend(
-            _outdated_json("npm", ["npm", "outdated", "--json"], project_path, errors)
+        tasks.append(
+            lambda task_errors: _outdated_json(
+                "npm", ["npm", "outdated", "--json"], project_path, task_errors
+            )
         )
     if "pnpm" in ecosystems:
-        outdated.extend(
-            _outdated_json("npm", ["pnpm", "outdated", "--json"], project_path, errors)
+        tasks.append(
+            lambda task_errors: _outdated_json(
+                "npm", ["pnpm", "outdated", "--json"], project_path, task_errors
+            )
         )
     if "yarn" in ecosystems:
-        outdated.extend(_yarn_outdated(project_path, errors))
+        tasks.append(lambda task_errors: _yarn_outdated(project_path, task_errors))
     if "pypi" in ecosystems:
-        outdated.extend(_pip_outdated(project_path, errors))
+        tasks.append(lambda task_errors: _pip_outdated(project_path, task_errors))
     if "go" in ecosystems:
-        outdated.extend(_go_outdated(project_path, errors))
+        tasks.append(lambda task_errors: _go_outdated(project_path, task_errors))
     if "crates-io" in ecosystems:
-        outdated.extend(_cargo_outdated(project_path, errors))
+        tasks.append(lambda task_errors: _cargo_outdated(project_path, task_errors))
+
+    if not tasks:
+        return []
+
+    workers = max(1, min(int(concurrency or 1), len(tasks), 8))
+    if workers == 1:
+        results = [run_outdated_task(i, task) for i, task in enumerate(tasks)]
+    else:
+        results = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_index = {
+                executor.submit(run_outdated_task, i, task): i
+                for i, task in enumerate(tasks)
+            }
+            for future in as_completed(future_to_index):
+                index = future_to_index[future]
+                try:
+                    results.append(future.result())
+                except Exception as e:
+                    results.append(
+                        (
+                            index,
+                            [],
+                            [{"step": "outdated_check", "message": str(e)}],
+                        )
+                    )
+
+    outdated = []
+    for _, items, task_errors in sorted(results, key=lambda x: x[0]):
+        outdated.extend(items)
+        errors.extend(task_errors)
     return outdated
 
 
@@ -1155,6 +1231,18 @@ def parse_args(argv):
         action="store_true",
         help="scan the provided path directly instead of walking up to a repo root",
     )
+    parser.add_argument(
+        "--api-concurrency",
+        type=int,
+        default=4,
+        help="number of concurrent VibeGuard API package-check requests",
+    )
+    parser.add_argument(
+        "--outdated-concurrency",
+        type=int,
+        default=4,
+        help="number of concurrent outdated dependency checks",
+    )
     return parser.parse_args(argv)
 
 
@@ -1190,14 +1278,23 @@ def main():
 
     # Step 4
     try:
-        vulnerabilities = check_vulnerabilities(packages, errors=errors)
+        vulnerabilities = check_vulnerabilities(
+            packages,
+            errors=errors,
+            concurrency=args.api_concurrency,
+        )
     except Exception as e:
         vulnerabilities = []
         errors.append({"step": "vulnerability_check", "message": str(e)})
 
     # Step 5
     try:
-        outdated = check_outdated(project_path, ecosystems, errors=errors)
+        outdated = check_outdated(
+            project_path,
+            ecosystems,
+            errors=errors,
+            concurrency=args.outdated_concurrency,
+        )
     except Exception as e:
         outdated = []
         errors.append({"step": "outdated_check", "message": str(e)})
@@ -1221,6 +1318,12 @@ def main():
             "git_branch": git_branch or None,
             "total_packages": len(packages),
             "total_vulnerabilities": len(vulnerabilities),
+        },
+        "scan_config": {
+            "api_concurrency": max(1, min(int(args.api_concurrency or 1), 16)),
+            "outdated_concurrency": max(
+                1, min(int(args.outdated_concurrency or 1), 8)
+            ),
         },
         "hygiene": hygiene,
         "packages": packages,

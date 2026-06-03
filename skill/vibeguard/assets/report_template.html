@@ -757,7 +757,7 @@
                         .map((x) => x.trim())
                         .filter(Boolean)
                         .forEach((id) => {
-                            if (!/^(GHSA-|CVE-\d{4}-\d+|MAL-|OSV-|PYSEC-|RUSTSEC-)/i.test(id)) return;
+                            if (!/^GHSA-/i.test(id)) return;
                             if (!values.some((x) => x.toLowerCase() === id.toLowerCase())) {
                                 values.push(id);
                             }
@@ -880,7 +880,7 @@
                     : '';
                 return `<div class="sec"><h2>漏洞总览 <span class="count">${rows.length} 项</span></h2>
     <div class="table-scroll"><table>
-    <thead><tr><th>严重度</th><th>包名</th><th>版本</th><th>公告编号</th><th>说明</th></tr></thead>
+    <thead><tr><th>严重度</th><th>包名</th><th>版本</th><th>GHSA</th><th>说明</th></tr></thead>
     <tbody>${body}${toggle}</tbody></table></div></div>`;
             }
 
@@ -956,7 +956,13 @@
             }
 
             function greenBatchActions(items) {
-                return "";
+                if (!FIX) return "";
+                const ecosystems = (DATA.project && DATA.project.ecosystems) || [];
+                if (!ecosystems.length) return "";
+                return `<span class="sec-actions">
+    <button class="fix-btn safe" onclick="doUpdateAll(this)">一键修复</button>
+    <span class="fix-status sec-status"></span>
+  </span>`;
             }
 
             // ---- Yellow: manual review ----
@@ -1165,6 +1171,61 @@
                         }
                     },
                 );
+            }
+
+            function doUpdateAll(btn) {
+                const secActions = btn.closest(".sec-actions");
+                const status = secActions.querySelector(".fix-status");
+                if (
+                    !confirm(
+                        "确认执行一键修复：批量升级项目依赖？\n\n" +
+                        "此操作会运行当前项目对应包管理器的依赖更新命令，可能修改 package.json、lockfile、go.mod、Cargo.lock 或 Python 环境。\n\n" +
+                        "风险提示：\n" +
+                        "· 多个依赖同时升级可能引入兼容性问题\n" +
+                        "· 跨大版本升级可能包含破坏性变更\n" +
+                        "· 更新后可能出现构建失败、测试失败或运行时错误\n\n" +
+                        "建议执行前确认当前代码已提交，并在完成后运行测试和构建。\n\n" +
+                        "是否继续？",
+                    )
+                )
+                    return;
+
+                status.textContent = "正在批量升级依赖…";
+                status.className = "fix-status sec-status";
+                btn.disabled = true;
+                fetch(FIX.endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        token: FIX.token,
+                        mode: "update_all",
+                        params: {},
+                    }),
+                })
+                    .then((r) => r.json())
+                    .then((res) => {
+                        btn.disabled = false;
+                        const details = (res.results || [])
+                            .map((r) =>
+                                r.ok
+                                    ? `${r.ecosystem}: 成功执行 ${r.command || ""}`
+                                    : `${r.ecosystem}: ${r.error || "执行失败"}`,
+                            )
+                            .join("\n");
+                        if (res.ok) {
+                            status.textContent = "✓ 依赖升级命令已完成";
+                            status.className = "fix-status sec-status ok";
+                        } else {
+                            status.textContent = "✗ 部分依赖升级失败";
+                            status.className = "fix-status sec-status err";
+                        }
+                        if (details) alert("执行结果：\n\n" + details);
+                    })
+                    .catch((e) => {
+                        btn.disabled = false;
+                        status.textContent = "✗ 连接失败：" + e;
+                        status.className = "fix-status sec-status err";
+                    });
             }
 
             // ---- Mount ----

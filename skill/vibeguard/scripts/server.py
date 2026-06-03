@@ -10,8 +10,11 @@ Usage:
     server.py --no-open <analysis.json>
 
 SAFETY MODEL — read before changing:
-- Allowlist: only fix_config from green items are accepted. Every request is
-  validated against the allowlist built at load time.
+- Per-item fixes: only fix_config from green items are accepted. Every request
+  is validated against the allowlist built at load time.
+- Batch dependency update: exposed as a separate update_all action after an
+  explicit browser confirmation. It runs package-manager update commands for
+  detected ecosystems and returns per-ecosystem results.
 - Bound to 127.0.0.1 only; every POST requires the session token; Host header
   must be 127.0.0.1 (blocks DNS-rebinding).
 - Green items: pre-approved safe fixes (dependency upgrade, gitignore fix,
@@ -397,6 +400,124 @@ def execute_fix(config, cwd):
         raise ValueError(f"未知修复类型: {fix_type}")
 
 
+def run_update_command(ecosystem, cmd, cwd, timeout=300):
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd)
+    command = shell_join(cmd)
+    if result.returncode != 0:
+        return {
+            "ecosystem": ecosystem,
+            "ok": False,
+            "command": command,
+            "error": (result.stderr or result.stdout or "依赖升级失败").strip()[:800],
+        }
+    return {
+        "ecosystem": ecosystem,
+        "ok": True,
+        "command": command,
+        "output": (result.stdout or "").strip()[:800],
+    }
+
+
+def is_registry_dependency_spec(spec):
+    value = str(spec or "").strip().lower()
+    return not value.startswith(
+        (
+            "workspace:",
+            "file:",
+            "link:",
+            "portal:",
+            "git:",
+            "git+",
+            "http://",
+            "https://",
+            "github:",
+            "npm:",
+        )
+    )
+
+
+def npm_latest_commands(cwd):
+    path = os.path.join(cwd, "package.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return []
+
+    sections = [
+        ("dependencies", ["npm", "install"]),
+        ("devDependencies", ["npm", "install", "--save-dev"]),
+        ("optionalDependencies", ["npm", "install", "--save-optional"]),
+        ("peerDependencies", ["npm", "install", "--save-peer"]),
+    ]
+    commands = []
+    for section, prefix in sections:
+        deps = data.get(section) or {}
+        specs = [
+            f"{name}@latest"
+            for name, version in deps.items()
+            if normalize_package(name) and is_registry_dependency_spec(version)
+        ]
+        for i in range(0, len(specs), 40):
+            commands.append(prefix + specs[i : i + 40])
+    return commands
+
+
+def execute_update_all(data, cwd):
+    """Run broad dependency update commands after explicit browser confirmation."""
+    ecosystems = set(data.get("project", {}).get("ecosystems") or [])
+    results = []
+
+    if ecosystems & {"npm", "pnpm", "yarn"}:
+        manager = infer_js_manager(data)
+        if manager == "npm":
+            commands = npm_latest_commands(cwd) or [["npm", "update", "--save"]]
+            for cmd in commands:
+                results.append(run_update_command(manager, cmd, cwd))
+        else:
+            cmd = {
+                "pnpm": ["pnpm", "update", "--latest"],
+                "yarn": ["yarn", "upgrade", "--latest"],
+            }.get(manager, ["npm", "update", "--save"])
+            results.append(run_update_command(manager, cmd, cwd))
+
+    if "pypi" in ecosystems:
+        if os.path.isfile(os.path.join(cwd, "requirements.txt")):
+            results.append(
+                run_update_command(
+                    "pypi",
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "install",
+                        "--upgrade",
+                        "-r",
+                        "requirements.txt",
+                    ],
+                    cwd,
+                )
+            )
+        else:
+            results.append(
+                {
+                    "ecosystem": "pypi",
+                    "ok": False,
+                    "error": "未找到 requirements.txt，Python 依赖需手动确认虚拟环境和锁文件",
+                }
+            )
+
+    if "go" in ecosystems:
+        results.append(run_update_command("go", ["go", "get", "-u", "./..."], cwd))
+
+    if "crates-io" in ecosystems:
+        results.append(run_update_command("crates-io", ["cargo", "update"], cwd))
+
+    if not results:
+        raise ValueError("未检测到支持的一键依赖升级生态")
+    return results
+
+
 def open_in_editor(path):
     """Open file in default editor (non-destructive)."""
     if not os.path.exists(path):
@@ -474,6 +595,21 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 execute_fix(matched, project_path)
                 self._send(200, json.dumps({"ok": True}))
+            except Exception as e:
+                self._send(500, json.dumps({"ok": False, "error": str(e)}))
+
+        elif mode == "update_all":
+            try:
+                results = execute_update_all(DATA, project_path)
+                self._send(
+                    200,
+                    json.dumps(
+                        {
+                            "ok": all(r.get("ok") for r in results),
+                            "results": results,
+                        }
+                    ),
+                )
             except Exception as e:
                 self._send(500, json.dumps({"ok": False, "error": str(e)}))
 
