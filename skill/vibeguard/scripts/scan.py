@@ -10,8 +10,9 @@
 STRICTLY READ-ONLY: 只读文件、运行只读命令，不修改任何内容。
 
 Usage:
-    python3 scan.py [project_path]   # 默认当前目录
-    python3 scan.py                  # 等同于 python3 scan.py .
+    python3 scan.py [project_path]              # 默认向上识别项目根目录
+    python3 scan.py --no-root-discovery <path>  # 严格扫描传入目录
+    python3 scan.py                             # 等同于 python3 scan.py .
 
 VibeGuard API (https://vibeguard.ou.al):
   POST /api/security/check/packages       批量检查漏洞（100个一批）
@@ -29,6 +30,7 @@ VibeGuard API (https://vibeguard.ou.al):
   查询参数: q=关键词, lang=zh, limit=N, ecosystem, riskCategory, tag
 """
 
+import argparse
 import json
 import os
 import re
@@ -65,6 +67,8 @@ SENSITIVE_FILE_PATTERNS = [
     r"(^|/)service-account.*\.json$",
     r"(^|/)id_(rsa|ed25519|ecdsa)$",
 ]
+
+ENV_TEMPLATE_SUFFIXES = (".example", ".sample", ".template", ".dist")
 
 # 敏感文件类型 → 对应的 .gitignore 规则（只按实际发现的文件推荐，不一股脑全加）
 SENSITIVE_TO_GITIGNORE = {
@@ -156,6 +160,38 @@ def run_cmd(cmd, timeout=60, cwd=None):
         return ""
 
 
+def run_cmd_checked(cmd, timeout=60, cwd=None, errors=None, step="command"):
+    try:
+        r = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=cwd,
+            stdin=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:
+        if errors is not None:
+            errors.append({"step": step, "message": f"命令不可用：{cmd[0]}"})
+        return ""
+    except subprocess.TimeoutExpired:
+        if errors is not None:
+            errors.append({"step": step, "message": f"命令超时：{' '.join(cmd)}"})
+        return ""
+    except OSError as e:
+        if errors is not None:
+            errors.append({"step": step, "message": f"命令执行失败：{' '.join(cmd)}: {e}"})
+        return ""
+
+    stdout = r.stdout.strip()
+    if r.returncode != 0 and not stdout:
+        if errors is not None:
+            msg = (r.stderr or "无 stderr 输出").strip()
+            errors.append({"step": step, "message": f"{' '.join(cmd)} 失败：{msg}"})
+        return ""
+    return stdout
+
+
 def gitignore_rules(content):
     rules = set()
     for line in content.splitlines():
@@ -212,6 +248,18 @@ def find_project_root(start_path="."):
     return os.path.abspath(start_path)
 
 
+def is_env_template(path):
+    name = os.path.basename(path).lower()
+    return name.startswith(".env") and (
+        name in {".env.example", ".env.sample", ".env.template", ".env.dist"}
+        or name.endswith(ENV_TEMPLATE_SUFFIXES)
+    )
+
+
+def is_git_worktree(path):
+    return run_cmd(["git", "rev-parse", "--is-inside-work-tree"], cwd=path) == "true"
+
+
 # ---------------------------------------------------------------------------
 # Step 1: Repository hygiene
 # ---------------------------------------------------------------------------
@@ -253,6 +301,8 @@ def check_sensitive_tracked(project_path):
     findings = []
     for f in output.split("\n"):
         if not f.strip():
+            continue
+        if is_env_template(f):
             continue
         for pat in SENSITIVE_FILE_PATTERNS:
             if re.search(pat, f):
@@ -917,34 +967,36 @@ def check_vulnerabilities(packages, batch_size=100, errors=None):
 # ---------------------------------------------------------------------------
 
 
-def check_outdated(project_path, ecosystems):
+def check_outdated(project_path, ecosystems, errors=None):
     outdated = []
     if "npm" in ecosystems:
         outdated.extend(
-            _outdated_json("npm", ["npm", "outdated", "--json"], project_path)
+            _outdated_json("npm", ["npm", "outdated", "--json"], project_path, errors)
         )
     if "pnpm" in ecosystems:
         outdated.extend(
-            _outdated_json("npm", ["pnpm", "outdated", "--json"], project_path)
+            _outdated_json("npm", ["pnpm", "outdated", "--json"], project_path, errors)
         )
     if "yarn" in ecosystems:
-        outdated.extend(_yarn_outdated(project_path))
+        outdated.extend(_yarn_outdated(project_path, errors))
     if "pypi" in ecosystems:
-        outdated.extend(_pip_outdated(project_path))
+        outdated.extend(_pip_outdated(project_path, errors))
     if "go" in ecosystems:
-        outdated.extend(_go_outdated(project_path))
+        outdated.extend(_go_outdated(project_path, errors))
     if "crates-io" in ecosystems:
-        outdated.extend(_cargo_outdated(project_path))
+        outdated.extend(_cargo_outdated(project_path, errors))
     return outdated
 
 
-def _outdated_json(eco, cmd, cwd):
-    output = run_cmd(cmd, cwd=cwd, timeout=60)
+def _outdated_json(eco, cmd, cwd, errors=None):
+    output = run_cmd_checked(cmd, cwd=cwd, timeout=60, errors=errors, step="outdated_check")
     if not output:
         return []
     try:
         data = json.loads(output)
     except json.JSONDecodeError:
+        if errors is not None:
+            errors.append({"step": "outdated_check", "message": f"{cmd[0]} outdated 输出不是有效 JSON"})
         return []
     if isinstance(data, list):
         return [
@@ -967,8 +1019,14 @@ def _outdated_json(eco, cmd, cwd):
     ]
 
 
-def _yarn_outdated(cwd):
-    output = run_cmd(["yarn", "outdated", "--json"], cwd=cwd, timeout=60)
+def _yarn_outdated(cwd, errors=None):
+    output = run_cmd_checked(
+        ["yarn", "outdated", "--json"],
+        cwd=cwd,
+        timeout=60,
+        errors=errors,
+        step="outdated_check",
+    )
     if not output:
         return []
     result = []
@@ -991,17 +1049,21 @@ def _yarn_outdated(cwd):
     return result
 
 
-def _pip_outdated(cwd):
-    output = run_cmd(
+def _pip_outdated(cwd, errors=None):
+    output = run_cmd_checked(
         [sys.executable, "-m", "pip", "list", "--outdated", "--format=json"],
         cwd=cwd,
         timeout=60,
+        errors=errors,
+        step="outdated_check",
     )
     if not output:
         return []
     try:
         data = json.loads(output)
     except json.JSONDecodeError:
+        if errors is not None:
+            errors.append({"step": "outdated_check", "message": "pip list --outdated 输出不是有效 JSON"})
         return []
     return [
         {
@@ -1014,8 +1076,14 @@ def _pip_outdated(cwd):
     ]
 
 
-def _go_outdated(cwd):
-    output = run_cmd(["go", "list", "-u", "-m", "-json", "all"], cwd=cwd, timeout=120)
+def _go_outdated(cwd, errors=None):
+    output = run_cmd_checked(
+        ["go", "list", "-u", "-m", "-json", "all"],
+        cwd=cwd,
+        timeout=120,
+        errors=errors,
+        step="outdated_check",
+    )
     if not output:
         return []
     result = []
@@ -1049,8 +1117,14 @@ def iter_json_objects(text):
             yield obj
 
 
-def _cargo_outdated(cwd):
-    output = run_cmd(["cargo", "outdated"], cwd=cwd, timeout=120)
+def _cargo_outdated(cwd, errors=None):
+    output = run_cmd_checked(
+        ["cargo", "outdated"],
+        cwd=cwd,
+        timeout=120,
+        errors=errors,
+        step="outdated_check",
+    )
     if not output:
         return []
     result = []
@@ -1073,10 +1147,24 @@ def _cargo_outdated(cwd):
 # ---------------------------------------------------------------------------
 
 
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description="VibeGuard local project scanner")
+    parser.add_argument("project_path", nargs="?", default=".")
+    parser.add_argument(
+        "--no-root-discovery",
+        action="store_true",
+        help="scan the provided path directly instead of walking up to a repo root",
+    )
+    return parser.parse_args(argv)
+
+
 def main():
     started = time.time()
-    start = sys.argv[1] if len(sys.argv) > 1 else "."
-    project_path = find_project_root(start)
+    args = parse_args(sys.argv[1:])
+    start = args.project_path
+    project_path = (
+        os.path.abspath(start) if args.no_root_discovery else find_project_root(start)
+    )
     errors = []
 
     # Step 1
@@ -1109,12 +1197,17 @@ def main():
 
     # Step 5
     try:
-        outdated = check_outdated(project_path, ecosystems)
+        outdated = check_outdated(project_path, ecosystems, errors=errors)
     except Exception as e:
         outdated = []
         errors.append({"step": "outdated_check", "message": str(e)})
 
-    git_branch = run_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=project_path)
+    git_repo = is_git_worktree(project_path)
+    git_branch = (
+        run_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=project_path)
+        if git_repo
+        else ""
+    )
 
     output = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -1124,7 +1217,7 @@ def main():
             "name": os.path.basename(project_path),
             "ecosystems": ecosystems,
             "lockfiles": list(lockfiles.values()),
-            "git_repo": os.path.isdir(os.path.join(project_path, ".git")),
+            "git_repo": git_repo,
             "git_branch": git_branch or None,
             "total_packages": len(packages),
             "total_vulnerabilities": len(vulnerabilities),

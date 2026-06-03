@@ -757,7 +757,7 @@
                         .map((x) => x.trim())
                         .filter(Boolean)
                         .forEach((id) => {
-                            if (!/^GHSA-/i.test(id)) return;
+                            if (!/^(GHSA-|CVE-\d{4}-\d+|MAL-|OSV-|PYSEC-|RUSTSEC-)/i.test(id)) return;
                             if (!values.some((x) => x.toLowerCase() === id.toLowerCase())) {
                                 values.push(id);
                             }
@@ -849,7 +849,7 @@
             }
 
             // ---- Vulnerability table (all items) ----
-            const VULN_SHOW = 10;
+            const VULN_SHOW = 5;
 
             function renderVulnTable(rows) {
                 if (!rows || !rows.length) return "";
@@ -880,7 +880,7 @@
                     : '';
                 return `<div class="sec"><h2>漏洞总览 <span class="count">${rows.length} 项</span></h2>
     <div class="table-scroll"><table>
-    <thead><tr><th>严重度</th><th>包名</th><th>版本</th><th>GHSA</th><th>说明</th></tr></thead>
+    <thead><tr><th>严重度</th><th>包名</th><th>版本</th><th>公告编号</th><th>说明</th></tr></thead>
     <tbody>${body}${toggle}</tbody></table></div></div>`;
             }
 
@@ -920,7 +920,7 @@
                             "green",
                             it.name,
                             it.severity,
-                            it.summary || "",
+                            it.path || it.file || "",
                             `<div class="field"><div class="label">修复命令</div>${cmds || (it.fix_config ? '<span class="note">见下方一键修复</span>' : '<span class="note">未提供可复制命令</span>')}</div>` +
                                 (it.summary
                                     ? `<div class="field"><div class="label">风险说明</div>${esc(it.summary)}</div>`
@@ -956,12 +956,7 @@
             }
 
             function greenBatchActions(items) {
-                if (!FIX) return "";
-                if (!items.some((it) => it.fix_config)) return "";
-                return `<span class="sec-actions">
-    <button class="fix-btn safe" onclick="doUpdateAll(this)">一键更新</button>
-    <span class="fix-status sec-status"></span>
-  </span>`;
+                return "";
             }
 
             // ---- Yellow: manual review ----
@@ -1170,78 +1165,6 @@
                         }
                     },
                 );
-            }
-
-            function doUpdateAll(btn) {
-                const secActions = btn.closest(".sec-actions");
-                const status = secActions.querySelector(".fix-status");
-                if (
-                    !confirm(
-                        "⚠️ 一键更新将把项目所有依赖更新到最新版本\n\n" +
-                        "风险提示：\n" +
-                        "· 新版本可能引入破坏性变更（Breaking Changes）\n" +
-                        "· 可能导致现有代码出现兼容性问题\n" +
-                        "· 可能导致编译失败或运行时错误\n\n" +
-                        "建议在执行前：\n" +
-                        "· 确保已提交当前代码（git commit）\n" +
-                        "· 更新后运行完整测试套件\n" +
-                        "· 如出现问题可通过 git revert 回退\n\n" +
-                        "是否确认执行一键更新？"
-                    )
-                )
-                    return;
-                status.textContent = "正在更新所有依赖…";
-                status.className = "fix-status sec-status";
-                btn.disabled = true;
-                fetch(FIX.endpoint, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        token: FIX.token,
-                        mode: "update_all",
-                        params: {},
-                    }),
-                })
-                    .then((r) => r.json())
-                    .then((res) => {
-                        btn.disabled = false;
-                        if (res.ok) {
-                            const details = (res.results || [])
-                                .map((r) =>
-                                    r.ok
-                                        ? `${r.ecosystem}: ✓ 更新成功`
-                                        : `${r.ecosystem}: ✗ ${r.error || "更新失败"}`
-                                )
-                                .join("\n");
-                            status.textContent = "✓ 所有依赖已更新到最新版本";
-                            status.className = "fix-status sec-status ok";
-                            const sec = btn.closest(".sec");
-                            sec.querySelectorAll(".item.green").forEach(
-                                (item) => {
-                                    item.classList.add("fixed");
-                                    const badge = item.querySelector(
-                                        ".item-head .item-badge",
-                                    );
-                                    if (badge) badge.textContent = "已更新";
-                                },
-                            );
-                            secActions
-                                .querySelectorAll(".fix-btn.safe")
-                                .forEach((b) => b.remove());
-                            if (details) {
-                                alert("更新结果：\n\n" + details);
-                            }
-                        } else {
-                            status.textContent =
-                                "✗ " + (res.error || "更新失败");
-                            status.className = "fix-status sec-status err";
-                        }
-                    })
-                    .catch(() => {
-                        btn.disabled = false;
-                        status.textContent = "✗ 连接失败";
-                        status.className = "fix-status sec-status err";
-                    });
             }
 
             // ---- Mount ----

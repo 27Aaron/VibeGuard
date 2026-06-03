@@ -1,21 +1,24 @@
 ---
 name: vibeguard
-description: >
-  VibeGuard 项目安全扫描助手。自动扫描项目依赖漏洞、硬编码密钥、敏感文件泄露、
-  .gitignore 覆盖度等安全问题，生成可交互的 HTML 安全报告，并通过本地 Web 服务
-  提供一键修复能力。默认用中文解释，保留必要的 API 字段名、包生态名、命令和版本号。
-  触发词：安全扫描、安全检查、项目安全、漏洞检查、依赖漏洞、硬编码密钥、
-  API Key 泄露、env 误提交、gitignore、木马包、恶意包、安全报告。
+description: VibeGuard 项目安全扫描助手，用于"帮我看看项目有没有安全问题"、"安全扫描"、"扫一下项目"、"依赖有没有漏洞"、"木马包"、"恶意包"、"硬编码密钥"、"API Key"、"token"、"env 是否误提交"、"gitignore 是否合理"、"依赖是否太旧"、漏洞检查、项目安全、供应链安全、安全报告、nginx/CVE/某个包有没有风险等场景；默认中文解释，保留 API 字段名、生态名、命令和版本号。
 ---
 
 # VibeGuard 项目安全检查
 
-对用户项目做一次只读安全扫描，产出可交互的 HTML 报告。流程：扫描 → 分析分级 → 生成网页 → 打开。
+对用户项目做一次只读安全扫描，产出安全报告和可交互的 HTML 报告。流程：扫描 → 分析分级 → 生成报告 → 打开。
+
+## 核心边界
+
+- 只在本地读取用户项目文件；不要上传源码、完整 lockfile、`.env`、私钥、证书、数据库、日志或任意项目文件。
+- 调用 VibeGuard API 时，只发送最小必要信息：`ecosystem`、`name`、`version`。
+- 不上传源码、lockfile、env 或密钥；报告里也不要泄露完整密钥，只能写文件、行号、类型和脱敏预览。
+- 完整项目安全扫描必须先在当前工作目录的 `docs/` 下生成 Markdown 审计报告，例如 `docs/security-report-YYYY-MM-DD.md`。用户阅读报告后明确允许修复，才可以执行升级、删除缓存跟踪、修改 `.gitignore`、清理历史或轮换凭证相关操作。
+- API 地址：`https://vibeguard.ou.al`。常用接口包括 `POST https://vibeguard.ou.al/api/security/check/packages`、`GET https://vibeguard.ou.al/api/security/advisories`、`GET https://vibeguard.ou.al/api/security/packages/{ecosystem}/{name}`、`GET https://vibeguard.ou.al/api/security/cves/{cveId}`、`GET https://vibeguard.ou.al/api/security/sync/status`。
 
 ## 铁律
 
 - **全程只读。** scan.py 只读文件、调 API，不修改任何项目内容。
-- **修复操作需确认。** 报告里的修复按钮由 server.py 执行，每次操作前浏览器会弹 confirm。即使用户在对话里说"帮我修"，也要先确认。
+- **修复操作需确认。** 报告里的修复按钮由 server.py 执行，每次操作前浏览器会弹 confirm。即使用户在对话里说"帮我修"，也要先让用户阅读报告并明确允许。
 - **不要把"依赖过旧"说成"存在漏洞"。** 只有命中漏洞数据时才说有漏洞。
 - **不要制造恐慌。** 没有证据时说"不确定"，不要说"肯定安全"或"肯定中招"。
 
@@ -26,6 +29,8 @@ description: >
 ```bash
 # macOS / Linux
 python3 scripts/scan.py [project_path] > /tmp/vibeguard_scan.json
+# 严格只扫指定目录，不向上识别 git 根目录：
+python3 scripts/scan.py --no-root-discovery [project_path] > /tmp/vibeguard_scan.json
 # Windows
 python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
 ```
@@ -38,7 +43,7 @@ python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
 
 1. **所有漏洞按严重度排序**（critical > high > medium > low），全部放入 `top_issues`，不要只放前 5 个。`top_issues` 中每项**必须透传** scan.py 输出中的 `advisory_id`、`aliases`、`cve_id`、`package`、`version`、`severity`、`summary` 字段——这些是漏洞总览表格的显示数据，漏了列就是空的。
 2. **三灯分级**：
-   - 🟢 **可自动修复**：有明确修复方案且风险可控（有 fix version 的依赖漏洞、.gitignore 缺失规则、git rm --cached）。每项给 `fix_config`（upgrade / gitignore / git_rm_cached 三种类型）。`upgrade` 只填结构化字段：`type`、`ecosystem`、`package`、`version`，JS 生态可加 `manager`（npm / pnpm / yarn）；不要依赖自由文本 `command` 执行。
+   - 🟢 **可自动修复**：有明确修复方案且风险可控（有 fix version 的 JS/Go/Rust 依赖漏洞、.gitignore 缺失规则、git rm --cached）。每项给 `fix_config`（upgrade / gitignore / git_rm_cached 三种类型）。`upgrade` 只填结构化字段：`type`、`ecosystem`、`package`、`version`，JS 生态可加 `manager`（npm / pnpm / yarn）；不要依赖自由文本 `command` 执行。Python/PyPI 依赖升级必须先确认虚拟环境和锁文件，默认放 🟡 手动处理，不启用网页一键修复。
    - 🟡 **需人工判断**：含用户数据或需确认风险（硬编码密钥、可疑依赖、版本范围模糊）。给内容画像 + 处置路径 + 风险提示。所有黄灯项在服务模式下有「在编辑器打开」按钮。
    - 🔴 **高危/需专业处理**：不可自动修复（密钥已入 git 历史、恶意包）。给具体处理步骤，不给操作按钮。
 3. **每一项（green / yellow / red）都必须设置 `severity` 字段**，值为 `critical`、`high`、`medium`、`low`、`info` 之一。这是进度条着色的数据来源，漏了整条进度条就是灰色。
@@ -50,19 +55,25 @@ python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
 
 **🟢 项必须带 `fix_config`**——这是网页修复按钮的前提，漏了按钮就不出现。
 
-### Step 3 生成交互报告
+### Step 3 生成报告
 
-**默认用一键修复模式（`server.py`）打开报告**：
+先把结论写到当前工作目录的 `docs/security-report-YYYY-MM-DD.md`，内容包括：扫描范围、隐私边界、最高风险、漏洞命中、硬编码密钥/敏感文件、过旧依赖、扫描错误、下一步建议。这个 Markdown 是可审计交付物。
+
+然后生成可交互 HTML。默认用一键修复模式（`server.py`）打开报告，但真正执行修复仍需要用户在报告页二次确认。
+
+**交互模式（`server.py`）**：
 
 ```bash
 # macOS / Linux
 python3 scripts/server.py /tmp/vibeguard_analysis.json
+# 如果已经有报告页打开，只想打印 URL：
+python3 scripts/server.py --no-open /tmp/vibeguard_analysis.json
 # Windows
 python scripts/server.py %TEMP%\vibeguard_analysis.json
 # 自动开浏览器，Ctrl+C 停
 ```
 
-`server.py` 起在 127.0.0.1 + 随机端口 + 随机 token。🟢 项给「执行修复」按钮（二次确认）；🟡 项给「在编辑器打开」按钮；🔴 项只给文字建议。修复白名单由服务端按 `fix_config` 生成随机 action id，并按结构化字段重新生成命令；不会执行 analysis JSON 里的自由文本命令。
+`server.py` 起在 127.0.0.1 + 随机端口 + 随机 token。🟢 项给「执行修复」按钮（二次确认）；🟡 项给「在编辑器打开」按钮；🔴 项只给文字建议。修复白名单由服务端按 `fix_config` 生成随机 action id，并按结构化字段重新生成命令；不会执行 analysis JSON 里的自由文本命令，也不提供“更新所有依赖”这种宽泛操作。
 
 仅当用户明确只想要一份可分享/留存的只读文件时，才用静态模式：
 ```bash

@@ -7,6 +7,7 @@ commands. Stop with Ctrl+C.
 
 Usage:
     server.py <analysis.json>
+    server.py --no-open <analysis.json>
 
 SAFETY MODEL — read before changing:
 - Allowlist: only fix_config from green items are accepted. Every request is
@@ -19,6 +20,8 @@ SAFETY MODEL — read before changing:
 - Red items: no actions available.
 """
 
+import argparse
+import hashlib
 import json
 import os
 import re
@@ -26,6 +29,7 @@ import secrets
 import shlex
 import subprocess
 import sys
+import tempfile
 import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -34,6 +38,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, "..", "assets", "report_template.html")
 TOKEN = secrets.token_urlsafe(24)
 MAX_POST_BYTES = 64 * 1024
+AUTO_OPEN_COOLDOWN_SECONDS = 10
 
 SAFE_PACKAGE_RE = re.compile(r"^[A-Za-z0-9@._+/\-]+$")
 SAFE_VERSION_RE = re.compile(r"^[A-Za-z0-9<>=!~^.*][A-Za-z0-9<>=!~^.,:_+\-*]*$")
@@ -56,6 +61,54 @@ def json_for_script(value):
         .replace("\u2028", "\\u2028")
         .replace("\u2029", "\\u2029")
     )
+
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description="Serve a VibeGuard security report")
+    parser.add_argument("analysis_json", help="path to vibeguard analysis JSON")
+    parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="print the report URL without opening a browser tab",
+    )
+    return parser.parse_args(argv)
+
+
+def open_browser_once(url, analysis_path):
+    """Avoid duplicate browser tabs when the same report server is started twice."""
+    try:
+        marker_key = "%s:%s" % (
+            os.path.realpath(analysis_path),
+            os.path.getmtime(analysis_path),
+        )
+    except OSError:
+        marker_key = os.path.realpath(analysis_path)
+    digest = hashlib.sha256(marker_key.encode("utf-8")).hexdigest()[:24]
+    marker = os.path.join(tempfile.gettempdir(), f"vibeguard-open-{digest}.stamp")
+    now = time.time()
+
+    try:
+        fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError:
+        try:
+            age = now - os.path.getmtime(marker)
+        except OSError:
+            age = 0
+        if age < AUTO_OPEN_COOLDOWN_SECONDS:
+            return False
+        try:
+            os.unlink(marker)
+        except OSError:
+            return False
+        try:
+            fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            return False
+
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(url)
+    webbrowser.open_new_tab(url)
+    return True
 
 
 def project_root(data):
@@ -158,21 +211,7 @@ def build_upgrade_command(cfg, item, data):
         }
 
     if ecosystem == "pypi":
-        manager = cfg.get("manager") or "pip"
-        if manager not in ("pip", "pip3"):
-            raise ValueError("不支持的 Python 包管理器")
-        version = normalize_version(cfg.get("version") or item.get("version"))
-        if version.startswith(("==", ">=", "<=", "!=", "~=", ">", "<")):
-            spec = f"{package}{version}"
-        else:
-            spec = f"{package}=={version}"
-        return [sys.executable, "-m", "pip", "install", spec], {
-            "type": "upgrade",
-            "ecosystem": "pypi",
-            "manager": manager,
-            "package": package,
-            "version": version,
-        }
+        raise ValueError("Python 依赖需确认虚拟环境和锁文件，暂不启用网页一键修复")
 
     if ecosystem == "go":
         version = normalize_version(cfg.get("version") or item.get("version"), exact=True)
@@ -358,110 +397,6 @@ def execute_fix(config, cwd):
         raise ValueError(f"未知修复类型: {fix_type}")
 
 
-def execute_update_all(data, cwd):
-    """Execute blanket dependency updates for all detected ecosystems.
-
-    Runs the appropriate update command (npm update / pnpm update /
-    yarn upgrade / pip install --upgrade -r requirements.txt / go get -u ./...
-    / cargo update) based on the project's detected ecosystems.
-    """
-    ecosystems = set(data.get("project", {}).get("ecosystems") or [])
-    results = []
-
-    # JavaScript / TypeScript
-    js_ecos = {"npm", "pnpm", "yarn"}
-    if ecosystems & js_ecos:
-        manager = infer_js_manager(data)
-        cmd_map = {
-            "npm": ["npm", "update"],
-            "pnpm": ["pnpm", "update"],
-            "yarn": ["yarn", "upgrade"],
-        }
-        cmd = cmd_map.get(manager, ["npm", "update"])
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=300, cwd=cwd
-            )
-            if result.returncode != 0:
-                results.append({
-                    "ecosystem": manager,
-                    "ok": False,
-                    "error": (result.stderr or "更新失败").strip()[:500],
-                })
-            else:
-                results.append({"ecosystem": manager, "ok": True})
-        except Exception as e:
-            results.append({"ecosystem": manager, "ok": False, "error": str(e)[:500]})
-
-    # Python (pypi)
-    if "pypi" in ecosystems:
-        req_file = os.path.join(cwd, "requirements.txt")
-        if os.path.isfile(req_file):
-            try:
-                result = subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "--upgrade",
-                     "-r", "requirements.txt"],
-                    capture_output=True, text=True, timeout=300, cwd=cwd,
-                )
-                if result.returncode != 0:
-                    results.append({
-                        "ecosystem": "pypi",
-                        "ok": False,
-                        "error": (result.stderr or "更新失败").strip()[:500],
-                    })
-                else:
-                    results.append({"ecosystem": "pypi", "ok": True})
-            except Exception as e:
-                results.append({"ecosystem": "pypi", "ok": False, "error": str(e)[:500]})
-        else:
-            results.append({
-                "ecosystem": "pypi",
-                "ok": False,
-                "error": "未找到 requirements.txt，跳过 pypi 依赖更新",
-            })
-
-    # Go
-    if "go" in ecosystems:
-        try:
-            result = subprocess.run(
-                ["go", "get", "-u", "./..."],
-                capture_output=True, text=True, timeout=300, cwd=cwd,
-            )
-            if result.returncode != 0:
-                results.append({
-                    "ecosystem": "go",
-                    "ok": False,
-                    "error": (result.stderr or "更新失败").strip()[:500],
-                })
-            else:
-                results.append({"ecosystem": "go", "ok": True})
-        except Exception as e:
-            results.append({"ecosystem": "go", "ok": False, "error": str(e)[:500]})
-
-    # Rust (crates-io)
-    if "crates-io" in ecosystems:
-        try:
-            result = subprocess.run(
-                ["cargo", "update"],
-                capture_output=True, text=True, timeout=300, cwd=cwd,
-            )
-            if result.returncode != 0:
-                results.append({
-                    "ecosystem": "crates-io",
-                    "ok": False,
-                    "error": (result.stderr or "更新失败").strip()[:500],
-                })
-            else:
-                results.append({"ecosystem": "crates-io", "ok": True})
-        except Exception as e:
-            results.append({"ecosystem": "crates-io", "ok": False, "error": str(e)[:500]})
-
-    if not results:
-        raise ValueError("未检测到支持的包管理生态")
-
-    return results
-
-
 def open_in_editor(path):
     """Open file in default editor (non-destructive)."""
     if not os.path.exists(path):
@@ -542,14 +477,6 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send(500, json.dumps({"ok": False, "error": str(e)}))
 
-        elif mode == "update_all":
-            try:
-                results = execute_update_all(DATA, project_path)
-                all_ok = all(r.get("ok") for r in results)
-                self._send(200, json.dumps({"ok": all_ok, "results": results}))
-            except Exception as e:
-                self._send(500, json.dumps({"ok": False, "error": str(e)}))
-
         elif mode == "open":
             paths = params.get("paths", [])
             if isinstance(paths, str):
@@ -584,8 +511,9 @@ def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
+    args = parse_args(sys.argv[1:])
     global DATA, TPL, FIX_ALLOW, OPEN_ALLOW
-    DATA, TPL, FIX_ALLOW, OPEN_ALLOW = load(sys.argv[1])
+    DATA, TPL, FIX_ALLOW, OPEN_ALLOW = load(args.analysis_json)
     srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     port = srv.server_address[1]
     url = "http://127.0.0.1:%d/" % port
@@ -594,7 +522,10 @@ def main():
         "可修复 %d 项 | 可打开 %d 个文件 | 页面上点" % (len(FIX_ALLOW), len(OPEN_ALLOW))
     )
     print("用完按 Ctrl+C 停止服务（服务关掉后按钮即失效）")
-    webbrowser.open(url)
+    if args.no_open:
+        print("已按 --no-open 跳过自动打开浏览器")
+    elif not open_browser_once(url, args.analysis_json):
+        print("同一报告刚刚已自动打开，本次只打印 URL，避免重复打开标签页")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
