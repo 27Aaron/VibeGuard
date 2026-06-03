@@ -29,15 +29,19 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 ```bash
 # macOS / Linux
 python3 scripts/scan.py [project_path] > /tmp/vibeguard_scan.json
-# 可按网络和工具链情况调并发；默认 API=4、outdated=4
-python3 scripts/scan.py --api-concurrency 4 --outdated-concurrency 4 [project_path] > /tmp/vibeguard_scan.json
+# 可按网络和工具链情况调并发；默认 API=8、outdated=4
+python3 scripts/scan.py --api-concurrency 8 --outdated-concurrency 4 [project_path] > /tmp/vibeguard_scan.json
+# 快速模式：跳过较慢的过旧依赖检查，只做仓库卫生 + 漏洞确认
+python3 scripts/scan.py --skip-outdated [project_path] > /tmp/vibeguard_scan.json
+# 调试模式：输出完整包清单；默认只输出包数量和来源摘要，避免大项目 JSON 过大
+python3 scripts/scan.py --include-packages [project_path] > /tmp/vibeguard_scan.json
 # 严格只扫指定目录，不向上识别 git 根目录：
 python3 scripts/scan.py --no-root-discovery [project_path] > /tmp/vibeguard_scan.json
 # Windows
 python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
 ```
 
-`scan.py` 自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）→ 生态识别与依赖提取（支持 npm/pnpm/yarn、pypi、go、crates-io 四大生态）→ 调用 VibeGuard API 查漏洞（100 个一批，默认 4 并发）→ 过旧依赖检查（默认按生态并发）。扫描较慢时优先调低或调高 `--api-concurrency` 和 `--outdated-concurrency`。
+`scan.py` 自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）→ 生态识别与依赖提取（支持 npm/pnpm/yarn、pypi、go、crates-io 四大生态）→ 调用 VibeGuard API 查漏洞（100 个一批，默认 8 并发）→ 过旧依赖检查（默认按生态并发）。本地卫生检查、漏洞 API、过旧依赖检查会并行执行；输出里的 `step_seconds` 可用于判断慢点。扫描较慢时优先使用 `--skip-outdated`，或调低/调高 `--api-concurrency`、`--outdated-concurrency`。默认不输出完整 `packages` 清单，只输出 `package_count` 和 `package_sources`，需要排查解析问题时再加 `--include-packages`。
 
 ### Step 2 分析与分级
 
@@ -52,7 +56,7 @@ python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
    - 漏洞类：直接用 scan.py 返回的 severity。
    - 仓库卫生类（gitignore、敏感文件、硬编码密钥）：按风险判断赋值——密钥泄露用 `high`/`critical`，gitignore 规则缺失用 `medium`，过旧依赖用 `low`。
 4. **构建 risk_summary**：`{ "critical": N, "high": N, "medium": N, "low": N, "info": N }`，严格使用这五个 key，统计各严重等级数量。
-5. **必须构建 summary**：每份 analysis JSON 都要有 `summary.overview`、`summary.priority`、`summary.long_term`。`priority` 对应网页里的「执行建议」，`long_term` 对应「长期安全建议」；两者必须是字符串数组，不要写成带换行编号的单个字符串。即使没有发现风险，也要写保留报告、定期扫描、依赖升级验证这类建议。
+5. **必须构建 summary**：每份 analysis JSON 都要有 `summary.overview`、`summary.priority`。报告面向偏产品经理、项目负责人和非安全背景读者，表述要像产品/项目风险摘要：少用术语，讲清楚「是否影响发布」「是否需要马上安排」「需要研发/运维确认什么」。`priority` 对应网页里的「报告总结」行动项，必须是字符串数组，不要写成带换行编号的单个字符串。即使没有发现风险，也要写保留报告、定期复查、依赖升级验证这类建议。
 
 把分析结果写成 analysis JSON（schema 见 `scripts/build_report.py` 顶部注释）。**必须透传 scan.py 输出中的 `generated_at` 和 `scan_seconds` 字段**，它们是计算全流程耗时（扫描 + 分析 + 报告生成）的数据来源。
 
@@ -62,7 +66,7 @@ python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
 
 先把结论写到当前工作目录的 `docs/security-report-YYYY-MM-DD.md`，内容包括：扫描范围、隐私边界、最高风险、漏洞命中、硬编码密钥/敏感文件、过旧依赖、扫描错误、下一步建议。这个 Markdown 是可审计交付物。
 
-然后生成可交互 HTML。默认用一键修复模式（`server.py`）打开报告，但真正执行修复仍需要用户在报告页二次确认。
+然后生成可交互 HTML。默认用一键修复模式（`server.py`）打开报告；必须等 Markdown 报告和 analysis JSON 都写完后，再启动 `server.py`，避免半成品或静态 HTML 被提前打开。真正执行修复仍需要用户在报告页二次确认。
 
 **交互模式（`server.py`）**：
 
@@ -78,17 +82,17 @@ python scripts/server.py %TEMP%\vibeguard_analysis.json
 
 `server.py` 起在 127.0.0.1 + 随机端口 + 随机 token。🟢 项给「执行修复」按钮（二次确认）；🟢 标题右侧给「一键修复」按钮，用于在用户确认风险后批量运行依赖更新命令；🟡 项给「在编辑器打开」按钮；🔴 项只给文字建议。逐项修复白名单由服务端按 `fix_config` 生成随机 action id，并按结构化字段重新生成命令；不会执行 analysis JSON 里的自由文本命令。
 
-仅当用户明确只想要一份可分享/留存的只读文件时，才用静态模式：
+仅当用户明确只想要一份可分享/留存的只读文件时，才用静态模式；不要在同一次完整扫描里同时打开静态 HTML 和交互服务：
 ```bash
 # macOS / Linux
-python3 scripts/build_report.py /tmp/vibeguard_analysis.json ~/Desktop/security-report.html && open ~/Desktop/security-report.html
+python3 scripts/build_report.py /tmp/vibeguard_analysis.json ~/Desktop/security-report.html
 # Windows
-python scripts/build_report.py %TEMP%\vibeguard_analysis.json %USERPROFILE%\Desktop\security-report.html && start security-report.html
+python scripts/build_report.py %TEMP%\vibeguard_analysis.json %USERPROFILE%\Desktop\security-report.html
 ```
 
 **排障：网页上没有修复按钮** = 要么开的是静态报告（改用 `server.py`），要么 🟢 项漏了 `fix_config`（补上重启服务）。
 
-报告阅读流：项目概览（项目名 + 生态 + 依赖数 + 漏洞数 + 风险分布条）→ 漏洞总览（全部漏洞，按严重度排序，不要只截取前 N 项）→ 执行建议 → 🟢🟡🔴 三级可折叠卡片（命令一键复制）→ 长期安全建议。
+报告阅读流：项目概览（项目名 + 生态 + 依赖数 + 漏洞数 + 风险分布条）→ 报告总结（面向产品经理/项目负责人）→ 漏洞总览（全部漏洞，按严重度排序，不要只截取前 N 项，GHSA 完整展示）→ 🟢🟡🔴 三级可折叠卡片（命令一键复制）→ 扫描错误。
 
 ## 依赖与运行前提
 

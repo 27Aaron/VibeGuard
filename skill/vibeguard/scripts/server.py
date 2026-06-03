@@ -41,7 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, "..", "assets", "report_template.html")
 TOKEN = secrets.token_urlsafe(24)
 MAX_POST_BYTES = 64 * 1024
-AUTO_OPEN_COOLDOWN_SECONDS = 10
+AUTO_OPEN_COOLDOWN_SECONDS = 60
 
 SAFE_PACKAGE_RE = re.compile(r"^[A-Za-z0-9@._+/\-]+$")
 SAFE_VERSION_RE = re.compile(r"^[A-Za-z0-9<>=!~^.*][A-Za-z0-9<>=!~^.,:_+\-*]*$")
@@ -78,14 +78,8 @@ def parse_args(argv):
 
 
 def open_browser_once(url, analysis_path):
-    """Avoid duplicate browser tabs when the same report server is started twice."""
-    try:
-        marker_key = "%s:%s" % (
-            os.path.realpath(analysis_path),
-            os.path.getmtime(analysis_path),
-        )
-    except OSError:
-        marker_key = os.path.realpath(analysis_path)
+    """Avoid duplicate browser tabs when the same report path is regenerated."""
+    marker_key = os.path.realpath(analysis_path)
     digest = hashlib.sha256(marker_key.encode("utf-8")).hexdigest()[:24]
     marker = os.path.join(tempfile.gettempdir(), f"vibeguard-open-{digest}.stamp")
     now = time.time()

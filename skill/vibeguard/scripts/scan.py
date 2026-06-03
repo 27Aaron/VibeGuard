@@ -12,8 +12,10 @@ STRICTLY READ-ONLY: 只读文件、运行只读命令，不修改任何内容。
 Usage:
     python3 scan.py [project_path]              # 默认向上识别项目根目录
     python3 scan.py --no-root-discovery <path>  # 严格扫描传入目录
-    python3 scan.py --api-concurrency 4 <path>  # 并发检查漏洞 API
+    python3 scan.py --api-concurrency 8 <path>  # 并发检查漏洞 API
     python3 scan.py --outdated-concurrency 4 <path>
+    python3 scan.py --skip-outdated <path>      # 跳过较慢的过旧依赖检查
+    python3 scan.py --include-packages <path>   # 输出完整包清单
     python3 scan.py                             # 等同于 python3 scan.py .
 
 VibeGuard API (https://vibeguard.ou.al):
@@ -51,15 +53,26 @@ SECRET_PATTERNS = [
         r"""(?:api[_-]?key|apikey|secret[_-]?key)\s*[:=]\s*["'][^"']{8,}["']""",
     ),
 ]
+SECRET_REGEXES = [(name, re.compile(pattern)) for name, pattern in SECRET_PATTERNS]
+SECRET_SKIP_MARKERS = ("example", "placeholder", "your_", "xxx", "todo", "sample")
+HIGH_CONFIDENCE_SECRET_TYPES = {
+    "aws_access_key",
+    "private_key",
+    "slack_token",
+    "github_token",
+}
 
 SENSITIVE_FILE_PATTERNS = [
-    r"(^|/)\.env(\.[\w-]+)?$",
-    r"\.(pem|key|p12|pfx|jks|keystore)$",
-    r"\.(sqlite|sqlite3|db|dump)$",
-    r"\.log$",
-    r"(^|/)credentials\.json$",
-    r"(^|/)service-account.*\.json$",
-    r"(^|/)id_(rsa|ed25519|ecdsa)$",
+    ("env_file", r"(^|/)\.env(\.[\w-]+)?$"),
+    ("private_key", r"\.(pem|key|p12|pfx|jks|keystore)$"),
+    ("database", r"\.(sqlite|sqlite3|db|dump)$"),
+    ("log", r"\.log$"),
+    ("credentials", r"(^|/)credentials\.json$"),
+    ("credentials", r"(^|/)service-account.*\.json$"),
+    ("ssh_key", r"(^|/)id_(rsa|ed25519|ecdsa)$"),
+]
+SENSITIVE_FILE_REGEXES = [
+    (file_type, re.compile(pattern)) for file_type, pattern in SENSITIVE_FILE_PATTERNS
 ]
 
 ENV_TEMPLATE_SUFFIXES = (".example", ".sample", ".template", ".dist")
@@ -250,6 +263,15 @@ def is_env_template(path):
     )
 
 
+def sensitive_file_type(path):
+    if is_env_template(path):
+        return ""
+    for file_type, pattern in SENSITIVE_FILE_REGEXES:
+        if pattern.search(path):
+            return file_type
+    return ""
+
+
 def is_git_worktree(path):
     return run_cmd(["git", "rev-parse", "--is-inside-work-tree"], cwd=path) == "true"
 
@@ -296,33 +318,16 @@ def check_sensitive_tracked(project_path):
     for f in output.split("\n"):
         if not f.strip():
             continue
-        if is_env_template(f):
+        ftype = sensitive_file_type(f)
+        if not ftype:
             continue
-        for pat in SENSITIVE_FILE_PATTERNS:
-            if re.search(pat, f):
-                full = os.path.join(project_path, f)
-                size = 0
-                try:
-                    size = os.path.getsize(full)
-                except OSError:
-                    pass
-                ftype = "sensitive_file"
-                if re.search(r"(^|/)\.env(\.[\w-]+)?$", f):
-                    ftype = "env_file"
-                elif re.search(r"\.(pem|key|p12|pfx|jks|keystore)$", f):
-                    ftype = "private_key"
-                elif re.search(r"\.(sqlite|sqlite3|db|dump)$", f):
-                    ftype = "database"
-                elif re.search(r"\.log$", f):
-                    ftype = "log"
-                elif re.search(r"(^|/)credentials\.json$", f) or re.search(
-                    r"(^|/)service-account.*\.json$", f
-                ):
-                    ftype = "credentials"
-                elif re.search(r"(^|/)id_(rsa|ed25519|ecdsa)$", f):
-                    ftype = "ssh_key"
-                findings.append({"file": f, "type": ftype, "size": size})
-                break
+        full = os.path.join(project_path, f)
+        size = 0
+        try:
+            size = os.path.getsize(full)
+        except OSError:
+            pass
+        findings.append({"file": f, "type": ftype, "size": size})
     return findings
 
 
@@ -346,20 +351,11 @@ def scan_secrets(project_path, max_files=500, max_bytes=1024 * 1024):
                         stripped = line.strip()
                         if stripped.startswith("#") or stripped.startswith("//"):
                             continue
-                        if any(
-                            x in stripped.lower()
-                            for x in [
-                                "example",
-                                "placeholder",
-                                "your_",
-                                "xxx",
-                                "todo",
-                                "sample",
-                            ]
-                        ):
+                        lowered = stripped.lower()
+                        if any(x in lowered for x in SECRET_SKIP_MARKERS):
                             continue
-                        for secret_type, pattern in SECRET_PATTERNS:
-                            m = re.search(pattern, line)
+                        for secret_type, pattern in SECRET_REGEXES:
+                            m = pattern.search(line)
                             if m:
                                 preview = m.group(0)
                                 if len(preview) > 30:
@@ -372,13 +368,7 @@ def scan_secrets(project_path, max_files=500, max_bytes=1024 * 1024):
                                         "type": secret_type,
                                         "preview": preview,
                                         "confidence": "high"
-                                        if secret_type
-                                        in (
-                                            "aws_access_key",
-                                            "private_key",
-                                            "slack_token",
-                                            "github_token",
-                                        )
+                                        if secret_type in HIGH_CONFIDENCE_SECRET_TYPES
                                         else "medium",
                                     }
                                 )
@@ -388,10 +378,10 @@ def scan_secrets(project_path, max_files=500, max_bytes=1024 * 1024):
     return findings
 
 
-def scan_hygiene(project_path):
+def scan_hygiene(project_path, max_secret_files=500):
     # Scan sensitive files first, then use findings to drive gitignore recommendations
     sensitive_tracked = check_sensitive_tracked(project_path)
-    tracked_secrets = scan_secrets(project_path)
+    tracked_secrets = scan_secrets(project_path, max_files=max_secret_files)
     gitignore_exists, gitignore_missing = check_gitignore(project_path, sensitive_tracked)
     return {
         "gitignore_exists": gitignore_exists,
@@ -803,6 +793,17 @@ def extract_packages(project_path, ecosystems):
                 seen.add(key)
                 all_pkgs.append(pkg)
     return all_pkgs
+
+
+def package_source_summary(packages):
+    counts = {}
+    for pkg in packages:
+        key = (pkg.get("ecosystem", ""), pkg.get("source", ""))
+        counts[key] = counts.get(key, 0) + 1
+    return [
+        {"ecosystem": eco, "source": source, "count": count}
+        for (eco, source), count in sorted(counts.items())
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -1234,7 +1235,7 @@ def parse_args(argv):
     parser.add_argument(
         "--api-concurrency",
         type=int,
-        default=4,
+        default=8,
         help="number of concurrent VibeGuard API package-check requests",
     )
     parser.add_argument(
@@ -1242,6 +1243,32 @@ def parse_args(argv):
         type=int,
         default=4,
         help="number of concurrent outdated dependency checks",
+    )
+    parser.add_argument(
+        "--skip-outdated",
+        action="store_true",
+        help="skip package-manager outdated checks for faster vulnerability-only scans",
+    )
+    parser.add_argument(
+        "--skip-hygiene",
+        action="store_true",
+        help="skip gitignore, tracked sensitive file, and hardcoded secret checks",
+    )
+    parser.add_argument(
+        "--max-secret-files",
+        type=int,
+        default=500,
+        help="maximum number of candidate files to scan for hardcoded secrets",
+    )
+    parser.add_argument(
+        "--include-packages",
+        action="store_true",
+        help="include the full package list in output JSON",
+    )
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="emit compact JSON instead of pretty-printed JSON",
     )
     return parser.parse_args(argv)
 
@@ -1254,50 +1281,88 @@ def main():
         os.path.abspath(start) if args.no_root_discovery else find_project_root(start)
     )
     errors = []
+    step_seconds = {}
 
-    # Step 1
-    try:
-        hygiene = scan_hygiene(project_path)
-    except Exception as e:
-        hygiene = {}
-        errors.append({"step": "hygiene", "message": str(e)})
-
-    # Step 2
+    # Step 1: detect ecosystems
+    step_started = time.time()
     try:
         ecosystems, lockfiles = detect_ecosystems(project_path)
     except Exception as e:
         ecosystems, lockfiles = [], {}
         errors.append({"step": "ecosystem_detection", "message": str(e)})
+    step_seconds["ecosystem_detection"] = round(time.time() - step_started, 3)
 
-    # Step 3
+    # Step 2: parse package coordinates
+    step_started = time.time()
     try:
         packages = extract_packages(project_path, ecosystems)
     except Exception as e:
         packages = []
         errors.append({"step": "package_extraction", "message": str(e)})
+    step_seconds["package_extraction"] = round(time.time() - step_started, 3)
 
-    # Step 4
-    try:
-        vulnerabilities = check_vulnerabilities(
-            packages,
-            errors=errors,
-            concurrency=args.api_concurrency,
-        )
-    except Exception as e:
-        vulnerabilities = []
-        errors.append({"step": "vulnerability_check", "message": str(e)})
+    # Step 3-5: independent I/O-heavy checks run in parallel.
+    def run_hygiene_step():
+        step_started = time.time()
+        if args.skip_hygiene:
+            return "hygiene", {"skipped": True}, [], round(time.time() - step_started, 3)
+        try:
+            result = scan_hygiene(
+                project_path,
+                max_secret_files=max(0, int(args.max_secret_files or 0)),
+            )
+            return "hygiene", result, [], round(time.time() - step_started, 3)
+        except Exception as e:
+            return "hygiene", {}, [{"step": "hygiene", "message": str(e)}], round(
+                time.time() - step_started,
+                3,
+            )
 
-    # Step 5
-    try:
-        outdated = check_outdated(
-            project_path,
-            ecosystems,
-            errors=errors,
-            concurrency=args.outdated_concurrency,
-        )
-    except Exception as e:
-        outdated = []
-        errors.append({"step": "outdated_check", "message": str(e)})
+    def run_vulnerability_step():
+        step_started = time.time()
+        step_errors = []
+        try:
+            result = check_vulnerabilities(
+                packages,
+                errors=step_errors,
+                concurrency=args.api_concurrency,
+            )
+        except Exception as e:
+            result = []
+            step_errors.append({"step": "vulnerability_check", "message": str(e)})
+        return "vulnerabilities", result, step_errors, round(time.time() - step_started, 3)
+
+    def run_outdated_step():
+        step_started = time.time()
+        if args.skip_outdated:
+            return "outdated", [], [], round(time.time() - step_started, 3)
+        step_errors = []
+        try:
+            result = check_outdated(
+                project_path,
+                ecosystems,
+                errors=step_errors,
+                concurrency=args.outdated_concurrency,
+            )
+        except Exception as e:
+            result = []
+            step_errors.append({"step": "outdated_check", "message": str(e)})
+        return "outdated", result, step_errors, round(time.time() - step_started, 3)
+
+    hygiene, vulnerabilities, outdated = {}, [], []
+    parallel_steps = [run_hygiene_step, run_vulnerability_step, run_outdated_step]
+    with ThreadPoolExecutor(max_workers=len(parallel_steps)) as executor:
+        futures = [executor.submit(step) for step in parallel_steps]
+        for future in as_completed(futures):
+            name, result, step_errors, elapsed = future.result()
+            step_seconds[name] = elapsed
+            errors.extend(step_errors)
+            if name == "hygiene":
+                hygiene = result
+            elif name == "vulnerabilities":
+                vulnerabilities = result
+            elif name == "outdated":
+                outdated = result
 
     git_repo = is_git_worktree(project_path)
     git_branch = (
@@ -1324,17 +1389,27 @@ def main():
             "outdated_concurrency": max(
                 1, min(int(args.outdated_concurrency or 1), 8)
             ),
+            "skip_hygiene": bool(args.skip_hygiene),
+            "skip_outdated": bool(args.skip_outdated),
+            "include_packages": bool(args.include_packages),
+            "max_secret_files": max(0, int(args.max_secret_files or 0)),
         },
+        "step_seconds": step_seconds,
         "hygiene": hygiene,
-        "packages": packages,
         "package_count": len(packages),
+        "package_sources": package_source_summary(packages),
         "vulnerabilities": vulnerabilities,
         "vulnerability_count": len(vulnerabilities),
         "outdated": outdated,
         "outdated_count": len(outdated),
         "errors": errors,
     }
-    print(json.dumps(output, ensure_ascii=False, indent=2))
+    if args.include_packages:
+        output["packages"] = packages
+    if args.compact:
+        print(json.dumps(output, ensure_ascii=False, separators=(",", ":")))
+    else:
+        print(json.dumps(output, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

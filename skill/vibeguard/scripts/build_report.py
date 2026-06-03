@@ -57,10 +57,9 @@ Schema (all sections optional except project):
     "risk": "风险说明"
   }],
   "summary": {                              // 必填；网页也会兜底生成，但 agent 应主动写
-    "overview": "一句话洞察",
+    "overview": "面向产品经理/项目负责人的一句话风险结论",
     "tier_stats": { "green": "3 项可自动修复", "yellow": "2 项需人工判断", "red": "1 项高危" },
-    "priority": ["1. ...", "2. ..."],
-    "long_term": ["启用 pre-commit hook", "配置 Dependabot", "定期安全扫描"]
+    "priority": ["1. ...", "2. ..."]
   }
 }
 """
@@ -108,7 +107,7 @@ def main():
     with open(out, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"报告已生成: {out}")
-    print(f"打开: open '{out}'")
+    print(f"只读 HTML 已生成，可按需打开: open '{out}'")
 
 
 if __name__ == "__main__":
