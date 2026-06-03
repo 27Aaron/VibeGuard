@@ -29,7 +29,8 @@ Schema (all sections optional except project):
   },
   "outdated": [{ "package": "react", "current": "18.2.0", "latest": "19.1.0", "ecosystem": "npm" }],
   "top_issues": [{ "rank": 1, "tier": "red|yellow|green", "severity": "critical|high|medium|low|info",
-                   "package": "name", "version": "1.0.0", "advisory_id": "GHSA-xxx", "summary": "..." }],
+                   "package": "name", "version": "1.0.0", "advisory_id": "GHSA-xxx",
+                   "summary": "一句普通用户能看懂的风险说明，不要堆 CVE/GHSA 编号" }],
   "green": [{
     "name": "升级 next 到 15.5.2",
     "type": "dependency_upgrade",          // dependency_upgrade | gitignore_fix | git_rm_cached
@@ -64,8 +65,8 @@ Schema (all sections optional except project):
     "risk": "风险说明"
   }],
   "summary": {                              // 必填；网页也会兜底生成，但 agent 应主动写
-    "tldr": "一句话摘要，给产品经理快速判断是否影响发布",
-    "detail": "更完整的报告总结，用普通人能看懂的语言解释风险范围、是否需要马上安排、谁来确认。",
+    "tldr": "一句话摘要，给产品经理快速判断是否影响发布；不要写 critical/medium/CVE/GHSA 列表",
+    "detail": "更完整的报告总结，用普通人能看懂的语言解释风险范围、是否需要马上安排、谁来确认；证据编号留给漏洞表。",
     "tier_stats": { "green": "3 项可由 agent 处理", "yellow": "2 项需人工判断", "red": "1 项高危" },
     "priority": ["1. ...", "2. ..."]
   }

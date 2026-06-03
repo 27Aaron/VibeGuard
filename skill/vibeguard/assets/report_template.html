@@ -1490,9 +1490,170 @@
                 return `<div class="field"><div class="label">${esc(label)}</div>${esc(value)}</div>`;
             }
 
+            function normalizeSecurityLanguage(value) {
+                return String(value == null ? "" : value)
+                    .replace(/[（(][^）)]*(?:CVE-\d{4}-\d+|GHSA-[A-Za-z0-9-]+)[^）)]*[）)]/gi, "")
+                    .replace(/\bCVE-\d{4}-\d+\b/gi, "")
+                    .replace(/\bGHSA-[A-Za-z0-9-]+\b/gi, "")
+                    .replace(/\bcritical\b/gi, "严重")
+                    .replace(/\bhigh\b/gi, "高危")
+                    .replace(/\bmedium\b/gi, "中危")
+                    .replace(/\blow\b/gi, "低危")
+                    .replace(/\bSSRF\b/g, "服务端访问控制风险")
+                    .replace(/\bXSS\b/g, "页面安全风险")
+                    .replace(/\bDoS\b/g, "服务稳定性风险")
+                    .replace(/中间件绕过/g, "访问控制绕过")
+                    .replace(/缓存投毒/g, "缓存内容被污染")
+                    .replace(/(\d+)\s*个\s*严重\s*\+\s*(\d+)\s*个\s*中危/g, "$1 个严重和 $2 个中危")
+                    .replace(/(\d+)\s*个\s*高危\s*\+\s*(\d+)\s*个\s*中危/g, "$1 个高危和 $2 个中危")
+                    .replace(/\s+([，。；：])/g, "$1")
+                    .replace(/[，、]\s*[，、]+/g, "，")
+                    .replace(/\s{2,}/g, " ")
+                    .trim();
+            }
+
+            function isNoisySecurityText(value) {
+                const text = String(value || "");
+                return /CVE-\d{4}-\d+|GHSA-[A-Za-z0-9-]+|\bcritical\b|\bmedium\b|\blow\b|\bSSRF\b|\bXSS\b|\bDoS\b/i.test(text);
+            }
+
+            function topVulnerabilityGroup() {
+                const groups = new Map();
+                (DATA.vulns || []).forEach((item) => {
+                    const name = item.package || item.name || "";
+                    if (!name) return;
+                    if (!groups.has(name)) groups.set(name, []);
+                    groups.get(name).push(item);
+                });
+                let bestName = "";
+                let bestItems = [];
+                groups.forEach((items, name) => {
+                    const currentScore = items.reduce((sum, item) => sum + (SEVERITY_RANK[item.severity] || 0), 0);
+                    const bestScore = bestItems.reduce((sum, item) => sum + (SEVERITY_RANK[item.severity] || 0), 0);
+                    if (items.length > bestItems.length || (items.length === bestItems.length && currentScore > bestScore)) {
+                        bestName = name;
+                        bestItems = items;
+                    }
+                });
+                return { name: bestName, items: bestItems };
+            }
+
+            function versionParts(value) {
+                const match = String(value || "").match(/\d+(?:\.\d+){0,3}/);
+                if (!match) return [];
+                return match[0].split(".").map((x) => Number(x) || 0);
+            }
+
+            function compareVersions(a, b) {
+                const pa = versionParts(a);
+                const pb = versionParts(b);
+                for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+                    const delta = (pa[i] || 0) - (pb[i] || 0);
+                    if (delta) return delta;
+                }
+                return 0;
+            }
+
+            function bestFixedVersion(versions, currentVersion) {
+                const all = toList(versions).filter(Boolean);
+                if (!all.length) return "";
+                const currentMajor = versionParts(currentVersion)[0];
+                const sameMajor = Number.isFinite(currentMajor)
+                    ? all.filter((v) => versionParts(v)[0] === currentMajor)
+                    : [];
+                const candidates = sameMajor.length ? sameMajor : all;
+                return candidates.slice().sort(compareVersions).pop() || "";
+            }
+
+            function commonFixedVersion(items) {
+                const versions = [];
+                const currentVersion = items && items[0] && items[0].version;
+                (items || []).forEach((item) => {
+                    toList(item.fixed_versions || item.fix_versions || item.patched_versions).forEach((v) => {
+                        if (v && !versions.includes(v)) versions.push(v);
+                    });
+                });
+                return bestFixedVersion(versions, currentVersion);
+            }
+
+            function readableTldr(raw) {
+                if (raw && !isNoisySecurityText(raw) && String(raw).length <= 140) {
+                    return normalizeSecurityLanguage(raw);
+                }
+                const count = (DATA.vulns || []).length || DATA.project.total_vulnerabilities || 0;
+                const group = topVulnerabilityGroup();
+                if (count) {
+                    const target = group.name ? `${group.name}${group.items[0] && group.items[0].version ? " " + group.items[0].version : ""}` : "少数 npm 依赖";
+                    const fixed = commonFixedVersion(group.items);
+                    return `本次扫描发现 ${count} 个已确认依赖漏洞，风险主要集中在 ${target}；建议先升级${fixed ? "到 " + fixed : "主要受影响包"}，再处理传递依赖。`;
+                }
+                return normalizeSecurityLanguage(raw || "本次扫描没有发现明确风险，可以把这份报告作为当前项目安全状态记录。");
+            }
+
+            function readableDetail(raw) {
+                if (raw && !isNoisySecurityText(raw) && String(raw).length <= 260) {
+                    return normalizeSecurityLanguage(raw);
+                }
+                const packages = DATA.project.total_packages || DATA.package_count || 0;
+                const vulns = DATA.vulns || [];
+                const names = new Set(vulns.map((x) => x.package || x.name).filter(Boolean));
+                const group = topVulnerabilityGroup();
+                const parts = [];
+                if (packages || vulns.length) {
+                    parts.push(`本次扫描覆盖 ${packages || "多个"} 个 npm 包，发现 ${vulns.length || DATA.project.total_vulnerabilities || 0} 个已确认漏洞，涉及 ${names.size || "多个"} 个包。`);
+                }
+                if (group.name) {
+                    const fixed = commonFixedVersion(group.items);
+                    parts.push(`风险最集中在 ${group.name}${group.items[0] && group.items[0].version ? " " + group.items[0].version : ""}，建议优先固定升级${fixed ? "到 " + fixed : "到官方修复版本"}。`);
+                }
+                if (names.size > 1) {
+                    parts.push("其余多为传递依赖问题，可以通过 overrides、锁文件更新或包管理器升级分批处理。");
+                }
+                if (/lockfile|node_modules|npm ci/i.test(String(raw || ""))) {
+                    parts.push("另外需要修正 lockfile 和本地安装版本不一致的问题，避免干净环境装回旧版本。");
+                }
+                if ((DATA.hygiene && !toList(DATA.hygiene.tracked_secrets).length && !toList(DATA.hygiene.sensitive_tracked).length) || /仓库卫生.*通过/.test(String(raw || ""))) {
+                    parts.push("仓库卫生检查没有发现密钥或敏感文件误提交。");
+                }
+                return normalizeSecurityLanguage(parts.join(""));
+            }
+
+            function readableIssueKind(item) {
+                const text = [
+                    item.type,
+                    item.summary,
+                    item.description,
+                    item.match_summary,
+                    item.title,
+                    item.name,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                if (/middleware|auth|authentication|authorization|bypass|privilege|访问控制|权限|认证/.test(text)) {
+                    return "可能影响登录、权限或访问控制";
+                }
+                if (/ssrf|server-side request/.test(text)) {
+                    return "可能让服务访问不该访问的地址";
+                }
+                if (/denial|dos|redos|regular expression/.test(text)) {
+                    return "可能影响服务稳定性";
+                }
+                if (/xss|cross-site scripting/.test(text)) {
+                    return "可能影响页面安全";
+                }
+                if (/cache|缓存/.test(text)) {
+                    return "可能影响缓存内容可信度";
+                }
+                if (/path|directory|file|文件/.test(text)) {
+                    return "可能影响文件访问边界";
+                }
+                return "可能影响服务安全或稳定性";
+            }
+
             function impactText(it, tier) {
                 if (it.impact || it.business_impact || it.pm_impact) {
-                    return it.impact || it.business_impact || it.pm_impact;
+                    return normalizeSecurityLanguage(it.impact || it.business_impact || it.pm_impact);
                 }
                 const text = [
                     it.type,
@@ -1526,7 +1687,7 @@
 
             function actionText(it, tier) {
                 if (it.action || it.recommendation || it.suggested_action || it.suggested_fix || it.disposal || it.indirect_release) {
-                    return it.action || it.recommendation || it.suggested_action || it.suggested_fix || it.disposal || it.indirect_release;
+                    return normalizeSecurityLanguage(it.action || it.recommendation || it.suggested_action || it.suggested_fix || it.disposal || it.indirect_release);
                 }
                 if (tier === "green") {
                     return "在不影响当前发布节奏的窗口内处理，执行后跑测试或构建验证。";
@@ -1539,7 +1700,7 @@
 
             function problemText(it, tier) {
                 if (it.problem || it.why_manual || it.why_keep || it.risk_note) {
-                    return it.problem || it.why_manual || it.why_keep || it.risk_note;
+                    return normalizeSecurityLanguage(it.problem || it.why_manual || it.why_keep || it.risk_note);
                 }
                 if (tier === "green") {
                     return "这类事项已有明确处理路径，通常不需要业务判断，但仍建议在代码已保存并可回滚的前提下执行。";
@@ -1655,6 +1816,13 @@
                     : "先确认官方修复版本，再安排升级和测试。";
             }
 
+            function shortFixedVersionText(r) {
+                const version = bestFixedVersion(r.fixed_versions || r.fix_versions || r.patched_versions, r.version);
+                return version
+                    ? `建议升级到 ${version} 或更高版本，并跑一次测试。`
+                    : "建议研发确认官方修复版本后升级，并跑一次测试。";
+            }
+
             function miniFields(fields) {
                 return `<div class="mini-fields">${fields
                     .filter((x) => x && x.value)
@@ -1664,13 +1832,21 @@
 
             function vulnerabilityExplanation(r) {
                 const pkg = r.package || r.name || "该依赖";
-                const ids = securityIds(r);
-                return miniFields([
-                    { label: "事实", value: `${pkg} ${r.version || ""} 命中 ${ids.join("、") || "公开漏洞记录"}。` },
-                    { label: "为什么要关注", value: "这是外部安全库已经确认的问题，不处理会让项目持续暴露在已知风险里。" },
-                    { label: "可能影响", value: severityImpactText(r.severity) },
-                    { label: "建议动作", value: fixedVersionText(r) },
-                ]);
+                const version = r.version ? ` ${r.version}` : "";
+                return esc(`${pkg}${version} 已有确认安全风险，${readableIssueKind(r)}；${shortFixedVersionText(r)}`);
+            }
+
+            function outdatedExplanation(it) {
+                const name = it.package || it.name || "该依赖";
+                const current = String(it.current || it.version || "").trim();
+                const latest = String(it.latest || it.wanted || "").trim();
+                if (current && latest && current === latest) {
+                    return `${name} 当前版本已经是最新；如果仍出现在这里，建议检查 lockfile 和本地安装记录是否一致。`;
+                }
+                if (latest) {
+                    return `${name} 当前版本落后于 ${latest}；这不是漏洞，建议在维护窗口升级并跑测试。`;
+                }
+                return `${name} 需要复核版本状态；这不是漏洞，建议结合包管理器输出确认是否需要维护升级。`;
             }
 
             function securityIds(r) {
@@ -1841,10 +2017,10 @@
             function renderReportSummary(sm) {
                 if (!sm || (!sm.priority && !sm.tldr && !sm.detail)) return "";
                 const tldr = sm.tldr
-                    ? `<div class="summary-tldr"><span>TL;DR</span><p>${esc(sm.tldr)}</p></div>`
+                    ? `<div class="summary-tldr"><span>TL;DR</span><p>${esc(readableTldr(sm.tldr))}</p></div>`
                     : "";
                 const detail = sm.detail
-                    ? `<p class="lead">${esc(sm.detail)}</p>`
+                    ? `<p class="lead">${esc(readableDetail(sm.detail))}</p>`
                     : "";
                 const body = sm.priority
                     ? Array.isArray(sm.priority)
@@ -1853,7 +2029,7 @@
                     : "";
                 return section(
                     "报告总结",
-                    Array.isArray(sm.priority) ? sm.priority.length : null,
+                    null,
                     `<div class="summary">${tldr}${detail}${body}</div>`,
                     "",
                     "advice",
@@ -1959,11 +2135,7 @@
     <td class="ver">${esc(it.current || it.version || "")}</td>
     <td class="ver">${esc(it.latest || it.wanted || "")}</td>
     <td>${esc(it.ecosystem || "-")}</td>
-    <td class="summary-cell">${miniFields([
-        { label: "事实", value: "当前版本落后于包管理器返回的最新版本。" },
-        { label: "为什么要关注", value: "这会增加后续升级成本，也可能错过性能、稳定性或安全修复。" },
-        { label: "建议动作", value: "不要和漏洞修复混在一起一把升级，建议在测试覆盖下分批处理。" },
-    ])}</td>
+    <td class="summary-cell">${esc(outdatedExplanation(it))}</td>
   </tr>`)
                     .join("");
                 const more = items.length > 20
@@ -1986,13 +2158,9 @@
                 const cards = sortBySeverity(items)
                     .map((it) => {
                         let inner = "";
-                        // Accept both detailed and simplified field names
-                        const desc = it.fact || it.content_profile || it.description || it.summary || '发现一个需要结合业务或部署环境确认的事项。';
-                        inner += fieldBlock("事实", desc);
                         inner += fieldBlock("为什么要关注", problemText(it, "yellow"));
                         inner += fieldBlock("可能影响", impactText(it, "yellow"));
                         inner += fieldBlock("建议动作", actionText(it, "yellow"));
-                        inner += caseLinks(it);
                         return card(
                             "yellow",
                             it.name,
@@ -2017,12 +2185,9 @@
                 const cards = sortBySeverity(items)
                     .map((it) => {
                         let inner = "";
-                        const fact = it.fact || it.content_profile || it.description || it.summary || it.name;
-                        inner += fieldBlock("事实", fact);
                         inner += fieldBlock("为什么要关注", problemText(it, "red"));
                         inner += fieldBlock("可能影响", impactText(it, "red"));
                         inner += fieldBlock("建议动作", actionText(it, "red"));
-                        inner += caseLinks(it);
                         return card(
                             "red",
                             it.name,
@@ -2059,7 +2224,7 @@
     <div class="item-head" onclick="this.parentNode.classList.toggle('open')">
       <div class="item-main">
         <div class="item-kicker">${tierBadge(tier)}${sevHtml}${route}</div>
-        <div class="item-name">${esc(name)}</div>
+        <div class="item-name">${esc(normalizeSecurityLanguage(name))}</div>
       </div>
       <span class="item-badge"></span>
       <span class="chev">▶</span>
@@ -2080,7 +2245,7 @@
             const sumList = (a) =>
                 a && a.length
                     ? `<div class="summary-list">${a.map((x, i) => {
-                        const text = String(x).replace(/^\s*\d+[.、)]\s*/, "");
+                        const text = normalizeSecurityLanguage(String(x).replace(/^\s*\d+[.、)]\s*/, ""));
                         return `<div class="summary-point"><span class="summary-index">${i + 1}</span><span>${esc(text)}</span></div>`;
                     }).join("")}</div>`
                     : "";
