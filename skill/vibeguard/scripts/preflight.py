@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 """VibeGuard preflight probe.
 
-Read-only checks before the full scanner:
+Checks before the full scanner:
   1. Detect supported project dependency files.
   2. Detect OS family / Linux distribution.
   3. Detect supported package managers without running update checks.
+  4. Prepare the local .vibeguard workspace and .gitignore entry.
 
-The script prints JSON to stdout and writes the same JSON to a temp file by
-default. It uses only Python standard library modules.
+The script prints JSON to stdout and writes the same JSON to
+.vibeguard/<timestamp>/assets/preflight.json by default. It uses only Python
+standard library modules.
 """
 
 import argparse
-import hashlib
 import json
 import os
 import platform
-import re
 import shutil
 import sys
-import tempfile
 import time
 
-from scan import LOCKFILE_MAP, find_project_root
+from scan import LOCKFILE_MAP, default_asset_path, find_project_root
 
 PACKAGE_MANAGER_SPECS = {
     "macos": [
@@ -118,24 +117,8 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def safe_filename(value):
-    value = re.sub(r"[^A-Za-z0-9_.-]+", "-", value).strip("-")
-    return value or "project"
-
-
-def default_temp_dir(family):
-    if family == "windows":
-        return os.environ.get("TEMP") or os.environ.get("TMP") or tempfile.gettempdir()
-    return tempfile.gettempdir()
-
-
-def default_output_path(project_path, family):
-    project_name = safe_filename(os.path.basename(project_path))
-    digest = hashlib.sha256(os.path.abspath(project_path).encode("utf-8")).hexdigest()[:10]
-    return os.path.join(
-        default_temp_dir(family),
-        f"vibeguard_preflight_{project_name}_{digest}.json",
-    )
+def default_output_path(project_path):
+    return default_asset_path(project_path, "preflight.json")
 
 
 def detect_language_support(project_path):
@@ -242,7 +225,7 @@ def detect_tools(family, specs, path_env=None):
 def build_preflight(project_path, args):
     family = normalize_platform(args.platform)
     language_support = detect_language_support(project_path)
-    output_file = args.output or default_output_path(project_path, family)
+    output_file = args.output or default_output_path(project_path)
     recommended_scan_mode = (
         "full_dependency_scan" if language_support["supported"] else "hygiene_only"
     )

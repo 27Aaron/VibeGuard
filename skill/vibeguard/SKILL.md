@@ -5,7 +5,7 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 
 # VibeGuard 项目安全检查
 
-对用户项目做一次本地只读安全扫描，产出 Markdown 审计报告和只读 HTML 报告。流程：扫描 -> 分析分级 -> 生成 Markdown -> 生成并打开 HTML。修复不在网页里执行，只在用户看完报告并在对话里明确同意后由 agent 执行。
+对用户项目做一次本地安全扫描，产出 Markdown 审计报告和只读 HTML 报告。流程：扫描 -> 分析分级 -> 生成 Markdown -> 生成并打开 HTML。修复不在网页里执行，只在用户看完报告并在对话里明确同意后由 agent 执行。
 
 ## 核心边界
 
@@ -17,7 +17,7 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 
 ## 铁律
 
-- **全程只读。** `scan.py` 只读文件、调 API，不修改任何项目内容。
+- **只改本地工作区。** 脚本只能创建/更新 `.vibeguard/`，并确保 `.gitignore` 包含 `.vibeguard/`；安全扫描本身只读文件、调 API，不修改源码、依赖或配置。
 - **先做生态预检。** 完整依赖漏洞扫描只支持 JavaScript/TypeScript、Python、Go、Rust；没有命中支持文件时，先提示用户暂不支持依赖漏洞扫描，只做仓库卫生扫描。
 - **报告先完整生成，再打开。** 必须等 Markdown 报告和 analysis JSON 都写完后，再启动 `server.py`；不要同时打开静态 HTML 和本地服务，避免用户看到两次网页。
 - **网页只读。** HTML 只用于阅读报告，不提供任何会触发本地操作的按钮。
@@ -27,7 +27,7 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 
 ## Step 0 生态预检
 
-运行完整扫描前，先执行只读预检脚本：
+运行完整扫描前，先执行预检脚本：
 
 ```bash
 # macOS / Linux
@@ -36,36 +36,30 @@ python3 scripts/preflight.py
 py -3 scripts/preflight.py
 ```
 
-`scripts/preflight.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。它会把 JSON 打印到终端，并把同一份结果保存到临时目录；Windows 默认优先使用 `%TEMP%`。结果里的 `output_file` 是实际保存路径。先读 preflight JSON，再决定扫描模式。
+`scripts/preflight.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。它会创建 `.vibeguard/<timestamp>/content/` 和 `.vibeguard/<timestamp>/assets/`，把 JSON 打印到终端，并把同一份结果保存到 `.vibeguard/<timestamp>/assets/preflight.json`；同时确保 `.gitignore` 忽略 `.vibeguard/`。结果里的 `output_file` 是实际保存路径。先读 preflight JSON，再决定扫描模式。
 
 如果 `language_support.supported` 为 `true`，继续执行完整流程：仓库卫生扫描 -> 依赖提取 -> 漏洞 API 检查 -> 过旧依赖检查。
 
-如果 `language_support.supported` 为 `false`，先告诉用户：`当前项目没有发现 VibeGuard 支持的依赖文件，暂不支持依赖漏洞扫描；本次只做仓库卫生扫描，检查硬编码密钥、敏感文件跟踪和 .gitignore 风险。` 然后仍可运行 `scan.py --skip-outdated` 生成只包含仓库卫生扫描、硬编码密钥和敏感文件跟踪结论的报告；不要调用漏洞 API，也不要暗示已经检查过依赖漏洞。
+如果 `language_support.supported` 为 `false`，先告诉用户：`当前项目没有发现 VibeGuard 支持的依赖文件，暂不支持依赖漏洞扫描；本次只做仓库卫生扫描，检查硬编码密钥、敏感文件跟踪和 .gitignore 风险。` 然后运行 `scan.py --preflight <preflight_json>` 生成只包含仓库卫生扫描、硬编码密钥和敏感文件跟踪结论的报告；不要调用漏洞 API，也不要暗示已经检查过依赖漏洞。
 
-预检脚本负责只读检测支持的依赖文件、操作系统、Linux 发行版、包管理器和系统更新工具；不要在预检阶段执行软件更新、系统更新或内核更新检查。
+预检脚本负责检测支持的依赖文件、操作系统、Linux 发行版、包管理器和系统更新工具；不要在预检阶段执行软件更新、系统更新或内核更新检查。
 
 ## Step 1 扫描
 
+读取 Step 0 的 preflight JSON 后再运行扫描。`scan.py` 会复用 `project.path`、`recommended_scan_mode` 和同一个时间戳目录；默认输出到 `.vibeguard/<timestamp>/assets/scan.json`，输出路径由脚本写入 `output_file`，不要在命令里手写临时文件路径。
+
 ```bash
 # macOS / Linux
-python3 scripts/scan.py [project_path] > /tmp/vibeguard_scan.json
-# 可按网络和工具链情况调并发；默认 API=8、outdated=4
-python3 scripts/scan.py --api-concurrency 8 --outdated-concurrency 4 [project_path] > /tmp/vibeguard_scan.json
-# 快速模式：跳过较慢的过旧依赖检查，只做仓库卫生 + 漏洞确认
-python3 scripts/scan.py --skip-outdated [project_path] > /tmp/vibeguard_scan.json
-# 调试模式：输出完整包清单；默认只输出包数量和来源摘要，避免大项目 JSON 过大
-python3 scripts/scan.py --include-packages [project_path] > /tmp/vibeguard_scan.json
-# 严格只扫指定目录，不向上识别 git 根目录
-python3 scripts/scan.py --no-root-discovery [project_path] > /tmp/vibeguard_scan.json
+python3 scripts/scan.py --preflight <preflight_json>
 # Windows
-python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
+py -3 scripts/scan.py --preflight <preflight_json>
 ```
 
-`scan.py` 自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）-> 生态识别与依赖提取（npm/pnpm/yarn、pypi、go、crates-io）-> 调用 VibeGuard API 查漏洞（100 个一批，默认 8 并发）-> 过旧依赖检查（默认按生态并发）。本地卫生检查、漏洞 API、过旧依赖检查会并行执行；输出里的 `step_seconds` 可用于判断慢点。扫描较慢时优先使用 `--skip-outdated`，或调整 `--api-concurrency`、`--outdated-concurrency`。
+`scan.py` 默认根据 CPU 数量选择并发，并自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）-> 生态识别与依赖提取（npm/pnpm/yarn、pypi、go、crates-io）-> 调用 VibeGuard API 查漏洞（100 个一批）-> 过旧依赖检查。如果 preflight 的 `recommended_scan_mode` 是 `hygiene_only`，脚本只做仓库卫生扫描，并跳过依赖提取、漏洞 API 和过旧依赖检查。扫描较慢或调试时才追加 `--api-concurrency`、`--outdated-concurrency`、`--skip-outdated`、`--include-packages`、`--max-secret-files`。
 
 ## Step 2 分析与分级
 
-读 scan 输出的 JSON 后，构建 analysis JSON（schema 见 `scripts/build_report.py` 顶部注释）：
+读 `.vibeguard/<timestamp>/assets/scan.json` 后，构建 `.vibeguard/<timestamp>/assets/analysis.json`（schema 见 `scripts/build_report.py` 顶部注释）：
 
 - **命中漏洞**：所有漏洞按严重度排序（critical > high > medium > low），全部放入 `top_issues`，不要只放前 5 个。必须透传 `advisory_id`、`aliases`、`cve_id`、`package`、`version`、`severity`、`summary`、`fixed_versions` 等字段，网页会完整展示 GHSA。漏洞表的说明列必须是一句普通人能看懂的话，不要写"事实/为什么/影响/动作"四段，也不要在说明里堆 CVE/GHSA 编号。
 - **仓库卫生扫描**：透传 `hygiene.gitignore_missing`、`hygiene.tracked_secrets`、`hygiene.sensitive_tracked`。密钥内容必须脱敏，只写位置、类型、可信度和预览。
@@ -97,11 +91,11 @@ python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
 
 ```bash
 # macOS / Linux
-python3 scripts/server.py /tmp/vibeguard_analysis.json
+python3 scripts/server.py .vibeguard/<timestamp>/assets/analysis.json
 # 如果已经有报告页打开，只想打印 URL
-python3 scripts/server.py --no-open /tmp/vibeguard_analysis.json
+python3 scripts/server.py --no-open .vibeguard/<timestamp>/assets/analysis.json
 # Windows
-python scripts/server.py %TEMP%\vibeguard_analysis.json
+py -3 scripts/server.py .vibeguard/<timestamp>/assets/analysis.json
 ```
 
 `server.py` 起在 `127.0.0.1` 随机端口，只提供只读报告。它会避免同一份报告短时间内重复打开浏览器标签页。终端里告诉用户：
@@ -110,15 +104,15 @@ python scripts/server.py %TEMP%\vibeguard_analysis.json
 - `看完确认要修复后，在对话里回复：同意 / 修复 / OK / Yes。`
 - `确认后会先关闭本地报告服务，再按主要修复 -> 次要修复处理。`
 
-HTML 阅读流：项目概览 -> 报告总结 -> 命中漏洞 -> 仓库卫生扫描 -> 过期依赖 -> 优先处理的高风险项 -> 需要业务或部署确认的事项 -> 扫描错误。
+HTML 阅读流：项目概览 -> 报告总结 -> 命中漏洞 -> 仓库卫生扫描 -> 过期依赖 -> 优先处理的高风险项 -> 需要业务或部署确认的事项 -> 扫描错误。静态 HTML 文件路径为 `.vibeguard/<timestamp>/content/security-report.html`。
 
 仅当用户明确只想要一份可分享/留存的只读文件时，才用静态模式：
 
 ```bash
 # macOS / Linux
-python3 scripts/build_report.py /tmp/vibeguard_analysis.json ~/Desktop/security-report.html
+python3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json .vibeguard/<timestamp>/content/security-report.html
 # Windows
-python scripts/build_report.py %TEMP%\vibeguard_analysis.json %USERPROFILE%\Desktop\security-report.html
+py -3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json .vibeguard/<timestamp>/content/security-report.html
 ```
 
 ## Step 5 用户确认后的修复

@@ -50,4 +50,5 @@ data/postgres/
 *.temp
 
 # Local-only project documents
+.vibeguard/
 docs/

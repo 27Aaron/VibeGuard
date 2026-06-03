@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""VibeGuard 项目安全扫描器（只读）
+"""VibeGuard 项目安全扫描器
 
 采集安全相关数据，输出 JSON 供 agent 分析分级：
   1. 仓库卫生检查（gitignore、敏感文件追踪、硬编码密钥）
@@ -7,12 +7,14 @@
   3. 调用 VibeGuard API 检查漏洞
   4. 过旧依赖检查
 
-STRICTLY READ-ONLY: 只读文件、运行只读命令，不修改任何内容。
+扫描只读项目内容；脚本只会创建/更新 .vibeguard/ 本地工作区，并确保
+.gitignore 忽略该目录。
 
 Usage:
+    python3 scan.py --preflight <preflight_json>
     python3 scan.py [project_path]              # 默认向上识别项目根目录
     python3 scan.py --no-root-discovery <path>  # 严格扫描传入目录
-    python3 scan.py --api-concurrency 8 <path>  # 并发检查漏洞 API
+    python3 scan.py --api-concurrency 8 <path>  # 覆盖默认并发
     python3 scan.py --outdated-concurrency 4 <path>
     python3 scan.py --skip-outdated <path>      # 跳过较慢的过旧依赖检查
     python3 scan.py --include-packages <path>   # 输出完整包清单
@@ -37,6 +39,83 @@ import urllib.error
 import urllib.request
 
 API_BASE = "https://vibeguard.ou.al"
+VIBEGUARD_DIR = ".vibeguard"
+VIBEGUARD_GITIGNORE_ENTRY = ".vibeguard/"
+VIBEGUARD_ASSETS_DIR = "assets"
+VIBEGUARD_CONTENT_DIR = "content"
+
+
+def has_vibeguard_gitignore_entry(content):
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped in {".vibeguard", VIBEGUARD_GITIGNORE_ENTRY}:
+            return True
+    return False
+
+
+def ensure_vibeguard_gitignore(project_path):
+    gitignore_path = os.path.join(project_path, ".gitignore")
+    try:
+        with open(gitignore_path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+    except FileNotFoundError:
+        content = ""
+
+    if has_vibeguard_gitignore_entry(content):
+        return gitignore_path
+
+    prefix = ""
+    if content and not content.endswith("\n"):
+        prefix = "\n"
+    elif content:
+        prefix = "\n"
+
+    with open(gitignore_path, "a", encoding="utf-8") as handle:
+        handle.write(f"{prefix}# VibeGuard local workspace\n{VIBEGUARD_GITIGNORE_ENTRY}\n")
+    return gitignore_path
+
+
+def ensure_vibeguard_workspace(project_path):
+    workspace = os.path.join(project_path, VIBEGUARD_DIR)
+    os.makedirs(workspace, exist_ok=True)
+    ensure_vibeguard_gitignore(project_path)
+    return workspace
+
+
+def make_run_id():
+    return time.strftime("%Y%m%d-%H%M%S")
+
+
+def ensure_vibeguard_run(project_path, run_id=None):
+    workspace = ensure_vibeguard_workspace(project_path)
+    base_run_id = run_id or make_run_id()
+    run_dir = os.path.join(workspace, base_run_id)
+    suffix = 2
+    while os.path.exists(run_dir) and run_id is None:
+        run_dir = os.path.join(workspace, f"{base_run_id}-{suffix}")
+        suffix += 1
+    os.makedirs(os.path.join(run_dir, VIBEGUARD_ASSETS_DIR), exist_ok=True)
+    os.makedirs(os.path.join(run_dir, VIBEGUARD_CONTENT_DIR), exist_ok=True)
+    return run_dir
+
+
+def run_dir_from_output_file(output_file):
+    output_file = os.path.abspath(output_file)
+    parent = os.path.basename(os.path.dirname(output_file))
+    if parent == VIBEGUARD_ASSETS_DIR:
+        return os.path.dirname(os.path.dirname(output_file))
+    return os.path.dirname(output_file)
+
+
+def default_asset_path(project_path, filename, preflight=None):
+    if preflight and preflight.get("output_file"):
+        run_dir = run_dir_from_output_file(preflight["output_file"])
+        os.makedirs(os.path.join(run_dir, VIBEGUARD_ASSETS_DIR), exist_ok=True)
+        os.makedirs(os.path.join(run_dir, VIBEGUARD_CONTENT_DIR), exist_ok=True)
+        ensure_vibeguard_gitignore(project_path)
+    else:
+        run_dir = ensure_vibeguard_run(project_path)
+    return os.path.join(run_dir, VIBEGUARD_ASSETS_DIR, filename)
 
 # ---------------------------------------------------------------------------
 # Secret detection patterns
@@ -1228,6 +1307,14 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(description="VibeGuard local project scanner")
     parser.add_argument("project_path", nargs="?", default=".")
     parser.add_argument(
+        "--preflight",
+        help="reuse a preflight JSON file to choose project path and scan mode",
+    )
+    parser.add_argument(
+        "--output",
+        help="write JSON to this path instead of the default temp-file path",
+    )
+    parser.add_argument(
         "--no-root-discovery",
         action="store_true",
         help="scan the provided path directly instead of walking up to a repo root",
@@ -1235,13 +1322,13 @@ def parse_args(argv):
     parser.add_argument(
         "--api-concurrency",
         type=int,
-        default=8,
+        default=None,
         help="number of concurrent VibeGuard API package-check requests",
     )
     parser.add_argument(
         "--outdated-concurrency",
         type=int,
-        default=4,
+        default=None,
         help="number of concurrent outdated dependency checks",
     )
     parser.add_argument(
@@ -1273,32 +1360,85 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
+def default_concurrency(cap):
+    return max(1, min(os.cpu_count() or 4, cap))
+
+
+def bounded_concurrency(value, cap):
+    if value is None:
+        value = default_concurrency(cap)
+    return max(1, min(int(value or 1), cap))
+
+
+def load_preflight(path):
+    with open(path, "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def default_output_path(project_path, preflight=None):
+    return default_asset_path(project_path, "scan.json", preflight=preflight)
+
+
+def write_json_output(path, text):
+    output_dir = os.path.dirname(os.path.abspath(path))
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(text)
+        handle.write("\n")
+
+
 def main():
     started = time.time()
     args = parse_args(sys.argv[1:])
-    start = args.project_path
-    project_path = (
-        os.path.abspath(start) if args.no_root_discovery else find_project_root(start)
-    )
+    try:
+        preflight = load_preflight(args.preflight) if args.preflight else None
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"Failed to read preflight JSON: {e}", file=sys.stderr)
+        return 2
+
+    preflight_project_path = (preflight or {}).get("project", {}).get("path")
+    if preflight_project_path:
+        project_path = os.path.abspath(preflight_project_path)
+    else:
+        start = args.project_path
+        project_path = (
+            os.path.abspath(start) if args.no_root_discovery else find_project_root(start)
+        )
+    preflight_scan_mode = (preflight or {}).get("recommended_scan_mode")
+    preflight_hygiene_only = preflight_scan_mode == "hygiene_only"
+    api_concurrency = bounded_concurrency(args.api_concurrency, 16)
+    outdated_concurrency = bounded_concurrency(args.outdated_concurrency, 8)
+    output_file = args.output or default_output_path(project_path, preflight=preflight)
     errors = []
     step_seconds = {}
 
     # Step 1: detect ecosystems
     step_started = time.time()
-    try:
-        ecosystems, lockfiles = detect_ecosystems(project_path)
-    except Exception as e:
+    if preflight_hygiene_only:
         ecosystems, lockfiles = [], {}
-        errors.append({"step": "ecosystem_detection", "message": str(e)})
+    else:
+        try:
+            ecosystems, lockfiles = detect_ecosystems(project_path)
+        except Exception as e:
+            ecosystems, lockfiles = [], {}
+            errors.append({"step": "ecosystem_detection", "message": str(e)})
     step_seconds["ecosystem_detection"] = round(time.time() - step_started, 3)
+    scan_mode = preflight_scan_mode or (
+        "full_dependency_scan" if ecosystems else "hygiene_only"
+    )
+    skip_dependency_checks = scan_mode == "hygiene_only"
 
     # Step 2: parse package coordinates
     step_started = time.time()
-    try:
-        packages = extract_packages(project_path, ecosystems)
-    except Exception as e:
+    if skip_dependency_checks:
         packages = []
-        errors.append({"step": "package_extraction", "message": str(e)})
+    else:
+        try:
+            packages = extract_packages(project_path, ecosystems)
+        except Exception as e:
+            packages = []
+            errors.append({"step": "package_extraction", "message": str(e)})
     step_seconds["package_extraction"] = round(time.time() - step_started, 3)
 
     # Step 3-5: independent I/O-heavy checks run in parallel.
@@ -1320,12 +1460,14 @@ def main():
 
     def run_vulnerability_step():
         step_started = time.time()
+        if skip_dependency_checks:
+            return "vulnerabilities", [], [], round(time.time() - step_started, 3)
         step_errors = []
         try:
             result = check_vulnerabilities(
                 packages,
                 errors=step_errors,
-                concurrency=args.api_concurrency,
+                concurrency=api_concurrency,
             )
         except Exception as e:
             result = []
@@ -1334,7 +1476,7 @@ def main():
 
     def run_outdated_step():
         step_started = time.time()
-        if args.skip_outdated:
+        if skip_dependency_checks or args.skip_outdated:
             return "outdated", [], [], round(time.time() - step_started, 3)
         step_errors = []
         try:
@@ -1342,7 +1484,7 @@ def main():
                 project_path,
                 ecosystems,
                 errors=step_errors,
-                concurrency=args.outdated_concurrency,
+                concurrency=outdated_concurrency,
             )
         except Exception as e:
             result = []
@@ -1385,15 +1527,17 @@ def main():
             "total_vulnerabilities": len(vulnerabilities),
         },
         "scan_config": {
-            "api_concurrency": max(1, min(int(args.api_concurrency or 1), 16)),
-            "outdated_concurrency": max(
-                1, min(int(args.outdated_concurrency or 1), 8)
-            ),
+            "api_concurrency": api_concurrency,
+            "outdated_concurrency": outdated_concurrency,
+            "preflight_file": os.path.abspath(args.preflight) if args.preflight else None,
+            "scan_mode": scan_mode,
+            "skip_dependency_checks": skip_dependency_checks,
             "skip_hygiene": bool(args.skip_hygiene),
             "skip_outdated": bool(args.skip_outdated),
             "include_packages": bool(args.include_packages),
             "max_secret_files": max(0, int(args.max_secret_files or 0)),
         },
+        "output_file": output_file,
         "step_seconds": step_seconds,
         "hygiene": hygiene,
         "package_count": len(packages),
@@ -1407,10 +1551,12 @@ def main():
     if args.include_packages:
         output["packages"] = packages
     if args.compact:
-        print(json.dumps(output, ensure_ascii=False, separators=(",", ":")))
+        text = json.dumps(output, ensure_ascii=False, separators=(",", ":"))
     else:
-        print(json.dumps(output, ensure_ascii=False, indent=2))
+        text = json.dumps(output, ensure_ascii=False, indent=2)
+    write_json_output(output_file, text)
+    print(text)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

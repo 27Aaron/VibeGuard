@@ -69,12 +69,30 @@ describe("security skill boundary", () => {
     expect(skillText).toContain("py -3 scripts/preflight.py");
     expect(skillText).not.toContain("python scripts/preflight.py [project_path]");
     expect(skillText).not.toContain("python3 scripts/preflight.py [project_path]");
-    expect(skillText).toContain("%TEMP%");
+    expect(skillText).toContain("`.vibeguard/<timestamp>/assets/preflight.json`");
+    expect(skillText).toContain("`.vibeguard/`");
     expect(skillText).toContain("依赖文件");
     expect(skillText).toContain("操作系统");
     expect(skillText).toContain("Linux 发行版");
     expect(skillText).toContain("包管理器");
     expect(skillText).toContain("系统更新工具");
     expect(skillText).toContain("不要在预检阶段执行软件更新");
+  });
+
+  it("keeps scan commands clean by reusing the preflight JSON", () => {
+    expect(skillText).toContain("scripts/scan.py --preflight");
+    expect(skillText).toContain("读取 Step 0 的 preflight JSON");
+    expect(skillText).toContain("`.vibeguard/<timestamp>/assets/scan.json`");
+    expect(skillText).toContain("`.vibeguard/<timestamp>/assets/analysis.json`");
+    expect(skillText).toContain("`.vibeguard/<timestamp>/content/security-report.html`");
+    expect(skillText).not.toContain("> /tmp/vibeguard_scan.json");
+    expect(skillText).not.toContain("%TEMP%\\vibeguard_scan.json");
+    expect(skillText).not.toContain("/tmp/vibeguard_analysis.json");
+    expect(skillText).not.toContain("%TEMP%\\vibeguard_analysis.json");
+    expect(skillText).not.toContain("~/Desktop/security-report.html");
+    expect(skillText).not.toContain("%USERPROFILE%\\Desktop\\security-report.html");
+    expect(skillText).not.toContain("python scripts/scan.py [project_path]");
+    expect(skillText).not.toContain("python3 scripts/scan.py [project_path]");
+    expect(skillText).toContain("输出路径由脚本写入 `output_file`");
   });
 });

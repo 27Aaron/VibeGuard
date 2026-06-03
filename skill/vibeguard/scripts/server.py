@@ -12,13 +12,13 @@ Usage:
 """
 
 import argparse
-import hashlib
 import json
 import os
-import tempfile
 import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from scan import VIBEGUARD_ASSETS_DIR, run_dir_from_output_file
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, "..", "assets", "report_template.html")
@@ -51,11 +51,16 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
+def open_marker_path(analysis_path):
+    run_dir = run_dir_from_output_file(analysis_path)
+    assets_dir = os.path.join(run_dir, VIBEGUARD_ASSETS_DIR)
+    os.makedirs(assets_dir, exist_ok=True)
+    return os.path.join(assets_dir, "open.stamp")
+
+
 def open_browser_once(url, analysis_path):
     """Avoid duplicate browser tabs when the same report path is regenerated."""
-    marker_key = os.path.realpath(analysis_path)
-    digest = hashlib.sha256(marker_key.encode("utf-8")).hexdigest()[:24]
-    marker = os.path.join(tempfile.gettempdir(), f"vibeguard-open-{digest}.stamp")
+    marker = open_marker_path(analysis_path)
     now = time.time()
 
     try:

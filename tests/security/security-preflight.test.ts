@@ -3,9 +3,22 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const scriptPath = path.resolve("skill/vibeguard/scripts/preflight.py");
+const tempPaths: string[] = [];
+
+function makeTempDir(prefix: string) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  tempPaths.push(dir);
+  return dir;
+}
+
+afterEach(() => {
+  for (const tempPath of tempPaths.splice(0)) {
+    fs.rmSync(tempPath, { recursive: true, force: true });
+  }
+});
 
 function makeExecutable(dir: string, name: string) {
   const filePath = path.join(dir, name);
@@ -46,8 +59,8 @@ function runPreflightWithoutOutput(projectDir: string, args: string[], env: Node
 
 describe("VibeGuard preflight", () => {
   it("detects supported dependency files and the scoped Linux package managers", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-preflight-"));
-    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-bin-"));
+    const dir = makeTempDir("vibeguard-preflight-");
+    const binDir = makeTempDir("vibeguard-bin-");
     const osRelease = path.join(dir, "os-release");
 
     fs.writeFileSync(path.join(dir, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
@@ -102,8 +115,8 @@ describe("VibeGuard preflight", () => {
   });
 
   it("falls back to hygiene-only mode and ignores MacPorts on macOS", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-preflight-"));
-    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-bin-"));
+    const dir = makeTempDir("vibeguard-preflight-");
+    const binDir = makeTempDir("vibeguard-bin-");
     makeExecutable(binDir, "brew");
     makeExecutable(binDir, "port");
     makeExecutable(binDir, "softwareupdate");
@@ -144,8 +157,8 @@ describe("VibeGuard preflight", () => {
   });
 
   it("detects only winget and scoop on Windows", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-preflight-"));
-    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-bin-"));
+    const dir = makeTempDir("vibeguard-preflight-");
+    const binDir = makeTempDir("vibeguard-bin-");
     makeExecutable(binDir, "winget");
     makeExecutable(binDir, "scoop");
     makeExecutable(binDir, "choco");
@@ -169,22 +182,24 @@ describe("VibeGuard preflight", () => {
       .toBe(false);
   });
 
-  it("uses the Windows TEMP directory for default output paths", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-preflight-"));
-    const windowsTemp = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-win-temp-"));
-    const posixTemp = fs.mkdtempSync(path.join(os.tmpdir(), "vibeguard-posix-temp-"));
+  it("uses a local .vibeguard workspace for default output paths", () => {
+    const dir = makeTempDir("vibeguard-preflight-");
 
-    const preflight = runPreflightWithoutOutput(
-      dir,
-      ["--platform", "windows"],
-      {
-        TEMP: windowsTemp,
-        TMP: path.join(windowsTemp, "tmp-fallback"),
-        TMPDIR: posixTemp,
-      },
-    );
+    const preflight = runPreflightWithoutOutput(dir, ["--platform", "windows"], {});
 
-    expect(preflight.output_file.startsWith(windowsTemp + path.sep)).toBe(true);
+    const relativeOutput = path.relative(dir, preflight.output_file).split(path.sep);
+    expect(relativeOutput).toEqual([
+      ".vibeguard",
+      expect.stringMatching(/^\d{8}-\d{6}(?:-\d+)?$/),
+      "assets",
+      "preflight.json",
+    ]);
     expect(fs.existsSync(preflight.output_file)).toBe(true);
+    expect(
+      fs.existsSync(path.join(dir, ".vibeguard", relativeOutput[1], "content")),
+    ).toBe(true);
+    expect(fs.readFileSync(path.join(dir, ".gitignore"), "utf8")).toContain(
+      ".vibeguard/",
+    );
   });
 });

@@ -77,6 +77,8 @@ import json
 import os
 import sys
 
+from scan import VIBEGUARD_CONTENT_DIR, run_dir_from_output_file
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, "..", "assets", "report_template.html")
 
@@ -93,16 +95,19 @@ def json_for_script(value):
     )
 
 
+def default_output_path(analysis_path):
+    run_dir = run_dir_from_output_file(analysis_path)
+    content_dir = os.path.join(run_dir, VIBEGUARD_CONTENT_DIR)
+    os.makedirs(content_dir, exist_ok=True)
+    return os.path.join(content_dir, "security-report.html")
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
     src = sys.argv[1]
-    out = (
-        sys.argv[2]
-        if len(sys.argv) > 2
-        else os.path.expanduser("~/Desktop/security-report.html")
-    )
+    out = sys.argv[2] if len(sys.argv) > 2 else default_output_path(src)
 
     with open(src, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -112,6 +117,7 @@ def main():
     blob = json_for_script(data)
     html = tpl.replace("__REPORT_DATA__", blob)
 
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"报告已生成: {out}")
