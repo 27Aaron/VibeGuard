@@ -95,4 +95,20 @@ describe("security skill boundary", () => {
     expect(skillText).not.toContain("python3 scripts/scan.py [project_path]");
     expect(skillText).toContain("输出路径由脚本写入 `output_file`");
   });
+
+  it("uses static HTML output instead of a local report server", () => {
+    expect(skillText).toContain("默认生成静态 HTML 报告");
+    expect(skillText).toContain(
+      "python3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json",
+    );
+    expect(skillText).toContain(
+      "py -3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json",
+    );
+    expect(skillText).toContain("报告已生成: `.vibeguard/<timestamp>/content/security-report.html`");
+    expect(skillText).toContain("不要启动本地 server");
+    expect(skillText).not.toContain("scripts/server.py");
+    expect(skillText).not.toContain("--no-open");
+    expect(skillText).not.toContain("127.0.0.1` 随机端口");
+    expect(skillText).not.toContain("释放本地端口");
+  });
 });

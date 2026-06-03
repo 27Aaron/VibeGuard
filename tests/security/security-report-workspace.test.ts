@@ -68,26 +68,23 @@ describe("VibeGuard report workspace", () => {
     expect(fs.existsSync(htmlPath)).toBe(true);
     expect(result.stdout).toContain(htmlPath);
     expect(result.stdout).not.toContain("Desktop");
+    expect(result.stdout).not.toContain("127.0.0.1");
+    expect(result.stdout).not.toContain("open '");
+    expect(result.stdout).toContain("如果你想继续处理修复");
+    expect(result.stdout).toContain("可以修 / 修复 / OK / Yes");
   });
 
-  it("keeps server auto-open markers inside the run assets directory", () => {
+  it("prints a static report path without requiring a local server", () => {
     const projectDir = makeTempDir("vibeguard-report-project-");
-    const { analysisPath, assetsDir } = writeAnalysis(projectDir);
-    const code = [
-      "import sys",
-      "sys.path.insert(0, sys.argv[1])",
-      "import server",
-      "print(server.open_marker_path(sys.argv[2]))",
-    ].join("\n");
+    const { analysisPath, contentDir } = writeAnalysis(projectDir);
 
-    const result = spawnSync(process.env.PYTHON ?? "python3", [
-      "-c",
-      code,
-      scriptsDir,
-      analysisPath,
-    ], { encoding: "utf8" });
+    const result = spawnSync(process.env.PYTHON ?? "python3", [buildReportPath, analysisPath], {
+      encoding: "utf8",
+    });
 
     expect(result.status, result.stderr || result.stdout).toBe(0);
-    expect(result.stdout.trim()).toBe(path.join(assetsDir, "open.stamp"));
+    expect(result.stdout).toContain(path.join(contentDir, "security-report.html"));
+    expect(result.stdout).toContain("HTML 已保存");
+    expect(result.stdout).not.toContain("server");
   });
 });

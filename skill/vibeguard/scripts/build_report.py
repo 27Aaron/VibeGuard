@@ -121,7 +121,8 @@ def main():
     with open(out, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"报告已生成: {out}")
-    print(f"只读 HTML 已生成，可按需打开: open '{out}'")
+    print("HTML 已保存到本次运行的 content 目录，之后也可以从这里重新查看。")
+    print("如果你想继续处理修复，在对话里说一声“可以修 / 修复 / OK / Yes”就行。")
 
 
 if __name__ == "__main__":

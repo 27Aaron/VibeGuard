@@ -5,7 +5,7 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 
 # VibeGuard 项目安全检查
 
-对用户项目做一次本地安全扫描，产出 Markdown 审计报告和只读 HTML 报告。流程：扫描 -> 分析分级 -> 生成 Markdown -> 生成并打开 HTML。修复不在网页里执行，只在用户看完报告并在对话里明确同意后由 agent 执行。
+对用户项目做一次本地安全扫描，产出 Markdown 审计报告和只读 HTML 报告。流程：预检 -> 扫描 -> 分析分级 -> 生成 Markdown -> 生成静态 HTML。修复不在网页里执行，只在用户看完报告并在对话里明确同意后由 agent 执行。
 
 ## 核心边界
 
@@ -19,7 +19,7 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 
 - **只改本地工作区。** 脚本只能创建/更新 `.vibeguard/`，并确保 `.gitignore` 包含 `.vibeguard/`；安全扫描本身只读文件、调 API，不修改源码、依赖或配置。
 - **先做生态预检。** 完整依赖漏洞扫描只支持 JavaScript/TypeScript、Python、Go、Rust；没有命中支持文件时，先提示用户暂不支持依赖漏洞扫描，只做仓库卫生扫描。
-- **报告先完整生成，再打开。** 必须等 Markdown 报告和 analysis JSON 都写完后，再启动 `server.py`；不要同时打开静态 HTML 和本地服务，避免用户看到两次网页。
+- **报告先完整生成，再展示路径。** 必须等 Markdown 报告、analysis JSON 和静态 HTML 都写完后，再把 HTML 路径和摘要告诉用户；不要启动本地 server，也不要兜底起本地服务。
 - **网页只读。** HTML 只用于阅读报告，不提供任何会触发本地操作的按钮。
 - **修复操作需确认。** 用户看完报告后，在对话里回复 `同意` / `修复` / `OK` / `Yes` 等明确话术，agent 才能执行修复。
 - **不要把"依赖过旧"说成"存在漏洞"。** 只有命中漏洞数据时才说有漏洞。
@@ -87,44 +87,33 @@ py -3 scripts/scan.py --preflight <preflight_json>
 
 ## Step 4 HTML 报告
 
-默认用只读服务模式打开报告；不要在同一次完整扫描里同时打开静态 HTML 和本地服务。
+默认生成静态 HTML 报告，保存到本次运行目录的 `content/` 下；不要启动本地 server，也不要把静态文件和本地服务混用。
 
 ```bash
 # macOS / Linux
-python3 scripts/server.py .vibeguard/<timestamp>/assets/analysis.json
-# 如果已经有报告页打开，只想打印 URL
-python3 scripts/server.py --no-open .vibeguard/<timestamp>/assets/analysis.json
+python3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json
 # Windows
-py -3 scripts/server.py .vibeguard/<timestamp>/assets/analysis.json
+py -3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json
 ```
 
-`server.py` 起在 `127.0.0.1` 随机端口，只提供只读报告。它会避免同一份报告短时间内重复打开浏览器标签页。终端里告诉用户：
+`build_report.py` 默认把 HTML 写到 `.vibeguard/<timestamp>/content/security-report.html`，不需要在命令里手写输出路径。终端里告诉用户：
 
-- `报告已生成: <url>`
-- `看完确认要修复后，在对话里回复：同意 / 修复 / OK / Yes。`
-- `确认后会先关闭本地报告服务，再按主要修复 -> 次要修复处理。`
+- 报告已生成: `.vibeguard/<timestamp>/content/security-report.html`
+- `HTML 已保存到本次运行的 content 目录，之后也可以从这里重新查看。`
+- `如果你想继续处理修复，在对话里说一声“可以修 / 修复 / OK / Yes”都可以。`
+- `确认后会按主要修复 -> 次要修复处理。`
 
 HTML 阅读流：项目概览 -> 报告总结 -> 命中漏洞 -> 仓库卫生扫描 -> 过期依赖 -> 优先处理的高风险项 -> 需要业务或部署确认的事项 -> 扫描错误。静态 HTML 文件路径为 `.vibeguard/<timestamp>/content/security-report.html`。
-
-仅当用户明确只想要一份可分享/留存的只读文件时，才用静态模式：
-
-```bash
-# macOS / Linux
-python3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json .vibeguard/<timestamp>/content/security-report.html
-# Windows
-py -3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json .vibeguard/<timestamp>/content/security-report.html
-```
 
 ## Step 5 用户确认后的修复
 
 如果用户在看完报告后回复 `同意` / `修复` / `OK` / `Yes` / `可以修` 等明确授权：
 
-1. 先停止刚刚启动的 `server.py` 进程，释放本地端口。
-2. 按"主要修复 -> 次要修复"执行：
+1. 按"主要修复 -> 次要修复"执行：
    - 主要修复：已确认的严重/高危漏洞升级、有明确修复版本的依赖、用户明确同意处理的真实凭证风险。
    - 次要修复：`.gitignore` 补规则、低风险维护项、过期依赖升级计划。
-3. 不要在没有额外确认时执行凭证轮换、git 历史清理、删除文件、批量跨大版本升级。
-4. 修复后运行项目已有测试、构建或最小验证命令，并把结果告诉用户。
+2. 不要在没有额外确认时执行凭证轮换、git 历史清理、删除文件、批量跨大版本升级。
+3. 修复后运行项目已有测试、构建或最小验证命令，并把结果告诉用户。
 
 ## 依赖与运行前提
 
