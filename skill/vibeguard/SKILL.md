@@ -52,6 +52,7 @@ python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
    - 漏洞类：直接用 scan.py 返回的 severity。
    - 仓库卫生类（gitignore、敏感文件、硬编码密钥）：按风险判断赋值——密钥泄露用 `high`/`critical`，gitignore 规则缺失用 `medium`，过旧依赖用 `low`。
 4. **构建 risk_summary**：`{ "critical": N, "high": N, "medium": N, "low": N, "info": N }`，严格使用这五个 key，统计各严重等级数量。
+5. **必须构建 summary**：每份 analysis JSON 都要有 `summary.overview`、`summary.priority`、`summary.long_term`。`priority` 对应网页里的「执行建议」，`long_term` 对应「长期安全建议」。即使没有发现风险，也要写保留报告、定期扫描、依赖升级验证这类建议。
 
 把分析结果写成 analysis JSON（schema 见 `scripts/build_report.py` 顶部注释）。**必须透传 scan.py 输出中的 `generated_at` 和 `scan_seconds` 字段**，它们是计算全流程耗时（扫描 + 分析 + 报告生成）的数据来源。
 

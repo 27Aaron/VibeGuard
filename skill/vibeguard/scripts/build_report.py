@@ -56,7 +56,7 @@ Schema (all sections optional except project):
     "indirect_release": "具体处理步骤",
     "risk": "风险说明"
   }],
-  "summary": {
+  "summary": {                              // 必填；网页也会兜底生成，但 agent 应主动写
     "overview": "一句话洞察",
     "tier_stats": { "green": "3 项可自动修复", "yellow": "2 项需人工判断", "red": "1 项高危" },
     "priority": ["1. ...", "2. ..."],

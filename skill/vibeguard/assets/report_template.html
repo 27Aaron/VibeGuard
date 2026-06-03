@@ -637,11 +637,29 @@
                 d.project.total_vulnerabilities = d.project.total_vulnerabilities || d.vulnerability_count || 0;
                 // Summary: may be top-level or nested
                 d.summary = d.summary || {};
+                if (Array.isArray(d.recommendations)) {
+                    const longTermPattern = /定期|持续|长期|自动化|Dependabot|pre-commit|CI|监控|关注|轮换|基线/;
+                    const immediate = d.recommendations.filter((x) => !longTermPattern.test(String(x)));
+                    const longTerm = d.recommendations.filter((x) => longTermPattern.test(String(x)));
+                    if (!d.summary.priority && immediate.length) {
+                        d.summary.priority = immediate;
+                    }
+                    if (!d.summary.long_term && longTerm.length) {
+                        d.summary.long_term = longTerm;
+                    }
+                }
                 if (d.long_term_recommendations && !d.summary.long_term) {
                     d.summary.long_term = d.long_term_recommendations;
                 }
                 if (d.priority_items && !d.summary.priority) {
                     d.summary.priority = d.priority_items;
+                }
+                if (!d.summary.long_term || !d.summary.long_term.length) {
+                    d.summary.long_term = [
+                        "定期运行安全扫描并复查新增漏洞。",
+                        "为依赖升级建立测试和构建验证流程。",
+                        "为敏感配置启用模板文件和密钥轮换流程。",
+                    ];
                 }
                 // Risk summary: compute if missing
                 if (!d.risk_summary || Object.values(d.risk_summary).every(v => !v)) {
@@ -652,6 +670,44 @@
                         else rs.info++;
                     });
                     d.risk_summary = rs;
+                }
+                if (!d.summary.overview) {
+                    const rs = d.risk_summary || {};
+                    const riskTotal = (rs.critical || 0) + (rs.high || 0) + (rs.medium || 0) + (rs.low || 0);
+                    if ((rs.critical || 0) || (rs.high || 0)) {
+                        d.summary.overview = "本次扫描发现高优先级安全风险，建议先处理严重和高危项，再做批量升级与验证。";
+                    } else if (riskTotal) {
+                        d.summary.overview = "本次扫描发现中低风险项，建议按影响范围分批处理并验证构建和测试。";
+                    } else if (d.errors && d.errors.length) {
+                        d.summary.overview = "本次扫描未确认风险，但存在扫描错误，结论需要在补齐失败步骤后复核。";
+                    } else {
+                        d.summary.overview = "本次扫描未发现明确风险，建议保留报告并持续做依赖和密钥卫生检查。";
+                    }
+                }
+                if (!d.summary.priority || !d.summary.priority.length) {
+                    const priority = [];
+                    const criticalHigh = (d.risk_summary.critical || 0) + (d.risk_summary.high || 0);
+                    if (criticalHigh) {
+                        priority.push(`优先处理 ${criticalHigh} 个严重/高危项，先升级存在修复版本的依赖并运行测试。`);
+                    } else if (d.vulns && d.vulns.length) {
+                        priority.push(`处理 ${d.vulns.length} 个已知依赖漏洞，按严重度从高到低分批升级。`);
+                    }
+                    if (d.green && d.green.length) {
+                        priority.push(`复核 ${d.green.length} 个可修复项，确认当前代码已提交后再执行网页修复按钮。`);
+                    }
+                    if (d.yellow && d.yellow.length) {
+                        priority.push(`人工审查 ${d.yellow.length} 个需确认项，重点检查密钥、配置和可疑依赖来源。`);
+                    }
+                    if (d.red && d.red.length) {
+                        priority.push(`对 ${d.red.length} 个高危项按报告步骤处理，必要时轮换凭证并清理 git 历史。`);
+                    }
+                    if (d.errors && d.errors.length) {
+                        priority.push("复查扫描错误，补齐失败的 API、包管理器或工具链检查后再确认最终结论。");
+                    }
+                    if (!priority.length) {
+                        priority.push("当前没有需要立即处理的明确风险，建议保留报告作为安全基线。");
+                    }
+                    d.summary.priority = priority;
                 }
                 return d;
             })();
