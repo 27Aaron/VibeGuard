@@ -1,6 +1,8 @@
 # Build output and caches
 .cache/
 .worktrees/
+__pycache__/
+*.py[cod]
 .next/
 .next-dev/
 .turbo/

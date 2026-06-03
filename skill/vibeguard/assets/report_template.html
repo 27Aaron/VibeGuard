@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>安全扫描报告</title>
+        <style>
+            :root {
+                --bg: #f6f7f9;
+                --card: #ffffff;
+                --ink: #1d2129;
+                --sub: #86909c;
+                --line: #e5e6eb;
+                --green: #00b42a;
+                --yellow: #ff7d00;
+                --red: #f53f3f;
+                --green-bg: #e8ffea;
+                --yellow-bg: #fff7e8;
+                --red-bg: #ffece8;
+                --accent: #165dff;
+                --accent-bg: #e8f3ff;
+                --critical: #f53f3f;
+                --high: #ff7d00;
+                --medium: #ffb400;
+                --low: #00b42a;
+                --info: #86909c;
+                --radius: 14px;
+                --shadow:
+                    0 1px 3px rgba(0, 0, 0, 0.04),
+                    0 8px 24px rgba(0, 0, 0, 0.04);
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family:
+                    -apple-system, "SF Pro SC", "PingFang SC", system-ui,
+                    sans-serif;
+                background: var(--bg);
+                color: var(--ink);
+                line-height: 1.6;
+                padding: 32px 20px 80px;
+                -webkit-font-smoothing: antialiased;
+            }
+            .wrap {
+                max-width: 1040px;
+                margin: 0 auto;
+            }
+            header {
+                margin-bottom: 28px;
+            }
+            h1 {
+                font-size: 26px;
+                font-weight: 700;
+                letter-spacing: -0.5px;
+            }
+            .meta {
+                color: var(--sub);
+                font-size: 13px;
+                margin-top: 6px;
+            }
+
+            /* overview */
+            .overview {
+                background: var(--card);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                padding: 24px;
+                margin-bottom: 24px;
+            }
+            .bar {
+                height: 16px;
+                border-radius: 8px;
+                background: var(--line);
+                overflow: hidden;
+                display: flex;
+                margin: 16px 0 12px;
+            }
+            .bar i {
+                display: block;
+                height: 100%;
+            }
+            .bar i.seg-critical {
+                background: var(--critical);
+            }
+            .bar i.seg-high {
+                background: var(--high);
+            }
+            .bar i.seg-medium {
+                background: var(--medium);
+            }
+            .bar i.seg-low {
+                background: var(--low);
+            }
+            .bar i.seg-info {
+                background: var(--info);
+            }
+            .bar i + i {
+                border-left: 1.5px solid #fff;
+            }
+            .lead {
+                font-size: 14px;
+                line-height: 1.7;
+                margin-bottom: 12px;
+            }
+            .stats {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .stat .k {
+                font-size: 12px;
+                color: var(--sub);
+            }
+            .stat .v {
+                font-size: 18px;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+            .sysgrid {
+                display: grid;
+                grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+                gap: 10px 24px;
+                margin-top: 20px;
+                padding-top: 18px;
+                border-top: 1px solid var(--line);
+            }
+            .sysgrid div {
+                font-size: 13px;
+            }
+            .sysgrid span {
+                color: var(--sub);
+                white-space: nowrap;
+            }
+            .sysgrid b {
+                display: inline;
+                font-weight: 500;
+                word-break: break-all;
+            }
+            .pills {
+                margin: 14px 0 0;
+            }
+            .bar-label {
+                font-size: 12px;
+                color: var(--sub);
+                margin-bottom: 4px;
+            }
+
+            /* sections */
+            .sec {
+                margin-bottom: 28px;
+            }
+            .sec h2 {
+                font-size: 18px;
+                font-weight: 700;
+                margin-bottom: 14px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .sec h2 .count {
+                font-size: 13px;
+                color: var(--sub);
+                font-weight: 500;
+            }
+            .sec-actions {
+                margin-left: auto;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            /* top5 table */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                background: var(--card);
+                border-radius: var(--radius);
+                overflow: hidden;
+                box-shadow: var(--shadow);
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 12px 14px;
+                font-size: 13px;
+                border-bottom: 1px solid var(--line);
+            }
+            th {
+                background: #fafbfc;
+                color: var(--sub);
+                font-weight: 600;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+            .table-scroll {
+                overflow-x: auto;
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+            }
+            .vuln-extra {
+                display: none;
+            }
+            .vuln-expanded .vuln-extra {
+                display: table-row;
+            }
+            .vuln-toggle td {
+                text-align: center;
+                padding: 10px !important;
+            }
+            .table-scroll table {
+                min-width: 600px;
+                box-shadow: none;
+            }
+            tr:last-child td {
+                border-bottom: none;
+            }
+            td.sev {
+                font-weight: 700;
+                white-space: nowrap;
+            }
+            td.ver {
+                font-family: "SF Mono", ui-monospace, monospace;
+                font-size: 12px;
+                white-space: nowrap;
+                min-width: 80px;
+            }
+            td.path {
+                font-family: "SF Mono", ui-monospace, monospace;
+                font-size: 12px;
+                color: var(--sub);
+                word-break: break-all;
+            }
+            td.advisory {
+                font-size: 12px;
+            }
+            .adv-list {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2px 8px;
+            }
+            .adv-list a {
+                color: var(--accent);
+                text-decoration: none;
+                font-family: "SF Mono", ui-monospace, monospace;
+                font-size: 11px;
+                white-space: nowrap;
+            }
+            .adv-list a:hover {
+                text-decoration: underline;
+            }
+            td.summary-cell {
+                font-size: 12px;
+                color: var(--sub);
+                line-height: 1.6;
+            }
+            .dot {
+                display: inline-block;
+                width: 9px;
+                height: 9px;
+                border-radius: 50%;
+            }
+            .dot.green {
+                background: var(--green);
+            }
+            .dot.yellow {
+                background: var(--yellow);
+            }
+            .dot.red {
+                background: var(--red);
+            }
+
+            /* severity badges */
+            .sev-badge {
+                display: inline-block;
+                padding: 2px 10px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            .sev-critical {
+                background: var(--red-bg);
+                color: var(--red);
+            }
+            .sev-high {
+                background: var(--yellow-bg);
+                color: var(--high);
+            }
+            .sev-medium {
+                background: #fff7e8;
+                color: var(--medium);
+            }
+            .sev-low {
+                background: var(--green-bg);
+                color: var(--green);
+            }
+            .sev-info {
+                background: #f2f3f5;
+                color: var(--sub);
+            }
+
+            /* item cards */
+            .item {
+                background: var(--card);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                margin-bottom: 12px;
+                border-left: 4px solid var(--line);
+                overflow: hidden;
+            }
+            .item.green {
+                border-left-color: var(--green);
+            }
+            .item.yellow {
+                border-left-color: var(--yellow);
+            }
+            .item.red {
+                border-left-color: var(--red);
+            }
+            .item-head {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 16px 18px;
+                cursor: pointer;
+                user-select: none;
+            }
+            .item-head:hover {
+                background: #fafbfc;
+            }
+            .item-name {
+                font-weight: 600;
+                font-size: 15px;
+                flex: 1;
+            }
+            .item-badge {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--green);
+                background: var(--green-bg);
+                padding: 2px 10px;
+                border-radius: 20px;
+                white-space: nowrap;
+            }
+            .item-badge:empty {
+                display: none;
+            }
+            .item.fixed .item-name {
+                text-decoration: line-through;
+                color: var(--sub);
+                font-weight: 500;
+            }
+            .item.fixed {
+                opacity: 0.85;
+            }
+            .item-sev {
+                font-weight: 700;
+                white-space: nowrap;
+            }
+            .chev {
+                color: var(--sub);
+                transition: transform 0.2s;
+                font-size: 12px;
+            }
+            .item.open .chev {
+                transform: rotate(90deg);
+            }
+            .item-body {
+                display: none;
+                padding: 0 18px 18px;
+                font-size: 14px;
+            }
+            .item.open .item-body {
+                display: block;
+            }
+            .item-path {
+                font-family: "SF Mono", ui-monospace, monospace;
+                font-size: 12px;
+                color: var(--sub);
+                word-break: break-all;
+                margin-bottom: 12px;
+                padding: 8px 10px;
+                background: #fafbfc;
+                border-radius: 8px;
+            }
+            .field {
+                margin: 10px 0;
+            }
+            .field .label {
+                font-size: 12px;
+                color: var(--sub);
+                font-weight: 600;
+                margin-bottom: 3px;
+            }
+            .tag {
+                display: inline-block;
+                background: var(--accent-bg);
+                color: var(--accent);
+                font-size: 12px;
+                padding: 2px 8px;
+                border-radius: 6px;
+                margin: 2px 4px 2px 0;
+            }
+            .risk {
+                background: var(--red-bg);
+                color: var(--red);
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 13px;
+                margin-top: 10px;
+            }
+
+            /* command block */
+            .cmd {
+                position: relative;
+                background: #1d2129;
+                color: #e5e6eb;
+                border-radius: 10px;
+                padding: 14px 14px;
+                margin: 8px 0;
+                font-family: "SF Mono", ui-monospace, monospace;
+                font-size: 12.5px;
+                line-height: 1.7;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .cmd .copy {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: #2d3138;
+                color: #c9cdd4;
+                border: none;
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-size: 11px;
+                cursor: pointer;
+                font-family: inherit;
+            }
+            .cmd .copy:hover {
+                background: #3d424a;
+                color: #fff;
+            }
+            .cmd .copy.done {
+                background: var(--green);
+                color: #fff;
+            }
+            .cmd-label {
+                font-size: 11px;
+                color: var(--sub);
+                margin: 10px 0 2px;
+            }
+
+            /* fix action buttons */
+            .fix-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-top: 4px;
+            }
+            .fix-btn {
+                border: none;
+                border-radius: 8px;
+                padding: 7px 16px;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            .fix-btn.safe {
+                background: var(--green-bg);
+                color: var(--green);
+            }
+            .fix-btn.safe:hover {
+                background: #c8f5cf;
+            }
+            .fix-btn.open {
+                background: #f2f3f5;
+                color: var(--ink);
+            }
+            .fix-btn.open:hover {
+                background: #e5e6eb;
+            }
+            .fix-btn.danger {
+                background: var(--red-bg);
+                color: var(--red);
+            }
+            .fix-btn.danger:hover {
+                background: #ffd4cc;
+            }
+            .fix-btn:disabled {
+                opacity: 0.45;
+                cursor: default;
+            }
+            .fix-status {
+                font-size: 13px;
+            }
+            .fix-status.ok {
+                color: var(--green);
+                font-weight: 600;
+            }
+            .fix-status.err {
+                color: var(--red);
+            }
+            .fix-note {
+                font-size: 12px;
+                color: var(--sub);
+                line-height: 1.6;
+                margin-top: 8px;
+            }
+            .fix-note b {
+                color: var(--ink);
+            }
+
+            /* summary */
+            .summary {
+                background: var(--card);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+                padding: 24px;
+            }
+            .summary h3 {
+                font-size: 15px;
+                margin: 18px 0 8px;
+            }
+            .summary h3:first-child {
+                margin-top: 0;
+            }
+            .summary ul {
+                padding-left: 20px;
+            }
+            .summary li {
+                margin: 4px 0;
+                font-size: 14px;
+            }
+            .pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: #fafbfc;
+                border: 1px solid var(--line);
+                border-radius: 20px;
+                padding: 6px 14px;
+                font-size: 13px;
+                margin: 4px 8px 4px 0;
+                font-weight: 600;
+            }
+            .pill b {
+                font-variant-numeric: tabular-nums;
+            }
+
+            .note {
+                font-size: 12px;
+                color: var(--sub);
+                margin-top: 8px;
+            }
+            .denied {
+                background: var(--yellow-bg);
+                border: 1px solid #ffd591;
+                border-radius: 10px;
+                padding: 12px 14px;
+                font-size: 13px;
+                margin-top: 12px;
+            }
+            @media (max-width: 720px) {
+                .sysgrid {
+                    grid-template-columns: 1fr;
+                }
+            }
+            footer {
+                text-align: center;
+                color: var(--sub);
+                font-size: 12px;
+                margin-top: 40px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <header>
+                <h1>安全扫描报告</h1>
+                <div class="meta" id="meta"></div>
+            </header>
+            <div id="app"></div>
+            <footer>VibeGuard · 只读安全扫描 · 修复操作请在确认后执行</footer>
+        </div>
+
+        <script>
+            const RAW = __REPORT_DATA__;
+            const FIX = __FIX_CONFIG__; // null=静态只读；{token,endpoint}=server.py 提供一键修复
+
+            // ---- Normalize: accept common field name variations from different agents ----
+            const DATA = (() => {
+                const d = Object.assign({}, RAW);
+                // Arrays: green|green_items, yellow|yellow_items, red|red_items
+                d.green = d.green || d.green_items || [];
+                d.yellow = d.yellow || d.yellow_items || [];
+                d.red = d.red || d.red_items || [];
+                d.vulns = d.vulns || d.vulnerabilities || d.all_issues || d.top5 || d.top_issues || [];
+                d.errors = d.errors || [];
+                // Normalize items inside arrays: title→name, light→tier, current_version→version, etc.
+                const normItem = (it) => {
+                    if (!it) return it;
+                    it.name = it.name || it.title || it.summary || '';
+                    it.tier = it.tier || it.light || '';
+                    it.version = it.version || it.current_version || '';
+                    it.path = it.path || it.file_path || it.file || '';
+                    it.file = it.file || it.file_path || it.path || '';
+                    it.severity = String(it.severity || 'info').toLowerCase();
+                    if (!['critical', 'high', 'medium', 'low', 'info'].includes(it.severity)) {
+                        it.severity = 'info';
+                    }
+                    if (!it.tier && it.light) it.tier = it.light;
+                    // advisory_id: string or array → always string
+                    if (Array.isArray(it.advisory_ids) && !it.advisory_id) {
+                        it.advisory_id = it.advisory_ids.join(', ');
+                    }
+                    // fix_commands from fix_config if missing
+                    if (!it.fix_commands && it.fix_config) {
+                        const cmd = it.fix_config.command || '';
+                        if (cmd) it.fix_commands = [{ label: '执行修复', cmd }];
+                    }
+                    // risk_note → risk mapping
+                    if (!it.risk && it.risk_note) it.risk = it.risk_note;
+                    if (!it.summary && it.description) it.summary = it.description;
+                    return it;
+                };
+                d.green = d.green.map(normItem);
+                d.yellow = d.yellow.map(normItem);
+                d.red = d.red.map(normItem);
+                d.vulns = d.vulns.map(normItem);
+                // Project: total_packages or total_dependencies
+                d.project = d.project || {};
+                d.project.total_packages = d.project.total_packages || d.project.total_dependencies || d.package_count || 0;
+                d.project.total_vulnerabilities = d.project.total_vulnerabilities || d.vulnerability_count || 0;
+                // Summary: may be top-level or nested
+                d.summary = d.summary || {};
+                if (d.long_term_recommendations && !d.summary.long_term) {
+                    d.summary.long_term = d.long_term_recommendations;
+                }
+                if (d.priority_items && !d.summary.priority) {
+                    d.summary.priority = d.priority_items;
+                }
+                // Risk summary: compute if missing
+                if (!d.risk_summary || Object.values(d.risk_summary).every(v => !v)) {
+                    const rs = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+                    [...d.green, ...d.yellow, ...d.red].forEach(it => {
+                        const s = (it.severity || 'info').toLowerCase();
+                        if (s in rs) rs[s]++;
+                        else rs.info++;
+                    });
+                    d.risk_summary = rs;
+                }
+                return d;
+            })();
+
+            const esc = (s) =>
+                String(s == null ? "" : s).replace(
+                    /[&<>"]/g,
+                    (c) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                        })[c],
+                );
+
+            function copyBtn(text) {
+                return `<button class="copy" data-cmd="${btoa(unescape(encodeURIComponent(text)))}">复制</button>`;
+            }
+
+            function cmdBlock(c) {
+                const label = c.label
+                    ? `<div class="cmd-label">${esc(c.label)}</div>`
+                    : "";
+                return `${label}<div class="cmd">${copyBtn(c.cmd)}${esc(c.cmd)}</div>`;
+            }
+
+            function sevBadge(sev) {
+                const cls =
+                    {
+                        critical: "sev-critical",
+                        high: "sev-high",
+                        medium: "sev-medium",
+                        low: "sev-low",
+                        info: "sev-info",
+                    }[sev] || "sev-info";
+                const text =
+                    {
+                        critical: "严重",
+                        high: "高危",
+                        medium: "中危",
+                        low: "低危",
+                        info: "信息",
+                    }[sev] || sev;
+                return `<span class="sev-badge ${cls}">${esc(text)}</span>`;
+            }
+
+            function issueDescription(r) {
+                const raw = String(r.summary || r.description || r.match_summary || "").trim();
+                if (/[\u4e00-\u9fff]/.test(raw)) return raw;
+
+                const text = [
+                    raw,
+                    r.name,
+                    r.package,
+                    r.advisory_id,
+                    r.cve_id,
+                    r.type,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                const pkg = r.package || r.name || "该依赖";
+                const fixed = Array.isArray(r.fixed_versions) && r.fixed_versions.length
+                    ? `建议升级到 ${r.fixed_versions.join("、")} 或更高的安全版本。`
+                    : "建议结合公告确认影响范围，并优先升级到官方修复版本。";
+
+                const rules = [
+                    [/prototype pollution|原型污染/, "原型污染", "攻击者可能篡改对象原型，影响业务逻辑，严重时可能进一步触发拒绝服务或代码执行。"],
+                    [/cross-site scripting|\bxss\b/, "跨站脚本（XSS）", "攻击者可能在用户浏览器中执行脚本，窃取会话、冒充用户操作或篡改页面内容。"],
+                    [/sql injection|sqli/, "SQL 注入", "攻击者可能绕过查询逻辑，读取、修改或删除数据库中的敏感数据。"],
+                    [/command injection|remote code execution|\brce\b|arbitrary code execution/, "命令执行", "攻击者可能在服务器或构建环境中执行任意代码，风险较高。"],
+                    [/path traversal|directory traversal/, "路径遍历", "攻击者可能越权读取或写入非预期文件，导致源码、配置或密钥泄露。"],
+                    [/denial of service|\bdos\b|redos|regular expression denial/, "拒绝服务", "攻击者可能通过特制输入耗尽资源，导致服务变慢或不可用。"],
+                    [/ssrf|server-side request forgery/, "服务端请求伪造（SSRF）", "攻击者可能诱导服务端访问内网或云元数据接口，造成敏感信息泄露。"],
+                    [/csrf|cross-site request forgery/, "跨站请求伪造（CSRF）", "攻击者可能诱导已登录用户执行非预期操作。"],
+                    [/auth|authentication|authorization|bypass|privilege escalation/, "认证或权限绕过", "攻击者可能绕过登录、越权访问数据或提升权限。"],
+                    [/information disclosure|sensitive information|data leak|exposure/, "敏感信息泄露", "攻击者可能获取配置、令牌、用户数据或内部实现细节。"],
+                    [/arbitrary file|file read|file write/, "任意文件访问", "攻击者可能读取或写入非预期文件，影响系统完整性和数据安全。"],
+                    [/malicious|supply chain|typosquat|dependency confusion/, "供应链风险", "该依赖可能存在恶意行为或供应链攻击迹象，可能影响构建环境、运行环境或凭证安全。"],
+                    [/buffer overflow|memory corruption|out-of-bounds|use-after-free/, "内存安全漏洞", "攻击者可能造成程序崩溃、信息泄露，严重时可能执行任意代码。"],
+                ];
+
+                for (const [pattern, kind, risk] of rules) {
+                    if (pattern.test(text)) {
+                        return `${pkg} 存在${kind}漏洞，${risk}${fixed}`;
+                    }
+                }
+
+                return `${pkg} 命中已知安全漏洞，可能影响应用的机密性、完整性或可用性。${fixed}`;
+            }
+
+            function securityIds(r) {
+                const values = [];
+                const push = (v) => {
+                    if (Array.isArray(v)) {
+                        v.forEach(push);
+                        return;
+                    }
+                    if (v == null) return;
+                    String(v)
+                        .split(/[,，\s]+/)
+                        .map((x) => x.trim())
+                        .filter(Boolean)
+                        .forEach((id) => {
+                            if (!/^GHSA-/i.test(id)) return;
+                            if (!values.some((x) => x.toLowerCase() === id.toLowerCase())) {
+                                values.push(id);
+                            }
+                        });
+                };
+
+                push(r.advisory_id);
+                push(r.advisory_ids);
+                push(r.aliases);
+                push(r.advisory_aliases);
+                push(r.cve_id);
+                push(r.cve_ids);
+
+                return values;
+            }
+
+            function securityIdUrl(id) {
+                if (/^CVE-\d{4}-\d+/i.test(id)) {
+                    return `https://www.cve.org/CVERecord?id=${encodeURIComponent(id.toUpperCase())}`;
+                }
+                return `https://osv.dev/vulnerability/${encodeURIComponent(id)}`;
+            }
+
+            // ---- Overview ----
+            function renderOverview(proj, rs) {
+                document.getElementById("meta").textContent =
+                    DATA.generated_at
+                        ? `生成于 ${DATA.generated_at}${DATA.total_seconds ? '　·　总耗时 ' + DATA.total_seconds + 's' : DATA.scan_seconds ? '　·　扫描耗时 ' + DATA.scan_seconds + 's' : ''}`
+                        : '';
+
+                // Top severity: highest non-zero level from risk_summary
+                const severityOrder = ['critical', 'high', 'medium', 'low', 'info'];
+                let topSeverity = '';
+                for (const s of severityOrder) {
+                    if (rs && rs[s] && rs[s] > 0) { topSeverity = s; break; }
+                }
+
+                const total =
+                    (rs &&
+                        rs.critical + rs.high + rs.medium + rs.low + rs.info) ||
+                    1;
+                const crit = (rs && rs.critical) || 0;
+                const high = (rs && rs.high) || 0;
+                const med = (rs && rs.medium) || 0;
+                const low = (rs && rs.low) || 0;
+                const info = (rs && rs.info) || 0;
+
+                const seg = (v, cls) =>
+                    v > 0
+                        ? `<i class="seg-${cls}" style="width:${((v / total) * 100).toFixed(2)}%" title="${cls}: ${v}"></i>`
+                        : "";
+                const bar =
+                    total > 1
+                        ? seg(crit, "critical") +
+                          seg(high, "high") +
+                          seg(med, "medium") +
+                          seg(low, "low") +
+                          seg(info, "info")
+                        : '<i class="seg-low" style="width:100%"></i>';
+
+                const hasAny = crit || high || med || low || info;
+                const pills = rs
+                    ? `<div class="pills">
+    ${!hasAny ? `<span class="pill"><span class="dot" style="background:var(--green)"></span>未发现风险 <b>✓</b></span>` : ""}
+    ${crit ? `<span class="pill"><span class="dot" style="background:var(--critical)"></span>严重 <b>${crit}</b></span>` : ""}
+    ${high ? `<span class="pill"><span class="dot" style="background:var(--high)"></span>高危 <b>${high}</b></span>` : ""}
+    ${med ? `<span class="pill"><span class="dot" style="background:var(--medium)"></span>中危 <b>${med}</b></span>` : ""}
+    ${low ? `<span class="pill"><span class="dot" style="background:var(--low)"></span>低危 <b>${low}</b></span>` : ""}
+    ${info ? `<span class="pill"><span class="dot" style="background:var(--info)"></span>信息 <b>${info}</b></span>` : ""}
+  </div>`
+                    : "";
+
+                return `<div class="overview">
+    <div class="stats">
+      <div class="stat"><div class="k">项目</div><div class="v">${esc(proj.name)}</div></div>
+      <div class="stat"><div class="k">生态</div><div class="v">${(proj.ecosystems || []).join(", ") || "未检测到"}</div></div>
+      <div class="stat"><div class="k">依赖数</div><div class="v">${proj.total_packages || 0}</div></div>
+      <div class="stat"><div class="k">风险等级</div><div class="v">${topSeverity ? sevBadge(topSeverity) : '<span style="color:var(--sub)">无</span>'}</div></div>
+    </div>
+    <div class="bar-label">风险等级分布</div>
+    <div class="bar">${bar}</div>
+    ${pills}
+    <div class="sysgrid">
+      <div><span>路径　</span><b>${esc(proj.path)}</b></div>
+      <div><span>分支　</span><b>${esc(proj.git_branch || "-")}</b></div>
+      <div><span>来源　</span><b>${esc((proj.lockfiles || []).join(", ") || "-")}</b></div>
+    </div>
+  </div>`;
+            }
+
+            // ---- Vulnerability table (all items) ----
+            const VULN_SHOW = 10;
+
+            function renderVulnTable(rows) {
+                if (!rows || !rows.length) return "";
+                const needToggle = rows.length > VULN_SHOW;
+                const body = rows
+                    .map(
+                        (r, idx) => {
+                            const displayIds = securityIds(r);
+                            const advHtml = displayIds.length > 0
+                                ? `<div class="adv-list">${displayIds.map(id => {
+                                    const url = securityIdUrl(id);
+                                    return `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(id)}</a>`;
+                                }).join('')}</div>`
+                                : '<span style="color:var(--sub)">-</span>';
+                            const cls = needToggle && idx >= VULN_SHOW ? ' class="vuln-extra"' : '';
+                            return `<tr${cls}>
+    <td class="sev">${sevBadge(r.severity)}</td>
+    <td><b>${esc(r.package || r.name || "")}</b></td>
+    <td class="ver">${esc(r.version || "")}</td>
+    <td class="advisory">${advHtml}</td>
+    <td class="summary-cell">${esc(issueDescription(r))}</td>
+  </tr>`;
+                        },
+                    )
+                    .join("");
+                const toggle = needToggle
+                    ? `<tr class="vuln-toggle"><td colspan="5"><button class="fix-btn open" onclick="toggleVulns(this)">显示更多（还有 ${rows.length - VULN_SHOW} 项）</button></td></tr>`
+                    : '';
+                return `<div class="sec"><h2>漏洞总览 <span class="count">${rows.length} 项</span></h2>
+    <div class="table-scroll"><table>
+    <thead><tr><th>严重度</th><th>包名</th><th>版本</th><th>GHSA</th><th>说明</th></tr></thead>
+    <tbody>${body}${toggle}</tbody></table></div></div>`;
+            }
+
+            function toggleVulns(btn) {
+                const table = btn.closest("table");
+                table.classList.toggle("vuln-expanded");
+                const expanded = table.classList.contains("vuln-expanded");
+                const extras = table.querySelectorAll(".vuln-extra");
+                btn.textContent = expanded
+                    ? "收起"
+                    : `显示更多（还有 ${extras.length} 项）`;
+            }
+
+            // ---- Priority ----
+            function renderPriority(sm) {
+                if (!sm || (!sm.priority && !sm.overview)) return "";
+                const intro = sm.overview
+                    ? `<p class="lead">${esc(sm.overview)}</p>`
+                    : "";
+                const body = sm.priority
+                    ? Array.isArray(sm.priority)
+                        ? sumList(sm.priority)
+                        : `<p>${esc(sm.priority)}</p>`
+                    : "";
+                return `<div class="sec"><h2>执行建议</h2><div class="summary">${intro}${body}</div></div>`;
+            }
+
+            // ---- Green: auto-fixable ----
+            function renderGreen(items) {
+                if (!items || !items.length) return "";
+                const cards = items
+                    .map((it) => {
+                        const cmds = (it.fix_commands || [])
+                            .map(cmdBlock)
+                            .join("");
+                        return card(
+                            "green",
+                            it.name,
+                            it.severity,
+                            it.summary || "",
+                            `<div class="field"><div class="label">修复命令</div>${cmds || (it.fix_config ? '<span class="note">见下方一键修复</span>' : '<span class="note">未提供可复制命令</span>')}</div>` +
+                                (it.summary
+                                    ? `<div class="field"><div class="label">风险说明</div>${esc(it.summary)}</div>`
+                                    : "") +
+                                (it.fix_error
+                                    ? `<div class="denied">该项未启用一键修复：${esc(it.fix_error)}</div>`
+                                    : "") +
+                                greenActions(it),
+                        );
+                    })
+                    .join("");
+                return section(
+                    "🟢 快速修复（可直接执行的低风险项）",
+                    items.length,
+                    cards,
+                    greenBatchActions(items),
+                );
+            }
+
+            function greenActions(it) {
+                if (!FIX || !it.fix_config) return "";
+                const payload = btoa(
+                    unescape(encodeURIComponent(JSON.stringify(it.fix_config))),
+                );
+                return `<div class="field fix-actions" data-fix="${payload}">
+    <div class="label">在网页上直接修复</div>
+    <div class="fix-row">
+      <button class="fix-btn safe" onclick="doFix(this)">执行修复</button>
+      <span class="fix-status"></span>
+    </div>
+    <div class="fix-note"><b>执行修复</b>：将运行预审的安全修复命令。此操作可能修改项目文件，请确保已保存并提交当前代码。修复前会有二次确认。</div>
+  </div>`;
+            }
+
+            function greenBatchActions(items) {
+                if (!FIX) return "";
+                if (!items.some((it) => it.fix_config)) return "";
+                return `<span class="sec-actions">
+    <button class="fix-btn safe" onclick="doUpdateAll(this)">一键更新</button>
+    <span class="fix-status sec-status"></span>
+  </span>`;
+            }
+
+            // ---- Yellow: manual review ----
+            function renderYellow(items) {
+                if (!items || !items.length) return "";
+                const cards = items
+                    .map((it) => {
+                        const cmds = (it.fix_commands || [])
+                            .map(cmdBlock)
+                            .join("");
+                        let inner = "";
+                        // Accept both detailed and simplified field names
+                        const desc = it.content_profile || it.description || '';
+                        const why = it.why_manual || it.risk_note || '';
+                        const how = it.disposal || it.suggested_fix || '';
+                        if (desc)
+                            inner += `<div class="field"><div class="label">内容描述</div>${esc(desc)}</div>`;
+                        if (why)
+                            inner += `<div class="field"><div class="label">为什么需要人工判断</div>${esc(why)}</div>`;
+                        if (how)
+                            inner += `<div class="field"><div class="label">处置路径</div>${esc(how)}</div>`;
+                        if (cmds)
+                            inner += `<div class="field"><div class="label">修复命令（自行确认后执行）</div>${cmds}</div>`;
+                        if (it.risk)
+                            inner += `<div class="risk">⚠️ ${esc(it.risk)}</div>`;
+                        inner += yellowActions(it);
+                        return card(
+                            "yellow",
+                            it.name,
+                            it.severity,
+                            it.path || "",
+                            inner,
+                        );
+                    })
+                    .join("");
+                return section(
+                    "🟡 需人工判断（含用户数据或需确认风险）",
+                    items.length,
+                    cards,
+                );
+            }
+
+            function yellowActions(it) {
+                if (!FIX) return "";
+                const openPath = it.file || it.path;
+                if (!openPath) return "";
+                return `<div class="field fix-actions" data-open="${b64([openPath])}">
+    <div class="label">在网页上处理</div>
+    <div class="fix-row">
+      <button class="fix-btn open" onclick="doOpen(this)">在编辑器打开</button>
+      <span class="fix-status"></span>
+    </div>
+    <div class="fix-note"><b>在编辑器打开</b>：打开该文件供你审查，不做任何修改。请根据上方处置建议手动处理。</div>
+  </div>`;
+            }
+
+            // ---- Red: high-risk ----
+            function renderRed(items) {
+                if (!items || !items.length) return "";
+                const cards = items
+                    .map((it) => {
+                        let inner = "";
+                        if (it.why_keep)
+                            inner += `<div class="field"><div class="label">为什么需要专业处理</div>${esc(it.why_keep)}</div>`;
+                        if (it.indirect_release)
+                            inner += `<div class="field"><div class="label">处理步骤</div>${esc(it.indirect_release)}</div>`;
+                        if (it.risk)
+                            inner += `<div class="risk">⚠️ ${esc(it.risk)}</div>`;
+                        return card(
+                            "red",
+                            it.name,
+                            it.severity,
+                            it.path || "",
+                            inner,
+                        );
+                    })
+                    .join("");
+                return section(
+                    "🔴 高危 / 需专业处理（不可自动修复，需谨慎操作）",
+                    items.length,
+                    cards,
+                );
+            }
+
+            // ---- Errors ----
+            function renderErrors() {
+                if (!DATA.errors || !DATA.errors.length) return "";
+                return `<div class="denied"><b>扫描过程中遇到以下问题：</b><br>${DATA.errors.map((e) => esc("[" + e.step + "] " + e.message)).join("<br>")}</div>`;
+            }
+
+            // ---- Long-term ----
+            function renderLongTerm(sm) {
+                if (!sm || !sm.long_term || !sm.long_term.length) return "";
+                return `<div class="sec"><h2>长期安全建议</h2><div class="summary">${sumList(sm.long_term)}</div></div>`;
+            }
+
+            // ---- Shared helpers ----
+            function card(tier, name, sev, path, inner) {
+                const sevHtml = sev
+                    ? `<span class="item-sev">${sevBadge(sev)}</span>`
+                    : "";
+                return `<div class="item ${tier}">
+    <div class="item-head" onclick="this.parentNode.classList.toggle('open')">
+      <span class="dot ${tier}"></span>
+      <span class="item-name">${esc(name)}</span>
+      <span class="item-badge"></span>
+      ${sevHtml}
+      <span class="chev">▶</span>
+    </div>
+    <div class="item-body">
+      ${path ? `<div class="item-path">${esc(path)}</div>` : ""}
+      ${inner}
+    </div></div>`;
+            }
+
+            function section(title, count, inner, actions) {
+                return `<div class="sec"><h2>${esc(title)} <span class="count">${count} 项</span>${actions || ""}</h2>${inner}</div>`;
+            }
+
+            const sumList = (a) =>
+                a && a.length
+                    ? `<ul>${a.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`
+                    : "";
+            const b64 = (o) =>
+                btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+
+            // ---- Fix API ----
+            function postAction(wrap, body) {
+                const status = wrap.querySelector(".fix-status");
+                const btns = wrap.querySelectorAll(".fix-btn");
+                status.textContent = "处理中…";
+                status.className = "fix-status";
+                btns.forEach((b) => (b.disabled = true));
+                return fetch(FIX.endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token: FIX.token, ...body }),
+                })
+                    .then((r) => r.json())
+                    .then((res) => {
+                        btns.forEach((b) => (b.disabled = false));
+                        return res;
+                    })
+                    .catch((e) => {
+                        btns.forEach((b) => (b.disabled = false));
+                        return { ok: false, error: "连接失败：" + e };
+                    });
+            }
+
+            function doFix(btn) {
+                const wrap = btn.closest(".fix-actions");
+                const cfg = JSON.parse(
+                    decodeURIComponent(escape(atob(wrap.dataset.fix))),
+                );
+                const desc =
+                    cfg.type === "upgrade"
+                        ? `升级 ${cfg.package} 到 ${cfg.version}`
+                        : cfg.type === "gitignore"
+                          ? "修复 .gitignore"
+                          : cfg.type === "git_rm_cached"
+                            ? `从 git 移除 ${cfg.paths.join(", ")}`
+                            : "执行修复";
+                if (
+                    !confirm(
+                        `确认执行修复：${desc}？\n\n此操作可能修改项目文件，请确保已提交当前代码。`,
+                    )
+                )
+                    return;
+                postAction(wrap, { mode: "fix", params: cfg }).then((res) => {
+                    const status = wrap.querySelector(".fix-status");
+                    if (res.ok) {
+                        status.textContent = "✓ 修复完成";
+                        status.className = "fix-status ok";
+                        wrap.querySelectorAll(".fix-btn.safe").forEach((b) =>
+                            b.remove(),
+                        );
+                        const item = wrap.closest(".item");
+                        if (item) {
+                            item.classList.add("fixed");
+                            const badge = item.querySelector(
+                                ".item-head .item-badge",
+                            );
+                            if (badge) badge.textContent = "已修复";
+                        }
+                    } else {
+                        status.textContent = "✗ " + (res.error || "修复失败");
+                        status.className = "fix-status err";
+                    }
+                });
+            }
+
+            function doOpen(btn) {
+                const wrap = btn.closest(".fix-actions");
+                const paths = JSON.parse(
+                    decodeURIComponent(escape(atob(wrap.dataset.open))),
+                );
+                postAction(wrap, { mode: "open", params: { paths } }).then(
+                    (res) => {
+                        const status = wrap.querySelector(".fix-status");
+                        if (res.ok) {
+                            status.textContent = "✓ 已打开，请手动审查";
+                            status.className = "fix-status ok";
+                        } else {
+                            status.textContent = "✗ " + (res.error || "失败");
+                            status.className = "fix-status err";
+                        }
+                    },
+                );
+            }
+
+            function doUpdateAll(btn) {
+                const secActions = btn.closest(".sec-actions");
+                const status = secActions.querySelector(".fix-status");
+                if (
+                    !confirm(
+                        "⚠️ 一键更新将把项目所有依赖更新到最新版本\n\n" +
+                        "风险提示：\n" +
+                        "· 新版本可能引入破坏性变更（Breaking Changes）\n" +
+                        "· 可能导致现有代码出现兼容性问题\n" +
+                        "· 可能导致编译失败或运行时错误\n\n" +
+                        "建议在执行前：\n" +
+                        "· 确保已提交当前代码（git commit）\n" +
+                        "· 更新后运行完整测试套件\n" +
+                        "· 如出现问题可通过 git revert 回退\n\n" +
+                        "是否确认执行一键更新？"
+                    )
+                )
+                    return;
+                status.textContent = "正在更新所有依赖…";
+                status.className = "fix-status sec-status";
+                btn.disabled = true;
+                fetch(FIX.endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        token: FIX.token,
+                        mode: "update_all",
+                        params: {},
+                    }),
+                })
+                    .then((r) => r.json())
+                    .then((res) => {
+                        btn.disabled = false;
+                        if (res.ok) {
+                            const details = (res.results || [])
+                                .map((r) =>
+                                    r.ok
+                                        ? `${r.ecosystem}: ✓ 更新成功`
+                                        : `${r.ecosystem}: ✗ ${r.error || "更新失败"}`
+                                )
+                                .join("\n");
+                            status.textContent = "✓ 所有依赖已更新到最新版本";
+                            status.className = "fix-status sec-status ok";
+                            const sec = btn.closest(".sec");
+                            sec.querySelectorAll(".item.green").forEach(
+                                (item) => {
+                                    item.classList.add("fixed");
+                                    const badge = item.querySelector(
+                                        ".item-head .item-badge",
+                                    );
+                                    if (badge) badge.textContent = "已更新";
+                                },
+                            );
+                            secActions
+                                .querySelectorAll(".fix-btn.safe")
+                                .forEach((b) => b.remove());
+                            if (details) {
+                                alert("更新结果：\n\n" + details);
+                            }
+                        } else {
+                            status.textContent =
+                                "✗ " + (res.error || "更新失败");
+                            status.className = "fix-status sec-status err";
+                        }
+                    })
+                    .catch(() => {
+                        btn.disabled = false;
+                        status.textContent = "✗ 连接失败";
+                        status.className = "fix-status sec-status err";
+                    });
+            }
+
+            // ---- Mount ----
+            const app = document.getElementById("app");
+            app.innerHTML =
+                renderOverview(DATA.project || {}, DATA.risk_summary) +
+                renderVulnTable(DATA.vulns) +
+                renderPriority(DATA.summary) +
+                renderGreen(DATA.green) +
+                renderYellow(DATA.yellow) +
+                renderRed(DATA.red) +
+                renderErrors() +
+                renderLongTerm(DATA.summary);
+
+            // Copy handlers (delegated)
+            document.addEventListener("click", (e) => {
+                const b = e.target.closest(".copy");
+                if (!b) return;
+                e.stopPropagation();
+                const text = decodeURIComponent(escape(atob(b.dataset.cmd)));
+                navigator.clipboard.writeText(text).then(() => {
+                    b.textContent = "已复制";
+                    b.classList.add("done");
+                    setTimeout(() => {
+                        b.textContent = "复制";
+                        b.classList.remove("done");
+                    }, 1500);
+                });
+            });
+        </script>
+    </body>
+</html>

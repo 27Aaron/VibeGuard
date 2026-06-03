@@ -1,254 +1,101 @@
 ---
 name: vibeguard
-description: 面向普通开发者和 Vibe Coding 用户的项目安全体检 Skill。用于"帮我看看项目有没有安全问题"、"安全扫描/扫一下项目"、"依赖有没有漏洞"、"有没有木马包/恶意包"、"有没有硬编码密钥/API Key/token"、"env 是否误提交"、"gitignore 是否合理"、"依赖是否太旧"、"nginx/CVE/某个包有没有风险"、"security audit/dependency check/secrets scan" 等项目安全、依赖安全、供应链安全或漏洞情报查询。上下文是代码仓库、依赖、服务器或软件包时应触发。完整项目扫描先本地只读检查并在当前目录 docs/ 下生成安全报告；用户读完报告并明确允许后，才可协助修复问题。Skill 只向 VibeGuard API 发送包坐标，不上传源码、lockfile、env 或密钥。
+description: >
+  VibeGuard 项目安全扫描助手。自动扫描项目依赖漏洞、硬编码密钥、敏感文件泄露、
+  .gitignore 覆盖度等安全问题，生成可交互的 HTML 安全报告，并通过本地 Web 服务
+  提供一键修复能力。默认用中文解释，保留必要的 API 字段名、包生态名、命令和版本号。
+  触发词：安全扫描、安全检查、项目安全、漏洞检查、依赖漏洞、硬编码密钥、
+  API Key 泄露、env 误提交、gitignore、木马包、恶意包、安全报告。
 ---
 
 # VibeGuard 项目安全检查
 
-这个 Skill 用来帮助普通开发者和刚接触 Vibe Coding 的用户判断：自己的项目有没有明显安全风险，当前依赖有没有已知漏洞，最近的安全事件和自己的项目有没有关系。
+对用户项目做一次只读安全扫描，产出可交互的 HTML 报告。流程：扫描 → 分析分级 → 生成网页 → 打开。
 
-最终输出要像一份可执行的安全体检结论，而不是命令日志堆砌。默认用中文解释，保留必要的 API 字段名、包生态名、命令和版本号。
+## 铁律
 
-## 核心边界
+- **全程只读。** scan.py 只读文件、调 API，不修改任何项目内容。
+- **修复操作需确认。** 报告里的修复按钮由 server.py 执行，每次操作前浏览器会弹 confirm。即使用户在对话里说"帮我修"，也要先确认。
+- **不要把"依赖过旧"说成"存在漏洞"。** 只有命中漏洞数据时才说有漏洞。
+- **不要制造恐慌。** 没有证据时说"不确定"，不要说"肯定安全"或"肯定中招"。
 
-- 只在本地读取用户项目文件；不要上传源码、完整 lockfile、`.env`、私钥、证书、数据库、日志或任意项目文件。
-- 调用 VibeGuard 时，只发送最小必要信息：`ecosystem`、`name`、`version`。
-- 不要把“依赖过旧”直接说成“存在漏洞”；只有命中漏洞数据时才说有漏洞。
-- 不要自动执行升级、删除、轮换密钥、清理 git 历史等破坏性操作；先给出建议，让用户确认。
-- 完整项目安全扫描必须先生成报告，不要在用户阅读报告并明确允许之前自动修复。
-- 命令失败或工具缺失时，说明没有完成哪一步，以及这会怎样影响结论可信度。
+## 执行流程
 
-## 默认交付物
-
-用户要求“帮我看看项目有没有安全问题”“安全扫描”“扫一下项目”“依赖有没有漏洞”“有没有木马包/恶意包”“有没有硬编码密钥/API Key/token”“env 是否误提交”“gitignore 是否合理”“依赖是否太旧”时，默认执行一次完整项目安全扫描。
-
-完整项目安全扫描必须在当前工作目录的 `docs/` 下生成一份 Markdown 安全报告，例如：
-
-```text
-docs/security-report-YYYY-MM-DD.md
-```
-
-如果 `docs/` 不存在，先创建目录。报告写完后，在回复里给出报告路径、最高优先级问题和下一步建议。只有用户阅读报告后明确允许修复，才可以执行依赖升级、删除误提交文件、修改 `.gitignore`、替换包、更新配置、清理历史或轮换凭证相关的操作。
-
-如果用户只问单个 CVE、单个包、Nginx 或某条安全情报，不需要生成完整项目报告；直接查询并解释即可。
-
-## VibeGuard API
-
-线上服务地址：
-
-```text
-https://vibeguard.ou.al
-```
-
-可用接口：
-
-- `POST https://vibeguard.ou.al/api/security/check/packages`：批量检查软件包是否命中已知漏洞或恶意包记录。
-- `GET https://vibeguard.ou.al/api/security/check/overview`：查看 VibeGuard 当前漏洞数据概览。
-- `GET https://vibeguard.ou.al/api/security/advisories`：查询结构化漏洞公告，可按包、CVE、KEV、CVSS、EPSS、风险类型筛选。
-- `GET https://vibeguard.ou.al/api/security/advisories/{advisoryId}`：读取单条 GHSA、MAL 或 OSV 公告详情。
-- `GET https://vibeguard.ou.al/api/security/packages/{ecosystem}/{name}`：读取单个包的风险画像和推荐修复版本。
-- `GET https://vibeguard.ou.al/api/security/cves/{cveId}`：读取 CVE 的 CVSS、CWE、EPSS、CISA KEV、NVD 时间和相关公告。
-- `GET https://vibeguard.ou.al/api/security/sync/status`：查看安全数据源同步状态和数据新鲜度。
-- `GET https://vibeguard.ou.al/api/articles`：检索安全资讯、漏洞解读、供应链攻击事件。
-- `GET https://vibeguard.ou.al/api/articles/{articleId}`：读取单篇安全文章详情。
-
-包检查请求格式：
-
-```json
-{
-  "packages": [
-    {
-      "ecosystem": "npm",
-      "name": "next",
-      "version": "15.5.1"
-    }
-  ]
-}
-```
-
-支持的 `ecosystem`：
-
-- `npm`
-- `pypi`
-- `go`
-- `crates-io`
-
-命令示例：
+### Step 1 扫描（Python 脚本，全自动）
 
 ```bash
-curl -sS 'https://vibeguard.ou.al/api/security/check/packages' \
-  -X POST \
-  -H 'Content-Type: application/json' \
-  --data-raw '{
-    "packages": [
-      { "ecosystem": "npm", "name": "next", "version": "15.5.1" },
-      { "ecosystem": "pypi", "name": "requests", "version": "2.32.3" }
-    ]
-  }'
+# macOS / Linux
+python3 scripts/scan.py [project_path] > /tmp/vibeguard_scan.json
+# Windows
+python scripts/scan.py [project_path] > %TEMP%\vibeguard_scan.json
 ```
 
-安全情报检索示例：
+`scan.py` 自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）→ 生态识别与依赖提取（支持 npm/pnpm/yarn、pypi、go、crates-io 四大生态）→ 调用 VibeGuard API 查漏洞（100 个一批）→ 过旧依赖检查。扫描较慢（特别是过旧检查），耐心等。
+
+### Step 2 分析与分级
+
+读 scan 输出的 JSON，做三灯分级判断：
+
+1. **所有漏洞按严重度排序**（critical > high > medium > low），全部放入 `top_issues`，不要只放前 5 个。`top_issues` 中每项**必须透传** scan.py 输出中的 `advisory_id`、`aliases`、`cve_id`、`package`、`version`、`severity`、`summary` 字段——这些是漏洞总览表格的显示数据，漏了列就是空的。
+2. **三灯分级**：
+   - 🟢 **可自动修复**：有明确修复方案且风险可控（有 fix version 的依赖漏洞、.gitignore 缺失规则、git rm --cached）。每项给 `fix_config`（upgrade / gitignore / git_rm_cached 三种类型）。`upgrade` 只填结构化字段：`type`、`ecosystem`、`package`、`version`，JS 生态可加 `manager`（npm / pnpm / yarn）；不要依赖自由文本 `command` 执行。
+   - 🟡 **需人工判断**：含用户数据或需确认风险（硬编码密钥、可疑依赖、版本范围模糊）。给内容画像 + 处置路径 + 风险提示。所有黄灯项在服务模式下有「在编辑器打开」按钮。
+   - 🔴 **高危/需专业处理**：不可自动修复（密钥已入 git 历史、恶意包）。给具体处理步骤，不给操作按钮。
+3. **每一项（green / yellow / red）都必须设置 `severity` 字段**，值为 `critical`、`high`、`medium`、`low`、`info` 之一。这是进度条着色的数据来源，漏了整条进度条就是灰色。
+   - 漏洞类：直接用 scan.py 返回的 severity。
+   - 仓库卫生类（gitignore、敏感文件、硬编码密钥）：按风险判断赋值——密钥泄露用 `high`/`critical`，gitignore 规则缺失用 `medium`，过旧依赖用 `low`。
+4. **构建 risk_summary**：`{ "critical": N, "high": N, "medium": N, "low": N, "info": N }`，严格使用这五个 key，统计各严重等级数量。
+
+把分析结果写成 analysis JSON（schema 见 `scripts/build_report.py` 顶部注释）。**必须透传 scan.py 输出中的 `generated_at` 和 `scan_seconds` 字段**，它们是计算全流程耗时（扫描 + 分析 + 报告生成）的数据来源。
+
+**🟢 项必须带 `fix_config`**——这是网页修复按钮的前提，漏了按钮就不出现。
+
+### Step 3 生成交互报告
+
+**默认用一键修复模式（`server.py`）打开报告**：
 
 ```bash
-curl -sS 'https://vibeguard.ou.al/api/articles?q=nginx&lang=zh&limit=10'
+# macOS / Linux
+python3 scripts/server.py /tmp/vibeguard_analysis.json
+# Windows
+python scripts/server.py %TEMP%\vibeguard_analysis.json
+# 自动开浏览器，Ctrl+C 停
 ```
 
-结构化公告和 CVE 查询示例：
+`server.py` 起在 127.0.0.1 + 随机端口 + 随机 token。🟢 项给「执行修复」按钮（二次确认）；🟡 项给「在编辑器打开」按钮；🔴 项只给文字建议。修复白名单由服务端按 `fix_config` 生成随机 action id，并按结构化字段重新生成命令；不会执行 analysis JSON 里的自由文本命令。
 
+仅当用户明确只想要一份可分享/留存的只读文件时，才用静态模式：
 ```bash
-curl -sS 'https://vibeguard.ou.al/api/security/advisories?ecosystem=npm&package=axios&kev=true&limit=10'
-curl -sS 'https://vibeguard.ou.al/api/security/packages/npm/axios?version=1.0.0'
-curl -sS 'https://vibeguard.ou.al/api/security/cves/CVE-2026-25639'
-curl -sS 'https://vibeguard.ou.al/api/security/sync/status'
+# macOS / Linux
+python3 scripts/build_report.py /tmp/vibeguard_analysis.json ~/Desktop/security-report.html && open ~/Desktop/security-report.html
+# Windows
+python scripts/build_report.py %TEMP%\vibeguard_analysis.json %USERPROFILE%\Desktop\security-report.html && start security-report.html
 ```
 
-## 检查流程
+**排障：网页上没有修复按钮** = 要么开的是静态报告（改用 `server.py`），要么 🟢 项漏了 `fix_config`（补上重启服务）。
 
-用户说“帮我看看这个项目有没有安全问题”“检查依赖有没有漏洞”“看看有没有木马包”时，按下面流程执行。用户指定范围时，只执行对应部分。
+报告阅读流：项目概览（项目名 + 生态 + 依赖数 + 漏洞数 + 风险分布条）→ 漏洞总览（全部漏洞，按严重度排序，不要只截取前 N 项）→ 执行建议 → 🟢🟡🔴 三级可折叠卡片（命令一键复制）→ 长期安全建议。
 
-### 1. 仓库卫生检查
+### Step 4 对话里给摘要
 
-先做本地只读检查：
+报告生成后，在对话里用一段话给结论先行的摘要：总风险等级、最该先处理的 2-3 项、风险最高的一项。细节让用户看网页。
 
-- 查看 `.gitignore` 是否忽略了 `.env`、证书、私钥、数据库、日志、构建产物、缓存目录。
-- 检查是否有 `.env`、`.env.*`、`*.pem`、`*.key`、`*.p12`、`*.pfx`、`*.sqlite`、`*.db`、`*.dump`、`*.log` 已经被 git 跟踪。
-- 搜索疑似硬编码密钥、token、密码、API Key。
-- 排除 `.git`、`node_modules`、`.next`、`dist`、`build`、`coverage` 等目录，避免误报噪音。
+## 单项查询
 
-常用命令：
+用户只问单个 CVE、单个包、Nginx 或某条安全情报时，不需要扫描整个项目，直接调 API 并解释。API 地址 `https://vibeguard.ou.al`，详细接口见 scan.py 顶部注释。对于 Nginx 等系统软件，不要只根据版本号判断是否受影响——实际风险取决于发行版补丁和配置。
 
-```bash
-git status --short
-git ls-files | rg '(^|/)(\.env(\..*)?|.*\.(pem|key|p12|pfx|sqlite|sqlite3|db|dump|log)$)'
-rg -n --hidden --glob '!.git' --glob '!node_modules' --glob '!.next' --glob '!dist' --glob '!build' --glob '!coverage' '(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----|xox[baprs]-[A-Za-z0-9-]+|gh[pousr]_[A-Za-z0-9_]{36,}|sk-[A-Za-z0-9_-]{20,}|password\s*=\s*["'\''][^"'\'']+["'\'']|api[_-]?key\s*=\s*["'\''][^"'\'']+["'\''])'
-```
+## 依赖与运行前提
 
-如果发现密钥或私钥被提交，不要只说“删掉文件”。要提醒用户：立刻撤销或轮换凭证，检查使用范围，再处理仓库历史。
-
-### 2. 识别项目生态
-
-根据依赖文件判断项目类型，并提取软件包坐标。
-
-优先使用 lockfile，因为 lockfile 通常包含实际安装版本；只有 manifest 时，结论要更保守。
-
-- Node/npm：优先 `package-lock.json`、`pnpm-lock.yaml`、`yarn.lock`，其次 `package.json`。
-- Python/PyPI：优先 `poetry.lock`、`uv.lock`，其次 `requirements.txt`、`pyproject.toml`。
-- Go：优先 `go.sum`，结合 `go.mod` 判断直接依赖。
-- Rust/crates.io：优先 `Cargo.lock`，结合 `Cargo.toml` 判断直接依赖。
-
-提取时尽量保留：
-
-- `ecosystem`：包生态，例如 `npm`、`pypi`、`go`、`crates-io`。
-- `name`：包名。
-- `version`：实际解析出的版本；如果只有版本范围或无法确认，填 `null` 或暂不传版本，并在结果里说明证据不完整。
-
-### 3. 调用 VibeGuard 检查漏洞
-
-把本地提取出的包坐标按最多 100 个一批发送到：
-
-```text
-POST https://vibeguard.ou.al/api/security/check/packages
-```
-
-只发送类似下面的数据：
-
-```json
-{
-  "packages": [
-    { "ecosystem": "npm", "name": "next", "version": "15.5.1" },
-    { "ecosystem": "go", "name": "golang.org/x/crypto", "version": "0.31.0" }
-  ]
-}
-```
-
-解释返回结果时：
-
-- `affected: true` 表示当前包版本确认受影响。
-- `matchReason` 说明为什么命中，例如版本范围命中、明确受影响版本、只有包名匹配但缺少版本。
-- `confidence` 表示匹配置信度；置信度低时不要下绝对结论。
-- `affectedPackage.fixedVersions` 如果有值，优先作为升级建议。
-- `advisory.summary`、`advisory.details`、`advisory.references` 用来解释风险背景和来源。
-- 如果返回数据提示本地漏洞库过期，要把它写进结论，提醒用户重新查询或等待数据刷新。
-
-### 4. 检查依赖是否过旧
-
-依赖过旧属于维护风险，不一定是安全漏洞。根据项目工具链选择命令：
-
-- Node：`pnpm outdated`、`npm outdated` 或 `yarn outdated`
-- Python：`pip list --outdated`，或项目包管理器提供的等价命令
-- Go：`go list -u -m all`
-- Rust：`cargo outdated`，如果未安装就说明跳过
-
-解释升级建议时要提醒：大版本升级可能导致 API、配置、构建产物、运行行为或插件兼容性变化。建议分批升级，每次升级后运行测试和构建。
-
-### 5. 查询单个软件或漏洞情报
-
-用户问“nginx 最近有没有漏洞”“某个包是不是木马”“某个 CVE 是什么影响”时，不需要扫描整个项目，直接检索 VibeGuard 文章：
-
-```bash
-curl -sS 'https://vibeguard.ou.al/api/articles?q=nginx&lang=zh&limit=10'
-```
-
-如果用户问的是明确包名、GHSA、MAL 或 CVE，优先用结构化接口，再用文章作为背景补充：
-
-```bash
-curl -sS 'https://vibeguard.ou.al/api/security/advisories?q=GHSA-43fc-jf86-j433'
-curl -sS 'https://vibeguard.ou.al/api/security/packages/npm/axios'
-curl -sS 'https://vibeguard.ou.al/api/security/cves/CVE-2026-25639'
-```
-
-能判断范围时，加入筛选参数：
-
-- `q`：关键词，例如 `nginx`、`next`、`CVE-2026-xxxx`
-- `lang`：默认 `zh`
-- `limit`：返回数量
-- `ecosystem`：生态，例如 `npm`、`pypi`、`go`、`crates-io`
-- `riskCategory`：风险类型，例如 `vulnerability`、`malicious-package`、`supply-chain-attack`
-- `tag`：标签，例如 `cve`、`nginx`
-
-对于 Nginx、Linux 发行版包、系统软件，不要只根据版本号判断是否受影响。实际风险通常取决于发行版补丁、编译参数、启用模块和配置。只能拿到公开 banner 时，要说“这是风险信号，不是最终确认”。
-
-## 输出要求
-
-最终回复使用下面结构。没有内容的部分可以省略。
-
-```markdown
-**结论**
-一句话说明当前风险等级，以及最优先处理的动作。
-
-**高风险问题**
-
-- 写密钥泄露、env 误提交、私钥提交、恶意包、确认受影响漏洞、漏洞库过期等。
-
-**依赖漏洞**
-
-- 写包名、版本、公告编号、命中原因、修复版本、建议升级或替换方案。
-
-**过期依赖**
-
-- 区分“只是旧”和“已知有漏洞”。不要把所有旧依赖都说成安全漏洞。
-
-**建议动作**
-
-- 按优先级列出：轮换密钥、修补依赖、替换依赖、运行测试、重新部署。
-
-**补充学习**
-
-- 如果 VibeGuard 有相关文章，简短说明它和当前项目的关系。
-```
-
-## 表达方式
-
-- 面向新手解释，不假设用户知道供应链攻击、恶意包、lockfile、CVE、语义化版本。
-- 每个风险都要落到行动上：马上做什么、之后做什么、什么情况下需要更多证据。
-- 不要制造恐慌。没有证据时说“不确定”，不要说“肯定安全”或“肯定中招”。
-- 给升级建议时，同时提醒兼容性风险。
+- 全部脚本是 **Python 3 标准库**，零第三方依赖（不用 pip install）。
+- **macOS/Linux** 自带 python3，开箱即用。
+- **Windows** 默认没装 Python——需先装 Python 3，命令改为 `python` 或 `py -3`。
+- 依赖扫描支持 **4 种生态**：JavaScript/TypeScript（npm/pnpm/yarn）、Python（pypi）、Go、Rust（crates-io）。
+- 本 skill 是 **agent 驱动**：扫描出数据后由 agent 做分级分析，不是双击即用的独立 App。
 
 ## 修复建议规则
 
-- 密钥泄露：立刻撤销或轮换密钥，删除代码中的明文，检查调用记录；如果进入 git 历史，继续处理历史暴露问题。
-- 确认受影响的依赖：升级到修复版本或更高兼容版本，然后运行测试和构建。
-- 没有修复版本的依赖：考虑临时缓解、配置绕过、降级、替换依赖或等待上游修复。
-- 恶意包：立即移除，检查安装脚本、构建产物、CI 环境和运行环境能访问到的凭证，并轮换相关凭证。
-- 版本不明确：说明只命中包名或公告，需要 lockfile 或实际安装版本才能确认。
+- 密钥泄露：立刻撤销或轮换密钥，删除代码中的明文；如果进入 git 历史，用 BFG Repo Cleaner 清理。
+- 确认受影响的依赖：升级到修复版本，然后运行测试和构建。给升级建议时同时提醒兼容性风险。
+- 恶意包：立即移除，检查 CI 环境凭证并轮换。
+- 版本不明确：说明只命中包名，需要 lockfile 才能确认。
 - 依赖过旧：建议纳入升级计划，但不要在没有漏洞证据时当作安全事故处理。
