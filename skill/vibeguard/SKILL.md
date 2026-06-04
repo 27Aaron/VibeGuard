@@ -12,7 +12,7 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 - 只在本地读取用户项目文件；不上传源码、lockfile、env 或密钥；不要上传完整 lockfile、`.env`、私钥、证书、数据库、日志或任意项目文件。
 - 调用 VibeGuard API 时，只发送最小必要信息：`ecosystem`、`name`、`version`。
 - 报告里不要泄露完整密钥，只能写文件、行号、类型和脱敏预览。
-- 完整项目安全扫描必须先在被扫项目的 `docs/` 下生成 Markdown 审计报告，例如 `docs/security-report-YYYY-MM-DD.md`。用户阅读报告后明确允许修复，才可以执行升级、删除缓存跟踪、修改 `.gitignore`、清理历史或轮换凭证相关操作。
+- 完整项目安全扫描必须先在被扫项目的 `docs/` 下生成 Markdown 审计报告；如果当前工作目录就是被扫项目，也就是当前工作目录的 `docs/`。报告文件例如 `docs/security-report-YYYY-MM-DD.md`。用户阅读报告后明确允许修复，才可以执行升级、删除缓存跟踪、修改 `.gitignore`、清理历史或轮换凭证相关操作。
 - API 地址：`https://vibeguard.ou.al`。本 skill 只使用 `POST https://vibeguard.ou.al/api/security/check/packages` 做依赖漏洞检查，不处理系统软件版本判断或泛安全情报查询。
 - 脚本路径按本 skill 目录解析；如果当前 shell 不在 skill 根目录，使用这些脚本的绝对路径。扫描目标由脚本参数或 preflight JSON 中的 `project.path` 决定，报告写到被扫项目的 `.vibeguard/` 和 `docs/`。
 
@@ -141,6 +141,8 @@ py -3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json
 - `确认后会按主要修复 -> 次要修复处理。`
 
 HTML 阅读流：项目概览 -> 报告总结 -> 命中漏洞 -> 仓库卫生扫描 -> 过期依赖 -> 优先处理的高风险项 -> 需要业务或部署确认的事项 -> 扫描错误。静态 HTML 文件路径为 `.vibeguard/<timestamp>/content/security-report.html`。
+
+HTML 表格交互：命中漏洞和过期依赖都默认展示 7 条，数量更多时用只读展开/收起按钮查看剩余全部条目；表格列宽必须稳定，包名列按全量行计算宽度并保持单行展示，展开后不应触发表格重新挤压或换行。
 
 ## Step 5 用户确认后的修复
 

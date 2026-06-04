@@ -79,7 +79,7 @@ body {
     background:
         linear-gradient(135deg, rgba(31, 77, 63, 0.1), transparent 34%),
         linear-gradient(180deg, #faf9f3 0%, #f1f1ed 48%, #e7ece9 100%);
-    padding: 24px 20px 72px;
+    padding: 24px 20px;
     position: relative;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -390,19 +390,51 @@ tbody tr:hover {
     background: var(--surface-bg);
     box-shadow: var(--surface-shadow);
 }
-.vuln-extra {
+.vuln-extra,
+.outdated-extra {
     display: none;
 }
-.vuln-expanded .vuln-extra {
+.vuln-expanded .vuln-extra,
+.outdated-expanded .outdated-extra {
     display: table-row;
 }
-.vuln-toggle td {
+.vuln-toggle td,
+.outdated-toggle td {
     text-align: center;
     padding: 12px !important;
 }
 .table-scroll table {
     min-width: 680px;
     box-shadow: none;
+}
+.stable-table {
+    min-width: max(760px, calc(520px + var(--package-col, 160px)));
+    table-layout: fixed;
+}
+.vuln-table {
+    min-width: max(820px, calc(620px + var(--package-col, 160px)));
+}
+.outdated-table {
+    min-width: max(760px, calc(520px + var(--package-col, 160px)));
+}
+.col-severity {
+    width: 72px;
+}
+.col-package {
+    width: var(--package-col, 160px);
+}
+.col-version {
+    width: 84px;
+}
+.col-current,
+.col-latest {
+    width: 112px;
+}
+.col-advisory {
+    width: 180px;
+}
+.col-ecosystem {
+    width: 92px;
 }
 tr:last-child td {
     border-bottom: none;
@@ -426,6 +458,17 @@ td.path {
 td.advisory {
     min-width: 180px;
     font-size: 12px;
+}
+.package-cell {
+    min-width: 0;
+    white-space: nowrap;
+}
+.package-cell b {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .adv-list {
     display: flex;
@@ -953,7 +996,7 @@ td.summary-cell {
     font-size: 13px;
 }
 footer {
-    margin-top: 34px;
+    margin-top: 24px;
     color: var(--sub);
     font-size: 12px;
     text-align: center;
@@ -1158,7 +1201,7 @@ footer {
 }
 @media (max-width: 640px) {
     body {
-        padding: 14px 12px 48px;
+        padding: 14px 12px;
     }
     .hero-panel {
         padding: 22px 16px;

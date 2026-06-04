@@ -790,8 +790,30 @@ function renderOverview(proj, rs) {
 </div>`;
 }
 
+// ---- Dense report tables ----
+const VULN_SHOW = 7;
+const OUTDATED_SHOW = 7;
+
+function packageNameFor(row) {
+  return String((row && (row.package || row.name)) || "");
+}
+
+function packageColumnWidthStyle(rows) {
+  const maxChars = (rows || []).reduce((max, row) => {
+    const length = Array.from(packageNameFor(row)).length;
+    return Math.max(max, length);
+  }, 4);
+  const px = Math.min(260, Math.max(132, maxChars * 8 + 30));
+  return `--package-col:${px}px;`;
+}
+
+function renderTableColgroup(columns) {
+  return `<colgroup>${columns
+    .map((column) => `<col class="col-${esc(column)}">`)
+    .join("")}</colgroup>`;
+}
+
 // ---- Vulnerability table (all items) ----
-const VULN_SHOW = 5;
 
 function renderVulnTable(rows) {
   if (!rows || !rows.length) {
@@ -807,6 +829,7 @@ function renderVulnTable(rows) {
   const needToggle = sortedRows.length > VULN_SHOW;
   const body = sortedRows
     .map((r, idx) => {
+      const packageName = packageNameFor(r);
       const displayIds = securityIds(r);
       const advHtml =
         displayIds.length > 0
@@ -820,7 +843,7 @@ function renderVulnTable(rows) {
       const cls = needToggle && idx >= VULN_SHOW ? ' class="vuln-extra"' : "";
       return `<tr${cls}>
   <td class="sev">${sevBadge(r.severity)}</td>
-  <td><b>${esc(r.package || r.name || "")}</b></td>
+  <td class="package-cell"><b title="${esc(packageName)}">${esc(packageName)}</b></td>
   <td class="ver">${esc(r.version || "")}</td>
   <td class="advisory">${advHtml}</td>
   <td class="summary-cell">${vulnerabilityExplanation(r)}</td>
@@ -833,7 +856,8 @@ function renderVulnTable(rows) {
   return section(
     "命中漏洞（按修复优先级排序）",
     sortedRows.length,
-    `<div class="table-scroll"><table>
+    `<div class="table-scroll"><table class="stable-table vuln-table" style="${packageColumnWidthStyle(sortedRows)}">
+  ${renderTableColgroup(["severity", "package", "version", "advisory", "summary"])}
   <thead><tr><th>严重度</th><th>包名</th><th>版本</th><th>GHSA</th><th>说明</th></tr></thead>
   <tbody>${body}${toggle}</tbody></table></div>`,
     "",
@@ -846,6 +870,7 @@ function toggleVulns(btn) {
   table.classList.toggle("vuln-expanded");
   const expanded = table.classList.contains("vuln-expanded");
   const extras = table.querySelectorAll(".vuln-extra");
+  btn.setAttribute("aria-expanded", expanded ? "true" : "false");
   btn.textContent = expanded ? "收起" : `显示更多（还有 ${extras.length} 项）`;
 }
 
@@ -992,31 +1017,43 @@ function renderOutdated(items) {
       "long",
     );
   }
+  const needToggle = items.length > OUTDATED_SHOW;
   const rows = items
-    .slice(0, 20)
-    .map(
-      (it) => `<tr>
-  <td><b>${esc(it.package || it.name || "")}</b></td>
+    .map((it, idx) => {
+      const packageName = packageNameFor(it);
+      const cls =
+        needToggle && idx >= OUTDATED_SHOW ? ' class="outdated-extra"' : "";
+      return `<tr${cls}>
+  <td class="package-cell"><b title="${esc(packageName)}">${esc(packageName)}</b></td>
   <td class="ver">${esc(it.current || it.version || "")}</td>
   <td class="ver">${esc(it.latest || it.wanted || "")}</td>
   <td>${esc(it.ecosystem || "-")}</td>
   <td class="summary-cell">${esc(outdatedExplanation(it))}</td>
-</tr>`,
-    )
+</tr>`;
+    })
     .join("");
-  const more =
-    items.length > 20
-      ? `<div class="note">仅展示前 20 项；完整列表请查看 Markdown 报告或 analysis JSON。</div>`
-      : "";
+  const toggle = needToggle
+    ? `<tr class="outdated-toggle"><td colspan="5"><button class="fix-btn open" onclick="toggleOutdated(this)">显示更多（还有 ${items.length - OUTDATED_SHOW} 项）</button></td></tr>`
+    : "";
   return section(
     "过期依赖",
     items.length,
-    `<div class="table-scroll"><table>
+    `<div class="table-scroll"><table class="stable-table outdated-table" style="${packageColumnWidthStyle(items)}">
+  ${renderTableColgroup(["package", "current", "latest", "ecosystem", "summary"])}
   <thead><tr><th>包名</th><th>当前版本</th><th>最新版本</th><th>生态</th><th>说明</th></tr></thead>
-  <tbody>${rows}</tbody></table></div>${more}`,
+  <tbody>${rows}${toggle}</tbody></table></div>`,
     "",
     "long",
   );
+}
+
+function toggleOutdated(btn) {
+  const table = btn.closest("table");
+  table.classList.toggle("outdated-expanded");
+  const expanded = table.classList.contains("outdated-expanded");
+  const extras = table.querySelectorAll(".outdated-extra");
+  btn.setAttribute("aria-expanded", expanded ? "true" : "false");
+  btn.textContent = expanded ? "收起" : `显示更多（还有 ${extras.length} 项）`;
 }
 
 // ---- Yellow: manual review ----

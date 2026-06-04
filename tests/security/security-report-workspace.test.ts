@@ -117,6 +117,32 @@ describe("VibeGuard report workspace", () => {
     expect(js).not.toContain("__REPORT_DATA__");
   });
 
+  it("keeps dense report tables stable with seven-row reveal defaults", () => {
+    const css = fs.readFileSync(reportCssPath, "utf8");
+    const js = fs.readFileSync(reportJsPath, "utf8");
+
+    expect(js).toContain("const VULN_SHOW = 7;");
+    expect(js).toContain("const OUTDATED_SHOW = 7;");
+    expect(js).toContain("function packageColumnWidthStyle(rows)");
+    expect(js).toContain("function renderTableColgroup(columns)");
+    expect(js).toContain('class="stable-table vuln-table"');
+    expect(js).toContain('class="stable-table outdated-table"');
+    expect(js).toContain('class="package-cell"');
+    expect(js).toContain("outdated-extra");
+    expect(js).toContain("toggleOutdated(this)");
+    expect(css).toContain("table-layout: fixed;");
+    expect(css).toContain(".package-cell b");
+    expect(css).toContain("text-overflow: ellipsis;");
+    expect(css).toContain("white-space: nowrap;");
+  });
+
+  it("balances report footer spacing against the page edge", () => {
+    const css = fs.readFileSync(reportCssPath, "utf8");
+
+    expect(css).toContain("padding: 24px 20px;");
+    expect(css).toContain("footer {\n    margin-top: 24px;");
+  });
+
   it("keeps cross-platform static report openers without a local server", () => {
     const source = fs.readFileSync(buildReportPath, "utf8");
 
