@@ -105,9 +105,9 @@ describe("security skill boundary", () => {
       "py -3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json",
     );
     expect(skillText).toContain("报告已生成: `.vibeguard/<timestamp>/content/security-report.html`");
+    expect(skillText).toContain("自动打开");
     expect(skillText).toContain("不要启动本地 server");
     expect(skillText).not.toContain("scripts/server.py");
-    expect(skillText).not.toContain("--no-open");
     expect(skillText).not.toContain("127.0.0.1` 随机端口");
     expect(skillText).not.toContain("释放本地端口");
   });

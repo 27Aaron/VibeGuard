@@ -3,6 +3,7 @@
 
 Usage:
     build_report.py <analysis.json> [output.html]
+    build_report.py --no-open <analysis.json> [output.html]
 
 The analysis JSON is produced by analyze_scan.py and may be lightly reviewed by
 the agent after interpreting scan.py output.
@@ -74,9 +75,14 @@ Schema (all sections optional except project):
 }
 """
 
+import argparse
 import json
 import os
+import shutil
+import subprocess
 import sys
+import webbrowser
+from pathlib import Path
 
 from scan import VIBEGUARD_CONTENT_DIR, run_dir_from_output_file
 
@@ -103,12 +109,78 @@ def default_output_path(analysis_path):
     return os.path.join(content_dir, "security-report.html")
 
 
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        description="Build a standalone VibeGuard HTML report",
+    )
+    parser.add_argument("analysis_json")
+    parser.add_argument("output_html", nargs="?")
+    parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="do not open the generated HTML report in the default browser",
+    )
+    return parser.parse_args(argv)
+
+
+def should_open_report(args):
+    if args.no_open:
+        return False
+    value = os.environ.get("VIBEGUARD_NO_OPEN", "")
+    return value.strip().lower() not in {"1", "true", "yes", "on"}
+
+
+def spawn_open_command(cmd):
+    try:
+        subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def open_report(path):
+    resolved = Path(path).resolve()
+    target = str(resolved)
+
+    if sys.platform == "darwin":
+        if spawn_open_command(["open", target]):
+            return True
+    elif os.name == "nt":
+        startfile = getattr(os, "startfile", None)
+        if startfile is not None:
+            try:
+                startfile(target)
+                return True
+            except OSError:
+                pass
+    else:
+        for opener in ("xdg-open", "gio", "wslview"):
+            opener_path = shutil.which(opener)
+            if opener_path is None:
+                continue
+            cmd = (
+                [opener_path, "open", target]
+                if opener == "gio"
+                else [opener_path, target]
+            )
+            if spawn_open_command(cmd):
+                return True
+
+    try:
+        return webbrowser.open_new_tab(resolved.as_uri())
+    except Exception:
+        return False
+
+
 def main():
-    if len(sys.argv) < 2:
-        print(__doc__)
-        sys.exit(1)
-    src = sys.argv[1]
-    out = sys.argv[2] if len(sys.argv) > 2 else default_output_path(src)
+    args = parse_args(sys.argv[1:])
+    src = args.analysis_json
+    out = args.output_html or default_output_path(src)
 
     with open(src, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -123,6 +195,13 @@ def main():
         f.write(html)
     print(f"报告已生成: {out}")
     print("HTML 已保存到本次运行的 content 目录，之后也可以从这里重新查看。")
+    if should_open_report(args):
+        if open_report(out):
+            print("HTML 已尝试在默认浏览器中自动打开。")
+        else:
+            print("未能自动打开 HTML，请手动打开上面的报告路径。")
+    else:
+        print("已跳过自动打开 HTML。")
     print("如果你想继续处理修复，在对话里说一声“可以修 / 修复 / OK / Yes”就行。")
 
 

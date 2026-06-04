@@ -59,7 +59,7 @@ describe("VibeGuard report workspace", () => {
     const projectDir = makeTempDir("vibeguard-report-project-");
     const { analysisPath, contentDir } = writeAnalysis(projectDir);
 
-    const result = spawnSync(process.env.PYTHON ?? "python3", [buildReportPath, analysisPath], {
+    const result = spawnSync(process.env.PYTHON ?? "python3", [buildReportPath, "--no-open", analysisPath], {
       encoding: "utf8",
     });
 
@@ -70,6 +70,7 @@ describe("VibeGuard report workspace", () => {
     expect(result.stdout).not.toContain("Desktop");
     expect(result.stdout).not.toContain("127.0.0.1");
     expect(result.stdout).not.toContain("open '");
+    expect(result.stdout).toContain("已跳过自动打开 HTML");
     expect(result.stdout).toContain("如果你想继续处理修复");
     expect(result.stdout).toContain("可以修 / 修复 / OK / Yes");
   });
@@ -78,13 +79,27 @@ describe("VibeGuard report workspace", () => {
     const projectDir = makeTempDir("vibeguard-report-project-");
     const { analysisPath, contentDir } = writeAnalysis(projectDir);
 
-    const result = spawnSync(process.env.PYTHON ?? "python3", [buildReportPath, analysisPath], {
+    const result = spawnSync(process.env.PYTHON ?? "python3", [buildReportPath, "--no-open", analysisPath], {
       encoding: "utf8",
     });
 
     expect(result.status, result.stderr || result.stdout).toBe(0);
     expect(result.stdout).toContain(path.join(contentDir, "security-report.html"));
     expect(result.stdout).toContain("HTML 已保存");
+    expect(result.stdout).toContain("已跳过自动打开 HTML");
     expect(result.stdout).not.toContain("server");
+  });
+
+  it("keeps cross-platform static report openers without a local server", () => {
+    const source = fs.readFileSync(buildReportPath, "utf8");
+
+    expect(source).toContain('sys.platform == "darwin"');
+    expect(source).toContain('getattr(os, "startfile", None)');
+    expect(source).toContain('"xdg-open"');
+    expect(source).toContain('"gio"');
+    expect(source).toContain('"wslview"');
+    expect(source).toContain("webbrowser.open_new_tab");
+    expect(source).not.toContain("localhost");
+    expect(source).not.toContain("127.0.0.1");
   });
 });

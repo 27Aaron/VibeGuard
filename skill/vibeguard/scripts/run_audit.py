@@ -69,6 +69,11 @@ def parse_args(argv):
         action="store_true",
         help="print compact final JSON summary",
     )
+    parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="do not open the generated HTML report in the default browser",
+    )
     return parser.parse_args(argv)
 
 
@@ -173,8 +178,11 @@ def main():
         "content",
         "security-report.html",
     )
+    build_report_cmd = [sys.executable, script_path("build_report.py"), analysis_path, html_path]
+    if args.no_open or args.compact:
+        build_report_cmd.append("--no-open")
     run_text(
-        [sys.executable, script_path("build_report.py"), analysis_path, html_path],
+        build_report_cmd,
         echo=not args.compact,
     )
 

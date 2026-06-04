@@ -37,9 +37,9 @@ python3 scripts/run_audit.py
 py -3 scripts/run_audit.py
 ```
 
-`scripts/run_audit.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。脚本会按顺序运行预检、扫描、analysis 生成、Markdown 生成和 HTML 生成，并在终端输出 `preflight_file`、`scan_file`、`analysis_file`、`markdown_report`、`html_report`、`scan_mode`、`risk_summary` 和 `errors`。如果输出中的 `scan_mode` 是 `hygiene_only`，必须告诉用户：`当前项目没有发现 VibeGuard 支持的依赖文件，暂不支持依赖漏洞扫描；本次只做仓库卫生扫描，检查硬编码密钥、敏感文件跟踪和 .gitignore 风险。`
+`scripts/run_audit.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。脚本会按顺序运行预检、扫描、analysis 生成、Markdown 生成和 HTML 生成，生成后会尝试用系统默认浏览器自动打开静态 HTML 报告，并在终端输出 `preflight_file`、`scan_file`、`analysis_file`、`markdown_report`、`html_report`、`scan_mode`、`risk_summary` 和 `errors`。如果输出中的 `scan_mode` 是 `hygiene_only`，必须告诉用户：`当前项目没有发现 VibeGuard 支持的依赖文件，暂不支持依赖漏洞扫描；本次只做仓库卫生扫描，检查硬编码密钥、敏感文件跟踪和 .gitignore 风险。`
 
-扫描较慢或调试时，才给 `run_audit.py` 追加 `--skip-outdated`、`--api-concurrency`、`--outdated-concurrency`、`--skip-hygiene`、`--include-packages`、`--max-secret-files`、`--no-root-discovery`。如果流水线中某一步失败，再按下面的分步流程定位。
+扫描较慢、调试或自动化运行时，才给 `run_audit.py` 追加 `--skip-outdated`、`--api-concurrency`、`--outdated-concurrency`、`--skip-hygiene`、`--include-packages`、`--max-secret-files`、`--no-root-discovery`、`--no-open`。如果流水线中某一步失败，再按下面的分步流程定位。
 
 ## Step 0 生态预检
 
@@ -121,7 +121,7 @@ Markdown 必须使用普通人能看懂的产品风险语言，并按以下顺�
 
 ## Step 4 HTML 报告
 
-默认生成静态 HTML 报告，保存到本次运行目录的 `content/` 下；不要启动本地 server，也不要把静态文件和本地服务混用。
+默认生成静态 HTML 报告，保存到本次运行目录的 `content/` 下，并在 macOS / Windows / Linux 尝试用系统默认浏览器自动打开；自动化或测试运行才加 `--no-open`；不要启动本地 server，也不要把静态文件和本地服务混用。
 
 ```bash
 # macOS / Linux
@@ -134,6 +134,7 @@ py -3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json
 
 - 报告已生成: `.vibeguard/<timestamp>/content/security-report.html`
 - `HTML 已保存到本次运行的 content 目录，之后也可以从这里重新查看。`
+- `HTML 已尝试在默认浏览器中自动打开。` 如果自动打开失败，告诉用户手动打开报告路径。
 - `如果你想继续处理修复，在对话里说一声“可以修 / 修复 / OK / Yes”都可以。`
 - `确认后会按主要修复 -> 次要修复处理。`
 
