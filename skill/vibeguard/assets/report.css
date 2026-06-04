@@ -513,6 +513,41 @@ td.summary-cell {
     color: var(--ink);
     overflow-wrap: anywhere;
 }
+.hygiene-summary {
+    padding: 14px 16px;
+}
+.hygiene-summary .mini-fields {
+    font-size: 14px;
+    line-height: 1.65;
+}
+.hygiene-summary .mini-label {
+    font-size: 13px;
+    line-height: 1.65;
+}
+.hygiene-summary .mini-value {
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.65;
+}
+.hygiene-note {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+}
+.hygiene-note span {
+    color: var(--sub);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.65;
+    white-space: nowrap;
+}
+.hygiene-note p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.65;
+}
 .dot {
     display: inline-block;
     width: 9px;
@@ -1221,7 +1256,7 @@ footer {
         grid-template-columns: 1fr;
     }
     .sec h2 {
-        align-items: flex-start;
+        align-items: center;
         flex-wrap: wrap;
     }
     .sec-actions {
@@ -1237,7 +1272,13 @@ footer {
         margin-left: auto;
     }
     .item-body {
-        padding: 0 14px 14px;
+        padding: 14px;
+    }
+    .hygiene-summary {
+        padding: 14px;
+    }
+    .hygiene-note {
+        gap: 10px;
     }
     .adv-list {
         grid-template-columns: 1fr;

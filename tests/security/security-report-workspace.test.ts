@@ -136,6 +136,17 @@ describe("VibeGuard report workspace", () => {
     expect(css).toContain("white-space: nowrap;");
   });
 
+  it("keeps vulnerability section heading concise and explanations advisory-specific", () => {
+    const js = fs.readFileSync(reportJsPath, "utf8");
+
+    expect(js).toContain('"命中漏洞"');
+    expect(js).not.toContain("命中漏洞（按修复优先级排序）");
+    expect(js).toContain("function advisorySummaryText(r)");
+    expect(js).toContain("r.advisory_summary");
+    expect(js).toContain("server-side request forgery");
+    expect(js).toContain("服务端请求伪造");
+  });
+
   it("uses selected Lucide icons for report section headers", () => {
     const js = fs.readFileSync(reportJsPath, "utf8");
 
@@ -152,11 +163,46 @@ describe("VibeGuard report workspace", () => {
     expect(js).not.toContain('"需要业务或部署确认的事项"');
   });
 
+  it("renders report sections in the preferred reading order", () => {
+    const js = fs.readFileSync(reportJsPath, "utf8");
+    const summaryIndex = js.indexOf("renderReportSummary(DATA.summary)");
+    const hygieneIndex = js.indexOf("renderHygiene(DATA.hygiene)");
+    const vulnIndex = js.indexOf("renderVulnTable(DATA.vulns)");
+    const outdatedIndex = js.indexOf("renderOutdated(DATA.outdated)");
+
+    expect(summaryIndex).toBeGreaterThan(-1);
+    expect(hygieneIndex).toBeGreaterThan(summaryIndex);
+    expect(vulnIndex).toBeGreaterThan(hygieneIndex);
+    expect(outdatedIndex).toBeGreaterThan(vulnIndex);
+  });
+
+  it("keeps repository hygiene copy visually compact", () => {
+    const css = fs.readFileSync(reportCssPath, "utf8");
+    const js = fs.readFileSync(reportJsPath, "utf8");
+
+    expect(js).toContain("function hygieneNote(label, value)");
+    expect(js).toContain('class="summary hygiene-summary"');
+    expect(js).toContain('class="hygiene-note"');
+    expect(css).toContain(".hygiene-summary {");
+    expect(css).toContain(".hygiene-note p {");
+    expect(css).toContain("font-size: 14px;");
+  });
+
   it("balances report footer spacing against the page edge", () => {
     const css = fs.readFileSync(reportCssPath, "utf8");
 
     expect(css).toContain("padding: 24px 20px;");
     expect(css).toContain("footer {\n    margin-top: 24px;");
+  });
+
+  it("keeps compact mobile section headers centered and expanded cards breathable", () => {
+    const css = fs.readFileSync(reportCssPath, "utf8");
+
+    expect(css).toContain("@media (max-width: 640px)");
+    expect(css).toContain(".sec h2 {\n        align-items: center;\n        flex-wrap: wrap;\n    }");
+    expect(css).toContain(".item-body {\n        padding: 14px;\n    }");
+    expect(css).not.toContain(".sec h2 {\n        align-items: flex-start;\n        flex-wrap: wrap;\n    }");
+    expect(css).not.toContain(".item-body {\n        padding: 0 14px 14px;\n    }");
   });
 
   it("keeps cross-platform static report openers without a local server", () => {

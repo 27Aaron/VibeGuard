@@ -12,6 +12,7 @@ come from this deterministic baseline.
 
 import json
 import os
+import re
 import sys
 
 from scan import run_dir_from_output_file
@@ -76,6 +77,47 @@ def default_output_path(scan_path):
     return os.path.join(assets_dir, "analysis.json")
 
 
+def clean_advisory_summary(summary):
+    text = re.sub(r"\s+", " ", str(summary or "")).strip()
+    return re.sub(r"^[^:：]{1,80}[:：]\s*", "", text)
+
+
+def advisory_issue_phrase(summary):
+    text = clean_advisory_summary(summary)
+    lower = text.lower()
+    if not text:
+        return "已有确认公开漏洞，需要结合公告评估影响范围"
+    if "large numeric range" in lower and "max" in lower:
+        return "大范围数字展开可能绕过 max 限制，带来拒绝服务风险"
+    if "host confusion" in lower and "percent-encoded" in lower:
+        return "对百分号编码的 authority 分隔符处理不当，可能造成主机解析混淆"
+    if "path traversal" in lower and "percent-encoded" in lower:
+        return "对百分号编码的点号路径处理不当，可能造成路径穿越"
+    if "server-side request forgery" in lower:
+        if "websocket" in lower:
+            return "WebSocket upgrade 场景存在服务端请求伪造风险"
+        return "存在服务端请求伪造风险"
+    if "middleware" in lower and "proxy bypass" in lower:
+        if "pages router" in lower and "i18n" in lower:
+            return "Pages Router 使用 i18n 时存在中间件/代理绕过风险"
+        if "segment-prefetch" in lower:
+            if "incomplete fix" in lower or "follow-up" in lower:
+                return "segment-prefetch 路由相关绕过修复不完整，仍可能绕过中间件/代理"
+            return "App Router 的 segment-prefetch 路由可能绕过中间件/代理"
+        if "dynamic route" in lower:
+            return "动态路由参数注入场景可能绕过中间件/代理"
+        return "存在中间件/代理绕过风险"
+    if "connection exhaustion" in lower:
+        return "使用 Cache Components 时可能因连接耗尽造成拒绝服务"
+    if "image optimization api" in lower and "denial of service" in lower:
+        return "Image Optimization API 存在拒绝服务风险"
+    if "denial of service" in lower or re.search(r"\bdos\b", lower):
+        return "存在拒绝服务风险"
+    if "cache" in lower:
+        return "存在缓存可信度风险"
+    return f"公告摘要：{text}"
+
+
 def vulnerability_summary(item):
     package = item.get("package") or item.get("name") or "该依赖"
     version = item.get("version")
@@ -86,7 +128,7 @@ def vulnerability_summary(item):
         else "建议确认官方修复版本后再安排升级。"
     )
     version_text = f" {version}" if version else ""
-    return f"{package}{version_text} 命中已确认公开漏洞，可能影响服务安全或稳定性；{fixed_text}"
+    return f"{package}{version_text} {advisory_issue_phrase(item.get('advisory_summary') or item.get('summary'))}；{fixed_text}"
 
 
 def sort_items(items):

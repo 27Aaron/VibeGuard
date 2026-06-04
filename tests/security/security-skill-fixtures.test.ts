@@ -157,6 +157,69 @@ describe("VibeGuard skill fixtures", () => {
     expect(fs.readFileSync(reportPath, "utf8")).toContain("## 命中漏洞");
   });
 
+  it("keeps same-package vulnerability summaries tied to each advisory", () => {
+    const projectDir = makeTempDir("vibeguard-skill-advisory-summary-");
+    const assetsDir = path.join(projectDir, ".vibeguard", "20260604-091500", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const scanPath = path.join(assetsDir, "scan.json");
+    fs.writeFileSync(
+      scanPath,
+      JSON.stringify({
+        generated_at: "2026-06-04 09:15:00",
+        scan_seconds: 1.1,
+        project: {
+          path: projectDir,
+          name: path.basename(projectDir),
+          ecosystems: ["npm"],
+          lockfiles: ["package-lock.json"],
+          git_repo: false,
+          git_branch: null,
+          total_packages: 1,
+          total_vulnerabilities: 2,
+        },
+        hygiene: {
+          gitignore_missing: [],
+          tracked_secrets: [],
+          sensitive_tracked: [],
+        },
+        vulnerabilities: [
+          {
+            package: "next",
+            version: "16.2.4",
+            ecosystem: "npm",
+            severity: "critical",
+            advisory_id: "GHSA-ssrf-test",
+            summary:
+              "Next.js vulnerable to server-side request forgery in applications using WebSocket upgrades",
+            fixed_versions: ["16.2.5"],
+          },
+          {
+            package: "next",
+            version: "16.2.4",
+            ecosystem: "npm",
+            severity: "critical",
+            advisory_id: "GHSA-dos-test",
+            summary: "Next.js has a Denial of Service in the Image Optimization API",
+            fixed_versions: ["16.2.5"],
+          },
+        ],
+        outdated: [],
+        errors: [],
+      }),
+    );
+
+    runPython([analyzePath, scanPath]);
+    const analysisPath = path.join(assetsDir, "analysis.json");
+    const analysis = JSON.parse(fs.readFileSync(analysisPath, "utf8"));
+    const summaries = analysis.top_issues.map((item: { summary: string }) => item.summary);
+
+    expect(analysis.top_issues).toHaveLength(2);
+    expect(summaries[0]).not.toBe(summaries[1]);
+    expect(summaries.join("\n")).toContain("服务端请求伪造");
+    expect(summaries.join("\n")).toContain("Image Optimization API");
+    expect(summaries.join("\n")).not.toContain("可能影响服务安全或稳定性");
+  });
+
   it("runs the full one-command audit pipeline in hygiene-only mode", () => {
     const projectDir = makeTempDir("vibeguard-skill-run-audit-");
     const workflowDir = path.join(projectDir, ".github", "workflows");

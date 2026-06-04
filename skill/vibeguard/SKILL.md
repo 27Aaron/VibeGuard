@@ -140,7 +140,7 @@ py -3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json
 - `如果你想继续处理修复，在对话里说一声“可以修 / 修复 / OK / Yes”都可以。`
 - `确认后会按主要修复 -> 次要修复处理。`
 
-HTML 阅读流：项目概览 -> 报告总结 -> 命中漏洞 -> 仓库卫生 -> 过期依赖 -> 优先处理的高风险项 -> 人工复核 -> 扫描错误。静态 HTML 文件路径为 `.vibeguard/<timestamp>/content/security-report.html`。
+HTML 阅读流：项目概览 -> 报告总结 -> 仓库卫生 -> 命中漏洞 -> 过期依赖 -> 优先处理的高风险项 -> 人工复核 -> 扫描错误。静态 HTML 文件路径为 `.vibeguard/<timestamp>/content/security-report.html`。
 
 HTML 表格交互：命中漏洞和过期依赖都默认展示 7 条，数量更多时用只读展开/收起按钮查看剩余全部条目；表格列宽必须稳定，包名列按全量行计算宽度并保持单行展示，展开后不应触发表格重新挤压或换行。
 

@@ -667,11 +667,84 @@ function miniFields(fields) {
     .join("")}</div>`;
 }
 
+function hygieneNote(label, value) {
+  return `<div class="hygiene-note"><span>${esc(label)}</span><p>${esc(value)}</p></div>`;
+}
+
+function cleanAdvisorySummary(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[^:：]{1,80}[:：]\s*/, "");
+}
+
+function advisoryIssuePhrase(summary) {
+  const text = cleanAdvisorySummary(summary);
+  const lower = text.toLowerCase();
+  if (!text) return "";
+  if (lower.includes("large numeric range") && lower.includes("max")) {
+    return "大范围数字展开可能绕过 max 限制，带来拒绝服务风险";
+  }
+  if (lower.includes("host confusion") && lower.includes("percent-encoded")) {
+    return "对百分号编码的 authority 分隔符处理不当，可能造成主机解析混淆";
+  }
+  if (lower.includes("path traversal") && lower.includes("percent-encoded")) {
+    return "对百分号编码的点号路径处理不当，可能造成路径穿越";
+  }
+  if (lower.includes("server-side request forgery")) {
+    return lower.includes("websocket")
+      ? "WebSocket upgrade 场景存在服务端请求伪造风险"
+      : "存在服务端请求伪造风险";
+  }
+  if (lower.includes("middleware") && lower.includes("proxy bypass")) {
+    if (lower.includes("pages router") && lower.includes("i18n")) {
+      return "Pages Router 使用 i18n 时存在中间件/代理绕过风险";
+    }
+    if (lower.includes("segment-prefetch")) {
+      return lower.includes("incomplete fix") || lower.includes("follow-up")
+        ? "segment-prefetch 路由相关绕过修复不完整，仍可能绕过中间件/代理"
+        : "App Router 的 segment-prefetch 路由可能绕过中间件/代理";
+    }
+    if (lower.includes("dynamic route")) {
+      return "动态路由参数注入场景可能绕过中间件/代理";
+    }
+    return "存在中间件/代理绕过风险";
+  }
+  if (lower.includes("connection exhaustion")) {
+    return "使用 Cache Components 时可能因连接耗尽造成拒绝服务";
+  }
+  if (
+    lower.includes("image optimization api") &&
+    lower.includes("denial of service")
+  ) {
+    return "Image Optimization API 存在拒绝服务风险";
+  }
+  if (lower.includes("denial of service") || /\bdos\b/.test(lower)) {
+    return "存在拒绝服务风险";
+  }
+  if (lower.includes("cache")) {
+    return "存在缓存可信度风险";
+  }
+  return `公告摘要：${text}`;
+}
+
+function advisorySummaryText(r) {
+  const summary =
+    r.advisory_summary ||
+    r.advisorySummary ||
+    r.advisory_title ||
+    r.title ||
+    (!/命中已确认|已有确认安全风险/.test(String(r.summary || ""))
+      ? r.summary
+      : "");
+  return advisoryIssuePhrase(summary) || readableIssueKind(r);
+}
+
 function vulnerabilityExplanation(r) {
   const pkg = r.package || r.name || "该依赖";
   const version = r.version ? ` ${r.version}` : "";
   return esc(
-    `${pkg}${version} 已有确认安全风险，${readableIssueKind(r)}；${shortFixedVersionText(r)}`,
+    `${pkg}${version} ${advisorySummaryText(r)}；${shortFixedVersionText(r)}`,
   );
 }
 
@@ -820,7 +893,7 @@ function renderTableColgroup(columns) {
 function renderVulnTable(rows) {
   if (!rows || !rows.length) {
     return section(
-      "命中漏洞（按修复优先级排序）",
+      "命中漏洞",
       0,
       `<div class="empty">未命中已确认的依赖漏洞。</div>`,
       "",
@@ -856,7 +929,7 @@ function renderVulnTable(rows) {
     ? `<tr class="vuln-toggle"><td colspan="5"><button class="fix-btn open" onclick="toggleVulns(this)">显示更多（还有 ${sortedRows.length - VULN_SHOW} 项）</button></td></tr>`
     : "";
   return section(
-    "命中漏洞（按修复优先级排序）",
+    "命中漏洞",
     sortedRows.length,
     `<div class="table-scroll"><table class="stable-table vuln-table" style="${packageColumnWidthStyle(sortedRows)}">
   ${renderTableColgroup(["severity", "package", "version", "advisory", "summary"])}
@@ -906,7 +979,7 @@ function renderHygiene(h) {
     return section(
       "仓库卫生",
       null,
-      `<div class="summary">${miniFields([
+      `<div class="summary hygiene-summary">${miniFields([
         { label: "事实", value: "本次跳过了仓库卫生检查。" },
         {
           label: "为什么要关注",
@@ -947,11 +1020,16 @@ function renderHygiene(h) {
     });
   }
   if (!rows.length) {
-    rows.push({
-      label: "结论",
-      value:
+    return section(
+      "仓库卫生",
+      count,
+      `<div class="summary hygiene-summary">${hygieneNote(
+        "结论",
         "没有发现硬编码密钥、被 git 跟踪的敏感文件或缺失的敏感文件忽略规则。",
-    });
+      )}</div>`,
+      "",
+      "hygiene",
+    );
   }
 
   const examples = [
@@ -972,7 +1050,7 @@ function renderHygiene(h) {
   return section(
     "仓库卫生",
     count,
-    `<div class="summary">${miniFields(rows)}${extra}</div>`,
+    `<div class="summary hygiene-summary">${miniFields(rows)}${extra}</div>`,
     "",
     "hygiene",
   );
@@ -1137,8 +1215,8 @@ const app = document.getElementById("app");
 app.innerHTML =
   renderOverview(DATA.project || {}, DATA.risk_summary) +
   renderReportSummary(DATA.summary) +
-  renderVulnTable(DATA.vulns) +
   renderHygiene(DATA.hygiene) +
+  renderVulnTable(DATA.vulns) +
   renderOutdated(DATA.outdated) +
   renderRed(DATA.red) +
   renderYellow(DATA.yellow) +
