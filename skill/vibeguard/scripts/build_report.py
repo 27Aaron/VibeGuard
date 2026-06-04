@@ -4,7 +4,8 @@
 Usage:
     build_report.py <analysis.json> [output.html]
 
-The analysis JSON is produced by the agent after interpreting scan.py output.
+The analysis JSON is produced by analyze_scan.py and may be lightly reviewed by
+the agent after interpreting scan.py output.
 Schema (all sections optional except project):
 
 {

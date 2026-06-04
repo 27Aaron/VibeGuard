@@ -1414,6 +1414,15 @@
                         })[c],
                 );
 
+            function safeHref(value) {
+                try {
+                    const url = new URL(String(value || ""), window.location.href);
+                    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+                } catch {
+                    return "";
+                }
+            }
+
             function copyBtn(text) {
                 return `<button class="copy" data-cmd="${btoa(unescape(encodeURIComponent(text)))}">复制</button>`;
             }
@@ -1600,7 +1609,7 @@
                 const group = topVulnerabilityGroup();
                 const parts = [];
                 if (packages || vulns.length) {
-                    parts.push(`本次扫描覆盖 ${packages || "多个"} 个 npm 包，发现 ${vulns.length || DATA.project.total_vulnerabilities || 0} 个已确认漏洞，涉及 ${names.size || "多个"} 个包。`);
+                    parts.push(`本次扫描覆盖 ${packages || "多个"} 个依赖包，发现 ${vulns.length || DATA.project.total_vulnerabilities || 0} 个已确认漏洞，涉及 ${names.size || "多个"} 个包。`);
                 }
                 if (group.name) {
                     const fixed = commonFixedVersion(group.items);
@@ -1781,11 +1790,17 @@
                     seen.add(link.url);
                     return true;
                 });
-                if (!unique.length) return "";
-                return `<div class="field"><div class="label">现实案例 / 参考资料</div><div class="case-links">${unique
+                const linkHtml = unique
                     .slice(0, 2)
-                    .map((link) => `<a class="case-link" href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.label)}</a>`)
-                    .join("")}</div></div>`;
+                    .map((link) => {
+                        const href = safeHref(link.url);
+                        return href ? `<a class="case-link" href="${esc(href)}" target="_blank" rel="noopener">${esc(link.label)}</a>` : "";
+                    })
+                    .filter(Boolean)
+                    .join("");
+                return linkHtml
+                    ? `<div class="field"><div class="label">现实案例 / 参考资料</div><div class="case-links">${linkHtml}</div></div>`
+                    : "";
             }
 
             function issueDescription(r) {
@@ -1938,7 +1953,7 @@
                 return `<div class="overview">
     <div class="stats">
       <div class="stat"><div class="k">项目</div><div class="v">${esc(proj.name)}</div></div>
-      <div class="stat"><div class="k">生态</div><div class="v">${(proj.ecosystems || []).join(", ") || "未检测到"}</div></div>
+      <div class="stat"><div class="k">生态</div><div class="v">${(proj.ecosystems || []).map(esc).join(", ") || "未检测到"}</div></div>
       <div class="stat"><div class="k">依赖数</div><div class="v">${proj.total_packages || 0}</div></div>
       <div class="stat"><div class="k">风险等级</div><div class="v">${topSeverity ? sevBadge(topSeverity) : '<span style="color:var(--sub)">无</span>'}</div></div>
     </div>

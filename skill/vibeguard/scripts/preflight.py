@@ -20,7 +20,13 @@ import shutil
 import sys
 import time
 
-from scan import LOCKFILE_MAP, default_asset_path, find_project_root
+from scan import (
+    LOCKFILE_MAP,
+    default_asset_path,
+    find_project_root,
+    run_dir_from_output_file,
+    vibeguard_gitignore_status,
+)
 
 PACKAGE_MANAGER_SPECS = {
     "macos": [
@@ -226,6 +232,7 @@ def build_preflight(project_path, args):
     family = normalize_platform(args.platform)
     language_support = detect_language_support(project_path)
     output_file = args.output or default_output_path(project_path)
+    run_dir = run_dir_from_output_file(output_file)
     recommended_scan_mode = (
         "full_dependency_scan" if language_support["supported"] else "hygiene_only"
     )
@@ -249,6 +256,12 @@ def build_preflight(project_path, args):
             path_env=args.path_env,
         ),
         "recommended_scan_mode": recommended_scan_mode,
+        "vibeguard_workspace": {
+            "run_dir": run_dir,
+            "assets_dir": os.path.join(run_dir, "assets"),
+            "content_dir": os.path.join(run_dir, "content"),
+            "gitignore": vibeguard_gitignore_status(project_path),
+        },
         "output_file": output_file,
     }
 

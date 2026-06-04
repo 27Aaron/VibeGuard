@@ -43,6 +43,7 @@ VIBEGUARD_DIR = ".vibeguard"
 VIBEGUARD_GITIGNORE_ENTRY = ".vibeguard/"
 VIBEGUARD_ASSETS_DIR = "assets"
 VIBEGUARD_CONTENT_DIR = "content"
+_GITIGNORE_STATUS_BY_PROJECT = {}
 
 
 def has_vibeguard_gitignore_entry(content):
@@ -53,7 +54,7 @@ def has_vibeguard_gitignore_entry(content):
     return False
 
 
-def ensure_vibeguard_gitignore(project_path):
+def inspect_vibeguard_gitignore(project_path):
     gitignore_path = os.path.join(project_path, ".gitignore")
     try:
         with open(gitignore_path, "r", encoding="utf-8") as handle:
@@ -61,7 +62,31 @@ def ensure_vibeguard_gitignore(project_path):
     except FileNotFoundError:
         content = ""
 
+    return {
+        "path": gitignore_path,
+        "preexisting": os.path.isfile(gitignore_path),
+        "had_vibeguard_entry": has_vibeguard_gitignore_entry(content),
+    }
+
+
+def ensure_vibeguard_gitignore(project_path):
+    status = inspect_vibeguard_gitignore(project_path)
+    gitignore_path = status["path"]
+    try:
+        with open(gitignore_path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+    except FileNotFoundError:
+        content = ""
+
+    added_entry = False
     if has_vibeguard_gitignore_entry(content):
+        status.update(
+            {
+                "added_vibeguard_entry": False,
+                "exists_after": True,
+            }
+        )
+        _GITIGNORE_STATUS_BY_PROJECT[os.path.abspath(project_path)] = status
         return gitignore_path
 
     prefix = ""
@@ -72,7 +97,29 @@ def ensure_vibeguard_gitignore(project_path):
 
     with open(gitignore_path, "a", encoding="utf-8") as handle:
         handle.write(f"{prefix}# VibeGuard local workspace\n{VIBEGUARD_GITIGNORE_ENTRY}\n")
+    added_entry = True
+    status.update(
+        {
+            "added_vibeguard_entry": added_entry,
+            "exists_after": True,
+        }
+    )
+    _GITIGNORE_STATUS_BY_PROJECT[os.path.abspath(project_path)] = status
     return gitignore_path
+
+
+def vibeguard_gitignore_status(project_path):
+    project_path = os.path.abspath(project_path)
+    if project_path in _GITIGNORE_STATUS_BY_PROJECT:
+        return _GITIGNORE_STATUS_BY_PROJECT[project_path]
+    status = inspect_vibeguard_gitignore(project_path)
+    status.update(
+        {
+            "added_vibeguard_entry": False,
+            "exists_after": status["preexisting"],
+        }
+    )
+    return status
 
 
 def ensure_vibeguard_workspace(project_path):
@@ -168,12 +215,19 @@ SENSITIVE_TO_GITIGNORE = {
 
 EXCLUDE_DIRS = {
     ".git",
+    ".vibeguard",
     "node_modules",
     ".next",
+    ".turbo",
+    ".vercel",
     "dist",
     "build",
     "coverage",
     "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".svelte-kit",
     ".venv",
     "venv",
     ".idea",
@@ -410,11 +464,30 @@ def check_sensitive_tracked(project_path):
     return findings
 
 
+def secret_preview(secret_type, match_text):
+    if secret_type == "private_key":
+        return "-----BEGIN *** PRIVATE KEY-----"
+
+    if secret_type in {"generic_password", "generic_api_key"}:
+        masked = re.sub(
+            r"""([:=]\s*["']?)[^"']+(["']?)$""",
+            r"\1***\2",
+            match_text,
+        )
+        return masked if masked != match_text else "***"
+
+    if len(match_text) <= 8:
+        return "***"
+    if len(match_text) <= 24:
+        return match_text[:4] + "..." + match_text[-4:]
+    return match_text[:15] + "..." + match_text[-10:]
+
+
 def scan_secrets(project_path, max_files=500, max_bytes=1024 * 1024):
     findings = []
     count = 0
     for root, dirs, files in os.walk(project_path):
-        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS and not d.startswith(".")]
+        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
         for fname in files:
             if count >= max_files:
                 return findings
@@ -436,9 +509,7 @@ def scan_secrets(project_path, max_files=500, max_bytes=1024 * 1024):
                         for secret_type, pattern in SECRET_REGEXES:
                             m = pattern.search(line)
                             if m:
-                                preview = m.group(0)
-                                if len(preview) > 30:
-                                    preview = preview[:15] + "..." + preview[-10:]
+                                preview = secret_preview(secret_type, m.group(0))
                                 rel = os.path.relpath(fpath, project_path)
                                 findings.append(
                                     {
@@ -705,6 +776,49 @@ def parse_requirements_txt(project_path):
     return pkgs
 
 
+def parse_pipfile_lock(project_path):
+    path = os.path.join(project_path, "Pipfile.lock")
+    if not os.path.isfile(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    pkgs = []
+    for section_name, is_direct in (("default", True), ("develop", False)):
+        section = data.get(section_name) or {}
+        for name, info in section.items():
+            if isinstance(info, str):
+                version = info
+            elif isinstance(info, dict):
+                version = info.get("version", "")
+            else:
+                version = ""
+            version = str(version or "").strip()
+            specifier = ""
+            if version.startswith("=="):
+                specifier = "=="
+                version = version[2:]
+            elif version.startswith("="):
+                specifier = "="
+                version = version[1:]
+            if not version:
+                continue
+            pkgs.append(
+                {
+                    "ecosystem": "pypi",
+                    "name": name.lower(),
+                    "version": version,
+                    "specifier": specifier or "==",
+                    "is_direct": is_direct,
+                    "source": "Pipfile.lock",
+                }
+            )
+    return pkgs
+
+
 def _parse_toml_lock(path, source_name):
     tl = _tomllib()
     if not tl:
@@ -762,7 +876,7 @@ def parse_uv_lock(project_path):
 
 def parse_pypi(project_path):
     pkgs = []
-    for parser in (parse_poetry_lock, parse_uv_lock, parse_requirements_txt):
+    for parser in (parse_poetry_lock, parse_uv_lock, parse_pipfile_lock, parse_requirements_txt):
         pkgs.extend(parser(project_path))
     return pkgs
 
@@ -1538,6 +1652,12 @@ def main():
             "max_secret_files": max(0, int(args.max_secret_files or 0)),
         },
         "output_file": output_file,
+        "vibeguard_workspace": {
+            "gitignore": (
+                ((preflight or {}).get("vibeguard_workspace") or {}).get("gitignore")
+                or vibeguard_gitignore_status(project_path)
+            ),
+        },
         "step_seconds": step_seconds,
         "hygiene": hygiene,
         "package_count": len(packages),

@@ -5,19 +5,20 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 
 # VibeGuard 项目安全检查
 
-对用户项目做一次本地安全扫描，产出 Markdown 审计报告和只读 HTML 报告。流程：预检 -> 扫描 -> 分析分级 -> 生成 Markdown -> 生成静态 HTML。修复不在网页里执行，只在用户看完报告并在对话里明确同意后由 agent 执行。
+对用户项目做一次本地安全扫描，产出 Markdown 审计报告和只读 HTML 报告。默认用一键流水线执行：预检 -> 扫描 -> 生成 analysis JSON -> 生成 Markdown -> 生成静态 HTML -> agent 复核摘要。修复不在网页里执行，只在用户看完报告并在对话里明确同意后由 agent 执行。
 
 ## 核心边界
 
 - 只在本地读取用户项目文件；不上传源码、lockfile、env 或密钥；不要上传完整 lockfile、`.env`、私钥、证书、数据库、日志或任意项目文件。
 - 调用 VibeGuard API 时，只发送最小必要信息：`ecosystem`、`name`、`version`。
 - 报告里不要泄露完整密钥，只能写文件、行号、类型和脱敏预览。
-- 完整项目安全扫描必须先在当前工作目录的 `docs/` 下生成 Markdown 审计报告，例如 `docs/security-report-YYYY-MM-DD.md`。用户阅读报告后明确允许修复，才可以执行升级、删除缓存跟踪、修改 `.gitignore`、清理历史或轮换凭证相关操作。
+- 完整项目安全扫描必须先在被扫项目的 `docs/` 下生成 Markdown 审计报告，例如 `docs/security-report-YYYY-MM-DD.md`。用户阅读报告后明确允许修复，才可以执行升级、删除缓存跟踪、修改 `.gitignore`、清理历史或轮换凭证相关操作。
 - API 地址：`https://vibeguard.ou.al`。本 skill 只使用 `POST https://vibeguard.ou.al/api/security/check/packages` 做依赖漏洞检查，不处理系统软件版本判断或泛安全情报查询。
+- 脚本路径按本 skill 目录解析；如果当前 shell 不在 skill 根目录，使用这些脚本的绝对路径。扫描目标由脚本参数或 preflight JSON 中的 `project.path` 决定，报告写到被扫项目的 `.vibeguard/` 和 `docs/`。
 
 ## 铁律
 
-- **只改本地工作区。** 脚本只能创建/更新 `.vibeguard/`，并确保 `.gitignore` 包含 `.vibeguard/`；安全扫描本身只读文件、调 API，不修改源码、依赖或配置。
+- **只改本地工作区。** 脚本只能创建/更新 `.vibeguard/`、被扫项目的 `docs/security-report-YYYY-MM-DD.md`，并确保 `.gitignore` 包含 `.vibeguard/`；安全扫描本身只读文件、调 API，不修改源码、依赖或配置。
 - **先做生态预检。** 完整依赖漏洞扫描只支持 JavaScript/TypeScript、Python、Go、Rust；没有命中支持文件时，先提示用户暂不支持依赖漏洞扫描，只做仓库卫生扫描。
 - **报告先完整生成，再展示路径。** 必须等 Markdown 报告、analysis JSON 和静态 HTML 都写完后，再把 HTML 路径和摘要告诉用户；不要启动本地 server，也不要兜底起本地服务。
 - **网页只读。** HTML 只用于阅读报告，不提供任何会触发本地操作的按钮。
@@ -25,9 +26,24 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 - **不要把"依赖过旧"说成"存在漏洞"。** 只有命中漏洞数据时才说有漏洞。
 - **不要制造恐慌。** 没有证据时说"不确定"，不要说"肯定安全"或"肯定中招"。
 
+## 默认流程
+
+常规完整扫描优先执行一键流水线：
+
+```bash
+# macOS / Linux
+python3 scripts/run_audit.py
+# Windows
+py -3 scripts/run_audit.py
+```
+
+`scripts/run_audit.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。脚本会按顺序运行预检、扫描、analysis 生成、Markdown 生成和 HTML 生成，并在终端输出 `preflight_file`、`scan_file`、`analysis_file`、`markdown_report`、`html_report`、`scan_mode`、`risk_summary` 和 `errors`。如果输出中的 `scan_mode` 是 `hygiene_only`，必须告诉用户：`当前项目没有发现 VibeGuard 支持的依赖文件，暂不支持依赖漏洞扫描；本次只做仓库卫生扫描，检查硬编码密钥、敏感文件跟踪和 .gitignore 风险。`
+
+扫描较慢或调试时，才给 `run_audit.py` 追加 `--skip-outdated`、`--api-concurrency`、`--outdated-concurrency`、`--skip-hygiene`、`--include-packages`、`--max-secret-files`、`--no-root-discovery`。如果流水线中某一步失败，再按下面的分步流程定位。
+
 ## Step 0 生态预检
 
-运行完整扫描前，先执行预检脚本：
+调试或分步运行时，先执行预检脚本：
 
 ```bash
 # macOS / Linux
@@ -36,7 +52,7 @@ python3 scripts/preflight.py
 py -3 scripts/preflight.py
 ```
 
-`scripts/preflight.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。它会创建 `.vibeguard/<timestamp>/content/` 和 `.vibeguard/<timestamp>/assets/`，把 JSON 打印到终端，并把同一份结果保存到 `.vibeguard/<timestamp>/assets/preflight.json`；同时确保 `.gitignore` 忽略 `.vibeguard/`。结果里的 `output_file` 是实际保存路径。先读 preflight JSON，再决定扫描模式。
+`scripts/preflight.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。它会创建 `.vibeguard/<timestamp>/content/` 和 `.vibeguard/<timestamp>/assets/`，把 JSON 打印到终端，并把同一份结果保存到 `.vibeguard/<timestamp>/assets/preflight.json`；同时确保 `.gitignore` 忽略 `.vibeguard/`，并在 `vibeguard_workspace.gitignore` 记录扫描前 `.gitignore` 是否已存在、是否本次新增 `.vibeguard/`。结果里的 `output_file` 是实际保存路径。先读 preflight JSON，再决定扫描模式。
 
 如果 `language_support.supported` 为 `true`，继续执行完整流程：仓库卫生扫描 -> 依赖提取 -> 漏洞 API 检查 -> 过旧依赖检查。
 
@@ -57,9 +73,18 @@ py -3 scripts/scan.py --preflight <preflight_json>
 
 `scan.py` 默认根据 CPU 数量选择并发，并自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）-> 生态识别与依赖提取（npm/pnpm/yarn、pypi、go、crates-io）-> 调用 VibeGuard API 查漏洞（100 个一批）-> 过旧依赖检查。如果 preflight 的 `recommended_scan_mode` 是 `hygiene_only`，脚本只做仓库卫生扫描，并跳过依赖提取、漏洞 API 和过旧依赖检查。扫描较慢或调试时才追加 `--api-concurrency`、`--outdated-concurrency`、`--skip-outdated`、`--include-packages`、`--max-secret-files`。
 
-## Step 2 分析与分级
+## Step 2 生成 analysis JSON
 
-读 `.vibeguard/<timestamp>/assets/scan.json` 后，构建 `.vibeguard/<timestamp>/assets/analysis.json`（schema 见 `scripts/build_report.py` 顶部注释）：
+读 `.vibeguard/<timestamp>/assets/scan.json` 后，先用脚本构建 `.vibeguard/<timestamp>/assets/analysis.json`（schema 见 `scripts/build_report.py` 顶部注释）：
+
+```bash
+# macOS / Linux
+python3 scripts/analyze_scan.py .vibeguard/<timestamp>/assets/scan.json
+# Windows
+py -3 scripts/analyze_scan.py .vibeguard/<timestamp>/assets/scan.json
+```
+
+`analyze_scan.py` 会生成确定性基线：漏洞排序、`risk_summary`、`summary`、`red/yellow/green`、仓库卫生项、过期依赖和扫描错误。agent 之后只能做轻量复核和业务语言润色；不要删除已确认漏洞，不要把过期依赖改写成漏洞，不要把脱敏预览扩展成完整密钥。
 
 - **命中漏洞**：所有漏洞按严重度排序（critical > high > medium > low），全部放入 `top_issues`，不要只放前 5 个。必须透传 `advisory_id`、`aliases`、`cve_id`、`package`、`version`、`severity`、`summary`、`fixed_versions` 等字段，网页会完整展示 GHSA。漏洞表的说明列必须是一句普通人能看懂的话，不要写"事实/为什么/影响/动作"四段，也不要在说明里堆 CVE/GHSA 编号。
 - **仓库卫生扫描**：透传 `hygiene.gitignore_missing`、`hygiene.tracked_secrets`、`hygiene.sensitive_tracked`。密钥内容必须脱敏，只写位置、类型、可信度和预览。
@@ -72,7 +97,16 @@ py -3 scripts/scan.py --preflight <preflight_json>
 
 ## Step 3 Markdown 报告
 
-先把结论写到当前工作目录的 `docs/security-report-YYYY-MM-DD.md`。Markdown 必须使用普通人能看懂的产品风险语言，并按以下顺序组织：
+先把结论写到被扫项目的 `docs/security-report-YYYY-MM-DD.md`。默认用脚本从 analysis JSON 生成：
+
+```bash
+# macOS / Linux
+python3 scripts/render_markdown.py .vibeguard/<timestamp>/assets/analysis.json
+# Windows
+py -3 scripts/render_markdown.py .vibeguard/<timestamp>/assets/analysis.json
+```
+
+Markdown 必须使用普通人能看懂的产品风险语言，并按以下顺序组织：
 
 1. `# 安全扫描报告`
 2. `## 报告总结`
@@ -119,7 +153,7 @@ HTML 阅读流：项目概览 -> 报告总结 -> 命中漏洞 -> 仓库卫生扫
 
 - 全部脚本是 Python 3 标准库，零第三方依赖（不用 pip install）。
 - macOS/Linux 自带 python3；Windows 需先装 Python 3，命令改为 `python` 或 `py -3`。
-- 依赖扫描支持 JavaScript/TypeScript（npm/pnpm/yarn lockfile）、Python（pypi）、Go、Rust（crates-io）。
+- 依赖扫描支持 JavaScript/TypeScript（npm/pnpm/yarn lockfile）、Python（pypi：`poetry.lock`、`uv.lock`、`Pipfile.lock`、`requirements.txt`）、Go、Rust（crates-io）。
 - 本 skill 是 agent 驱动：扫描出数据后由 agent 做分级分析，不是双击即用的独立 App。
 
 ## 修复建议规则
