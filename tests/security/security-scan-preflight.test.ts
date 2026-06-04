@@ -73,13 +73,13 @@ describe("VibeGuard scan preflight integration", () => {
     expect(scan.outdated).toEqual([]);
   });
 
-  it("chooses bounded multithreaded defaults from the host CPU count", () => {
+  it("uses one API request at a time while keeping non-API defaults bounded", () => {
     const projectDir = makeTempDir("vibeguard-scan-project-");
     const scan = runScan(["--no-root-discovery", projectDir]);
     const cpuCount = os.cpus().length || 4;
     const relativeOutput = path.relative(projectDir, scan.output_file).split(path.sep);
 
-    expect(scan.scan_config.api_concurrency).toBe(Math.max(1, Math.min(cpuCount, 16)));
+    expect(scan.scan_config.api_concurrency).toBe(1);
     expect(scan.scan_config.outdated_concurrency).toBe(Math.max(1, Math.min(cpuCount, 8)));
     expect(relativeOutput).toEqual([
       ".vibeguard",

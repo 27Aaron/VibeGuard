@@ -250,6 +250,31 @@ describe("VibeGuard skill fixtures", () => {
     expect(scan.hygiene.tracked_secrets[0].preview).not.toContain("shortpass");
   });
 
+  it("prints the fixed human audit summary format", () => {
+    const projectDir = makeTempDir("vibeguard-skill-human-summary-");
+
+    const result = runPython([
+      runAuditPath,
+      "--no-root-discovery",
+      "--no-open",
+      projectDir,
+    ]);
+
+    expect(result.stdout).toContain("⏺ 扫描完成 ✅ 模式：hygiene_only");
+    expect(result.stdout).toContain("📊 风险总览");
+    expect(result.stdout).toContain("┌");
+    expect(result.stdout).toContain("│       严重度       │ 数量 │");
+    expect(result.stdout).toContain("- 总依赖：0 个依赖包");
+    expect(result.stdout).toContain("- 扫描错误：无");
+    expect(result.stdout).toContain("🚨 重点关注");
+    expect(result.stdout).toContain("📁 报告路径");
+    expect(result.stdout).toContain("- Markdown 审计报告：docs/security-report-");
+    expect(result.stdout).toContain("- HTML 报告（未自动打开）：.vibeguard/");
+    expect(result.stdout).toContain("- analysis JSON：.vibeguard/");
+    expect(result.stdout).toContain("如果你想继续修复，在对话里回 修复 / OK / 可以修 即可。");
+    expect(result.stdout).not.toContain('"preflight_file"');
+  });
+
   it("keeps HTML report links restricted to http and https URLs", () => {
     const template = fs.readFileSync(templatePath, "utf8");
     const reportJs = fs.readFileSync(reportJsPath, "utf8");

@@ -14,7 +14,7 @@ Usage:
     python3 scan.py --preflight <preflight_json>
     python3 scan.py [project_path]              # 默认向上识别项目根目录
     python3 scan.py --no-root-discovery <path>  # 严格扫描传入目录
-    python3 scan.py --api-concurrency 8 <path>  # 覆盖默认并发
+    python3 scan.py --api-concurrency 1 <path>  # 覆盖默认 API 并发
     python3 scan.py --outdated-concurrency 4 <path>
     python3 scan.py --skip-outdated <path>      # 跳过较慢的过旧依赖检查
     python3 scan.py --include-packages <path>   # 输出完整包清单
@@ -1141,7 +1141,7 @@ def check_vulnerability_batch(batch_no, batch):
     return parse_vulnerability_findings(data), []
 
 
-def check_vulnerabilities(packages, batch_size=100, errors=None, concurrency=4):
+def check_vulnerabilities(packages, batch_size=100, errors=None, concurrency=1):
     if not packages:
         return []
     if errors is None:
@@ -1436,7 +1436,7 @@ def parse_args(argv):
     parser.add_argument(
         "--api-concurrency",
         type=int,
-        default=None,
+        default=1,
         help="number of concurrent VibeGuard API package-check requests",
     )
     parser.add_argument(
