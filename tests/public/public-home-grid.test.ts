@@ -7,7 +7,7 @@ describe("public homepage grid", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8");
 
     expect(page).toContain(
-      "grid items-start gap-5 md:grid-cols-2 xl:grid-cols-3",
+      "grid items-start gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3",
     );
   });
 });

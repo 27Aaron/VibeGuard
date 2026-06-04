@@ -30,7 +30,11 @@ describe("language chip usage", () => {
     expect(article).toContain("<PublicHeader");
     expect(publicHeader).toContain("<LanguageToggle");
     expect(adminHeader).toContain("<LanguageToggle");
-    expect(publicHeader).toContain("flex items-center justify-end gap-1.5");
-    expect(adminHeader).toContain("flex items-center justify-end gap-1.5");
+    expect(publicHeader).toContain(
+      "flex items-center justify-end gap-1 justify-self-end sm:gap-1.5",
+    );
+    expect(adminHeader).toContain(
+      "flex items-center justify-end gap-1 justify-self-end sm:gap-1.5",
+    );
   });
 });

@@ -12,7 +12,9 @@ describe("public homepage pagination", () => {
     const emptyStateBoundary = page.indexOf("{feed.items.length === 0");
     const paginationUsage = page.indexOf("<PaginationControls");
 
-    expect(layoutTokens).toContain("px-4 pb-8 pt-4");
+    expect(layoutTokens).toContain(
+      "gap-5 px-3 pb-6 pt-3 sm:gap-6 sm:px-6 sm:pb-8 sm:pt-4",
+    );
     expect(page).toContain(
       '<footer className="flex justify-center border-t border-black/5 pt-4',
     );

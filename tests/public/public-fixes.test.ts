@@ -196,7 +196,7 @@ describe("public header brand icon remains after hiding Skill nav", () => {
 
   it("still uses ShieldCheck for the homepage brand icon", () => {
     // The brand logo area should still use ShieldCheck
-    const brandIconPattern = /flex size-8[^>]*>[\s\S]*?<\/span>/;
+    const brandIconPattern = /flex size-7[^>]*sm:size-8[^>]*>[\s\S]*?<\/span>/;
     const brandSection = header.match(brandIconPattern)?.[0];
     expect(brandSection).toBeDefined();
     expect(brandSection).toContain("ShieldCheck");

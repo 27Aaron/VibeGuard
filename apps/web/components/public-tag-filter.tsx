@@ -95,18 +95,21 @@ export function PublicTagFilter({
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-[1.2rem] border border-black/5 bg-white/62 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none">
-      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-stone-400">
+    <section className="flex flex-col gap-2 rounded-[1rem] border border-black/5 bg-white/62 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:gap-3 sm:rounded-[1.2rem] sm:p-3 dark:border-white/10 dark:bg-white/4.5 dark:shadow-none">
+      <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-zinc-500 sm:text-[0.68rem] dark:text-stone-400">
         {labels.tag}
       </p>
       <div
         ref={moreTagsRef}
-        className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"
+        className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:gap-2"
       >
-        <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-x-auto [scrollbar-width:none] sm:gap-2 [&::-webkit-scrollbar]:hidden">
           <Link
             href={allHref}
-            className={cn(getInteractiveChipClassName(!activeTag), "shrink-0")}
+            className={cn(
+              getInteractiveChipClassName(!activeTag),
+              "h-7 shrink-0 px-2.5 text-[0.72rem] sm:h-8 sm:px-3 sm:text-[0.78rem]",
+            )}
           >
             {labels.all}
           </Link>
@@ -123,7 +126,7 @@ export function PublicTagFilter({
               onClick={() => setOpen((value) => !value)}
               className={cn(
                 getInteractiveChipClassName(false),
-                "cursor-pointer select-none",
+                "h-7 cursor-pointer select-none px-2.5 text-[0.72rem] sm:h-8 sm:px-3 sm:text-[0.78rem]",
               )}
             >
               {labels.more}
@@ -132,7 +135,7 @@ export function PublicTagFilter({
               <div
                 id={popoverId}
                 role="dialog"
-                className="absolute -left-2 -right-2 top-full z-20 mt-4 rounded-[1.35rem] border border-black/5 bg-[#fcfcfa]/96 p-4 shadow-[0_24px_60px_-30px_rgba(10,10,10,0.5),inset_0_1px_0_rgba(255,255,255,0.82)] backdrop-blur-xl dark:border-white/10 dark:bg-[#10161d]/96 dark:shadow-[0_26px_64px_-34px_rgba(0,0,0,0.92),inset_0_1px_0_rgba(255,255,255,0.04)]"
+                className="absolute -left-2 -right-2 top-full z-20 mt-2.5 rounded-[1.15rem] border border-black/5 bg-[#fcfcfa]/96 p-3 shadow-[0_24px_60px_-30px_rgba(10,10,10,0.5),inset_0_1px_0_rgba(255,255,255,0.82)] backdrop-blur-xl sm:mt-4 sm:rounded-[1.35rem] sm:p-4 dark:border-white/10 dark:bg-[#10161d]/96 dark:shadow-[0_26px_64px_-34px_rgba(0,0,0,0.92),inset_0_1px_0_rgba(255,255,255,0.04)]"
               >
                 <input
                   type="search"
@@ -167,7 +170,10 @@ function TagLink({ item }: { item: PublicTagFilterLink }) {
   return (
     <Link
       href={item.href}
-      className={cn(getInteractiveChipClassName(item.active), "shrink-0")}
+      className={cn(
+        getInteractiveChipClassName(item.active),
+        "h-7 shrink-0 px-2.5 text-[0.72rem] sm:h-8 sm:px-3 sm:text-[0.78rem]",
+      )}
     >
       {item.tag}
       <span className="ml-1 text-zinc-400 dark:text-stone-500">

@@ -1,5 +1,5 @@
 export function getShellClassName() {
-  return "relative mx-auto flex min-h-svh w-full min-w-0 max-w-[1440px] flex-col gap-6 px-4 pb-8 pt-4 sm:px-6 lg:px-8";
+  return "relative mx-auto flex min-h-svh w-full min-w-0 max-w-[1440px] flex-col gap-5 px-3 pb-6 pt-3 sm:gap-6 sm:px-6 sm:pb-8 sm:pt-4 lg:px-8";
 }
 
 export function getBackgroundClassName() {
@@ -27,13 +27,13 @@ export function getFilterSelectClassName() {
 }
 
 export function getSectionOuterClassName() {
-  return "rounded-[2rem] border border-black/5 bg-white/48 p-1.5 shadow-[0_22px_62px_-42px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-[0_24px_70px_-48px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)]";
+  return "rounded-[1.5rem] border border-black/5 bg-white/48 p-1 sm:rounded-[2rem] sm:p-1.5 shadow-[0_22px_62px_-42px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-[0_24px_70px_-48px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)]";
 }
 
 export function getSectionInnerClassName() {
-  return "rounded-[1.55rem] bg-[#fcfcfa]/92 p-4 shadow-[inset_0_0_0_1px_rgba(10,10,10,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] sm:p-5 dark:bg-[#10161d]/92 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]";
+  return "rounded-[1.2rem] bg-[#fcfcfa]/92 p-3 sm:rounded-[1.55rem] sm:p-5 shadow-[inset_0_0_0_1px_rgba(10,10,10,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:bg-[#10161d]/92 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]";
 }
 
 export function getCardSurfaceClassName() {
-  return "rounded-[1.65rem] border border-black/5 bg-white/50 p-1.5 shadow-[0_20px_44px_-30px_rgba(10,10,10,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-emerald-900/15 hover:shadow-[0_28px_64px_-34px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.82)] dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-emerald-200/25";
+  return "rounded-[1.35rem] border border-black/5 bg-white/50 p-1 sm:rounded-[1.65rem] sm:p-1.5 shadow-[0_20px_44px_-30px_rgba(10,10,10,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] transition-[border-color,transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-emerald-900/15 hover:shadow-[0_28px_64px_-34px_rgba(10,10,10,0.42),inset_0_1px_0_rgba(255,255,255,0.82)] dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-emerald-200/25";
 }

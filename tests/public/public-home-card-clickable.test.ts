@@ -14,10 +14,10 @@ describe("public homepage cards", () => {
       'className={cn("group", getCardSurfaceClassName())}',
     );
     expect(layoutTokens).toContain(
-      "rounded-[1.65rem] border border-black/5 bg-white/50 p-1.5",
+      "rounded-[1.35rem] border border-black/5 bg-white/50 p-1 sm:rounded-[1.65rem] sm:p-1.5",
     );
     expect(page).toContain(
-      'className="flex flex-col gap-3 rounded-[1.25rem] bg-[#fcfcfa]/92 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60',
+      'className="flex flex-col gap-2.5 rounded-[1.05rem] bg-[#fcfcfa]/92 p-4 sm:gap-3 sm:rounded-[1.25rem] sm:p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60',
     );
     expect(page).toContain("group-hover:text-emerald-950");
     expect(page).not.toContain("flex h-full flex-col gap-4");

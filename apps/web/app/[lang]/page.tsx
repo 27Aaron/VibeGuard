@@ -149,20 +149,20 @@ export default async function PublicHomePage({
 
         <section className={getSectionOuterClassName()}>
           <div className={getSectionInnerClassName()}>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-normal text-zinc-600 dark:text-stone-300">
-                <span className="inline-flex h-7 items-center gap-2 rounded-full border border-black/6 bg-white/72 px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.74),0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-white/5.5 dark:shadow-none">
+            <div className="flex flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-1.5 text-[0.72rem] font-medium tracking-normal text-zinc-600 sm:gap-2 sm:text-xs dark:text-stone-300">
+                <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-black/6 bg-white/72 px-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.74),0_1px_2px_rgba(15,23,42,0.04)] sm:h-7 sm:gap-2 sm:px-3 dark:border-white/10 dark:bg-white/5.5 dark:shadow-none">
                   <span className="size-1.5 rounded-full bg-emerald-700 shadow-[0_0_0_5px_rgba(4,120,87,0.12)] dark:bg-emerald-300 dark:shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
                   {text.publicEyebrowLive}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-stone-400">
-                <Badge variant="outline" className="h-7 px-3">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-zinc-500 sm:gap-2 sm:text-sm dark:text-stone-400">
+                <Badge variant="outline" className="h-6 px-2.5 sm:h-7 sm:px-3">
                   {lang === "zh"
                     ? `${feed.meta.totalCount} 篇`
                     : `${feed.meta.totalCount} articles`}
                 </Badge>
-                <Badge variant="outline" className="h-7 px-3">
+                <Badge variant="outline" className="h-6 px-2.5 sm:h-7 sm:px-3">
                   {lang === "zh"
                     ? `${tagCounts.length} 个标签`
                     : `${tagCounts.length} tags`}
@@ -170,7 +170,7 @@ export default async function PublicHomePage({
               </div>
             </div>
 
-            <div className="mt-4 rounded-[1.35rem] border border-black/5 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none">
+            <div className="mt-3 rounded-[1.1rem] border border-black/5 bg-white/70 p-2 sm:mt-4 sm:rounded-[1.35rem] sm:p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/4.5 dark:shadow-none">
               <form
                 action={`/${lang}`}
                 className="flex flex-wrap items-center gap-2"
@@ -181,7 +181,7 @@ export default async function PublicHomePage({
                   name="q"
                   defaultValue={query}
                   placeholder={text.publicSearchPlaceholder}
-                  className="h-11 min-w-0 flex-1 rounded-full border border-black/6 bg-[#fcfcfa] px-4 text-sm text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-emerald-700/30 focus:outline-none dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-emerald-200/30 dark:shadow-none"
+                  className="h-10 min-w-0 flex-1 rounded-full border border-black/6 bg-[#fcfcfa] px-3 text-[0.82rem] text-zinc-950 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:border-emerald-700/30 focus:outline-none sm:h-11 sm:px-4 sm:text-sm dark:border-white/10 dark:bg-white/5.5 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-emerald-200/30 dark:shadow-none"
                 />
                 <button
                   type="submit"
@@ -189,7 +189,7 @@ export default async function PublicHomePage({
                   title={text.search}
                   className={cn(
                     buttonVariants({ size: "icon", variant: "outline" }),
-                    "size-11 rounded-full border-emerald-900/12 bg-[#e9f2ec] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#dcebe2] hover:text-emerald-950 dark:border-emerald-200/14 dark:bg-emerald-300/10 dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.24)] dark:hover:bg-emerald-300/14 dark:hover:text-emerald-50",
+                    "size-10 rounded-full border-emerald-900/12 bg-[#e9f2ec] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_1px_2px_rgba(15,23,42,0.06)] hover:bg-[#dcebe2] hover:text-emerald-950 sm:size-11 dark:border-emerald-200/14 dark:bg-emerald-300/10 dark:text-emerald-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.24)] dark:hover:bg-emerald-300/14 dark:hover:text-emerald-50",
                   )}
                 >
                   <Search className="size-4" />
@@ -202,7 +202,7 @@ export default async function PublicHomePage({
                     title={text.clear}
                     className={cn(
                       buttonVariants({ size: "icon", variant: "outline" }),
-                      "size-11 rounded-full border-black/6 bg-white/80 text-zinc-600 hover:bg-white hover:text-zinc-950 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-200 dark:hover:bg-white/10 dark:hover:text-white",
+                      "size-10 rounded-full border-black/6 bg-white/80 text-zinc-600 hover:bg-white hover:text-zinc-950 sm:size-11 dark:border-white/10 dark:bg-white/5.5 dark:text-stone-200 dark:hover:bg-white/10 dark:hover:text-white",
                     )}
                   >
                     <X className="size-4" />
@@ -212,7 +212,7 @@ export default async function PublicHomePage({
               </form>
 
               {tagFilterModel.hasTags ? (
-                <div className="mt-3">
+                <div className="mt-2.5 sm:mt-3">
                   <PublicTagFilter
                     visibleTags={visibleTagLinks}
                     overflowTags={overflowTagLinks}
@@ -224,7 +224,7 @@ export default async function PublicHomePage({
               ) : null}
 
               {hasActiveFilters ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-black/5 pt-3 text-sm text-zinc-600 dark:border-white/10 dark:text-stone-300">
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-black/5 pt-2.5 text-[0.82rem] text-zinc-600 sm:mt-3 sm:gap-2 sm:pt-3 sm:text-sm dark:border-white/10 dark:text-stone-300">
                   <span className="text-zinc-500 dark:text-stone-400">
                     {text.currentFilters}
                   </span>
@@ -255,7 +255,7 @@ export default async function PublicHomePage({
         </section>
 
         {feed.items.length === 0 ? (
-          <section className="rounded-[2rem] border border-dashed border-black/10 bg-white/55 px-6 py-12 text-center shadow-[0_18px_48px_rgba(10,10,10,0.06)] dark:border-white/15 dark:bg-white/4 dark:shadow-none">
+          <section className="rounded-[1.5rem] border border-dashed border-black/10 bg-white/55 px-4 py-10 text-center shadow-[0_18px_48px_rgba(10,10,10,0.06)] sm:rounded-[2rem] sm:px-6 sm:py-12 dark:border-white/15 dark:bg-white/4 dark:shadow-none">
             <p className="text-lg font-medium text-zinc-950 dark:text-stone-100">
               {text.emptyFeedTitle}
             </p>
@@ -264,7 +264,7 @@ export default async function PublicHomePage({
             </p>
           </section>
         ) : (
-          <section className="grid items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid items-start gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
             {feed.items.map((article) => (
               <article
                 key={article.id}
@@ -272,7 +272,7 @@ export default async function PublicHomePage({
               >
                 <Link
                   href={buildArticleHref(article.id)}
-                  className="flex flex-col gap-3 rounded-[1.25rem] bg-[#fcfcfa]/92 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 dark:bg-[#10161d]/92"
+                  className="flex flex-col gap-2.5 rounded-[1.05rem] bg-[#fcfcfa]/92 p-4 sm:gap-3 sm:rounded-[1.25rem] sm:p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 dark:bg-[#10161d]/92"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500 dark:text-stone-400">
@@ -289,10 +289,10 @@ export default async function PublicHomePage({
                   </div>
 
                   <div className="flex flex-col gap-2.5">
-                    <h2 className="line-clamp-1 text-base font-semibold leading-7 text-zinc-950 transition-colors group-hover:text-emerald-950 dark:text-stone-50 dark:group-hover:text-emerald-100">
+                    <h2 className="line-clamp-1 text-[0.95rem] font-semibold leading-6 sm:text-base sm:leading-7 text-zinc-950 transition-colors group-hover:text-emerald-950 dark:text-stone-50 dark:group-hover:text-emerald-100">
                       {article.title}
                     </h2>
-                    <p className="line-clamp-3 text-sm leading-6 text-zinc-600 dark:text-stone-300">
+                    <p className="line-clamp-3 text-[0.85rem] leading-5 sm:text-sm sm:leading-6 text-zinc-600 dark:text-stone-300">
                       {buildSummaryPreviewText(
                         article.summary ||
                           (lang === "zh"

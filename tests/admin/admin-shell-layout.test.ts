@@ -52,8 +52,8 @@ describe("admin shell layout", () => {
     expect(adminLayout).toContain("ADMIN_SESSION_COOKIE");
     expect(adminLayout).toContain("isAuthenticated={isAuthenticated}");
     expect(adminHeader).toContain("isAuthenticated: boolean");
-    expect(adminHeader).toContain("isAuthenticated ? <AdminNav");
     expect(adminHeader).toContain("isAuthenticated ? (");
+    expect(adminHeader).toContain("<AdminNav lang={lang} />");
     expect(adminHeader).toContain("logoutAction");
     expect(adminHeader).toContain('title={lang === "zh" ? "退出登录" : "Sign out"}');
   });
