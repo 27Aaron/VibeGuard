@@ -20,13 +20,6 @@ afterEach(() => {
   }
 });
 
-function makeExecutable(dir: string, name: string) {
-  const filePath = path.join(dir, name);
-  fs.writeFileSync(filePath, "#!/bin/sh\nexit 0\n");
-  fs.chmodSync(filePath, 0o755);
-  return filePath;
-}
-
 function runPreflight(projectDir: string, args: string[]) {
   const outputPath = path.join(projectDir, "preflight.json");
   const result = spawnSync(
@@ -58,28 +51,12 @@ function runPreflightWithoutOutput(projectDir: string, args: string[], env: Node
 }
 
 describe("VibeGuard preflight", () => {
-  it("detects supported dependency files and the scoped Linux package managers", () => {
+  it("detects supported dependency files without system or package-manager probes", () => {
     const dir = makeTempDir("vibeguard-preflight-");
-    const binDir = makeTempDir("vibeguard-bin-");
-    const osRelease = path.join(dir, "os-release");
 
     fs.writeFileSync(path.join(dir, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
-    fs.writeFileSync(
-      osRelease,
-      'ID=ubuntu\nID_LIKE=debian\nVERSION_ID="24.04"\nPRETTY_NAME="Ubuntu 24.04 LTS"\n',
-    );
-    makeExecutable(binDir, "apt");
-    makeExecutable(binDir, "nix");
-    makeExecutable(binDir, "zypper");
 
-    const preflight = runPreflight(dir, [
-      "--platform",
-      "linux",
-      "--os-release-file",
-      osRelease,
-      "--path-env",
-      binDir,
-    ]);
+    const preflight = runPreflight(dir, []);
 
     expect(preflight.language_support.supported).toBe(true);
     expect(preflight.language_support.ecosystems).toEqual(["pnpm"]);
@@ -90,43 +67,15 @@ describe("VibeGuard preflight", () => {
     expect(preflight.language_support).not.toHaveProperty("supported_files");
     expect(preflight.language_support).not.toHaveProperty("unsupported_reason");
     expect(preflight.recommended_scan_mode).toBe("full_dependency_scan");
-    expect(preflight.os).toMatchObject({
-      family: "linux",
-      distro_id: "ubuntu",
-      distro_id_like: "debian",
-      name: "Ubuntu 24.04 LTS",
-      version: "24.04",
-    });
-    expect(preflight.package_managers.map((pm: { name: string }) => pm.name)).toEqual([
-      "apt",
-      "dnf",
-      "yum",
-      "pacman",
-      "apk",
-      "nix",
-    ]);
-    expect(
-      preflight.package_managers.filter((pm: { available: boolean }) => pm.available).map(
-        (pm: { name: string }) => pm.name,
-      ),
-    ).toEqual(["apt", "nix"]);
-    expect(preflight.package_managers.some((pm: { name: string }) => pm.name === "zypper"))
-      .toBe(false);
+    expect(preflight).not.toHaveProperty("os");
+    expect(preflight).not.toHaveProperty("package_managers");
+    expect(preflight).not.toHaveProperty("system_update_tools");
   });
 
-  it("falls back to hygiene-only mode and ignores MacPorts on macOS", () => {
+  it("falls back to hygiene-only mode without package-manager metadata", () => {
     const dir = makeTempDir("vibeguard-preflight-");
-    const binDir = makeTempDir("vibeguard-bin-");
-    makeExecutable(binDir, "brew");
-    makeExecutable(binDir, "port");
-    makeExecutable(binDir, "softwareupdate");
 
-    const preflight = runPreflight(dir, [
-      "--platform",
-      "macos",
-      "--path-env",
-      binDir,
-    ]);
+    const preflight = runPreflight(dir, []);
 
     expect(preflight.language_support.supported).toBe(false);
     expect(preflight.language_support).toEqual({
@@ -135,57 +84,27 @@ describe("VibeGuard preflight", () => {
       matched_files: [],
     });
     expect(preflight.recommended_scan_mode).toBe("hygiene_only");
-    expect(preflight.package_managers).toEqual([
-      {
-        name: "brew",
-        available: true,
-        path: path.join(binDir, "brew"),
-        update_check_command: ["brew", "outdated"],
-      },
-    ]);
-    expect(preflight.package_managers.some((pm: { name: string }) => pm.name === "port"))
-      .toBe(false);
-    expect(preflight.system_update_tools).toEqual([
-      {
-        name: "softwareupdate",
-        available: true,
-        path: path.join(binDir, "softwareupdate"),
-        update_check_command: ["softwareupdate", "--list"],
-      },
-    ]);
+    expect(preflight).not.toHaveProperty("os");
+    expect(preflight).not.toHaveProperty("package_managers");
+    expect(preflight).not.toHaveProperty("system_update_tools");
     expect(preflight).not.toHaveProperty("future_checks");
   });
 
-  it("detects only winget and scoop on Windows", () => {
+  it("does not expose deprecated platform probe fields", () => {
     const dir = makeTempDir("vibeguard-preflight-");
-    const binDir = makeTempDir("vibeguard-bin-");
-    makeExecutable(binDir, "winget");
-    makeExecutable(binDir, "scoop");
-    makeExecutable(binDir, "choco");
 
-    const preflight = runPreflight(dir, [
-      "--platform",
-      "windows",
-      "--path-env",
-      binDir,
-    ]);
+    const preflight = runPreflight(dir, []);
 
-    expect(preflight.os.family).toBe("windows");
-    expect(preflight.package_managers.map((pm: { name: string }) => pm.name)).toEqual([
-      "winget",
-      "scoop",
-    ]);
-    expect(
-      preflight.package_managers.every((pm: { available: boolean }) => pm.available),
-    ).toBe(true);
-    expect(preflight.package_managers.some((pm: { name: string }) => pm.name === "choco"))
-      .toBe(false);
+    expect(preflight).not.toHaveProperty("os");
+    expect(preflight).not.toHaveProperty("package_managers");
+    expect(preflight).not.toHaveProperty("system_update_tools");
+    expect(JSON.stringify(preflight)).not.toContain("update_check_command");
   });
 
   it("uses a local .vibeguard workspace for default output paths", () => {
     const dir = makeTempDir("vibeguard-preflight-");
 
-    const preflight = runPreflightWithoutOutput(dir, ["--platform", "windows"], {});
+    const preflight = runPreflightWithoutOutput(dir, [], {});
 
     const relativeOutput = path.relative(dir, preflight.output_file).split(path.sep);
     expect(relativeOutput).toEqual([

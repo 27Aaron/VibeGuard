@@ -999,6 +999,29 @@ def package_source_summary(packages):
     ]
 
 
+def package_version_index(packages):
+    index = {}
+    for pkg in packages or []:
+        ecosystem = pkg.get("ecosystem")
+        name = pkg.get("name")
+        version = pkg.get("version")
+        if not ecosystem or not name or not version:
+            continue
+        key = (str(ecosystem).lower(), str(name).lower())
+        index.setdefault(key, version)
+    return index
+
+
+def current_version_for(version_index, ecosystem, package):
+    if not version_index or not ecosystem or not package:
+        return ""
+    return version_index.get((str(ecosystem).lower(), str(package).lower()), "")
+
+
+def clean_version(value):
+    return str(value or "").strip().lstrip("v")
+
+
 # ---------------------------------------------------------------------------
 # Step 3: Vulnerability check via VibeGuard API
 # ---------------------------------------------------------------------------
@@ -1200,20 +1223,29 @@ def run_outdated_task(index, task):
     return index, items, local_errors
 
 
-def check_outdated(project_path, ecosystems, errors=None, concurrency=4):
+def check_outdated(project_path, ecosystems, errors=None, concurrency=4, packages=None):
     if errors is None:
         errors = []
+    version_index = package_version_index(packages)
     tasks = []
     if "npm" in ecosystems:
         tasks.append(
             lambda task_errors: _outdated_json(
-                "npm", ["npm", "outdated", "--json"], project_path, task_errors
+                "npm",
+                ["npm", "outdated", "--json"],
+                project_path,
+                task_errors,
+                version_index,
             )
         )
     if "pnpm" in ecosystems:
         tasks.append(
             lambda task_errors: _outdated_json(
-                "npm", ["pnpm", "outdated", "--json"], project_path, task_errors
+                "npm",
+                ["pnpm", "outdated", "--json"],
+                project_path,
+                task_errors,
+                version_index,
             )
         )
     if "yarn" in ecosystems:
@@ -1253,12 +1285,35 @@ def check_outdated(project_path, ecosystems, errors=None, concurrency=4):
 
     outdated = []
     for _, items, task_errors in sorted(results, key=lambda x: x[0]):
-        outdated.extend(items)
+        outdated.extend(item for item in items if is_outdated_item(item))
         errors.extend(task_errors)
     return outdated
 
 
-def _outdated_json(eco, cmd, cwd, errors=None):
+def outdated_target(item):
+    return item.get("wanted") or item.get("latest") or ""
+
+
+def is_outdated_item(item):
+    current = clean_version(item.get("current") or item.get("version"))
+    target = clean_version(outdated_target(item))
+    return bool(target and current != target)
+
+
+def outdated_item(eco, package, data, version_index=None):
+    current = data.get("current") or data.get("currentVersion") or data.get("version") or ""
+    if not current:
+        current = current_version_for(version_index, eco, package)
+    return {
+        "package": package,
+        "current": current,
+        "wanted": data.get("wanted") or data.get("update") or "",
+        "latest": data.get("latest") or data.get("latestVersion") or "",
+        "ecosystem": eco,
+    }
+
+
+def _outdated_json(eco, cmd, cwd, errors=None, version_index=None):
     output = run_cmd_checked(cmd, cwd=cwd, timeout=60, errors=errors, step="outdated_check")
     if not output:
         return []
@@ -1266,25 +1321,22 @@ def _outdated_json(eco, cmd, cwd, errors=None):
         data = json.loads(output)
     except json.JSONDecodeError:
         if errors is not None:
-            errors.append({"step": "outdated_check", "message": f"{cmd[0]} outdated 输出不是有效 JSON"})
+            errors.append(
+                {"step": "outdated_check", "message": f"{cmd[0]} outdated 输出不是有效 JSON"}
+            )
         return []
     if isinstance(data, list):
         return [
-            {
-                "package": p.get("name") or p.get("packageName", ""),
-                "current": p.get("current", ""),
-                "latest": p.get("latest", ""),
-                "ecosystem": eco,
-            }
+            outdated_item(
+                eco,
+                p.get("name") or p.get("packageName", ""),
+                p,
+                version_index=version_index,
+            )
             for p in data
         ]
     return [
-        {
-            "package": n,
-            "current": v.get("current", ""),
-            "latest": v.get("latest", ""),
-            "ecosystem": eco,
-        }
+        outdated_item(eco, n, v if isinstance(v, dict) else {}, version_index=version_index)
         for n, v in data.items()
     ]
 
@@ -1599,6 +1651,7 @@ def main():
                 ecosystems,
                 errors=step_errors,
                 concurrency=outdated_concurrency,
+                packages=packages,
             )
         except Exception as e:
             result = []

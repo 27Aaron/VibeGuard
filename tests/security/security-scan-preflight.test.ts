@@ -31,6 +31,56 @@ function runScan(args: string[], env: NodeJS.ProcessEnv = {}) {
 }
 
 describe("VibeGuard scan preflight integration", () => {
+  it("fills outdated current versions from parsed lockfile packages", () => {
+    const snippet = `
+import importlib.util
+import json
+import pathlib
+
+script = pathlib.Path(${JSON.stringify(scriptPath)})
+spec = importlib.util.spec_from_file_location("vibeguard_scan", script)
+scan = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(scan)
+
+scan.run_cmd_checked = lambda *args, **kwargs: json.dumps({
+    "@base-ui/react": {"latest": "1.5.0"},
+    "bcryptjs": {"latest": "3.0.3"},
+})
+items = scan.check_outdated(
+    "/tmp/project",
+    ["npm"],
+    concurrency=1,
+    packages=[
+        {
+            "ecosystem": "npm",
+            "name": "@base-ui/react",
+            "version": "1.4.0",
+        },
+        {
+            "ecosystem": "npm",
+            "name": "bcryptjs",
+            "version": "3.0.3",
+        }
+    ],
+)
+print(json.dumps(items, ensure_ascii=False))
+`;
+    const result = spawnSync(process.env.PYTHON ?? "python3", ["-c", snippet], {
+      encoding: "utf8",
+    });
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual([
+      {
+        package: "@base-ui/react",
+        current: "1.4.0",
+        wanted: "",
+        latest: "1.5.0",
+        ecosystem: "npm",
+      },
+    ]);
+  });
+
   it("reuses preflight project path and writes scan JSON to .vibeguard", () => {
     const projectDir = makeTempDir("vibeguard-scan-project-");
     const runDir = path.join(projectDir, ".vibeguard", "20260604-070000");

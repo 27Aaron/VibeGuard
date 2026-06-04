@@ -3,9 +3,7 @@
 
 Checks before the full scanner:
   1. Detect supported project dependency files.
-  2. Detect OS family / Linux distribution.
-  3. Detect supported package managers without running update checks.
-  4. Prepare the local .vibeguard workspace and .gitignore entry.
+  2. Prepare the local .vibeguard workspace and .gitignore entry.
 
 The script prints JSON to stdout and writes the same JSON to
 .vibeguard/<timestamp>/assets/preflight.json by default. It uses only Python
@@ -15,8 +13,6 @@ standard library modules.
 import argparse
 import json
 import os
-import platform
-import shutil
 import sys
 import time
 
@@ -27,73 +23,6 @@ from scan import (
     run_dir_from_output_file,
     vibeguard_gitignore_status,
 )
-
-PACKAGE_MANAGER_SPECS = {
-    "macos": [
-        {
-            "name": "brew",
-            "command": "brew",
-            "update_check_command": ["brew", "outdated"],
-        },
-    ],
-    "linux": [
-        {
-            "name": "apt",
-            "command": "apt",
-            "update_check_command": ["apt", "list", "--upgradable"],
-        },
-        {
-            "name": "dnf",
-            "command": "dnf",
-            "update_check_command": ["dnf", "check-update"],
-        },
-        {
-            "name": "yum",
-            "command": "yum",
-            "update_check_command": ["yum", "check-update"],
-        },
-        {
-            "name": "pacman",
-            "command": "pacman",
-            "update_check_command": ["pacman", "-Qu"],
-        },
-        {
-            "name": "apk",
-            "command": "apk",
-            "update_check_command": ["apk", "version", "-l", "<"],
-        },
-        {
-            "name": "nix",
-            "command": "nix",
-            "update_check_command": ["nix", "profile", "upgrade", "--all", "--dry-run"],
-        },
-    ],
-    "windows": [
-        {
-            "name": "winget",
-            "command": "winget",
-            "update_check_command": ["winget", "upgrade"],
-        },
-        {
-            "name": "scoop",
-            "command": "scoop",
-            "update_check_command": ["scoop", "status"],
-        },
-    ],
-}
-
-SYSTEM_UPDATE_TOOL_SPECS = {
-    "macos": [
-        {
-            "name": "softwareupdate",
-            "command": "softwareupdate",
-            "update_check_command": ["softwareupdate", "--list"],
-        },
-    ],
-    "linux": [],
-    "windows": [],
-}
-
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="Run VibeGuard preflight checks")
@@ -112,14 +41,6 @@ def parse_args(argv):
         action="store_true",
         help="emit compact JSON instead of pretty-printed JSON",
     )
-    parser.add_argument(
-        "--platform",
-        choices=["auto", "macos", "linux", "windows"],
-        default="auto",
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument("--os-release-file", help=argparse.SUPPRESS)
-    parser.add_argument("--path-env", help=argparse.SUPPRESS)
     return parser.parse_args(argv)
 
 
@@ -144,92 +65,7 @@ def detect_language_support(project_path):
     }
 
 
-def parse_os_release(path):
-    values = {}
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            for line in handle:
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, value = line.split("=", 1)
-                value = value.strip().strip('"').strip("'")
-                values[key] = value
-    except OSError:
-        return {}
-    return values
-
-
-def normalize_platform(platform_override):
-    if platform_override != "auto":
-        return platform_override
-
-    system = platform.system().lower()
-    if system == "darwin":
-        return "macos"
-    if system == "linux":
-        return "linux"
-    if system == "windows":
-        return "windows"
-    return "unknown"
-
-
-def detect_os(family, os_release_file=None):
-    if family == "macos":
-        version = platform.mac_ver()[0] or None
-        return {
-            "family": "macos",
-            "name": "macOS",
-            "version": version,
-        }
-
-    if family == "linux":
-        release_path = os_release_file or "/etc/os-release"
-        release = parse_os_release(release_path)
-        distro_id = release.get("ID") or None
-        distro_id_like = release.get("ID_LIKE") or None
-        pretty_name = release.get("PRETTY_NAME") or release.get("NAME") or "Linux"
-        return {
-            "family": "linux",
-            "name": pretty_name,
-            "version": release.get("VERSION_ID") or None,
-            "distro_id": distro_id,
-            "distro_id_like": distro_id_like,
-            "os_release_file": release_path if release else None,
-        }
-
-    if family == "windows":
-        version_info = platform.win32_ver()
-        version = version_info[1] or platform.version() or None
-        return {
-            "family": "windows",
-            "name": "Windows",
-            "version": version,
-        }
-
-    return {
-        "family": family,
-        "name": platform.system() or "unknown",
-        "version": platform.version() or None,
-    }
-
-
-def detect_tool(spec, path_env=None):
-    path = shutil.which(spec["command"], path=path_env)
-    return {
-        "name": spec["name"],
-        "available": bool(path),
-        "path": path,
-        "update_check_command": spec["update_check_command"],
-    }
-
-
-def detect_tools(family, specs, path_env=None):
-    return [detect_tool(spec, path_env=path_env) for spec in specs.get(family, [])]
-
-
 def build_preflight(project_path, args):
-    family = normalize_platform(args.platform)
     language_support = detect_language_support(project_path)
     output_file = args.output or default_output_path(project_path)
     run_dir = run_dir_from_output_file(output_file)
@@ -244,17 +80,6 @@ def build_preflight(project_path, args):
             "name": os.path.basename(project_path),
         },
         "language_support": language_support,
-        "os": detect_os(family, os_release_file=args.os_release_file),
-        "package_managers": detect_tools(
-            family,
-            PACKAGE_MANAGER_SPECS,
-            path_env=args.path_env,
-        ),
-        "system_update_tools": detect_tools(
-            family,
-            SYSTEM_UPDATE_TOOL_SPECS,
-            path_env=args.path_env,
-        ),
         "recommended_scan_mode": recommended_scan_mode,
         "vibeguard_workspace": {
             "run_dir": run_dir,

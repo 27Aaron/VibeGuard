@@ -79,7 +79,7 @@ describe("security skill boundary", () => {
     expect(skillText).toContain("不要调用漏洞 API");
   });
 
-  it("documents the preflight script and scoped OS package-manager detection", () => {
+  it("documents the preflight script without system package-manager detection", () => {
     expect(skillText).toContain("scripts/preflight.py");
     expect(skillText).toContain("python3 scripts/preflight.py");
     expect(skillText).toContain("py -3 scripts/preflight.py");
@@ -88,11 +88,11 @@ describe("security skill boundary", () => {
     expect(skillText).toContain("`.vibeguard/<timestamp>/assets/preflight.json`");
     expect(skillText).toContain("`.vibeguard/`");
     expect(skillText).toContain("依赖文件");
-    expect(skillText).toContain("操作系统");
-    expect(skillText).toContain("Linux 发行版");
-    expect(skillText).toContain("包管理器");
-    expect(skillText).toContain("系统更新工具");
-    expect(skillText).toContain("不要在预检阶段执行软件更新");
+    expect(skillText).toContain("确定扫描模式");
+    expect(skillText).toContain("不要在预检阶段探测系统包管理器");
+    expect(skillText).not.toContain("操作系统、Linux 发行版、包管理器和系统更新工具");
+    expect(skillText).not.toContain("系统更新工具");
+    expect(skillText).toContain("执行软件更新");
   });
 
   it("keeps scan commands clean by reusing the preflight JSON", () => {

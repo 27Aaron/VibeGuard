@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import vm from "node:vm";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -133,6 +134,13 @@ describe("VibeGuard report workspace", () => {
     expect(js).toContain("function renderTableColgroup(columns)");
     expect(js).toContain('class="stable-table vuln-table"');
     expect(js).toContain('class="stable-table outdated-table"');
+    expect(js).not.toContain('class="summary outdated-summary"');
+    expect(js).toContain("<th>可更新到</th>");
+    expect(js).toContain("function isRenderableOutdated(it)");
+    expect(js).toContain("当前版本为 ${current}，建议更新到最新版本 ${target}。");
+    expect(js).not.toContain("当前版本落后于");
+    expect(js).not.toContain("当前版本与建议版本一致");
+    expect(js).not.toContain("这不是漏洞，建议在维护窗口升级并跑测试");
     expect(js).toContain('class="package-cell"');
     expect(js).toContain("outdated-extra");
     expect(js).toContain("toggleOutdated(this)");
@@ -143,6 +151,61 @@ describe("VibeGuard report workspace", () => {
     expect(css).toContain("--warning-border");
     expect(css).toContain(".summary-boundary.warning");
     expect(css).toContain(".outdated-empty");
+    expect(css).not.toContain(".outdated-summary");
+  });
+
+  it("normalizes outdated rows before rendering table counts and summary text", () => {
+    const js = fs.readFileSync(reportJsPath, "utf8");
+    let html = "";
+    const elements = {
+      app: {
+        set innerHTML(value: string) {
+          html = value;
+        },
+      },
+      meta: { textContent: "" },
+    };
+    const context = {
+      window: {
+        __VIBEGUARD_REPORT_DATA__: {
+          generated_at: "2026-06-04 07:15:00",
+          project: { name: "demo", ecosystems: ["npm"], lockfiles: ["package-lock.json"] },
+          risk_summary: { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+          summary: {
+            tldr: "测试报告。",
+            detail: "本次检查覆盖项目 demo，过期依赖 2 个仅作为维护信号，不等同于漏洞。",
+            priority: [],
+          },
+          hygiene: {},
+          outdated: [
+            { package: "@base-ui/react", current: "1.4.0", latest: "1.5.0", ecosystem: "npm" },
+            { package: "bcryptjs", current: "3.0.3", latest: "3.0.3", ecosystem: "npm" },
+          ],
+          top_issues: [],
+          red: [],
+          yellow: [],
+          green: [],
+          errors: [],
+          scan_config: {},
+        },
+      },
+      document: {
+        getElementById: (id: "app" | "meta") => elements[id],
+        addEventListener: () => {},
+      },
+      navigator: { clipboard: { writeText: async () => {} } },
+      setTimeout: () => {},
+    };
+
+    vm.createContext(context);
+    vm.runInContext(js, context);
+
+    expect(html).toContain("过期依赖 1 个");
+    expect(html).toContain('<span class="count">1 项</span>');
+    expect(html).toContain(
+      "@base-ui/react 当前版本为 1.4.0，建议更新到最新版本 1.5.0。",
+    );
+    expect(html).not.toContain("bcryptjs");
   });
 
   it("keeps vulnerability section heading concise and explanations advisory-specific", () => {

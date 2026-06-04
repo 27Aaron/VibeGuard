@@ -28,7 +28,8 @@ const DATA = (() => {
     [];
   d.errors = d.errors || [];
   d.hygiene = d.hygiene || {};
-  d.outdated = d.outdated || [];
+  d.outdated = toList(d.outdated).filter(isRenderableOutdated);
+  d.outdated_count = d.outdated.length;
   d.scan_config = d.scan_config || {};
   // Normalize items inside arrays: title→name, light→tier, current_version→version, etc.
   const normItem = (it) => {
@@ -75,6 +76,12 @@ const DATA = (() => {
     "";
   d.summary.detail =
     d.summary.detail || d.summary.details || d.summary.explanation || "";
+  if (d.summary.detail) {
+    d.summary.detail = String(d.summary.detail).replace(
+      /过期依赖\s*\d+\s*个/g,
+      `过期依赖 ${d.outdated.length} 个`,
+    );
+  }
   if (Array.isArray(d.recommendations) && !d.summary.priority) {
     d.summary.priority = d.recommendations;
   }
@@ -753,14 +760,39 @@ function vulnerabilityExplanation(r) {
 function outdatedExplanation(it) {
   const name = it.package || it.name || "该依赖";
   const current = String(it.current || it.version || "").trim();
-  const latest = String(it.latest || it.wanted || "").trim();
-  if (current && latest && current === latest) {
-    return `${name} 当前版本已经是最新；如果仍出现在这里，建议检查 lockfile 和本地安装记录是否一致。`;
+  const target = outdatedDisplayTarget(it);
+  if (current && target) {
+    return `${name} 当前版本为 ${current}，建议更新到最新版本 ${target}。`;
   }
-  if (latest) {
-    return `${name} 当前版本落后于 ${latest}；这不是漏洞，建议在维护窗口升级并跑测试。`;
+  if (target) {
+    return `${name} 建议更新到最新版本 ${target}。`;
   }
-  return `${name} 需要复核版本状态；这不是漏洞，建议结合包管理器输出确认是否需要维护升级。`;
+  return `${name} 需要复核版本状态`;
+}
+
+function cleanVersion(value) {
+  return String(value || "").trim().replace(/^v/i, "");
+}
+
+function outdatedUpdateTarget(it) {
+  const wanted = String(it.wanted || it.update || "").trim();
+  const latest = String(it.latest || it.latestVersion || "").trim();
+  return wanted || latest || "";
+}
+
+function outdatedDisplayTarget(it) {
+  const wanted = String(it.wanted || it.update || "").trim();
+  const latest = String(it.latest || it.latestVersion || "").trim();
+  if (wanted && latest && wanted !== latest) {
+    return `${wanted} / ${latest}`;
+  }
+  return wanted || latest || "";
+}
+
+function isRenderableOutdated(it) {
+  const current = cleanVersion(it.current || it.version);
+  const target = cleanVersion(outdatedUpdateTarget(it));
+  return Boolean(target && current !== target);
 }
 
 function securityIds(r) {
@@ -1104,12 +1136,13 @@ function renderOutdated(items) {
   const rows = items
     .map((it, idx) => {
       const packageName = packageNameFor(it);
+      const current = String(it.current || it.version || "").trim();
       const cls =
         needToggle && idx >= OUTDATED_SHOW ? ' class="outdated-extra"' : "";
       return `<tr${cls}>
   <td class="package-cell"><b title="${esc(packageName)}">${esc(packageName)}</b></td>
-  <td class="ver">${esc(it.current || it.version || "")}</td>
-  <td class="ver">${esc(it.latest || it.wanted || "")}</td>
+  <td class="ver">${esc(current || "-")}</td>
+  <td class="ver">${esc(outdatedDisplayTarget(it) || "-")}</td>
   <td>${esc(it.ecosystem || "-")}</td>
   <td class="summary-cell">${esc(outdatedExplanation(it))}</td>
 </tr>`;
@@ -1123,7 +1156,7 @@ function renderOutdated(items) {
     items.length,
     `<div class="table-scroll"><table class="stable-table outdated-table" style="${packageColumnWidthStyle(items)}">
   ${renderTableColgroup(["package", "current", "latest", "ecosystem", "summary"])}
-  <thead><tr><th>包名</th><th>当前版本</th><th>最新版本</th><th>生态</th><th>说明</th></tr></thead>
+  <thead><tr><th>包名</th><th>当前版本</th><th>可更新到</th><th>生态</th><th>建议</th></tr></thead>
   <tbody>${rows}${toggle}</tbody></table></div>`,
     "",
     "long",

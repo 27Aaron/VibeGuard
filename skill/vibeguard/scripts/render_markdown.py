@@ -43,6 +43,25 @@ def cell(value):
     return text(value).replace("|", "\\|").replace("\n", " ")
 
 
+def clean_version(value):
+    return text(value).removeprefix("v")
+
+
+def outdated_update_target(item):
+    return (
+        item.get("wanted")
+        or item.get("update")
+        or item.get("latest")
+        or item.get("latestVersion")
+    )
+
+
+def is_outdated_item(item):
+    current = clean_version(item.get("current") or item.get("version"))
+    target = clean_version(outdated_update_target(item))
+    return bool(target and current != target)
+
+
 def date_from_analysis(analysis):
     generated_at = text(analysis.get("generated_at"))
     match = re.match(r"^\d{4}-\d{2}-\d{2}", generated_at)
@@ -189,7 +208,7 @@ def render_hygiene(analysis):
 
 
 def render_outdated(analysis):
-    outdated = analysis.get("outdated") or []
+    outdated = [item for item in analysis.get("outdated") or [] if is_outdated_item(item)]
     lines = ["## 过期依赖", ""]
     if not outdated:
         lines.extend(
@@ -202,24 +221,46 @@ def render_outdated(analysis):
         )
         return lines
 
-    lines.append("过期依赖不等于漏洞，建议纳入常规维护窗口处理。")
+    lines.append(
+        "这里列出的是版本维护信号，不等同于已确认漏洞；安全优先级仍以“命中漏洞”部分为准。"
+    )
     lines.append("")
     lines.extend(
         [
-            "| 包名 | 当前版本 | 最新版本 | 生态 | 说明 |",
+            "| 包名 | 当前版本 | 可更新到 | 生态 | 建议 |",
             "| --- | --- | --- | --- | --- |",
         ]
     )
     for item in outdated:
         package = item.get("package") or item.get("name") or "该依赖"
-        latest = item.get("latest") or item.get("wanted") or ""
-        summary = (
-            f"{package} 当前版本落后于 {latest}；这不是漏洞，建议在维护窗口升级并跑测试。"
-            if latest
-            else f"{package} 需要复核版本状态；这不是漏洞。"
+        current = item.get("current") or item.get("version") or ""
+        wanted = item.get("wanted") or item.get("update") or ""
+        latest = item.get("latest") or item.get("latestVersion") or ""
+        target = (
+            f"{wanted} / {latest}"
+            if wanted and latest and wanted != latest
+            else wanted or latest
         )
+        if current and wanted and latest and wanted != latest:
+            summary = (
+                f"{package} 当前版本为 {current}，"
+                f"建议更新到最新版本 {wanted} / {latest}。"
+            )
+        elif current and target:
+            summary = f"{package} 当前版本为 {current}，建议更新到最新版本 {target}。"
+        elif target:
+            summary = f"{package} 建议更新到最新版本 {target}。"
+        else:
+            summary = f"{package} 需要复核版本状态"
+        row = [
+            cell(package),
+            cell(current or "-"),
+            cell(target or "-"),
+            cell(item.get("ecosystem") or "-"),
+            cell(summary),
+        ]
         lines.append(
-            f"| {cell(package)} | {cell(item.get('current') or item.get('version'))} | {cell(latest or '-')} | {cell(item.get('ecosystem') or '-')} | {cell(summary)} |"
+            f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} |"
         )
     lines.append("")
     return lines
