@@ -136,6 +136,22 @@ describe("VibeGuard report workspace", () => {
     expect(css).toContain("white-space: nowrap;");
   });
 
+  it("uses selected Lucide icons for report section headers", () => {
+    const js = fs.readFileSync(reportJsPath, "utf8");
+
+    expect(js).toContain("lucide-file-chart-column");
+    expect(js).toContain("lucide-shield-alert");
+    expect(js).toContain("lucide-brush-cleaning");
+    expect(js).toContain("lucide-shield-x");
+    expect(js).toContain("lucide-eye");
+    expect(js).toContain('"仓库卫生"');
+    expect(js).toContain('"人工复核"');
+    expect(js).toContain('section("人工复核", items.length, cards, "", "review")');
+    expect(js).toContain('"hygiene"');
+    expect(js).not.toContain('"仓库卫生扫描"');
+    expect(js).not.toContain('"需要业务或部署确认的事项"');
+  });
+
   it("balances report footer spacing against the page edge", () => {
     const css = fs.readFileSync(reportCssPath, "utf8");
 
