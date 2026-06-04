@@ -87,7 +87,10 @@ from pathlib import Path
 from scan import VIBEGUARD_CONTENT_DIR, run_dir_from_output_file
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE = os.path.join(HERE, "..", "assets", "report_template.html")
+ASSETS_DIR = os.path.join(HERE, "..", "assets")
+TEMPLATE = os.path.join(ASSETS_DIR, "report_template.html")
+REPORT_CSS = os.path.join(ASSETS_DIR, "report.css")
+REPORT_JS = os.path.join(ASSETS_DIR, "report.js")
 
 
 def json_for_script(value):
@@ -100,6 +103,19 @@ def json_for_script(value):
         .replace("\u2028", "\\u2028")
         .replace("\u2029", "\\u2029")
     )
+
+
+def read_text(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def script_asset_for_html(value):
+    return value.replace("</script", "<\\/script")
+
+
+def style_asset_for_html(value):
+    return value.replace("</style", "<\\/style")
 
 
 def default_output_path(analysis_path):
@@ -184,11 +200,24 @@ def main():
 
     with open(src, "r", encoding="utf-8") as f:
         data = json.load(f)
-    with open(TEMPLATE, "r", encoding="utf-8") as f:
-        tpl = f.read()
+    tpl = read_text(TEMPLATE)
+    report_css = style_asset_for_html(read_text(REPORT_CSS).rstrip())
+    report_js = script_asset_for_html(read_text(REPORT_JS).rstrip())
 
     blob = json_for_script(data)
-    html = tpl.replace("__REPORT_DATA__", blob)
+    html = (
+        tpl.replace("__REPORT_CSS__", report_css)
+        .replace("__REPORT_DATA__", blob)
+        .replace("__REPORT_JS__", report_js)
+    )
+    placeholders = [
+        marker
+        for marker in ("__REPORT_CSS__", "__REPORT_DATA__", "__REPORT_JS__")
+        if marker in html
+    ]
+    if placeholders:
+        missing = ", ".join(placeholders)
+        raise SystemExit(f"HTML report still contains placeholders: {missing}")
 
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w", encoding="utf-8") as f:

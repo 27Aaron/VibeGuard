@@ -6,7 +6,11 @@ import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
 const scriptsDir = path.resolve("skill/vibeguard/scripts");
+const assetsDir = path.resolve("skill/vibeguard/assets");
 const buildReportPath = path.join(scriptsDir, "build_report.py");
+const reportTemplatePath = path.join(assetsDir, "report_template.html");
+const reportCssPath = path.join(assetsDir, "report.css");
+const reportJsPath = path.join(assetsDir, "report.js");
 const tempPaths: string[] = [];
 
 function makeTempDir(prefix: string) {
@@ -66,6 +70,13 @@ describe("VibeGuard report workspace", () => {
     expect(result.status, result.stderr || result.stdout).toBe(0);
     const htmlPath = path.join(contentDir, "security-report.html");
     expect(fs.existsSync(htmlPath)).toBe(true);
+    const html = fs.readFileSync(htmlPath, "utf8");
+    expect(html).toContain(":root {");
+    expect(html).toContain("window.__VIBEGUARD_REPORT_DATA__");
+    expect(html).toContain("function safeHref");
+    expect(html).not.toContain("__REPORT_");
+    expect(html).not.toContain('href="report.css"');
+    expect(html).not.toContain('src="report.js"');
     expect(result.stdout).toContain(htmlPath);
     expect(result.stdout).not.toContain("Desktop");
     expect(result.stdout).not.toContain("127.0.0.1");
@@ -88,6 +99,22 @@ describe("VibeGuard report workspace", () => {
     expect(result.stdout).toContain("HTML 已保存");
     expect(result.stdout).toContain("已跳过自动打开 HTML");
     expect(result.stdout).not.toContain("server");
+  });
+
+  it("keeps report source assets split while generated HTML remains standalone", () => {
+    const template = fs.readFileSync(reportTemplatePath, "utf8");
+    const css = fs.readFileSync(reportCssPath, "utf8");
+    const js = fs.readFileSync(reportJsPath, "utf8");
+
+    expect(template).toContain("__REPORT_CSS__");
+    expect(template).toContain("__REPORT_DATA__");
+    expect(template).toContain("__REPORT_JS__");
+    expect(template).not.toContain("function safeHref");
+    expect(css).toContain(":root {");
+    expect(css).toContain("@media print");
+    expect(js).toContain("window.__VIBEGUARD_REPORT_DATA__");
+    expect(js).toContain("function safeHref");
+    expect(js).not.toContain("__REPORT_DATA__");
   });
 
   it("keeps cross-platform static report openers without a local server", () => {

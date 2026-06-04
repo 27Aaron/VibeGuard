@@ -10,6 +10,7 @@ const analyzePath = path.join(scriptsDir, "analyze_scan.py");
 const renderMarkdownPath = path.join(scriptsDir, "render_markdown.py");
 const runAuditPath = path.join(scriptsDir, "run_audit.py");
 const templatePath = path.resolve("skill/vibeguard/assets/report_template.html");
+const reportJsPath = path.resolve("skill/vibeguard/assets/report.js");
 const tempPaths: string[] = [];
 
 function makeTempDir(prefix: string) {
@@ -188,9 +189,12 @@ describe("VibeGuard skill fixtures", () => {
 
   it("keeps HTML report links restricted to http and https URLs", () => {
     const template = fs.readFileSync(templatePath, "utf8");
-    expect(template).toContain("function safeHref");
-    expect(template).toContain('["http:", "https:"]');
-    expect(template).toContain("safeHref(link.url)");
-    expect(template).toContain("return linkHtml");
+    const reportJs = fs.readFileSync(reportJsPath, "utf8");
+
+    expect(template).toContain("__REPORT_JS__");
+    expect(reportJs).toContain("function safeHref");
+    expect(reportJs).toContain('["http:", "https:"]');
+    expect(reportJs).toContain("safeHref(link.url)");
+    expect(reportJs).toContain("return linkHtml");
   });
 });

@@ -123,6 +123,8 @@ Markdown 必须使用普通人能看懂的产品风险语言，并按以下顺�
 
 默认生成静态 HTML 报告，保存到本次运行目录的 `content/` 下，并在 macOS / Windows / Linux 尝试用系统默认浏览器自动打开；自动化或测试运行才加 `--no-open`；不要启动本地 server，也不要把静态文件和本地服务混用。
 
+报告源码资产拆分为 `assets/report_template.html`、`assets/report.css` 和 `assets/report.js`，但 `build_report.py` 必须把 CSS/JS 内联进最终的 `security-report.html`，最终报告仍然是一个可单独移动和双击打开的 HTML 文件。
+
 ```bash
 # macOS / Linux
 python3 scripts/build_report.py .vibeguard/<timestamp>/assets/analysis.json
