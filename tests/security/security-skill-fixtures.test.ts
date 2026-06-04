@@ -154,7 +154,12 @@ describe("VibeGuard skill fixtures", () => {
     runPython([renderMarkdownPath, analysisPath]);
     const reportPath = path.join(projectDir, "docs", "security-report-2026-06-04.md");
     expect(fs.existsSync(reportPath)).toBe(true);
-    expect(fs.readFileSync(reportPath, "utf8")).toContain("## 命中漏洞");
+    const report = fs.readFileSync(reportPath, "utf8");
+    expect(report).toContain("## 命中漏洞");
+    expect(report).toContain("能力边界");
+    expect(report).toContain("安全往往不是最显眼的需求");
+    expect(report).toContain("让容易被忽视的供应链问题更早暴露出来");
+    expect(report).toContain("不能替代代码审计、渗透测试或部署安全评估");
   });
 
   it("keeps same-package vulnerability summaries tied to each advisory", () => {
@@ -266,6 +271,11 @@ describe("VibeGuard skill fixtures", () => {
     expect(result.stdout).toContain("│       严重度       │ 数量 │");
     expect(result.stdout).toContain("- 总依赖：0 个依赖包");
     expect(result.stdout).toContain("- 扫描错误：无");
+    expect(result.stdout).toContain("⚠️ 能力边界");
+    expect(result.stdout).toContain("> 安全往往不是最显眼的需求");
+    expect(result.stdout).toContain("让容易被忽视的供应链问题更早暴露出来");
+    expect(result.stdout).toContain("不能替代代码审计、渗透测试或部署安全评估");
+    expect(result.stdout).not.toContain("▎");
     expect(result.stdout).toContain("🚨 重点关注");
     expect(result.stdout).toContain("📁 报告路径");
     expect(result.stdout).toContain("- Markdown 审计报告：docs/security-report-");

@@ -74,6 +74,12 @@ describe("VibeGuard report workspace", () => {
     expect(html).toContain(":root {");
     expect(html).toContain("window.__VIBEGUARD_REPORT_DATA__");
     expect(html).toContain("function safeHref");
+    expect(html).toContain("能力边界");
+    expect(html).toContain("安全往往不是最显眼的需求");
+    expect(html).toContain("让容易被忽视的供应链问题更早暴露出来");
+    expect(html).toContain("不能替代代码审计、渗透测试或部署安全评估");
+    expect(html).toContain('class="summary-boundary warning"');
+    expect(html).toContain('class="summary outdated-empty"');
     expect(html).not.toContain("__REPORT_");
     expect(html).not.toContain('href="report.css"');
     expect(html).not.toContain('src="report.js"');
@@ -134,6 +140,9 @@ describe("VibeGuard report workspace", () => {
     expect(css).toContain(".package-cell b");
     expect(css).toContain("text-overflow: ellipsis;");
     expect(css).toContain("white-space: nowrap;");
+    expect(css).toContain("--warning-border");
+    expect(css).toContain(".summary-boundary.warning");
+    expect(css).toContain(".outdated-empty");
   });
 
   it("keeps vulnerability section heading concise and explanations advisory-specific", () => {

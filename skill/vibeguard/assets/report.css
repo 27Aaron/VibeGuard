@@ -27,6 +27,9 @@
     --pill-bg: #f7f7f5;
     --field-border: rgba(4, 120, 87, 0.12);
     --field-bg: rgba(236, 253, 245, 0.36);
+    --warning-border: rgba(217, 119, 6, 0.22);
+    --warning-bg: rgba(255, 251, 235, 0.74);
+    --warning-ink: #92400e;
     --summary-point-border: var(--tile-border);
     --summary-point-bg: var(--tile-bg);
     --item-border: var(--line-strong);
@@ -956,6 +959,57 @@ td.summary-cell {
     font-weight: 720;
     line-height: 1.55;
 }
+.summary-boundary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    margin: 12px 0;
+    border: 1px solid var(--field-border);
+    border-radius: var(--radius-field);
+    background: var(--field-bg);
+    padding: 10px 12px;
+}
+.summary-boundary.warning {
+    border-color: var(--warning-border);
+    background: var(--warning-bg);
+}
+.summary-boundary span {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.65;
+    white-space: nowrap;
+}
+.summary-boundary.warning span {
+    color: var(--warning-ink);
+}
+.summary-boundary p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 13px;
+    line-height: 1.65;
+}
+.outdated-empty {
+    padding: 14px 16px;
+}
+.outdated-empty .mini-fields {
+    gap: 8px;
+}
+.outdated-empty .mini-field {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+}
+.outdated-empty .mini-label {
+    color: var(--sub);
+    font-size: 13px;
+    line-height: 1.65;
+}
+.outdated-empty .mini-value {
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.65;
+}
 .summary h3 {
     font-size: 15px;
     margin: 18px 0 8px;
@@ -1066,6 +1120,9 @@ footer {
         --pill-bg: rgba(255, 255, 255, 0.055);
         --field-border: rgba(110, 231, 183, 0.14);
         --field-bg: rgba(110, 231, 183, 0.06);
+        --warning-border: rgba(251, 191, 36, 0.24);
+        --warning-bg: rgba(251, 191, 36, 0.09);
+        --warning-ink: #facc15;
         --summary-point-border: var(--field-border);
         --summary-point-bg: var(--field-bg);
         --item-border: rgba(255, 255, 255, 0.1);
@@ -1279,6 +1336,11 @@ footer {
     }
     .hygiene-note {
         gap: 10px;
+    }
+    .summary-boundary,
+    .outdated-empty .mini-field {
+        grid-template-columns: 1fr;
+        gap: 6px;
     }
     .adv-list {
         grid-template-columns: 1fr;

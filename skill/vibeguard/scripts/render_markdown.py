@@ -18,6 +18,13 @@ SEVERITY_LABELS = {
     "low": "低危",
     "info": "信息",
 }
+CAPABILITY_BOUNDARY = (
+    "安全往往不是最显眼的需求，却是产品长期稳定运行的底线。"
+    "VibeGuard 会优先帮助你发现依赖漏洞、过期依赖和仓库卫生风险，"
+    "让容易被忽视的供应链问题更早暴露出来。"
+    "但它不能替代代码审计、渗透测试或部署安全评估；"
+    "代码层面的权限、业务逻辑、SQL 注入、XSS 等问题仍需单独复核。"
+)
 
 
 def to_list(value):
@@ -85,6 +92,7 @@ def render_summary(analysis):
     ]
     if summary.get("detail"):
         lines.append(f"- 详细说明：{text(summary.get('detail'))}")
+    lines.append(f"- 能力边界：{CAPABILITY_BOUNDARY}")
     priority = to_list(summary.get("priority"))
     if priority:
         lines.append("- 优先级建议：")

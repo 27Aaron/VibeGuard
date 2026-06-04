@@ -19,6 +19,13 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+CAPABILITY_BOUNDARY = (
+    "安全往往不是最显眼的需求，却是产品长期稳定运行的底线。"
+    "VibeGuard 会优先帮助你发现依赖漏洞、过期依赖和仓库卫生风险，"
+    "让容易被忽视的供应链问题更早暴露出来。"
+    "但它不能替代代码审计、渗透测试或部署安全评估；"
+    "代码层面的权限、业务逻辑、SQL 注入、XSS 等问题仍需单独复核。"
+)
 
 
 def script_path(name):
@@ -245,6 +252,10 @@ def mode_label(scan_mode):
     return labels.get(scan_mode, "安全扫描")
 
 
+def quote_line(text):
+    return f"> {text}"
+
+
 def format_risk_rows(risk_summary):
     labels = [
         ("critical", "🔴 严重 (Critical)"),
@@ -349,6 +360,10 @@ def format_human_summary(summary, scan, analysis, args):
         f"- 过期依赖：{analysis.get('outdated_count', len(analysis.get('outdated') or []))} 个（仅作维护信号，不算漏洞）",
         f"- 扫描错误：{error_label}",
         "",
+        "⚠️ 能力边界",
+        "",
+        quote_line(CAPABILITY_BOUNDARY),
+        "",
         "🚨 重点关注（按修复优先级）",
         "",
         format_focus(analysis),
@@ -359,7 +374,7 @@ def format_human_summary(summary, scan, analysis, args):
         f"- HTML 报告（{html_state}）：{relative_path(summary.get('html_report'), project_path)}",
         f"- analysis JSON：{relative_path(summary.get('analysis_file'), project_path)}",
         "",
-        "▎ 如果存在严重/高危项，建议先处理有明确修复版本的依赖；过期依赖作为维护信号，放在漏洞修复验证之后排期。",
+        quote_line("如果存在严重/高危项，建议先处理有明确修复版本的依赖；过期依赖作为维护信号，放在漏洞修复验证之后排期。"),
         "",
         "---",
         "如果你想继续修复，在对话里回 修复 / OK / 可以修 即可。我会按\"主要修复（严重/高危有明确修复版本）→ 次要修复（过期依赖与中危）\"的顺序处理，每步执行后跑构建验证。",

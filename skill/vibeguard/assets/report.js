@@ -9,6 +9,8 @@ const toList = (value) => {
     .map((x) => x.trim())
     .filter(Boolean);
 };
+const CAPABILITY_BOUNDARY =
+  "安全往往不是最显眼的需求，却是产品长期稳定运行的底线。VibeGuard 会优先帮助你发现依赖漏洞、过期依赖和仓库卫生风险，让容易被忽视的供应链问题更早暴露出来。但它不能替代代码审计、渗透测试或部署安全评估；代码层面的权限、业务逻辑、SQL 注入、XSS 等问题仍需单独复核。";
 
 // ---- Normalize: accept common field name variations from different agents ----
 const DATA = (() => {
@@ -958,6 +960,7 @@ function renderReportSummary(sm) {
   const detail = sm.detail
     ? `<p class="lead">${esc(readableDetail(sm.detail))}</p>`
     : "";
+  const boundary = `<div class="summary-boundary warning"><span>能力边界</span><p>${esc(CAPABILITY_BOUNDARY)}</p></div>`;
   const body = sm.priority
     ? Array.isArray(sm.priority)
       ? sumList(sm.priority)
@@ -966,7 +969,7 @@ function renderReportSummary(sm) {
   return section(
     "报告总结",
     null,
-    `<div class="summary">${tldr}${detail}${body}</div>`,
+    `<div class="summary">${tldr}${detail}${boundary}${body}</div>`,
     "",
     "advice",
   );
@@ -1063,7 +1066,7 @@ function renderOutdated(items) {
     return section(
       "过期依赖",
       null,
-      `<div class="summary">${miniFields([
+      `<div class="summary outdated-empty">${miniFields([
         { label: "事实", value: "本次为了提速跳过了过期依赖检查。" },
         {
           label: "为什么要关注",
@@ -1082,7 +1085,7 @@ function renderOutdated(items) {
     return section(
       "过期依赖",
       0,
-      `<div class="summary">${miniFields([
+      `<div class="summary outdated-empty">${miniFields([
         {
           label: "结论",
           value: "没有检测到明确的过期依赖，或当前包管理器没有返回可用结果。",

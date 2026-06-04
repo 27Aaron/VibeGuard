@@ -14,6 +14,7 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 - 报告里不要泄露完整密钥，只能写文件、行号、类型和脱敏预览。
 - 完整项目安全扫描必须先在被扫项目的 `docs/` 下生成 Markdown 审计报告；如果当前工作目录就是被扫项目，也就是当前工作目录的 `docs/`。报告文件例如 `docs/security-report-YYYY-MM-DD.md`。用户阅读报告后明确允许修复，才可以执行升级、删除缓存跟踪、修改 `.gitignore`、清理历史或轮换凭证相关操作。
 - API 地址：`https://vibeguard.ou.al`。本 skill 只使用 `POST https://vibeguard.ou.al/api/security/check/packages` 做依赖漏洞检查，不处理系统软件版本判断或泛安全情报查询。
+- 能力边界：安全往往不是最显眼的需求，却是产品长期稳定运行的底线。VibeGuard 会优先帮助你发现依赖漏洞、过期依赖和仓库卫生风险，让容易被忽视的供应链问题更早暴露出来。但它不能替代代码审计、渗透测试或部署安全评估；代码层面的权限、业务逻辑、SQL 注入、XSS 等问题仍需单独复核。
 - 脚本路径按本 skill 目录解析；如果当前 shell 不在 skill 根目录，使用这些脚本的绝对路径。扫描目标由脚本参数或 preflight JSON 中的 `project.path` 决定，报告写到被扫项目的 `.vibeguard/` 和 `docs/`。
 
 ## 铁律
@@ -23,6 +24,7 @@ description: VibeGuard 项目代码安全扫描助手，用于"帮我看看项�
 - **报告先完整生成，再展示路径。** 必须等 Markdown 报告、analysis JSON 和静态 HTML 都写完后，再把 HTML 路径和摘要告诉用户；不要启动本地 server，也不要兜底起本地服务。
 - **网页只读。** HTML 只用于阅读报告，不提供任何会触发本地操作的按钮。
 - **修复操作需确认。** 用户看完报告后，在对话里回复 `同意` / `修复` / `OK` / `Yes` 等明确话术，agent 才能执行修复。
+- **明确能力边界。** 终端摘要、Markdown 和 HTML 都必须提示本 skill 不是万能安全审计；它解决依赖相关安全问题，代码层风险需要单独复核。
 - **不要把"依赖过旧"说成"存在漏洞"。** 只有命中漏洞数据时才说有漏洞。
 - **不要制造恐慌。** 没有证据时说"不确定"，不要说"肯定安全"或"肯定中招"。
 
@@ -37,7 +39,15 @@ python3 scripts/run_audit.py
 py -3 scripts/run_audit.py
 ```
 
-`scripts/run_audit.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。脚本会按顺序运行预检、扫描、analysis 生成、Markdown 生成和 HTML 生成，生成后会尝试用系统默认浏览器自动打开静态 HTML 报告，并在终端输出固定的人类可读摘要：`📊 风险总览`、`🚨 重点关注`、`📁 报告路径`。只有自动化或测试需要机器可读结果时才使用 `--compact`，此时输出 JSON。如果输出中的模式是 `hygiene_only`，必须告诉用户：`当前项目没有发现 VibeGuard 支持的依赖文件，暂不支持依赖漏洞扫描；本次只做仓库卫生扫描，检查硬编码密钥、敏感文件跟踪和 .gitignore 风险。`
+`scripts/run_audit.py` 默认扫描当前目录并自动向上识别项目根目录；需要扫描其他目录时，把路径作为最后一个参数传入。脚本会按顺序运行预检、扫描、analysis 生成、Markdown 生成和 HTML 生成，生成后会尝试用系统默认浏览器自动打开静态 HTML 报告，并在终端输出固定的人类可读摘要：`📊 风险总览`、`⚠️ 能力边界`、`🚨 重点关注`、`📁 报告路径`；其中能力边界必须使用 Markdown 引用格式 `>` 输出完整文案。只有自动化或测试需要机器可读结果时才使用 `--compact`，此时输出 JSON。如果输出中的模式是 `hygiene_only`，必须告诉用户：`当前项目没有发现 VibeGuard 支持的依赖文件，暂不支持依赖漏洞扫描；本次只做仓库卫生扫描，检查硬编码密钥、敏感文件跟踪和 .gitignore 风险。`
+
+对话最终回复如果需要转述扫描结果，必须使用 Markdown 引用格式 `>` 展示完整能力边界，不要自行压缩成短句，也不要另起"提示"类标题。固定写法如下：
+
+```text
+⚠️ 能力边界
+
+> 安全往往不是最显眼的需求，却是产品长期稳定运行的底线。VibeGuard 会优先帮助你发现依赖漏洞、过期依赖和仓库卫生风险，让容易被忽视的供应链问题更早暴露出来。但它不能替代代码审计、渗透测试或部署安全评估；代码层面的权限、业务逻辑、SQL 注入、XSS 等问题仍需单独复核。
+```
 
 扫描较慢、调试或自动化运行时，才给 `run_audit.py` 追加 `--skip-outdated`、`--api-concurrency`、`--outdated-concurrency`、`--skip-hygiene`、`--include-packages`、`--max-secret-files`、`--no-root-discovery`、`--no-open`。如果流水线中某一步失败，再按下面的分步流程定位。
 
@@ -71,7 +81,7 @@ python3 scripts/scan.py --preflight <preflight_json>
 py -3 scripts/scan.py --preflight <preflight_json>
 ```
 
-`scan.py` 默认根据 CPU 数量选择并发，并自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）-> 生态识别与依赖提取（npm/pnpm/yarn、pypi、go、crates-io）-> 调用 VibeGuard API 查漏洞（100 个一批）-> 过旧依赖检查。如果 preflight 的 `recommended_scan_mode` 是 `hygiene_only`，脚本只做仓库卫生扫描，并跳过依赖提取、漏洞 API 和过旧依赖检查。扫描较慢或调试时才追加 `--api-concurrency`、`--outdated-concurrency`、`--skip-outdated`、`--include-packages`、`--max-secret-files`。
+`scan.py` 默认用 1 并发请求 VibeGuard API；过旧依赖检查按 CPU 数量做本地并发。脚本会自动完成：仓库卫生检查（gitignore / 敏感文件 / 硬编码密钥）-> 生态识别与依赖提取（npm/pnpm/yarn、pypi、go、crates-io）-> 调用 VibeGuard API 查漏洞（100 个一批）-> 过旧依赖检查。如果 preflight 的 `recommended_scan_mode` 是 `hygiene_only`，脚本只做仓库卫生扫描，并跳过依赖提取、漏洞 API 和过旧依赖检查。扫描较慢或调试时才追加 `--api-concurrency`、`--outdated-concurrency`、`--skip-outdated`、`--include-packages`、`--max-secret-files`。
 
 ## Step 2 生成 analysis JSON
 
@@ -112,6 +122,7 @@ Markdown 必须使用普通人能看懂的产品风险语言，并按以下顺�
 2. `## 报告总结`
    - `TL;DR`：一句话摘要。
    - 详细说明：更完整地解释风险范围、是否影响发布、建议谁来处理；不要堆 CVE/GHSA 编号。
+   - 能力边界：说明安全是产品长期稳定运行的底线，VibeGuard 主要覆盖依赖漏洞、过期依赖和仓库卫生信号，不能替代代码审计、渗透测试或部署安全评估。
 3. `## 命中漏洞`：列出已确认漏洞，按修复优先级排序；每条说明用一句小白能看懂的话；没有命中也要写清楚。
 4. `## 仓库卫生扫描`：说明硬编码密钥、敏感文件跟踪、`.gitignore` 规则缺失情况。
 5. `## 过期依赖`：说明过期依赖数量和维护建议，每条用一句话，明确"过期不等于漏洞"。

@@ -51,6 +51,22 @@ describe("security skill boundary", () => {
     expect(skillText).toContain("不上传源码、lockfile、env 或密钥");
   });
 
+  it("documents the dependency-scanning capability boundary", () => {
+    expect(skillText).toContain("能力边界");
+    expect(skillText).toContain("安全往往不是最显眼的需求");
+    expect(skillText).toContain("让容易被忽视的供应链问题更早暴露出来");
+    expect(skillText).toContain("不能替代代码审计、渗透测试或部署安全评估");
+    expect(skillText).toContain("代码层面的权限、业务逻辑、SQL 注入、XSS");
+  });
+
+  it("requires final replies to keep the full quoted capability boundary", () => {
+    expect(skillText).toContain("对话最终回复");
+    expect(skillText).toContain("必须使用 Markdown 引用格式");
+    expect(skillText).toContain("> 安全往往不是最显眼的需求");
+    expect(skillText).not.toContain("▎ 安全往往不是最显眼的需求");
+    expect(skillText).not.toContain("VibeGuard 覆盖依赖漏洞、过期依赖和仓库卫生");
+  });
+
   it("requires an ecosystem preflight before full dependency scanning", () => {
     expect(skillText).toContain("生态预检");
     expect(skillText).toContain("JavaScript/TypeScript、Python、Go、Rust");
