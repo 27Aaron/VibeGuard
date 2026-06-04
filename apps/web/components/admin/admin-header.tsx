@@ -6,16 +6,25 @@ import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { logoutAction } from "@/lib/actions/auth";
 import type { AppLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 type AdminHeaderProps = {
   lang: AppLang;
+  isAuthenticated: boolean;
 };
 
-export function AdminHeader({ lang }: AdminHeaderProps) {
+export function AdminHeader({ lang, isAuthenticated }: AdminHeaderProps) {
   return (
     <header className="sticky top-3 z-40">
       <div className="w-full min-w-0 rounded-[2rem] border border-black/5 bg-white/45 p-1.5 shadow-[0_20px_55px_-34px_rgba(10,10,10,0.45),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-2xl md:rounded-full dark:border-white/10 dark:bg-white/5.5 dark:shadow-[0_22px_60px_-36px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <div className="grid min-w-0 gap-3 rounded-[1.55rem] bg-white/58 px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:rounded-full md:py-2 dark:bg-[#0c1218]/70">
+        <div
+          className={cn(
+            "grid min-w-0 gap-3 rounded-[1.55rem] bg-white/58 px-3 py-3 md:items-center md:rounded-full md:py-2 dark:bg-[#0c1218]/70",
+            isAuthenticated
+              ? "md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+              : "md:grid-cols-[minmax(0,1fr)_auto]",
+          )}
+        >
           <Link
             href={`/${lang}/`}
             className="flex min-w-0 items-center gap-3 rounded-full pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
@@ -34,21 +43,23 @@ export function AdminHeader({ lang }: AdminHeaderProps) {
             </span>
           </Link>
 
-          <AdminNav lang={lang} />
+          {isAuthenticated ? <AdminNav lang={lang} /> : null}
 
           <div className="flex items-center justify-end gap-1.5 md:justify-self-end">
             <ThemeToggle />
             <LanguageToggle currentLang={lang} />
-            <form action={logoutAction}>
-              <input type="hidden" name="lang" value={lang} />
-              <button
-                type="submit"
-                title={lang === "zh" ? "退出登录" : "Sign out"}
-                className="flex size-8 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-stone-100"
-              >
-                <LogOut className="size-4" />
-              </button>
-            </form>
+            {isAuthenticated ? (
+              <form action={logoutAction}>
+                <input type="hidden" name="lang" value={lang} />
+                <button
+                  type="submit"
+                  title={lang === "zh" ? "退出登录" : "Sign out"}
+                  className="flex size-8 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-stone-100"
+                >
+                  <LogOut className="size-4" />
+                </button>
+              </form>
+            ) : null}
           </div>
         </div>
       </div>

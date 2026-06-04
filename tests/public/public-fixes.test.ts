@@ -63,22 +63,30 @@ describe("SoftLink uses Next.js <Link> instead of router.push", () => {
   });
 });
 
-describe("public-header matches routes by path instead of label", () => {
+describe("public-header hides product-surface navigation", () => {
   const header = fs.readFileSync(
     "apps/web/components/public-header.tsx",
     "utf8",
   );
 
-  it("includes a route field in the surface links data", () => {
-    expect(header).toContain('route: "/api"');
-    expect(header).toContain('route: "/mcp"');
-    expect(header).toContain('route: "/rss"');
-    expect(header).toContain('route: "/skill"');
-    expect(header).toContain('route: "/check"');
+  it("does not define shared header links for API, MCP, RSS, Skill, or Check", () => {
+    expect(header).not.toContain("futureSurfaceLinks");
+    expect(header).not.toContain('{ label: "API"');
+    expect(header).not.toContain('{ label: "MCP"');
+    expect(header).not.toContain('{ label: "RSS"');
+    expect(header).not.toContain('{ label: "Skill"');
+    expect(header).not.toContain('{ label: "Check"');
+    expect(header).not.toContain('route: "/api"');
+    expect(header).not.toContain('route: "/mcp"');
+    expect(header).not.toContain('route: "/rss"');
+    expect(header).not.toContain('route: "/skill"');
+    expect(header).not.toContain('route: "/check"');
   });
 
-  it("constructs href from item.route instead of item.label", () => {
-    expect(header).toContain("item.route");
+  it("does not construct nav hrefs from hidden surface metadata", () => {
+    expect(header).not.toContain("item.route");
+    expect(header).not.toContain("item.label");
+    expect(header).not.toContain("item.surface");
   });
 
   it("does not use label-based route matching (item.label === ...)", () => {
@@ -90,13 +98,15 @@ describe("public-header matches routes by path instead of label", () => {
     expect(header).not.toMatch(/item\.label\s*===\s*"Skill"/);
   });
 
-  it("uses route-based comparison for prefetch control", () => {
-    expect(header).toContain('item.route === "/api"');
-    expect(header).toContain('item.route === "/mcp"');
+  it("does not keep prefetch control for hidden API or MCP header links", () => {
+    expect(header).not.toContain('item.route === "/api"');
+    expect(header).not.toContain('item.route === "/mcp"');
+    expect(header).not.toContain("prefetch={");
   });
 
-  it("uses surface-based comparison for localized labels", () => {
-    expect(header).toContain('item.surface === "check"');
+  it("does not localize a hidden Check nav label", () => {
+    expect(header).not.toContain('item.surface === "check"');
+    expect(header).not.toContain("publicCheckNav");
   });
 });
 
@@ -168,23 +178,20 @@ describe("error.tsx uses design tokens instead of hardcoded classes", () => {
   });
 });
 
-describe("Skill nav icon differentiated from homepage brand icon", () => {
+describe("public header brand icon remains after hiding Skill nav", () => {
   const header = fs.readFileSync(
     "apps/web/components/public-header.tsx",
     "utf8",
   );
 
-  it("uses a different icon for the Skill nav item (not ShieldCheck)", () => {
-    // ShieldCheck is used by the homepage brand logo
-    // The Skill nav item should use a different icon
-    const skillEntryPattern = /\{[^}]*surface:\s*"skill"[^}]*\}/;
-    const skillEntry = header.match(skillEntryPattern)?.[0];
-    expect(skillEntry).toBeDefined();
-    expect(skillEntry).not.toContain("ShieldCheck");
+  it("does not keep a Skill nav item in the shared header", () => {
+    expect(header).not.toContain('surface: "skill"');
+    expect(header).not.toContain('{ label: "Skill"');
+    expect(header).not.toContain('route: "/skill"');
   });
 
-  it("imports Sparkles for the Skill nav item", () => {
-    expect(header).toContain("Sparkles");
+  it("does not import the hidden Skill nav icon", () => {
+    expect(header).not.toContain("Sparkles");
   });
 
   it("still uses ShieldCheck for the homepage brand icon", () => {

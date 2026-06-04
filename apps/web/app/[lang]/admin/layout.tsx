@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
 import { resolveLang } from "@/lib/i18n";
@@ -8,6 +9,11 @@ import {
   getAdminBackgroundClassName,
   getAdminShellClassName,
 } from "@/lib/admin-layout";
+import {
+  ADMIN_SESSION_COOKIE,
+  getAdminAuthConfig,
+  verifyAdminSessionToken,
+} from "@/lib/admin-auth";
 
 export const metadata: Metadata = {
   robots: {
@@ -27,12 +33,18 @@ export default async function AdminLayout({
 }: AdminLayoutProps) {
   const { lang: rawLang } = await params;
   const lang = resolveLang(rawLang);
+  const config = getAdminAuthConfig();
+  const cookieStore = await cookies();
+  const session = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const isAuthenticated = config
+    ? await verifyAdminSessionToken(session, config)
+    : false;
 
   return (
     <main className={getAdminBackgroundClassName()}>
       <div className={getAdminBackdropClassName()} />
       <div className={getAdminShellClassName()}>
-        <AdminHeader lang={lang} />
+        <AdminHeader lang={lang} isAuthenticated={isAuthenticated} />
         {children}
       </div>
     </main>

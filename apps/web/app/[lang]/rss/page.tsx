@@ -58,7 +58,6 @@ export default async function RssPage({ params: routeParams }: RssPageProps) {
         <PublicHeader
           homeHref={`/${lang}`}
           currentLang={lang}
-          currentSurface="rss"
         />
 
         <section className={getSectionOuterClassName()}>

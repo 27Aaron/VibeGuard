@@ -38,7 +38,6 @@ export default async function CheckPage({
         <PublicHeader
           homeHref={`/${lang}`}
           currentLang={lang}
-          currentSurface="check"
         />
 
         <section className={getSectionOuterClassName()}>

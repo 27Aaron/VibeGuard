@@ -56,7 +56,6 @@ export default async function ApiPage({ params: routeParams }: ApiPageProps) {
         <PublicHeader
           homeHref={`/${lang}`}
           currentLang={lang}
-          currentSurface="api"
         />
 
         <section className={getSectionOuterClassName()}>

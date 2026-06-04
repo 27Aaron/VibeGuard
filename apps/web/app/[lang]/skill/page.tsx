@@ -83,7 +83,6 @@ export default async function SkillPage({
         <PublicHeader
           homeHref={`/${lang}`}
           currentLang={lang}
-          currentSurface="skill"
         />
 
         <section className={getSectionOuterClassName()}>

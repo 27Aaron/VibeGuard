@@ -37,4 +37,24 @@ describe("admin shell layout", () => {
     expect(shell).not.toContain("内容底座后台");
     expect(shell).not.toContain("VibeGuard Admin");
   });
+
+  it("gates admin navigation and sign-out controls behind a verified session", () => {
+    const adminLayout = fs.readFileSync(
+      "apps/web/app/[lang]/admin/layout.tsx",
+      "utf8",
+    );
+    const adminHeader = fs.readFileSync(
+      "apps/web/components/admin/admin-header.tsx",
+      "utf8",
+    );
+
+    expect(adminLayout).toContain("verifyAdminSessionToken");
+    expect(adminLayout).toContain("ADMIN_SESSION_COOKIE");
+    expect(adminLayout).toContain("isAuthenticated={isAuthenticated}");
+    expect(adminHeader).toContain("isAuthenticated: boolean");
+    expect(adminHeader).toContain("isAuthenticated ? <AdminNav");
+    expect(adminHeader).toContain("isAuthenticated ? (");
+    expect(adminHeader).toContain("logoutAction");
+    expect(adminHeader).toContain('title={lang === "zh" ? "退出登录" : "Sign out"}');
+  });
 });

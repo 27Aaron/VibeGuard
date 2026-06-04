@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("public check page scaffolding", () => {
-  it("adds a public check entry to the homepage header and removes the admin security nav item", () => {
+  it("keeps the public check route available without exposing it in the shared header", () => {
     const publicHeader = fs.readFileSync(
       "apps/web/components/public-header.tsx",
       "utf8",
@@ -14,9 +14,9 @@ describe("public check page scaffolding", () => {
     );
     const routePath = "apps/web/app/[lang]/check/page.tsx";
 
-    expect(publicHeader).toContain('{ label: "Check"');
-    expect(publicHeader).toContain('item.surface === "check"');
-    expect(publicHeader).toContain('route: "/check"');
+    expect(publicHeader).not.toContain('{ label: "Check"');
+    expect(publicHeader).not.toContain('item.surface === "check"');
+    expect(publicHeader).not.toContain('route: "/check"');
     expect(adminNav).not.toContain('href: "/admin/security"');
     expect(fs.existsSync(routePath)).toBe(true);
   });

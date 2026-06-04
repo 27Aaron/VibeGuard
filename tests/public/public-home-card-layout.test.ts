@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("public homepage card layout", () => {
-  it("adds a soft status bar with API, Skill, MCP, RSS, and Check entry points", () => {
+  it("keeps the shared header focused on brand and controls without product-surface entry points", () => {
     const page = fs.readFileSync("apps/web/app/[lang]/page.tsx", "utf8");
     const publicHeader = fs.readFileSync(
       "apps/web/components/public-header.tsx",
@@ -11,59 +11,31 @@ describe("public homepage card layout", () => {
     );
 
     expect(page).toContain("<PublicHeader");
-    expect(publicHeader).toContain("futureSurfaceLinks");
+    expect(publicHeader).not.toContain("futureSurfaceLinks");
     expect(publicHeader).toContain("Live feed");
     expect(publicHeader).toContain("flex size-8 shrink-0");
     expect(publicHeader).toContain("bg-[#e9f2ec] text-emerald-950");
     expect(publicHeader).toContain(
       "text-[0.58rem] font-medium uppercase leading-none tracking-[0.12em]",
     );
-    expect(publicHeader).toContain("API");
-    expect(publicHeader).toContain("Skill");
-    expect(publicHeader).toContain("MCP");
-    expect(publicHeader).toContain("RSS");
-    expect(publicHeader).toContain("Check");
+    expect(publicHeader).not.toContain('{ label: "API"');
+    expect(publicHeader).not.toContain('{ label: "MCP"');
+    expect(publicHeader).not.toContain('{ label: "RSS"');
+    expect(publicHeader).not.toContain('{ label: "Skill"');
+    expect(publicHeader).not.toContain('{ label: "Check"');
+    expect(publicHeader).not.toContain('route: "/api"');
+    expect(publicHeader).not.toContain('route: "/mcp"');
+    expect(publicHeader).not.toContain('route: "/rss"');
+    expect(publicHeader).not.toContain('route: "/skill"');
+    expect(publicHeader).not.toContain('route: "/check"');
     expect(publicHeader).toContain("backdrop-blur-2xl");
     expect(publicHeader).toContain(
-      "md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]",
+      "md:grid-cols-[minmax(0,1fr)_auto]",
     );
-    expect(publicHeader).toContain("md:justify-self-center");
-    expect(publicHeader.indexOf('{ label: "API"')).toBeLessThan(
-      publicHeader.indexOf('{ label: "MCP"'),
-    );
-    expect(publicHeader.indexOf('{ label: "MCP"')).toBeLessThan(
-      publicHeader.indexOf('{ label: "RSS"'),
-    );
-    expect(publicHeader.indexOf('{ label: "RSS"')).toBeLessThan(
-      publicHeader.indexOf('{ label: "Skill"'),
-    );
-    expect(publicHeader.indexOf('{ label: "Skill"')).toBeLessThan(
-      publicHeader.indexOf('{ label: "Check"'),
-    );
-    expect(publicHeader).toContain(
-      "inline-flex h-8 min-w-0 items-center rounded-full border border-black/8 bg-[#eef2f7] p-[2px]",
-    );
-    expect(publicHeader).toContain(
-      "inline-flex h-[26px] items-center gap-1.5 rounded-full border border-black/8 bg-white px-2.5",
-    );
-    expect(publicHeader).toContain(
-      "dark:border-white/8 dark:bg-[#11161d] dark:text-stone-100",
-    );
-    expect(publicHeader).toMatch(
-      /const active =\s*currentSurface != null && item\.surface === currentSurface/,
-    );
-    expect(publicHeader).toContain(
-      "border-emerald-900/18 bg-[#dfe9e2] text-emerald-950",
-    );
-    expect(publicHeader).toContain(
-      "dark:border-emerald-200/14 dark:bg-[#121b17] dark:text-emerald-100",
-    );
-    expect(publicHeader).toContain(
-      "border-emerald-900/12 bg-[#f7fbf8] text-emerald-950",
-    );
-    expect(publicHeader).toContain(
-      'active && "text-emerald-800 dark:text-emerald-300"',
-    );
+    expect(publicHeader).not.toContain("md:justify-self-center");
+    expect(publicHeader).not.toContain("currentSurface");
+    expect(publicHeader).not.toContain("item.route");
+    expect(publicHeader).not.toContain("publicCheckNav");
     expect(publicHeader).not.toContain(
       "flex h-[26px] w-[26px] items-center justify-center",
     );

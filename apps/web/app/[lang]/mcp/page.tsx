@@ -166,7 +166,6 @@ export default async function McpPage({ params: routeParams }: McpPageProps) {
         <PublicHeader
           homeHref={`/${lang}`}
           currentLang={lang}
-          currentSurface="mcp"
         />
 
         <section className={getSectionOuterClassName()}>
